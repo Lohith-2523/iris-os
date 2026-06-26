@@ -25,19 +25,6 @@ export default function PrismPage() {
   const [query, setQuery] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // Parse initial query from URL search parameters (like if submitted from top bar!)
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const q = searchParams.get('q');
-      if (q) {
-        handleSendMessage(q);
-        // Clear query param from address bar without reloading
-        window.history.replaceState(null, '', window.location.pathname);
-      }
-    }
-  }, []);
-
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim()) return;
 
@@ -61,6 +48,19 @@ export default function PrismPage() {
       setIsLoading(false);
     }
   };
+
+  // Parse initial query from URL search parameters (like if submitted from top bar!)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const q = searchParams.get('q');
+      if (q) {
+        handleSendMessage(q);
+        // Clear query param from address bar without reloading
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
