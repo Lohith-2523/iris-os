@@ -45,6 +45,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/login') ||
     pathname.startsWith('/auth') ||
     pathname.includes('/webhook') ||
+    pathname.includes('/webhooks') ||
     pathname.includes('/callback') ||
     pathname === '/api/canva/auth'
 

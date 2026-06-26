@@ -1,8 +1,7 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'irisos_meta_verify_token';
+const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN || 'irisos_meta_verify_token';
 
 // GET Handshake challenge verification
 export async function GET(request: NextRequest) {
@@ -12,18 +11,30 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
 
+    // Logging verification query params for audit
+    console.log('Meta Webhook GET verification request:', {
+      mode,
+      token,
+      challenge,
+      url: request.url
+    });
+
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       console.log('Meta Webhook handshake verified successfully.');
-      return new Response(challenge, {
-        status: 200,
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      if (challenge) {
+        return new Response(challenge, {
+          status: 200,
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      }
     }
 
-    return NextResponse.json({ error: 'Verification failed' }, { status: 403 });
+    console.warn('Meta Webhook handshake verification failed.');
+    return new Response('Verification failed', { status: 403 });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error('Error in Meta Webhook GET verification:', errorMessage);
+    return new Response(errorMessage, { status: 500 });
   }
 }
 

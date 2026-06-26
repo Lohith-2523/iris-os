@@ -30,10 +30,10 @@ Used to sync campaigns, track ad performance metrics, automate lead capture work
     *   `http://127.0.0.1:3000/api/meta-ads/callback`
     *   `https://irisos.app/api/meta-ads/callback`
 *   **Webhook Listener URL (Realtime Leads)**: 
-    *   `http://localhost:3000/api/meta-ads/webhook`
-    *   `http://127.0.0.1:3000/api/meta-ads/webhook`
-    *   `https://irisos.app/api/meta-ads/webhook`
-*   **Webhook Verify Token**: Configured via environment variable `META_WEBHOOK_VERIFY_TOKEN` (defaults to `irisos_meta_verify_token`)
+    *   `http://localhost:3000/api/webhooks/meta`
+    *   `http://127.0.0.1:3000/api/webhooks/meta`
+    *   `https://irisos.app/api/webhooks/meta`
+*   **Webhook Verify Token**: Configured via environment variable `META_VERIFY_TOKEN` (defaults to `irisos_meta_verify_token`)
 *   **Graph API Scopes**:
     `catalog_management`, `pages_show_list`, `ads_management`, `ads_read`, `business_management`, `leads_retrieval`, `pages_read_engagement`, `pages_manage_metadata`, `pages_manage_ads`
 
