@@ -11,6 +11,8 @@ async function main() {
   console.log('Clearing database tables...');
   
   // Delete in reverse order of foreign keys
+  await prisma.clientInvite.deleteMany({});
+  await prisma.scheduledPost.deleteMany({});
   await prisma.askPrismMessage.deleteMany({});
   await prisma.prismInsight.deleteMany({});
   await prisma.integrationConnection.deleteMany({});
@@ -83,7 +85,7 @@ async function main() {
     data: {
       email: 'lohith@apex.co',
       name: 'Lohith Kumar',
-      role: 'ADMIN', // Executive CEO
+      role: 'admin', // Executive CEO
       avatarUrl: '/avatars/lohith.png',
       orgId: org.id,
     },
@@ -93,7 +95,7 @@ async function main() {
     data: {
       email: 'sarah.chen@apex.co',
       name: 'Sarah Chen',
-      role: 'ADMIN', // Operations Lead
+      role: 'admin', // Operations Lead
       avatarUrl: '/avatars/sarah.png',
       orgId: org.id,
     },
@@ -103,7 +105,7 @@ async function main() {
     data: {
       email: 'marcus.a@apex.co',
       name: 'Marcus Aurelius',
-      role: 'MEMBER', // Creative Director
+      role: 'admin', // Creative Director
       avatarUrl: '/avatars/marcus.png',
       orgId: org.id,
     },
@@ -113,7 +115,7 @@ async function main() {
     data: {
       email: 'elena.r@apex.co',
       name: 'Elena Rostova',
-      role: 'MEMBER', // Financial Director
+      role: 'admin', // Financial Director
       avatarUrl: '/avatars/elena.png',
       orgId: org.id,
     },
@@ -123,7 +125,7 @@ async function main() {
     data: {
       email: 'david.k@apex.co',
       name: 'David Kim',
-      role: 'MEMBER', // Lead Designer
+      role: 'admin', // Lead Designer
       avatarUrl: '/avatars/david.png',
       orgId: org.id,
     },
@@ -133,7 +135,7 @@ async function main() {
     data: {
       email: 'sophie.d@client.co',
       name: 'Sophie Dubois',
-      role: 'CLIENT_VIEWER',
+      role: 'client',
       avatarUrl: '/avatars/sophie.png',
       orgId: org.id,
     },
@@ -172,6 +174,7 @@ async function main() {
         renewalDate: c.status === 'ACTIVE' ? renewalDate : null,
         upsellOpportunityValue: c.status === 'ACTIVE' ? Math.floor(Math.random() * 50000) : 0,
         orgId: org.id,
+        adAccountId: c.name === 'Aether Technologies' ? 'act_109283741' : null,
       },
     });
     clients.push(client);
@@ -185,6 +188,64 @@ async function main() {
         role: 'Marketing Lead',
         clientId: client.id,
       },
+    });
+  }
+
+  // 4b. Associate user6 to Aether Technologies and seed ScheduledPosts
+  const aetherClient = clients.find(c => c.name === 'Aether Technologies');
+  if (aetherClient) {
+    await prisma.user.update({
+      where: { email: 'sophie.d@client.co' },
+      data: { clientId: aetherClient.id }
+    });
+
+    console.log('Seeding scheduled posts...');
+    await prisma.scheduledPost.create({
+      data: {
+        platform: ['instagram', 'facebook'],
+        postType: 'carousel',
+        caption: '🚀 Elevate your marketing funnel with IrisOS integrations! Synced design pipelines from Canva straight to Meta campaign layouts. Learn how David Kim optimizes creative performance in seconds. #Agencies #CreativeOperations',
+        mediaUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60',
+        status: 'PUBLISHED',
+        scheduledAt: new Date('2026-06-25T14:30:00Z'),
+        clientId: aetherClient.id,
+      }
+    });
+
+    await prisma.scheduledPost.create({
+      data: {
+        platform: ['instagram'],
+        postType: 'reel',
+        caption: 'Watch Sarah execute high-fidelity profit leak audits using Prism AI! 📊💸 Recover up to $2,800/mo in contractor allocations in just three clicks. Full tutorial in bio!',
+        mediaUrl: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=500&auto=format&fit=crop&q=60',
+        status: 'PUBLISHED',
+        scheduledAt: new Date('2026-06-24T18:00:00Z'),
+        clientId: aetherClient.id,
+      }
+    });
+
+    await prisma.scheduledPost.create({
+      data: {
+        platform: ['facebook'],
+        postType: 'story',
+        caption: 'We are hiring a Senior UI Designer to join our Apex Creative team! Send applications over or tag a friend. Apply by July 15.',
+        mediaUrl: 'https://images.unsplash.com/photo-1542744094-3a31f103e35f?w=500&auto=format&fit=crop&q=60',
+        status: 'SCHEDULED',
+        scheduledAt: new Date('2026-06-28T09:00:00Z'),
+        clientId: aetherClient.id,
+      }
+    });
+
+    await prisma.scheduledPost.create({
+      data: {
+        platform: ['instagram', 'facebook'],
+        postType: 'photo',
+        caption: 'Quick insight audit of our recent Aether Campaign: 4.8x ROI driven by custom target lookalikes! Optimization in progress.',
+        mediaUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60',
+        status: 'SCHEDULED',
+        scheduledAt: new Date('2026-06-26T15:00:00Z'),
+        clientId: aetherClient.id,
+      }
     });
   }
 

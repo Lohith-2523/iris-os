@@ -75,6 +75,24 @@ export default function LoginPage() {
     document.cookie = "currentUserEmail=" + email + "; path=/; max-age=86400";
     window.dispatchEvent(new Event('user-updated'));
 
+    try {
+      const res = await fetch(`/api/user?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const userData = await res.json();
+        const role = userData.role?.toLowerCase();
+        document.cookie = `currentUserRole=${role}; path=/; max-age=86400`;
+        if (role === 'client') {
+          setTimeout(() => {
+            setIsLoading(false);
+            router.push('/meta-portal');
+          }, 100);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching user role on login:', e);
+    }
+
     setTimeout(() => {
       setIsLoading(false);
       router.push('/dashboard');

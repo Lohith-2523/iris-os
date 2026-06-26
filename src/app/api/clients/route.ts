@@ -18,18 +18,19 @@ export async function POST(request: NextRequest) {
       metadata,
       contact,
       currentUserEmail,
+      adAccountId,
     } = body;
 
     if (!currentUserEmail) {
       return NextResponse.json({ error: 'Missing currentUserEmail authorization context' }, { status: 400 });
     }
 
-    // Verify admin role
+    // Verify admin role (case insensitive to support both 'admin' and 'ADMIN')
     const user = await prisma.user.findUnique({
       where: { email: currentUserEmail },
     });
 
-    if (!user || user.role !== 'ADMIN') {
+    if (!user || user.role.toUpperCase() !== 'ADMIN') {
       return NextResponse.json({ error: 'Access Denied: Administrative clearance required.' }, { status: 403 });
     }
 
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
         agencyType: agencyType || null,
         businessModel: businessModel || null,
         metadata: metadata || {},
+        adAccountId: adAccountId || null,
         orgId: org.id,
         contacts: contact ? {
           create: {
@@ -70,7 +72,43 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json(newClient);
+    // Generate Client Invite Link automatically
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+    const inviteEmail = contact?.email || `contact@${domain || 'example.com'}`;
+    const inviteName = contact?.name || `${name} Contact`;
+
+    const invite = await prisma.clientInvite.create({
+      data: {
+        email: inviteEmail,
+        name: inviteName,
+        clientId: newClient.id,
+        adAccountId: adAccountId || null,
+        token,
+        expiresAt,
+      }
+    });
+
+    // Simulate sending welcome email in console logs
+    console.log('\n==================================================');
+    console.log(`✉️ WELCOME EMAIL SIMULATED FOR CLIENT: ${name}`);
+    console.log(`TO: ${inviteEmail} (${inviteName})`);
+    console.log('SUBJECT: Welcome to IrisOS - Set Up Your Client Account');
+    console.log('BODY:');
+    console.log(`Hello ${inviteName},\n`);
+    console.log(`Welcome to IrisOS! You have been invited by the team at Apex Creative to connect.`);
+    console.log(`You can register your account and access your Meta Portal dashboard using the link below:`);
+    console.log(`http://localhost:3000/invite?token=${token}\n`);
+    console.log('This invite token will expire in 7 days.');
+    console.log('Best regards,\nIrisOS Automation Engine');
+    console.log('==================================================\n');
+
+    return NextResponse.json({
+      ...newClient,
+      inviteUrl: `/invite?token=${token}`
+    });
   } catch (error: any) {
     console.error('Error onboarding client:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

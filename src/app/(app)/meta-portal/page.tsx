@@ -30,7 +30,8 @@ import {
   Plus,
   Trash2,
   Paperclip,
-  Check
+  Check,
+  User
 } from 'lucide-react';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -111,11 +112,12 @@ interface ScheduledPost {
   postType: 'photo' | 'carousel' | 'reel' | 'story';
   caption: string;
   mediaUrl: string;
-  status: 'SCHEDULED' | 'PUBLISHED';
+  status: 'SCHEDULED' | 'PUBLISHED' | 'APPROVED' | 'CHANGES_PROPOSED';
   scheduledAt: string; // ISO date or "Immediate"
-  likes: number;
-  comments: number;
-  shares: number;
+  clientFeedback?: string | null;
+  likes?: number;
+  comments?: number;
+  shares?: number;
 }
 
 export default function MetaPortalPage() {
@@ -134,6 +136,13 @@ export default function MetaPortalPage() {
   // Currency Re-rendering State
   const [currencyState, setCurrencyState] = React.useState('USD');
   const [currencyRate, setCurrencyRate] = React.useState(1.0);
+
+  // Role & Context States
+  const [userRole, setUserRole] = React.useState<'admin' | 'client'>('admin');
+  const [clientName, setClientName] = React.useState<string | null>(null);
+  const [adminNotifications, setAdminNotifications] = React.useState<any[]>([]);
+  const [feedbackText, setFeedbackText] = React.useState('');
+  const [showFeedbackInput, setShowFeedbackInput] = React.useState(false);
 
   // Accordion toggle states for campaign rows
   const [expandedCampaigns, setExpandedCampaigns] = React.useState<Record<string, boolean>>({});
@@ -249,12 +258,17 @@ export default function MetaPortalPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/meta-portal');
+      const email = localStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const res = await fetch(`/api/meta-portal?email=${encodeURIComponent(email)}`);
       if (res.ok) {
         const data = await res.json();
         const loadedCamps = data.campaigns || [];
         setCampaigns(loadedCamps);
         setLeads(data.leads || []);
+        setScheduledPosts(data.scheduledPosts || []);
+        setAdminNotifications(data.notifications || []);
+        setUserRole(data.role || 'admin');
+        setClientName(data.clientName || null);
         
         // Auto-expand campaigns
         const expansions: Record<string, boolean> = {};
@@ -274,6 +288,32 @@ export default function MetaPortalPage() {
     loadData();
     setSdkStatus('initialized');
   }, []);
+
+  const handleClientFeedback = async (postId: string, status: 'APPROVED' | 'CHANGES_PROPOSED', feedback?: string) => {
+    try {
+      const res = await fetch('/api/meta-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'client_feedback',
+          postId,
+          status,
+          feedback,
+        })
+      });
+      if (res.ok) {
+        await loadData();
+        setSelectedDayPost(null);
+        setFeedbackText('');
+        setShowFeedbackInput(false);
+        alert(status === 'APPROVED' ? 'Post approved successfully!' : 'Changes proposed successfully.');
+      } else {
+        alert('Failed to save client feedback.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Derived state of ads
   const ads = React.useMemo(() => {
@@ -384,7 +424,7 @@ export default function MetaPortalPage() {
   };
 
   // Add post to scheduled list
-  const handlePostSubmit = (e: React.FormEvent) => {
+  const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caption.trim()) {
       alert(formatUserMessage('Lohith, please fill out the caption text.'));
@@ -408,39 +448,63 @@ export default function MetaPortalPage() {
     const postDate = isScheduled ? scheduleDate : new Date().toISOString().split('T')[0];
     const postTime = isScheduled ? scheduleTime : new Date().toTimeString().split(' ')[0].slice(0, 5);
 
-    const newPost: ScheduledPost = {
-      id: `post-${Date.now()}`,
-      platform: platformList,
-      postType,
-      caption,
-      mediaUrl: mediaUrl || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&auto=format&fit=crop&q=60',
-      status: isScheduled ? 'SCHEDULED' : 'PUBLISHED',
-      scheduledAt: `${postDate}T${postTime}:00`,
-      likes: 0,
-      comments: 0,
-      shares: 0
-    };
+    try {
+      const res = await fetch('/api/meta-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'schedule_post',
+          platform: platformList,
+          postType,
+          caption,
+          mediaUrl: mediaUrl || 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=500&auto=format&fit=crop&q=60',
+          scheduledAt: `${postDate}T${postTime}:00Z`,
+        })
+      });
+      
+      if (res.ok) {
+        await loadData();
+        // reset form
+        setCaption('');
+        setMediaUrl('');
+        setIsMediaReady(false);
+        setSelectedCanvaDesign('');
+        setUploadedFileName('');
+        setIsScheduled(false);
+        setScheduleDate('');
+        setScheduleTime('');
 
-    setScheduledPosts([newPost, ...scheduledPosts]);
-    
-    // reset form
-    setCaption('');
-    setMediaUrl('');
-    setIsMediaReady(false);
-    setSelectedCanvaDesign('');
-    setUploadedFileName('');
-    setIsScheduled(false);
-    setScheduleDate('');
-    setScheduleTime('');
-
-    alert(formatUserMessage(isScheduled 
-      ? 'Lohith, post scheduled successfully!' 
-      : 'Lohith, post published successfully!'
-    ));
+        alert(formatUserMessage(isScheduled 
+          ? 'Lohith, post scheduled successfully!' 
+          : 'Lohith, post published successfully!'
+        ));
+      } else {
+        alert('Failed to save scheduled post.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error saving scheduled post.');
+    }
   };
 
-  const handleCancelSchedule = (postId: string) => {
-    setScheduledPosts(prev => prev.filter(p => p.id !== postId));
+  const handleCancelSchedule = async (postId: string) => {
+    try {
+      const res = await fetch('/api/meta-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_post',
+          id: postId,
+        })
+      });
+      if (res.ok) {
+        await loadData();
+      } else {
+        alert('Failed to delete scheduled post.');
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const toggleCampaignExpansion = (id: string) => {
@@ -517,6 +581,349 @@ export default function MetaPortalPage() {
     }
     return days;
   }, []);
+
+  if (userRole === 'client') {
+    return (
+      <div className="space-y-6 font-sans text-xs">
+        {/* Header */}
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5 no-print">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Client Meta Portal</h1>
+            <p className="text-xs text-zinc-500">Live ad performance statistics and broadcast approval center for {clientName || 'your business'}.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="risk-low" className="h-8 border-emerald-900/40 bg-emerald-950/20 text-emerald-400 gap-1.5 px-3">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Client Session Active</span>
+            </Badge>
+          </div>
+        </div>
+
+        {/* SECTION A: ADS INSIGHTS & DATA REPORT */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-white" />
+              <span>Ad Accounts Insights</span>
+            </h2>
+            <Badge variant="outline" className="border-zinc-800 text-[10px]">Authorised Views Only</Badge>
+          </div>
+          
+          {/* Metric Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Amount Spent</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold text-white font-mono">
+                  {formatCurrency(ads.reduce((acc, curr) => acc + curr.spend, 0))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Reach</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold text-white font-mono">
+                  {ads.reduce((acc, curr) => acc + curr.reach, 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Cost per 1k Reach</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold text-white font-mono">
+                  {formatCurrency(
+                    ads.reduce((acc, curr) => acc + curr.reach, 0) > 0
+                      ? (ads.reduce((acc, curr) => acc + curr.spend, 0) / ads.reduce((acc, curr) => acc + curr.reach, 0)) * 1000
+                      : 0,
+                    2
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">Leads Generated</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold text-white font-mono">
+                  {ads.reduce((acc, curr) => acc + curr.leadsCount, 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">Leads Conversion %</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold text-white font-mono">
+                  {formatPercent(
+                    ads.reduce((acc, curr) => acc + curr.clicks, 0) > 0
+                      ? ads.reduce((acc, curr) => acc + curr.leadsCount, 0) / ads.reduce((acc, curr) => acc + curr.clicks, 0)
+                      : 0
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* LEADS LIST (So clients can track it from their end) */}
+        <div className="space-y-4 pt-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+            <User className="h-4 w-4 text-white" />
+            <span>Leads Tracking Directory</span>
+          </h2>
+          <Card className="border-zinc-850">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[150px]">Full Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Source Ad</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Created Time</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leads.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-zinc-500 py-6">
+                        No leads recorded for this ad account.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    leads.map((lead) => (
+                      <TableRow key={lead.id}>
+                        <TableCell className="font-semibold text-white">{lead.fullName}</TableCell>
+                        <TableCell className="font-mono text-zinc-400">{lead.email}</TableCell>
+                        <TableCell className="text-zinc-400">{lead.phone || 'N/A'}</TableCell>
+                        <TableCell className="text-zinc-400">{lead.adName || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="border-zinc-800 text-[10px] uppercase font-bold text-zinc-400">
+                            {lead.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-zinc-500 font-mono">
+                          {new Date(lead.createdTime).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* BROADCAST CALENDAR GRID */}
+        <div className="space-y-4 pt-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-white" />
+            <span>Scheduled Post Approvals & Broadcast Calendar</span>
+          </h2>
+          <Card className="border-zinc-850 p-6">
+            <div className="grid grid-cols-7 gap-1 bg-zinc-950 p-1 border border-zinc-900 font-bold text-center text-zinc-500 py-2">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                <div key={day} className="text-[10px] uppercase tracking-wider">{day}</div>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1 mt-1">
+              {calendarDays.map((day, idx) => {
+                const dayPosts = scheduledPosts.filter(p => {
+                  const pDate = new Date(p.scheduledAt).toISOString().split('T')[0];
+                  return pDate === day.dateStr;
+                });
+
+                return (
+                  <div
+                    key={idx}
+                    className={`min-h-[90px] border border-zinc-900 bg-zinc-950/20 p-2 flex flex-col justify-between ${
+                      day.isCurrentMonth ? '' : 'opacity-25 pointer-events-none'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className={`font-mono text-xs ${day.isCurrentMonth ? 'text-zinc-400' : 'text-zinc-700'}`}>
+                        {day.dayNum}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-end space-y-1 mt-1">
+                      {dayPosts.map((post) => (
+                        <div
+                          key={post.id}
+                          onClick={() => {
+                            setSelectedDayPost(post);
+                            setFeedbackText(post.clientFeedback || '');
+                            setShowFeedbackInput(false);
+                          }}
+                          className={`group text-[9px] font-medium p-1 rounded border cursor-pointer transition-all duration-150 flex items-center justify-between ${
+                            post.status === 'PUBLISHED'
+                              ? 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-white'
+                              : post.status === 'APPROVED'
+                              ? 'bg-emerald-950/30 border-emerald-900/50 text-emerald-400 hover:bg-emerald-950/50'
+                              : post.status === 'CHANGES_PROPOSED'
+                              ? 'bg-amber-950/30 border-amber-900/50 text-amber-400 hover:bg-amber-950/50'
+                              : 'bg-zinc-850/60 border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                          }`}
+                        >
+                          <span className="truncate max-w-[40px]">{post.caption}</span>
+                          <span className="font-mono text-[8px] opacity-75 shrink-0 ml-1">
+                            {new Date(post.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+
+        {/* POST DETAILS POPUP DIALOG */}
+        {selectedDayPost && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-zinc-950 border border-zinc-800 max-w-md w-full p-6 space-y-5 rounded-none shadow-2xl relative animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+                <div className="flex items-center gap-2">
+                  {selectedDayPost.platform.includes('facebook') && <Facebook className="h-4 w-4 text-blue-500" />}
+                  {selectedDayPost.platform.includes('instagram') && <Instagram className="h-4 w-4 text-pink-500" />}
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">{selectedDayPost.postType} Broadcast</span>
+                </div>
+                <Badge variant={selectedDayPost.status === 'PUBLISHED' ? 'risk-low' : 'outline'}>
+                  {selectedDayPost.status}
+                </Badge>
+              </div>
+
+              {/* Media thumbnail */}
+              <div className="h-48 w-full border border-zinc-800 bg-zinc-950 overflow-hidden relative">
+                <img src={selectedDayPost.mediaUrl} alt="Post content" className="h-full w-full object-cover" />
+              </div>
+
+              {/* Details */}
+              <div className="space-y-3 text-xs">
+                <div className="space-y-1">
+                  <span className="font-bold text-zinc-500 block uppercase tracking-wider text-[9px]">Caption</span>
+                  <p className="text-zinc-300 font-sans leading-relaxed">{selectedDayPost.caption}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-900 text-zinc-400">
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-zinc-550 block">Broadcast Date</span>
+                    <span className="font-mono text-zinc-300">{new Date(selectedDayPost.scheduledAt).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-zinc-550 block">Broadcast Time</span>
+                    <span className="font-mono text-zinc-300">{new Date(selectedDayPost.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Client Approval Actions */}
+              {selectedDayPost.status !== 'PUBLISHED' && (
+                <div className="space-y-3 pt-3 border-t border-zinc-900 text-xs">
+                  <span className="font-bold text-zinc-550 block uppercase tracking-wider text-[9px]">Client Approval & Feedback</span>
+                  {selectedDayPost.status === 'APPROVED' && (
+                    <div className="text-emerald-400 font-semibold text-xs flex items-center gap-1.5 bg-emerald-950/15 border border-emerald-900/30 p-2 rounded">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Approved for Broadcast</span>
+                    </div>
+                  )}
+                  {selectedDayPost.status === 'CHANGES_PROPOSED' && (
+                    <div className="space-y-2">
+                      <div className="text-amber-400 font-semibold text-xs flex items-center gap-1.5 bg-amber-950/15 border border-amber-900/30 p-2 rounded">
+                        <span>Changes Proposed</span>
+                      </div>
+                      {selectedDayPost.clientFeedback && (
+                        <div className="bg-zinc-900/40 border border-zinc-800 p-2.5 rounded text-zinc-400 leading-normal italic font-sans text-[11px]">
+                          "{selectedDayPost.clientFeedback}"
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedDayPost.status !== 'APPROVED' && selectedDayPost.status !== 'CHANGES_PROPOSED' && (
+                    <div className="space-y-3 pt-2">
+                      {showFeedbackInput ? (
+                        <div className="space-y-2 animate-fadeIn">
+                          <span className="text-[9px] uppercase font-bold text-zinc-550 block">Feedback / Proposed Changes</span>
+                          <textarea
+                            value={feedbackText}
+                            onChange={(e) => setFeedbackText(e.target.value)}
+                            placeholder="Enter requested changes or comments..."
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none text-[11px]"
+                            rows={3}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              onClick={() => setShowFeedbackInput(false)}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-[10px]"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => handleClientFeedback(selectedDayPost.id, 'CHANGES_PROPOSED', feedbackText)}
+                              size="sm"
+                              disabled={!feedbackText.trim()}
+                              className="h-8 bg-amber-600 text-white hover:bg-amber-500 text-[10px] font-semibold"
+                            >
+                              Submit Feedback
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            onClick={() => handleClientFeedback(selectedDayPost.id, 'APPROVED')}
+                            className="h-9 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[10px]"
+                          >
+                            Approve Post
+                          </Button>
+                          <Button
+                            onClick={() => setShowFeedbackInput(true)}
+                            variant="outline"
+                            className="h-9 border-zinc-800 text-zinc-300 hover:bg-zinc-900 font-semibold text-[10px]"
+                          >
+                            Propose Changes
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end">
+                <Button 
+                  onClick={() => setSelectedDayPost(null)}
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs font-semibold border-zinc-800 text-zinc-300"
+                >
+                  Close View
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -603,6 +1010,39 @@ export default function MetaPortalPage() {
       {/* RENDER TAB 1: OVERVIEW DASHBOARD */}
       {activeTab === 'overview' && (
         <div className="space-y-8 animate-fadeIn">
+          {/* Admin Notifications Banner */}
+          {adminNotifications.length > 0 && (
+            <div className="rounded border border-amber-900/30 bg-amber-950/15 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-amber-400">
+                <Sparkles className="h-4.5 w-4.5 animate-pulse" />
+                <span className="font-bold text-xs uppercase tracking-wider">Client Action Review Required ({adminNotifications.length})</span>
+              </div>
+              <div className="space-y-2">
+                {adminNotifications.map((notif: any) => (
+                  <div key={notif.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-900 pb-2 text-xs">
+                    <div>
+                      <span className="font-semibold text-zinc-300">Client {notif.client?.name} proposed changes:</span>
+                      <p className="text-zinc-400 mt-1 italic font-sans">"{notif.clientFeedback}"</p>
+                      <span className="block text-[10px] text-zinc-500 mt-0.5">Post Type: {notif.postType} | Date: {new Date(notif.scheduledAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedDayPost(notif);
+                          setFeedbackText(notif.clientFeedback || '');
+                          setShowFeedbackInput(false);
+                        }}
+                        className="h-7 bg-zinc-100 text-zinc-950 hover:bg-white text-[10px]"
+                      >
+                        Inspect Post
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {/* SECTION A: ADS INSIGHTS & DATA REPORT */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -1526,26 +1966,39 @@ export default function MetaPortalPage() {
                 </div>
               </div>
 
-              {selectedDayPost.status === 'PUBLISHED' && (
-                <div className="pt-2 border-t border-zinc-900 grid grid-cols-3 text-center bg-zinc-900/20 p-2 border border-zinc-900">
-                  <div>
-                    <span className="text-[9px] uppercase text-zinc-550 block font-bold">Likes</span>
-                    <span className="font-mono text-white font-black">{selectedDayPost.likes}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase text-zinc-550 block font-bold">Comments</span>
-                    <span className="font-mono text-white font-black">{selectedDayPost.comments}</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase text-zinc-550 block font-bold">Shares</span>
-                    <span className="font-mono text-white font-black">{selectedDayPost.shares}</span>
-                  </div>
+              {/* Admin Approval Actions */}
+              {userRole === 'admin' && selectedDayPost.status !== 'PUBLISHED' && (
+                <div className="space-y-3 pt-3 border-t border-zinc-900 text-xs">
+                  <span className="font-bold text-zinc-550 block uppercase tracking-wider text-[9px]">Client Approval & Feedback</span>
+                  {selectedDayPost.status === 'APPROVED' && (
+                    <div className="text-emerald-400 font-semibold text-xs flex items-center gap-1.5 bg-emerald-950/15 border border-emerald-900/30 p-2 rounded">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Approved by Client</span>
+                    </div>
+                  )}
+                  {selectedDayPost.status === 'CHANGES_PROPOSED' && (
+                    <div className="space-y-2">
+                      <div className="text-amber-400 font-semibold text-xs flex items-center gap-1.5 bg-amber-950/15 border border-amber-900/30 p-2 rounded">
+                        <span>Changes Proposed by Client</span>
+                      </div>
+                      {selectedDayPost.clientFeedback && (
+                        <div className="bg-zinc-900/40 border border-zinc-800 p-2.5 rounded text-zinc-400 leading-normal italic font-sans text-[11px]">
+                          "{selectedDayPost.clientFeedback}"
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {selectedDayPost.status !== 'APPROVED' && selectedDayPost.status !== 'CHANGES_PROPOSED' && (
+                    <div className="text-zinc-500 italic text-[11px]">
+                      Awaiting client approval.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             <div className="pt-2 flex justify-end gap-2.5">
-              {selectedDayPost.status === 'SCHEDULED' && (
+              {userRole === 'admin' && selectedDayPost.status === 'SCHEDULED' && (
                 <Button 
                   onClick={() => {
                     handleCancelSchedule(selectedDayPost.id);
@@ -1553,7 +2006,7 @@ export default function MetaPortalPage() {
                   }}
                   variant="outline" 
                   size="sm" 
-                  className="h-8 text-xs font-semibold gap-1.5 border-rose-900/40 bg-rose-950/20 text-rose-400 hover:bg-rose-950/40"
+                  className="h-8 text-xs font-semibold gap-1.5 border-rose-900/40 bg-rose-950/20 text-rose-400 hover:bg-rose-950/40 cursor-pointer"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>Delete Schedule</span>

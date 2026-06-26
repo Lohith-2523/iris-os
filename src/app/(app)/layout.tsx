@@ -3,14 +3,57 @@
 import * as React from 'react';
 import { Sidebar } from '@/components/app-shell/sidebar';
 import { Topbar } from '@/components/app-shell/topbar';
-import { X } from 'lucide-react';
+import { X, Lock, ArrowRight } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  
+  const [user, setUser] = React.useState<{ name: string; role: string } | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  const fetchUser = React.useCallback(async () => {
+    try {
+      const email = localStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const res = await fetch(`/api/user?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      }
+    } catch (e) {
+      console.error('Error fetching user in layout:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchUser();
+    window.addEventListener('user-updated', fetchUser);
+    return () => {
+      window.removeEventListener('user-updated', fetchUser);
+    };
+  }, [fetchUser]);
+
+  const isClientGated = user?.role?.toLowerCase() === 'client' && pathname !== '/meta-portal';
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[#09090b]">
+        <div className="text-zinc-500 text-xs flex items-center gap-2">
+          <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
+          <span>Loading workspace session...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#09090b]">
-      {/* Desktop Sidebar (Sidebar is hidden on mobile, visible on medium screens and up) */}
+      {/* Desktop Sidebar */}
       <Sidebar className="hidden md:flex shrink-0" />
 
       {/* Mobile Sidebar overlay drawer */}
@@ -41,7 +84,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         
         {/* Page Content area */}
         <main className="flex-1 overflow-y-auto bg-[#0c0c0e] p-6 lg:p-8">
-          {children}
+          {isClientGated ? (
+            <div className="flex h-[70vh] flex-col items-center justify-center font-sans text-xs">
+              <div className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 p-6 rounded-lg shadow-2xl space-y-6 text-center relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-0.5 bg-zinc-800" />
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider">Restricted Area</h2>
+                  <p className="text-[11px] text-zinc-500 max-w-xs mx-auto leading-normal">
+                    Your account has client clearance level and is authorized to view only the **Meta Portal**.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <Button
+                    onClick={() => router.push('/meta-portal')}
+                    className="w-full h-9 font-semibold bg-white text-zinc-950 hover:bg-zinc-200 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Proceed to Meta Portal</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>

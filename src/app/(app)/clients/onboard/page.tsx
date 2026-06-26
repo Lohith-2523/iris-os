@@ -97,7 +97,10 @@ export default function ClientOnboardPage() {
     longTermGoals: [] as string[],
     monthlyRetainer: '',
     paymentTerms: 'NET_30',
+    adAccountId: '',
   });
+
+  const [inviteUrl, setInviteUrl] = React.useState('');
 
   const [formError, setFormError] = React.useState('');
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -181,6 +184,7 @@ export default function ClientOnboardPage() {
         agencyType: formData.agencyType,
         businessModel: formData.businessModel,
         currentUserEmail: userEmail,
+        adAccountId: formData.adAccountId || null,
         contact: {
           name: formData.pocName,
           email: formData.pocEmail,
@@ -234,10 +238,9 @@ export default function ClientOnboardPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        setInviteUrl(data.inviteUrl || '');
         setSubmitStatus('success');
-        setTimeout(() => {
-          router.push('/clients');
-        }, 1500);
       } else {
         const errorData = await res.json();
         setSubmitStatus('error');
@@ -953,7 +956,7 @@ export default function ClientOnboardPage() {
                     <h2 className="text-sm font-semibold text-white">Commercial details & Goals</h2>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Monthly Retainer ($ / month)</label>
                       <input
@@ -976,6 +979,20 @@ export default function ClientOnboardPage() {
                         <option value="NET_15">Net 15 Days</option>
                         <option value="NET_30">Net 30 Days</option>
                         <option value="DUE_ON_RECEIPT">Due on Receipt</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Associated Meta Ad Account ID</label>
+                      <select
+                        name="adAccountId"
+                        value={formData.adAccountId}
+                        onChange={handleInputChange}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-medium"
+                      >
+                        <option value="">None / Unlinked</option>
+                        <option value="act_109283741">act_109283741 (Aether Sandbox)</option>
+                        <option value="act_987654321">act_987654321 (Vertex Sandbox)</option>
+                        <option value="act_555444333">act_555444333 (Nova BioLabs Sandbox)</option>
                       </select>
                     </div>
                   </div>
@@ -1104,9 +1121,57 @@ export default function ClientOnboardPage() {
                   </div>
 
                   {submitStatus === 'success' && (
-                    <div className="flex gap-2.5 rounded border border-emerald-900/30 bg-emerald-950/10 p-3.5 text-emerald-400 font-semibold items-center justify-center">
-                      <CheckCircle className="h-4 w-4 shrink-0" />
-                      <span>{formatUserMessage('Lohith, client has been successfully onboarded! Redirecting to portfolio...')}</span>
+                    <div className="space-y-4 mt-6">
+                      <div className="flex gap-2.5 rounded border border-emerald-900/30 bg-emerald-950/10 p-3.5 text-emerald-400 font-semibold items-center justify-center">
+                        <CheckCircle className="h-4 w-4 shrink-0" />
+                        <span>Client Onboarding Success! Invite link generated.</span>
+                      </div>
+                      
+                      {inviteUrl && (
+                        <div className="rounded border border-zinc-800 bg-zinc-900/40 p-4 space-y-3">
+                          <span className="block font-bold text-zinc-400 uppercase tracking-wider text-[9px]">Client Invite Link</span>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={`${window.location.origin}${inviteUrl}`}
+                              className="flex-1 rounded border border-zinc-800 bg-zinc-950 p-2 text-[10px] text-zinc-300 font-mono focus:outline-none"
+                            />
+                            <Button
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}${inviteUrl}`);
+                                alert('Invite link copied to clipboard!');
+                              }}
+                              className="h-8 bg-zinc-100 text-zinc-950 hover:bg-white text-[10px]"
+                            >
+                              Copy Link
+                            </Button>
+                          </div>
+                          <span className="block text-[9px] text-zinc-500">
+                            Provide this link to the client for account activation. An invitation email was also automatically dispatched to {formData.pocEmail}.
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="rounded border border-zinc-900 bg-zinc-950/40 p-4 space-y-2.5 text-[10px]">
+                        <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[8px]">Simulated Welcome Email Dispatch</span>
+                        <div className="border-t border-zinc-900 pt-2 space-y-1 text-zinc-400">
+                          <div><span className="font-semibold text-zinc-300">To:</span> {formData.pocEmail}</div>
+                          <div><span className="font-semibold text-zinc-300">Subject:</span> Welcome to IrisOS - Set Up Your Client Account</div>
+                          <div className="pt-2 leading-relaxed italic text-zinc-500 bg-zinc-900/20 p-2.5 rounded">
+                            "Hello {formData.pocName},\n\nWelcome to IrisOS! You have been invited to register your client portal account. Visit: {window.location.origin}{inviteUrl} to set up your password."
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => router.push('/clients')}
+                          className="w-full h-9 bg-zinc-100 text-zinc-950 hover:bg-white font-semibold"
+                        >
+                          Return to Client Portfolio
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1114,39 +1179,41 @@ export default function ClientOnboardPage() {
             </CardContent>
 
             {/* Wizard Controls Footer */}
-            <div className="border-t border-zinc-900 p-4 bg-zinc-950/40 flex justify-between gap-3 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={step === 1 || submitStatus === 'submitting' || submitStatus === 'success'}
-                onClick={handlePrevStep}
-                className="h-9 border-zinc-800 text-zinc-300 font-semibold text-xs flex items-center gap-1.5"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back</span>
-              </Button>
+            {submitStatus !== 'success' && (
+              <div className="border-t border-zinc-900 p-4 bg-zinc-950/40 flex justify-between gap-3 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={step === 1 || submitStatus === 'submitting'}
+                  onClick={handlePrevStep}
+                  className="h-9 border-zinc-800 text-zinc-300 font-semibold text-xs flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Back</span>
+                </Button>
 
-              {step < 6 ? (
-                <Button
-                  type="button"
-                  onClick={handleNextStep}
-                  className="h-9 font-semibold text-xs flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-200"
-                >
-                  <span>Continue</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  disabled={submitStatus === 'submitting' || submitStatus === 'success'}
-                  onClick={handleFormSubmit}
-                  className="h-9 font-semibold text-xs flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-200"
-                >
-                  <Save className="h-4 w-4" />
-                  <span>{submitStatus === 'submitting' ? 'Onboarding Client...' : 'Onboard Client'}</span>
-                </Button>
-              )}
-            </div>
+                {step < 6 ? (
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="h-9 font-semibold text-xs flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-200"
+                  >
+                    <span>Continue</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    disabled={submitStatus === 'submitting'}
+                    onClick={handleFormSubmit}
+                    className="h-9 font-semibold text-xs flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-200"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>{submitStatus === 'submitting' ? 'Onboarding Client...' : 'Onboard Client'}</span>
+                  </Button>
+                )}
+              </div>
+            )}
           </Card>
         </div>
       </div>

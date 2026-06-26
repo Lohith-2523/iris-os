@@ -1,24 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const campaigns = await prisma.metaCampaign.findMany({
-      include: { ads: true },
-      orderBy: { createdAt: 'desc' },
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value || 'lohith@apex.co';
+
+    // 1. Fetch user to check role and ad account authorization
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { client: true }
     });
 
-    const leads = await prisma.metaLead.findMany({
-      orderBy: { createdTime: 'desc' },
-    });
+    const isClient = user?.role === 'client';
+    const clientAdAccountId = user?.client?.adAccountId || '';
+    const clientBusinessId = user?.clientId || '';
 
-    // Fetch any ads that don't have campaigns, just in case
+    let campaigns;
+    let leads;
+    let scheduledPosts;
+    let notifications: any[] = [];
+
+    if (isClient) {
+      // Client view: filter campaigns and ads by the client's adAccountId
+      campaigns = await prisma.metaCampaign.findMany({
+        where: clientAdAccountId ? {
+          campaignId: {
+            startsWith: clientAdAccountId
+          }
+        } : { id: 'none' }, // Return nothing if no ad account is associated
+        include: { ads: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      leads = await prisma.metaLead.findMany({
+        where: clientAdAccountId ? {
+          adId: {
+            startsWith: clientAdAccountId
+          }
+        } : { id: 'none' },
+        orderBy: { createdTime: 'desc' },
+      });
+
+      scheduledPosts = await prisma.scheduledPost.findMany({
+        where: clientBusinessId ? {
+          clientId: clientBusinessId
+        } : { id: 'none' },
+        orderBy: { scheduledAt: 'asc' }
+      });
+    } else {
+      // Admin view: see everything
+      campaigns = await prisma.metaCampaign.findMany({
+        include: { ads: true },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      leads = await prisma.metaLead.findMany({
+        orderBy: { createdTime: 'desc' },
+      });
+
+      scheduledPosts = await prisma.scheduledPost.findMany({
+        orderBy: { scheduledAt: 'asc' }
+      });
+
+      // Admin review center: list all posts where client proposed changes
+      notifications = await prisma.scheduledPost.findMany({
+        where: {
+          status: 'CHANGES_PROPOSED'
+        },
+        include: {
+          client: true
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+    }
+
+    // Fetch any ads that don't have campaigns
     const orphanedAds = await prisma.metaAd.findMany({
-      where: { campaignId: null },
+      where: isClient && clientAdAccountId ? {
+        campaignId: null,
+        adId: { startsWith: clientAdAccountId }
+      } : { campaignId: null },
       orderBy: { spend: 'desc' },
     });
 
-    return NextResponse.json({ campaigns, leads, orphanedAds });
+    return NextResponse.json({
+      campaigns,
+      leads,
+      orphanedAds,
+      scheduledPosts,
+      notifications,
+      role: user?.role || 'admin',
+      clientName: user?.client?.name || null
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching Meta Portal data:', error);
@@ -48,7 +122,70 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, lead: updatedLead });
     }
 
-    // 2. Create New Campaign
+    // 2. Client Feedback action (approve or propose changes)
+    if (action === 'client_feedback') {
+      const { postId, status, feedback } = body;
+      if (!postId || !status) {
+        return NextResponse.json({ error: 'Missing postId or status' }, { status: 400 });
+      }
+
+      const updatedPost = await prisma.scheduledPost.update({
+        where: { id: postId },
+        data: {
+          status,
+          clientFeedback: feedback || null
+        }
+      });
+
+      return NextResponse.json({ success: true, post: updatedPost });
+    }
+
+    // 3. Admin: Schedule new post from Composer
+    if (action === 'schedule_post') {
+      const { platform, postType, caption, mediaUrl, scheduledAt, clientId } = body;
+      if (!platform || !postType || !caption || !mediaUrl || !scheduledAt) {
+        return NextResponse.json({ error: 'Missing required parameters: platform, postType, caption, mediaUrl, scheduledAt' }, { status: 400 });
+      }
+
+      // Default to first active client if none specified for administration
+      let targetClientId = clientId;
+      if (!targetClientId) {
+        const firstClient = await prisma.client.findFirst({
+          where: { status: 'ACTIVE' }
+        });
+        targetClientId = firstClient?.id;
+      }
+
+      const post = await prisma.scheduledPost.create({
+        data: {
+          platform,
+          postType,
+          caption,
+          mediaUrl,
+          status: 'SCHEDULED',
+          scheduledAt: new Date(scheduledAt),
+          clientId: targetClientId || null
+        }
+      });
+
+      return NextResponse.json({ success: true, post });
+    }
+
+    // 4. Admin: Delete scheduled post
+    if (action === 'delete_post') {
+      const { id } = body;
+      if (!id) {
+        return NextResponse.json({ error: 'Missing post ID' }, { status: 400 });
+      }
+
+      await prisma.scheduledPost.delete({
+        where: { id }
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    // 5. Create New Campaign
     if (action === 'create_campaign') {
       const { name, status, objective, dailyBudget } = body;
       if (!name || !status) {
@@ -69,7 +206,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, campaign });
     }
 
-    // 3. Create New Ad
+    // 6. Create New Ad
     if (action === 'create_ad') {
       const { name, status, platform, campaignId, imageUrl } = body;
       if (!name || !status || !platform || !campaignId) {
@@ -96,7 +233,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ad });
     }
 
-    // 4. Edit Campaign
+    // 7. Edit Campaign
     if (action === 'edit_campaign') {
       const { id, name, status, dailyBudget } = body;
       if (!id || !name || !status) {
@@ -115,7 +252,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, campaign: updatedCampaign });
     }
 
-    // 5. Edit Ad
+    // 8. Edit Ad
     if (action === 'edit_ad') {
       const { id, name, status, platform, spend, reach, clicks, impressions, leadsCount, imageUrl } = body;
       if (!id || !name || !status || !platform) {
@@ -140,7 +277,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ad: updatedAd });
     }
 
-    // 6. Canva Asset Sync
+    // 9. Canva Asset Sync
     if (action === 'sync_asset') {
       const { adId, imageUrl } = body;
       if (!adId || !imageUrl) {

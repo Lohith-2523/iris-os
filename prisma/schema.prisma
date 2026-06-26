@@ -49,10 +49,12 @@ model User {
   id             String        @id @default(uuid())
   email          String        @unique
   name           String
-  role           String        // ADMIN, MEMBER, CLIENT_VIEWER, EXECUTIVE
+  role           String        // admin, client
   avatarUrl      String?
   orgId          String
   organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clientId       String?
+  client         Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   
@@ -62,6 +64,7 @@ model User {
   askPrismMessages AskPrismMessage[]
 
   @@index([orgId])
+  @@index([clientId])
 }
 
 model Client {
@@ -80,12 +83,16 @@ model Client {
   metadata               Json?
   orgId                  String
   organization           Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  adAccountId            String?
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
   
   contacts               Contact[]
   projects               Project[]
   invoices               Invoice[]
+  users                  User[]
+  invites                ClientInvite[]
+  scheduledPosts         ScheduledPost[]
 
   @@index([orgId])
 }
@@ -380,4 +387,34 @@ model MetaLead {
   updatedAt    DateTime   @updatedAt
 
   @@index([orgId])
+}
+
+model ClientInvite {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  adAccountId String?
+  token       String   @unique
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+}
+
+model ScheduledPost {
+  id             String   @id @default(uuid())
+  platform       String[] // e.g. ["instagram", "facebook"]
+  postType       String   // e.g. "photo", "reel", "story", "carousel"
+  caption        String
+  mediaUrl       String
+  status         String   // "SCHEDULED", "PUBLISHED", "APPROVED", "CHANGES_PROPOSED"
+  scheduledAt    DateTime
+  clientFeedback String?
+  clientId       String?
+  client         Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([clientId])
 }

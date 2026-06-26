@@ -142,6 +142,13 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
+  const visibleItems = React.useMemo(() => {
+    if (user?.role?.toLowerCase() === 'client') {
+      return navigationItems.filter(item => item.name === 'Meta Portal');
+    }
+    return navigationItems;
+  }, [user]);
+
   const initials = React.useMemo(() => {
     return orgName
       .split(' ')
@@ -171,7 +178,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     >
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between px-6 border-b border-zinc-800">
-        <Link href="/dashboard" className="flex items-center gap-2" onClick={onCloseMobile}>
+        <Link href={user?.role?.toLowerCase() === 'client' ? '/meta-portal' : '/dashboard'} className="flex items-center gap-2" onClick={onCloseMobile}>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 font-bold text-black shadow-md border border-zinc-200">
             I
           </div>
@@ -198,7 +205,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       {/* Navigation List */}
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <nav className="space-y-1">
-          {navigationItems.map((item) => {
+          {visibleItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
             const Icon = item.icon;
 
