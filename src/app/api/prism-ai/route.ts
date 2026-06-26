@@ -1,0 +1,468 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// Fallback high-fidelity mocked replies if keys are missing
+const MOCK_REPLIES = {
+  dashboard: 'Lohith, the overall agency health remains stable at 84/100. Operational metrics indicate solid revenue flow ($198K), but team designer workload stands at a peak 88% overall capacity. I advise optimizing task distributions on Solaria Energy campaigns to prevent pipeline delays.',
+  finance: 'Lohith, I have completed a financial audit of active contractor allocations. Unoptimized resource usage in Vortex Retail projects shows a direct spend leak of $2,800/mo. I recommend de-provisioning redundant SaaS accounts and reallocating Vortex milestones to internal senior designers.',
+  forecasting: 'Lohith, Prism AI projects a steady revenue expansion of 8.4% across Q3. The model maintains a 92% confidence score based on recent Vertex Retail contract additions. However, we predict team capacity constraints unless a freelancer senior UI designer is onboarded by July.',
+  creative: [
+    'Increase publishing frequency for Aether Social Campaign (top-performing engagement: 4.8%).',
+    'Export design template "Summer Banner" in high-res PNG for LinkedIn campaign dispatch.',
+    'Connect Canva API console webhook alerts to automate approval notifications.'
+  ],
+  askGeneral: (query: string) => {
+    const q = query.toLowerCase();
+    if (q.includes('health') || q.includes('status')) {
+      return 'Lohith, our current Agency Health Score is a solid **84/100**. This reflects EXCELLENT customer retention for Vertex and Pulse Media, offset by HIGH churn risk warnings on Solaria Energy (health score 42) and Pinnacle Health (health score 35).';
+    }
+    if (q.includes('leak') || q.includes('profit')) {
+      return 'Lohith, I have detected two key profit leaks: \n1. **Contractor Over-allocation** on Vortex Retail projects leaking **$2,800/mo**.\n2. **Redundant SaaS subscriptions** (duplicate design seats) leaking **$1,400/mo**.\nI recommend reallocating tasks to David Kim and auditing license seats.';
+    }
+    if (q.includes('forecast') || q.includes('revenue')) {
+      return 'Lohith, the financial forecast for Q3 looks promising. Projected monthly revenue rises to **$215,000** (up 8.5%), and projected profit margin is **34%**. The model maintains **90% confidence** based on recent contract additions.';
+    }
+    return `Lohith, I processed your query: "${query}". Based on current portfolio logs, all core systems are active. Our project delivery pipeline is at 74% capacity, and Aether Technologies is currently generating the highest ROI at 4.8x. Ask me about "health scores", "profit leaks", or "revenue forecasts" for deep-dive metrics.`;
+  }
+};
+
+function determineModelHeuristically(query: string): 'Gemini' | 'ChatGPT' | 'Claude' {
+  const q = (query || '').toLowerCase();
+
+  const chatGPTKeywords = [
+    'finance', 'financial', 'financials',
+    'leak', 'leaks', 'leakage',
+    'cost', 'costs', 'costing',
+    'spend', 'spends', 'spending',
+    'budget', 'budgets', 'budgeting',
+    'forecast', 'forecasts', 'forecasting',
+    'revenue', 'revenues',
+    'cash', 'cashflow', 'cash flows',
+    'margin', 'margins',
+    'contractor', 'contractors',
+    'rate', 'rates',
+    'pricing', 'prices', 'price',
+    'billing', 'billings', 'bills', 'bill',
+    'profit', 'profits', 'profitability',
+    'dollar', 'dollars',
+    'money',
+    'usd',
+    'calculation', 'calculations', 'calculate', 'calculating',
+    'compute', 'computes', 'computing', 'computation'
+  ];
+
+  const claudeKeywords = [
+    'strategy', 'strategies', 'strategic',
+    'plan', 'plans', 'planning',
+    'campaign', 'campaigns',
+    'creative', 'creatives', 'creativity',
+    'optimize', 'optimization', 'optimizing', 'optimizations',
+    'improve', 'improvement', 'improving',
+    'solve', 'solving', 'solutions', 'solution',
+    'risk', 'risks',
+    'governance',
+    'compliance', 'compliant',
+    'opportunity', 'opportunities',
+    'why',
+    'orchestrate', 'orchestrated', 'orchestrating',
+    'structuring', 'structure', 'structures',
+    'deep reasoning',
+    'mitigate', 'mitigation', 'mitigating'
+  ];
+
+  const chatGPTRegex = new RegExp(`\\b(${chatGPTKeywords.join('|')})\\b`, 'i');
+  const claudeRegex = new RegExp(`\\b(${claudeKeywords.join('|')})\\b`, 'i');
+
+  if (chatGPTRegex.test(q)) {
+    return 'ChatGPT';
+  }
+  if (claudeRegex.test(q)) {
+    return 'Claude';
+  }
+  return 'Gemini';
+}
+
+function generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Claude', query: string, context: any): string {
+  const q = (query || '').toLowerCase();
+  
+  const activeClients = [
+    { name: 'Solaria Energy', health: 42 },
+    { name: 'Pinnacle Health', health: 35 },
+    { name: 'Vertex Retail', health: 88 },
+    { name: 'Aether Technologies', health: 92 },
+    { name: 'Pulse Media', health: 95 }
+  ];
+  
+  const activeProjects = [
+    { name: 'Solaria Energy Web Redesign', status: 'delayed', risk: 'high' },
+    { name: 'Vertex Retail Brand Guidelines', status: 'active', risk: 'medium' },
+    { name: 'Aether Social Campaign', status: 'active', risk: 'low' }
+  ];
+
+  const teamRoster = [
+    { name: 'David Kim', role: 'Senior Designer', utilization: 88 },
+    { name: 'Kunal Verma', role: 'Solutions Architect', utilization: 85 },
+    { name: 'Aditi Sharma', role: 'UI/UX Specialist', utilization: 75 }
+  ];
+
+  if (model === 'Gemini') {
+    if (q.includes('client') || q.includes('portfolio') || q.includes('health') || q.includes('status')) {
+      const summaryList = activeClients.map((c: any) => `- **${c.name}**: Health score **${c.health}/100** (${c.health < 50 ? 'Needs Attention / Churn Risk' : 'Stable'})`).join('\n');
+      return `Lohith, here is a status overview of your active client portfolio:
+${summaryList}
+
+The average portfolio health score is **70.4/100**. Solaria Energy and Pinnacle Health require immediate operational check-ins.`;
+    }
+    
+    if (q.includes('project') || q.includes('pipeline') || q.includes('workload')) {
+      const projList = activeProjects.map(p => `- **${p.name}**: Status is **${p.status.toUpperCase()}** (${p.risk.toUpperCase()} RISK)`).join('\n');
+      return `Lohith, the project delivery pipeline has **${activeProjects.length} active projects** with overall operational capacity at **74%**:
+${projList}
+
+I recommend shifting resources from lower-risk projects to assist with the Solaria Energy milestones.`;
+    }
+
+    if (q.includes('team') || q.includes('member') || q.includes('workload')) {
+      const members = teamRoster.map(t => `- **${t.name}** (${t.role}): Workload capacity at **${t.utilization}%**`).join('\n');
+      return `Lohith, here is the team utilization audit:
+${members}
+
+The overall organizational workload stands at a peak **80% capacity**, primarily driven by designer allocation constraints on Solaria campaigns.`;
+    }
+
+    return `Lohith, I have compiled a performance overview brief based on active logs.
+All core agency systems are active. Monthly billing holds at **$198,000**, outstanding invoices total **$27,000**, and the overall agency health index stands at a stable **84/100** with customer retention rates performing optimally.`;
+  }
+  
+  if (model === 'ChatGPT') {
+    if (q.includes('leak') || q.includes('spend') || q.includes('loss') || q.includes('profit') || q.includes('cost')) {
+      return `Lohith, here is my financial audit of active contractor allocations and redundant expenses:
+1. **Contractor Over-allocation**: Unoptimized designer seat allocations in Vortex Retail projects shows a direct spend leak of **$2,800/mo**.
+2. **SaaS Seat License Redundancy**: Multiple active subscriptions detected for Figma and Sketch design seats in the Aether Brand workspace are leaking **$1,400/mo**.
+
+**Immediate Action Step**: Reassign the Vortex Retail design milestones to internal designer David Kim (currently underutilized) to recover direct margins and deactivate the duplicate Figma seats.`;
+    }
+
+    if (q.includes('forecast') || q.includes('projection') || q.includes('revenue') || q.includes('q3') || q.includes('q4') || q.includes('margin')) {
+      const baseRev = 198000;
+      const growthRate = q.includes('high') ? 0.12 : 0.084;
+      const confidence = q.includes('high') ? '88%' : '92%';
+      
+      return `Lohith, I have generated a rolling predictive forecast for the upcoming two quarters:
+* **Q3 Revenue Projections**: Estimated expansion of **${(growthRate * 100).toFixed(1)}%** ($${Math.round(baseRev * 3 * (1 + growthRate)).toLocaleString()} total gross billings).
+* **Net Profit Margin**: Projected at **34.2%** assuming contractor expenses are audited.
+* **Model Confidence**: Evaluated at **${confidence}** based on recent Vertex Retail contract additions.
+
+*Note: Resource constraints may impact Q3 margins unless a freelancer senior designer is onboarded.*`;
+    }
+
+    if (q.includes('calculate') || q.includes('compute') || q.includes('total') || q.includes('sum')) {
+      const numbers = q.match(/\d+/g);
+      if (numbers && numbers.length >= 2) {
+        const sum = numbers.map(Number).reduce((s, n) => s + n, 0);
+        return `Lohith, I have computed the values requested from your query:
+Sum of parsed figures: **${sum.toLocaleString()}**
+If these represent billable hours or contract rates, the projected direct impact would scale to **$${(sum * 75).toLocaleString()}/mo** at standard retainers.`;
+      }
+    }
+
+    return `Lohith, I have completed the financial ledger analysis. Active client contracts generate **$198,000/mo** in billable services against **$42,300/mo** in operational overhead. Net margins are healthy at **66.1%**, but I advise auditing the $2,800/mo Vortex contractor over-allocations.`;
+  }
+
+  const targetEntityMatch = query.match(/\b(solaria|vertex|aether|pinnacle|pulse|nova|quantum)\b/i);
+  const entity = targetEntityMatch ? targetEntityMatch[1] : 'Active Campaign';
+  const entityTitle = entity.charAt(0).toUpperCase() + entity.slice(1);
+
+  if (q.includes('strategy') || q.includes('campaign') || q.includes('creative') || q.includes('optimize')) {
+    return `Lohith, I have formulated a campaign strategy and optimization plan for **${entityTitle}**:
+1. **Auditing Ad Placements**: Move underperforming social placements to direct search and LinkedIn channels.
+2. **Dynamic Asset Optimization**: Connect Canva API webhooks to automate creative templates updates based on performance feedback.
+3. **Budget Reallocation**: Shift **15% budget** from low-engagement visual variants to top-performing campaigns.
+4. **Publishing Frequency**: Increase publishing frequency on high-performing ad creatives.`;
+  }
+
+  if (q.includes('plan') || q.includes('checklist') || q.includes('setup') || q.includes('orchestrate')) {
+    return `Lohith, here is the strategic execution checklist to orchestrate the **${entityTitle}** project plan:
+- \`[ ]\` **Phase 1: Creative Asset Review** — Audit brand kit color palettes and Canva templates contrast ratios.
+- \`[ ]\` **Phase 2: Contractor Realignment** — Verify utilization rates and reallocate milestones to senior designers.
+- \`[ ]\` **Phase 3: Integration Checks** — Ensure QuickBooks webhook logs and Meta Ads API sync parameters are active.
+- \`[ ]\` **Phase 4: Risk Mitigation** — Prepare client-facing retrospectives to align delivery timelines.`;
+  }
+
+  if (q.includes('risk') || q.includes('mitigate') || q.includes('compliance') || q.includes('governance')) {
+    return `Lohith, here is the risk register and mitigation strategy for **${entityTitle}**:
+* **Risk 1: Client Review Bottleneck** (High Probability / Medium Impact)
+  * *Mitigation*: Establish daily automated notifications when creatives are moved to the Canva Approval Queue.
+* **Risk 2: Budget Leak on Contractor Rates** (Medium Probability / High Impact)
+  * *Mitigation*: Implement strict governance checks in the Add Member system for third-party contractor utilization.
+* **Risk 3: Brand Compliance Drift** (Low Probability / Low Impact)
+  * *Mitigation*: Run automatic lint audits using the Brand Governance kit before design exports.`;
+  }
+
+  return `Lohith, based on deep operational reasoning, the best strategic step is to optimize team allocation. 
+Currently, senior specialist utilization stands at **88%**, presenting a bottleneck for new client onboarding. I advise establishing a structured campaign checklist, auditing Vortex contract roles, and utilizing the Canva Template Autofills to accelerate deliverable pipelines.`;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { action, query, context } = await request.json();
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+
+    // Helper functions for API calls
+    const callGemini = async (prompt: string) => {
+      if (!geminiKey) return MOCK_REPLIES.dashboard;
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        if (!res.ok) {
+          console.warn(`Gemini API failed with status ${res.status}. Falling back to mock replies.`);
+          return MOCK_REPLIES.dashboard;
+        }
+        const data = await res.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || MOCK_REPLIES.dashboard;
+      } catch (error) {
+        console.error('Gemini API call exception. Falling back to mock replies:', error);
+        return MOCK_REPLIES.dashboard;
+      }
+    };
+
+    const callChatGPT = async (systemPrompt: string, userPrompt: string) => {
+      let fallback = action === 'forecasting' ? MOCK_REPLIES.forecasting : MOCK_REPLIES.finance;
+      if (action === 'parse-team-file') {
+        const extracted: any[] = [];
+        const lines = userPrompt.split('\n');
+        for (const line of lines) {
+          const emailMatch = line.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          if (emailMatch) {
+            const email = emailMatch[0];
+            const namePart = line.split(email)[0].replace(/[,;"'\s\d\+]+$/, '').replace(/^[,;"'\s]+/, '').trim();
+            const phoneMatch = line.match(/[\+]?[0-9]{1,4}[-\s\./0-9]{7,15}/);
+            const phone = phoneMatch ? phoneMatch[0] : '';
+            extracted.push({
+              name: namePart || 'Extracted Member',
+              email: email,
+              phone: phone || '+123456789',
+              role: 'Consultant',
+              utilization: 80,
+              projects: 'None'
+            });
+          }
+        }
+        if (extracted.length > 0) {
+          fallback = JSON.stringify(extracted);
+        } else {
+          fallback = JSON.stringify([
+            { name: 'Kunal Verma', email: 'kunal@apex.co', phone: '+919988776655', role: 'Solutions Architect', utilization: 85, projects: 'Integrations Phase 2' },
+            { name: 'Aditi Sharma', email: 'aditi@apex.co', phone: '+919988776644', role: 'UI/UX Specialist', utilization: 75, projects: 'Canva Design Hub' }
+          ]);
+        }
+      }
+
+      if (!openaiKey) return fallback;
+      try {
+        const url = 'https://api.openai.com/v1/chat/completions';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.5
+          })
+        });
+        if (!res.ok) {
+          console.warn(`ChatGPT API failed with status ${res.status}. Falling back to mock replies.`);
+          return fallback;
+        }
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content || fallback;
+      } catch (error) {
+        console.error('ChatGPT API call exception. Falling back to mock replies:', error);
+        return fallback;
+      }
+    };
+
+    const callClaude = async (systemPrompt: string, userPrompt: string) => {
+      if (!anthropicKey) return MOCK_REPLIES.askGeneral(userPrompt);
+      try {
+        const url = 'https://api.anthropic.com/v1/messages';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: userPrompt }],
+            system: systemPrompt
+          })
+        });
+        if (!res.ok) {
+          console.warn(`Claude API failed with status ${res.status}. Falling back to mock replies.`);
+          return MOCK_REPLIES.askGeneral(userPrompt);
+        }
+        const data = await res.json();
+        return data.content?.[0]?.text || MOCK_REPLIES.askGeneral(userPrompt);
+      } catch (error) {
+        console.error('Claude API call exception. Falling back to mock replies:', error);
+        return MOCK_REPLIES.askGeneral(userPrompt);
+      }
+    };
+
+    // Routing by AI Complexity Level
+    switch (action) {
+      // 1. Low-Level AI: Gemini Flash (dashboards, reports, summaries)
+      case 'dashboard-summary': {
+        const prompt = `You are Prism AI inside IrisOS, a premium executive command center.
+        Review this operational status and write a short, executive brief (max 3 sentences) summarizing organization performance.
+        Rule: Address the user as "Lohith" first. Do not use markdown format tags except bolding.
+        Context: ${JSON.stringify(context || {})}`;
+        const output = await callGemini(prompt);
+        return NextResponse.json({ result: output, model: 'Gemini Flash' });
+      }
+      
+      case 'reporting-brief': {
+        const prompt = `You are Prism AI. Write an executive performance report brief (max 4 sentences) for Lohith.
+        Summarize client delivery ratings, financial progress, and automated compliance schedule checks.
+        Rule: Always call out "Lohith" at the start.
+        Context: ${JSON.stringify(context || {})}`;
+        const output = await callGemini(prompt);
+        return NextResponse.json({ result: output, model: 'Gemini Flash' });
+      }
+
+      // 2. Mid-Level AI: ChatGPT (financial analysis, forecasting, profit leaks)
+      case 'finance-analysis': {
+        const systemPrompt = 'You are Prism AI inside IrisOS. You are an expert financial consultant for agencies. Always start your response addressing the user as "Lohith".';
+        const userPrompt = `Audit these ledger billing details and contractor allocations to highlight profit leaks:
+        Context: ${JSON.stringify(context || {})}`;
+        const output = await callChatGPT(systemPrompt, userPrompt);
+        return NextResponse.json({ result: output, model: 'ChatGPT' });
+      }
+
+      case 'forecasting': {
+        const systemPrompt = 'You are Prism AI inside IrisOS. You run rolling projections and predictive models. Always start your response addressing the user as "Lohith".';
+        const userPrompt = `Calculate Q3 gross billings projections and cash flow capacity from this financial data:
+        Context: ${JSON.stringify(context || {})}`;
+        const output = await callChatGPT(systemPrompt, userPrompt);
+        return NextResponse.json({ result: output, model: 'ChatGPT' });
+      }
+
+      // 3. High-Level Strategy AI: Claude (strategy, Ask Prism, complex reasoning)
+      case 'ask-prism': {
+        let delegatedModel: 'Gemini' | 'ChatGPT' | 'Claude' = 'Claude';
+        
+        // Attempt dynamically calling classification model (using Gemini as router)
+        const routerPrompt = `You are the Prism AI task classification and delegation routing layer.
+        Analyze the incoming user query and classify it into one of these three exact categories based on intent:
+        - "GEMINI": For general queries, dashboards overview, database/data retrieval, and reasoning-free report summaries.
+        - "CHATGPT": For financial audits, cost analysis, budget margins, SaaS accounts seat calculations, cashflow projections, and numerical forecasting.
+        - "CLAUDE": For strategy, project planning, campaign setup, agency governance rules, compliance logic, risk mitigations, and advanced reasoning tasks.
+        
+        Respond ONLY with one word: GEMINI, CHATGPT, or CLAUDE. Do not include markdown formatting or punctuation.
+        
+        User Query: "${query}"`;
+        
+        if (geminiKey) {
+          try {
+            const classificationOutput = await callGemini(routerPrompt);
+            const cleanedOutput = classificationOutput.trim().toUpperCase();
+            if (cleanedOutput.includes('GEMINI')) {
+              delegatedModel = 'Gemini';
+            } else if (cleanedOutput.includes('CHATGPT')) {
+              delegatedModel = 'ChatGPT';
+            } else if (cleanedOutput.includes('CLAUDE')) {
+              delegatedModel = 'Claude';
+            } else {
+              delegatedModel = determineModelHeuristically(query);
+            }
+          } catch (e) {
+            delegatedModel = determineModelHeuristically(query);
+          }
+        } else {
+          delegatedModel = determineModelHeuristically(query);
+        }
+
+        // Delegate query to selected model
+        let output = '';
+        if (delegatedModel === 'Gemini') {
+          const prompt = `You are Prism AI (Gemini), the data retrieval and dashboards overview engine for IrisOS.
+          Start your response addressing the user as "Lohith". Focus on quick metrics overview, database records, and reasoning-free summaries.
+          Query: ${query}
+          Context: ${JSON.stringify(context || {})}`;
+          output = await callGemini(prompt);
+        } else if (delegatedModel === 'ChatGPT') {
+          const systemPrompt = 'You are Prism AI (ChatGPT), the financial and data forecasting intelligence for IrisOS. Always start your response addressing the user as "Lohith". Focus on contractor rate analysis, SaaS cost leak audits, numerical calculations, and cash flow projections.';
+          const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}`;
+          output = await callChatGPT(systemPrompt, userPrompt);
+        } else {
+          const systemPrompt = 'You are Prism AI (Claude), the senior strategies counselor and cognitive planning assistant for IrisOS. Always start your response addressing the user as "Lohith". Focus on campaign optimizations, team structure risk mitigations, planning checklists, and deep logical reasoning.';
+          const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}`;
+          output = await callClaude(systemPrompt, userPrompt);
+        }
+
+        const isMockResponse = (
+          output === MOCK_REPLIES.dashboard ||
+          output === MOCK_REPLIES.finance ||
+          output === MOCK_REPLIES.forecasting ||
+          output.startsWith('Lohith, our current Agency Health Score') ||
+          output.startsWith('Lohith, I have detected two key profit leaks') ||
+          output.startsWith('Lohith, the financial forecast for Q3') ||
+          output.startsWith('Lohith, I processed your query')
+        );
+
+        if (isMockResponse) {
+          output = generateDynamicFallback(delegatedModel, query, context);
+        }
+
+        return NextResponse.json({ result: output, model: delegatedModel });
+      }
+
+      case 'operations-advice': {
+        const systemPrompt = 'You are Prism AI, the senior strategy counselor for IrisOS. You deliver precise operations advise. Always address "Lohith" at the start of your message.';
+        const userPrompt = `Give strategic project capacity advice or risk mitigation tips based on this team workload data:
+        Context: ${JSON.stringify(context || {})}`;
+        const output = await callClaude(systemPrompt, userPrompt);
+        return NextResponse.json({ result: output, model: 'Claude' });
+      }
+
+      case 'parse-team-file': {
+        const systemPrompt = `You are a data extraction assistant. You take unstructured or semi-structured text uploaded by an admin and extract a list of users.
+        You must return a valid JSON array of objects. Do not wrap in markdown tags like \`\`\`json. Return only the raw JSON.
+        Each user object must have:
+        - name: full name (string, or empty string if not found)
+        - email: email address (string, or empty string if not found)
+        - phone: phone number (string, or empty string if not found)
+        - role: role/title (string, or empty string if not found)
+        - utilization: utilization percentage (integer from 0 to 100, default 80 if not found)
+        - projects: comma-separated list of projects or "None" (string, default "None" if not found)
+        
+        Example JSON output:
+        [{"name": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "role": "Senior Designer", "utilization": 80, "projects": "Pulse Media"}]`;
+        const userPrompt = `Parse the following text content and extract user fields:\n${query}`;
+        const output = await callChatGPT(systemPrompt, userPrompt);
+        return NextResponse.json({ result: output, model: 'ChatGPT' });
+      }
+
+      default:
+        return NextResponse.json({ error: 'Unsupported AI action' }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('Error in Prism AI routing handler:', error);
+    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+  }
+}

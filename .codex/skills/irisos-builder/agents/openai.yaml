@@ -1,0 +1,4 @@
+interface:
+  display_name: "IrisOS Builder"
+  short_description: "Build and extend the IrisOS agency SaaS."
+  default_prompt: "Use $irisos-builder to plan or build IrisOS from the product prompt and architecture references."
