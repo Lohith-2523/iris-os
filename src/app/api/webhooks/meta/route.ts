@@ -1,5 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import crypto from 'crypto';
+
+// Verify Meta Hub signature
+function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
+  const metaSecret = process.env.META_APP_SECRET;
+  const igSecret = process.env.INSTAGRAM_APP_SECRET;
+
+  // If no secrets are configured, skip signature verification for local offline development.
+  if (!metaSecret && !igSecret) {
+    console.warn('Meta Webhook signature verification skipped: No META_APP_SECRET or INSTAGRAM_APP_SECRET configured in environment.');
+    return true;
+  }
+
+  if (!signatureHeader) {
+    console.warn('Meta Webhook verification failed: Missing X-Hub-Signature-256 header.');
+    return false;
+  }
+
+  const parts = signatureHeader.split('=');
+  if (parts.length !== 2 || parts[0] !== 'sha256') {
+    console.warn('Meta Webhook verification failed: Invalid X-Hub-Signature-256 header format.');
+    return false;
+  }
+
+  const expectedSignature = parts[1];
+
+  // Try verifying using META_APP_SECRET
+  if (metaSecret) {
+    const hmac = crypto.createHmac('sha256', metaSecret);
+    const calculatedSignature = hmac.update(rawBody).digest('hex');
+    try {
+      const bufferExpected = Buffer.from(expectedSignature, 'hex');
+      const bufferCalculated = Buffer.from(calculatedSignature, 'hex');
+      if (bufferExpected.length === bufferCalculated.length && crypto.timingSafeEqual(bufferExpected, bufferCalculated)) {
+        return true;
+      }
+    } catch (e) {
+      console.error('Error during META_APP_SECRET signature timing check:', e);
+    }
+  }
+
+  // Try verifying using INSTAGRAM_APP_SECRET
+  if (igSecret) {
+    const hmac = crypto.createHmac('sha256', igSecret);
+    const calculatedSignature = hmac.update(rawBody).digest('hex');
+    try {
+      const bufferExpected = Buffer.from(expectedSignature, 'hex');
+      const bufferCalculated = Buffer.from(calculatedSignature, 'hex');
+      if (bufferExpected.length === bufferCalculated.length && crypto.timingSafeEqual(bufferExpected, bufferCalculated)) {
+        return true;
+      }
+    } catch (e) {
+      console.error('Error during INSTAGRAM_APP_SECRET signature timing check:', e);
+    }
+  }
+
+  console.warn('Meta Webhook verification failed: Signature mismatch.');
+  return false;
+}
+
 
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN || 'irisos_meta_verify_token';
 
@@ -41,7 +101,21 @@ export async function GET(request: NextRequest) {
 // POST Event Receiver
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    const signatureHeader = request.headers.get('X-Hub-Signature-256');
+
+    console.log('Received Meta Webhook POST. Signature Header:', signatureHeader);
+
+    // Verify signature if secrets are configured
+    if (!verifySignature(rawBody, signatureHeader)) {
+      console.warn('Meta Webhook signature verification failed.');
+      return new Response(JSON.stringify({ error: 'Signature verification failed' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const body = JSON.parse(rawBody);
     console.log('Received Meta Webhook payload:', JSON.stringify(body, null, 2));
 
     const { object: webhookObject, entry: entries = [] } = body;
@@ -158,12 +232,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 6. Handle Instagram Webhooks
+      // 6. Handle Instagram Webhooks (including Direct messages)
       else if (webhookObject === 'instagram') {
         const changes = entry.changes || [];
         for (const change of changes) {
           await logConnectionEvent('CANVA', `Meta Instagram Webhook: IG User ${entry.id || 'Unknown'} field ${change.field || 'unknown'} updated: ${JSON.stringify(change.value)}`);
           processedEvents.push({ type: 'instagram_event', field: change.field });
+        }
+
+        const messaging = entry.messaging || [];
+        for (const messageEvent of messaging) {
+          const senderId = messageEvent.sender?.id;
+          const recipientId = messageEvent.recipient?.id;
+          const messageText = messageEvent.message?.text;
+          await logConnectionEvent('SLACK', `Instagram Messaging Webhook: Direct message from ${senderId || 'unknown'} to ${recipientId || 'unknown'}: "${messageText || '[Attachment]'}"`);
+          processedEvents.push({ type: 'instagram_messaging_event', senderId, recipientId, hasText: !!messageText });
         }
       }
 
@@ -176,7 +259,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 8. Handle Page Webhooks (including Lead Gen)
+      // 8. Handle Page Webhooks (including Lead Gen and Messenger)
       else if (webhookObject === 'page') {
         const changes = entry.changes || [];
         for (const change of changes) {
@@ -216,6 +299,15 @@ export async function POST(request: NextRequest) {
             await logConnectionEvent('SLACK', `Meta Page Webhook: Page ${entry.id || 'Unknown'} field ${change.field || 'unknown'} update.`);
             processedEvents.push({ type: 'page_change', field: change.field });
           }
+        }
+
+        const messaging = entry.messaging || [];
+        for (const messageEvent of messaging) {
+          const senderId = messageEvent.sender?.id;
+          const recipientId = messageEvent.recipient?.id;
+          const messageText = messageEvent.message?.text;
+          await logConnectionEvent('SLACK', `Messenger Webhook: Message from ${senderId || 'unknown'} to ${recipientId || 'unknown'}: "${messageText || '[Attachment]'}"`);
+          processedEvents.push({ type: 'messenger_messaging_event', senderId, recipientId, hasText: !!messageText });
         }
       }
     }
