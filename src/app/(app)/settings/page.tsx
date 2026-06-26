@@ -65,6 +65,9 @@ export default function SettingsPage() {
       }
     }
     loadOrg();
+    if (typeof window !== 'undefined') {
+      setCurrency(localStorage.getItem('dashboardCurrency') || 'USD');
+    }
   }, []);
 
   const maxAllowed = React.useMemo(() => {
@@ -116,6 +119,9 @@ export default function SettingsPage() {
       if (res.ok) {
         setSaveStatus('success');
         setTimeout(() => setSaveStatus('idle'), 3000);
+        // Save currency to localStorage and dispatch event
+        localStorage.setItem('dashboardCurrency', currency);
+        window.dispatchEvent(new Event('currency-updated'));
         // Dispatch custom event to notify sidebar to update
         window.dispatchEvent(new Event('organization-updated'));
       } else {
@@ -192,6 +198,8 @@ export default function SettingsPage() {
                       <option value="USD">USD ($) United States Dollar</option>
                       <option value="EUR">EUR (€) Euro</option>
                       <option value="GBP">GBP (£) British Pound</option>
+                      <option value="INR">INR (₹) Indian Rupee</option>
+                      <option value="CAD">CAD (CA$) Canadian Dollar</option>
                     </select>
                   </div>
                 </div>

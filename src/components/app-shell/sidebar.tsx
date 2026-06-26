@@ -133,7 +133,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       icon: Palette,
       badge: 'Canva',
     },
-    { name: 'Meta Ads & Leads', href: '/meta-ads', icon: Megaphone },
+    { name: 'Meta Portal', href: '/meta-portal', icon: Megaphone },
     { name: 'Prism AI', href: '/prism', icon: Sparkles, highlight: true },
     { name: 'Automations', href: '/automations', icon: Zap },
     { name: 'Forecasting', href: '/forecasting', icon: TrendingUp },

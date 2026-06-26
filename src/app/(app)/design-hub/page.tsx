@@ -192,7 +192,7 @@ export default function DesignHubPage() {
 
   const fetchMetaCampaigns = async () => {
     try {
-      const response = await fetch('/api/meta-ads');
+      const response = await fetch('/api/meta-portal');
       if (response.ok) {
         const data = await response.json();
         const camps = data.campaigns || [];
@@ -564,7 +564,7 @@ export default function DesignHubPage() {
 
       // Sync to selected Meta Ad in database if target channel is meta-api
       if (publishingChannel === 'meta-api' && selectedMetaAdId && downloadUrl) {
-        await fetch('/api/meta-ads', {
+        await fetch('/api/meta-portal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -611,7 +611,7 @@ export default function DesignHubPage() {
         // Sync mock local image to Meta Ad in sandbox mode
         const mockImgUrl = `/mock-designs/design-${selectedPublishDesign}.png`;
         if (publishingChannel === 'meta-api' && selectedMetaAdId) {
-          fetch('/api/meta-ads', {
+          fetch('/api/meta-portal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

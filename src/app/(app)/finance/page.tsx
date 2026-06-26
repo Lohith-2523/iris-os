@@ -9,11 +9,25 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { ArrowUpRight, ArrowDownRight, DollarSign, Download, Plus, Filter } from 'lucide-react';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
-import { formatUserMessage } from '@/lib/utils';
+import { formatCurrency, formatUserMessage } from '@/lib/utils';
 
 export default function FinancePage() {
   const [dbData, setDbData] = React.useState<any>(null);
-  const [aiLeakText, setAiLeakText] = React.useState<string>(formatUserMessage('Lohith, running profit leak audit calculations via ChatGPT...'));
+  const [leakData, setLeakData] = React.useState<any>(null);
+  const [currencyState, setCurrencyState] = React.useState('USD');
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrencyState(localStorage.getItem('dashboardCurrency') || 'USD');
+      const handleCurrencyChange = () => {
+        setCurrencyState(localStorage.getItem('dashboardCurrency') || 'USD');
+      };
+      window.addEventListener('currency-updated', handleCurrencyChange);
+      return () => {
+        window.removeEventListener('currency-updated', handleCurrencyChange);
+      };
+    }
+  }, []);
 
   React.useEffect(() => {
     async function load() {
@@ -26,7 +40,7 @@ export default function FinancePage() {
 
         const leaks = await PrismAIService.getProfitLeaks();
         if (leaks.length > 0) {
-          setAiLeakText(formatUserMessage(`Lohith, ChatGPT has detected a budget overage: ${leaks[0].description} Reassigning tasks to David Kim would recover $${leaks[0].impactValue}/mo in direct margins.`));
+          setLeakData(leaks[0]);
         }
       } catch (e) {
         console.error(e);
@@ -34,6 +48,11 @@ export default function FinancePage() {
     }
     load();
   }, []);
+
+  const aiLeakText = React.useMemo(() => {
+    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via ChatGPT...');
+    return formatUserMessage(`Lohith, ChatGPT has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
+  }, [leakData, currencyState]);
 
   const invoices = dbData?.recentInvoices ?? [
     { id: '1', number: 'INV-2026-001', client: 'Aether Technologies', amount: 25000, date: 'June 15, 2026', status: 'PAID' },
@@ -73,7 +92,7 @@ export default function FinancePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
-              {dbData ? `$${dbData.grossBillings.toLocaleString()}` : '$124,500'}
+              {dbData ? formatCurrency(dbData.grossBillings) : formatCurrency(124500)}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -89,7 +108,7 @@ export default function FinancePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
-              {dbData ? `$${dbData.outstandingAmount.toLocaleString()}` : '$27,000'}
+              {dbData ? formatCurrency(dbData.outstandingAmount) : formatCurrency(27000)}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
               <span>Outstanding balance across accounts</span>
@@ -104,7 +123,7 @@ export default function FinancePage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
-              {dbData ? `$${dbData.totalExpenses.toLocaleString()}` : '$42,300'}
+              {dbData ? formatCurrency(dbData.totalExpenses) : formatCurrency(42300)}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400 font-semibold">
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -160,7 +179,7 @@ export default function FinancePage() {
                       <TableCell className="font-mono text-xs">{inv.number}</TableCell>
                       <TableCell className="font-semibold text-white">{inv.client}</TableCell>
                       <TableCell>{inv.date}</TableCell>
-                      <TableCell className="text-right font-mono font-semibold">${inv.amount.toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-mono font-semibold">{formatCurrency(inv.amount)}</TableCell>
                       <TableCell className="text-right">
                         <Badge
                           variant={
@@ -180,10 +199,10 @@ export default function FinancePage() {
 
         {/* Right Sidebar - Financial Insights */}
         <div className="space-y-6">
-          <InsightPanel
+           <InsightPanel
             type="leak"
             title="Contractor Spend Leak Alert"
-            score="$2,800"
+            score={formatCurrency(2800)}
             scoreLabel="MONTHLY LEAK ESTIMATE"
             riskLevel="MEDIUM"
           >
@@ -201,21 +220,21 @@ export default function FinancePage() {
                   <span className="block font-semibold text-white">Canva Seats (Apex Brand)</span>
                   <span className="text-[10px] text-zinc-500">12 Seats active</span>
                 </div>
-                <span className="font-mono text-zinc-300 font-semibold">$360/mo</span>
+                <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(360)}/mo</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <div>
                   <span className="block font-semibold text-white">Vercel Pro Tier</span>
                   <span className="text-[10px] text-zinc-500">6 Projects active</span>
                 </div>
-                <span className="font-mono text-zinc-300 font-semibold">$120/mo</span>
+                <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(120)}/mo</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <div>
                   <span className="block font-semibold text-white">QuickBooks Online Suite</span>
                   <span className="text-[10px] text-zinc-500">Connected integration</span>
                 </div>
-                <span className="font-mono text-zinc-300 font-semibold">$85/mo</span>
+                <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(85)}/mo</span>
               </div>
             </CardContent>
           </Card>

@@ -21,9 +21,9 @@ export async function GET() {
     return NextResponse.json({ campaigns, leads, orphanedAds });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error fetching Meta Ads data:', error);
+    console.error('Error fetching Meta Portal data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch Meta Ads data', details: errorMessage },
+      { error: 'Failed to fetch Meta Portal data', details: errorMessage },
       { status: 500 }
     );
   }
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error in Meta Ads API:', error);
+    console.error('Error in Meta Portal API:', error);
     return NextResponse.json(
       { error: 'Failed to process request', details: errorMessage },
       { status: 500 }

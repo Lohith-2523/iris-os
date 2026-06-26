@@ -24,7 +24,21 @@ import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 export default function DashboardPage() {
   const [dbData, setDbData] = React.useState<any>(null);
   const [aiSummary, setAiSummary] = React.useState<string>(formatUserMessage('Lohith, compiling dashboard performance overview metrics via Gemini Flash...'));
-  const [aiLeak, setAiLeak] = React.useState<string>(formatUserMessage('Lohith, analyzing active contractor profit leaks via ChatGPT...'));
+  const [leakData, setLeakData] = React.useState<any>(null);
+  const [currencyState, setCurrencyState] = React.useState('USD');
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrencyState(localStorage.getItem('dashboardCurrency') || 'USD');
+      const handleCurrencyChange = () => {
+        setCurrencyState(localStorage.getItem('dashboardCurrency') || 'USD');
+      };
+      window.addEventListener('currency-updated', handleCurrencyChange);
+      return () => {
+        window.removeEventListener('currency-updated', handleCurrencyChange);
+      };
+    }
+  }, []);
 
   React.useEffect(() => {
     async function load() {
@@ -41,7 +55,7 @@ export default function DashboardPage() {
         
         const leaks = await PrismAIService.getProfitLeaks();
         if (leaks.length > 0) {
-          setAiLeak(formatUserMessage(`Lohith, I have detected a leak: ${leaks[0].description} Recommendation: ${leaks[0].actionStep} (Impact: $${leaks[0].impactValue}/mo).`));
+          setLeakData(leaks[0]);
         }
       } catch (e) {
         console.error(e);
@@ -49,6 +63,11 @@ export default function DashboardPage() {
     }
     load();
   }, []);
+
+  const aiLeak = React.useMemo(() => {
+    if (!leakData) return formatUserMessage('Lohith, analyzing active contractor profit leaks via ChatGPT...');
+    return formatUserMessage(`Lohith, I have detected a leak: ${leakData.description} Recommendation: ${leakData.actionStep} (Impact: ${formatCurrency(leakData.impactValue)}/mo).`);
+  }, [leakData, currencyState]);
 
   return (
     <div className="space-y-6">
@@ -74,7 +93,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
-              {dbData ? `$${dbData.currentMonthRevenue.toLocaleString()}` : '$198,000'}
+              {dbData ? formatCurrency(dbData.currentMonthRevenue) : formatCurrency(198000)}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -120,7 +139,7 @@ export default function DashboardPage() {
             <Activity className="h-4 w-4 text-rose-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-rose-400">$2,800/mo</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-rose-400">{formatCurrency(2800)}/mo</div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400/80 font-medium">
               <span>Unoptimized staff seats & utilization</span>
             </div>
@@ -171,7 +190,7 @@ export default function DashboardPage() {
                           className={`w-1/2 border transition-all rounded-none ${
                             isRevNegative ? 'chart-bar-decline' : 'chart-bar-growth'
                           }`}
-                          title={`Revenue: $${item.revenue.toLocaleString()} (${isRevNegative ? 'Negative Growth' : 'Positive/Stable'})`}
+                          title={`Revenue: ${formatCurrency(item.revenue)} (${isRevNegative ? 'Negative Growth' : 'Positive/Stable'})`}
                         />
                         {/* Capacity Bar */}
                         <div
@@ -260,7 +279,7 @@ export default function DashboardPage() {
           <InsightPanel
             type="leak"
             title="Active Profit Leak Warn"
-            score="$2,800"
+            score={formatCurrency(2800)}
             scoreLabel="CONTRACTOR LEAK VALUE"
             riskLevel="MEDIUM"
           >
