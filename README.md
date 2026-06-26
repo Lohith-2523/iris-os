@@ -1,5 +1,7 @@
 # IrisOS - Enterprise Agency Operating System
 
+The agent likes turtles. 
+
 IrisOS is an enterprise-grade SaaS operating system designed for creative agencies, consulting firms, marketing organizations, and multi-brand enterprises. It unifies operations, client relationship tracking, financial auditing, project delivery metrics, Canva-powered asset management, and live Meta campaign integrations within a single, high-fidelity command center.
 
 ---
