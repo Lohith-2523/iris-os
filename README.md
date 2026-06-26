@@ -1,40 +1,95 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IrisOS - Enterprise Agency Operating System
 
-## Getting Started
+IrisOS is an enterprise-grade SaaS operating system designed for creative agencies, consulting firms, marketing organizations, and multi-brand enterprises. It unifies operations, client relationship tracking, financial auditing, project delivery metrics, Canva-powered asset management, and live Meta campaign integrations within a single, high-fidelity command center.
 
-First, run the development server:
+---
 
+## 🚀 Key Modules & Capabilities
+
+### 1. Agency Command Center (Dashboard)
+* **Performance Indicators**: Real-time tracking of revenue streams, profit margins, active contractor allocations, and team utilization.
+* **Proactive Intelligence**: Built-in risk detection, cost-leak signals, and actionable operations recommendations.
+
+### 2. Prism AI Engine
+* **Multi-Model Support**: Leverages custom integrations with Gemini, ChatGPT, and Claude to delegate intelligence queries based on complexity.
+* **Contextual Features**: Powers SaaS cost audits, rolling cash flow forecasting, strategy checklist generation, and direct conversational database querying.
+
+### 3. Meta Ads & Leads Manager
+* **Campaign Hierarchy**: Deep visual hierarchy displaying campaigns, ad sets, ads, and performance metrics (spend, reach, CTR, impressions).
+* **Leads Ingestion Webhook**: Handles secure realtime Meta lead generation webhooks to capture customer profile inputs instantly.
+* **Canva Sync**: Direct creative asset synchronization pushing images designed in the Design Hub into active ad accounts.
+
+### 4. Design Hub (Canva integration)
+* **Asset Library**: Integrated brand centers, approval queues, content calendars, and metadata catalogs.
+* **Design Workspace**: Mocked and live Canva Connect workflows allowing teams to design, collaborate, and export assets directly.
+
+### 5. Client Portfolio & Finance Ledger
+* **Invoice Auditing**: Secure ledger for client invoices, QuickBooks ERP synchronization, and automated payment gateway webhooks (Stripe, PayPal, Razorpay).
+* **Delivery Engine**: Detailed project roadmaps linked directly to contractor schedules and utilization limits.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Framework**: Next.js App Router (React 19)
+* **Language**: TypeScript
+* **Database**: PostgreSQL (Prisma ORM)
+* **Authentication**: Supabase Auth (with mock sandbox bypass for offline development)
+* **Styling**: Vanilla CSS with Tailwind CSS tokens
+* **Testing**: Vitest (Unit) & Playwright (E2E)
+
+---
+
+## ⚙️ Getting Started
+
+### 1. Prerequisites
+Ensure you have Node.js (version 20+) and a running PostgreSQL instance locally or remotely.
+
+### 2. Installation
+Install the project dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Environment Configuration
+Create a `.env` file in the root directory and define the following keys (see `.env` for references):
+```env
+DATABASE_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public"
+AUTH_SECRET="your-auth-secret"
+META_WEBHOOK_VERIFY_TOKEN="irisos_meta_verify_token"
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Initialize Database
+Initialize the database schemas and populate the mock enterprise seed data:
+```bash
+npm run init
+# This runs: prisma generate && prisma db push && prisma db seed
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 5. Run Development Server
+Start the Next.js development server:
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) with your browser to access the dashboard.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🧪 Testing & Verification
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Unit and Integration Tests
+Run unit tests with Vitest:
+```bash
+npx vitest run
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### End-to-End Tests
+Execute Playwright E2E testing:
+```bash
+npx playwright test
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# iris-os
->>>>>>> a3f83d973b329ab96484c5b2d44c123511a5d744
+## 🔒 Security & Webhooks
+For detailed listings of configured callback URLs, API redirect URIs, scopes, and verification tokens for Canva, QuickBooks, HubSpot, Stripe, and Meta webhooks, refer to the [Integrations Endpoints Directory](integrations_endpoints.md).
