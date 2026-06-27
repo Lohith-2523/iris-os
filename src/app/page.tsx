@@ -95,9 +95,9 @@ export default function LandingPage() {
   const activeInfo = activeSector !== null ? SECTORS[activeSector] : hoveredSector !== null ? SECTORS[hoveredSector] : null;
 
   return (
-    <div className="bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none">
+    <div className="bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none animate-fade-in">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between animate-fade-in">
         {/* Left: Logo */}
         <Link href="#" className="flex items-center gap-2 group shrink-0">
           <div className="h-8 w-8 bg-[#09090b] text-white font-bold flex items-center justify-center border-2 border-black group-hover:bg-red-600 transition-colors">
@@ -110,7 +110,7 @@ export default function LandingPage() {
         <nav className="hidden md:flex items-center gap-12 font-semibold text-xs tracking-wider uppercase">
           <a href="#about" className="hover:text-red-600 transition-colors">About</a>
           <a href="#features" className="hover:text-red-600 transition-colors">Features</a>
-          <Link href="/pricing" className="hover:text-red-600 transition-colors">Join Now</Link>
+          <Link href="/pricing" className="hover:text-red-600 transition-colors">Pricing</Link>
         </nav>
 
         {/* Right Button */}
@@ -135,7 +135,7 @@ export default function LandingPage() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-x-0 top-16 bg-white border-b-4 border-black z-40 p-6 flex flex-col gap-6 md:hidden font-sans border-t">
+        <div className="fixed inset-x-0 top-16 bg-white border-b-4 border-black z-40 p-6 flex flex-col gap-6 md:hidden font-sans border-t animate-fade-in">
           <nav className="flex flex-col gap-4 font-semibold text-xs tracking-wider uppercase">
             <a
               href="#about"
@@ -156,7 +156,7 @@ export default function LandingPage() {
               onClick={() => setMobileMenuOpen(false)}
               className="hover:text-red-600 border-b border-zinc-200 pb-2"
             >
-              Join Now
+              Pricing
             </Link>
           </nav>
           <Link
@@ -177,7 +177,7 @@ export default function LandingPage() {
 
         <div className="max-w-7xl mx-auto grid gap-12 lg:grid-cols-12 items-center relative z-10">
           {/* Hero Content */}
-          <div className="lg:col-span-7 space-y-8">
+          <div className="lg:col-span-7 space-y-8 animate-fade-in-up">
             <div className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
               <Sparkles className="h-4 w-4 text-red-600 shrink-0" />
               <span>The Consolidated Suite for Elite Agencies</span>
@@ -201,17 +201,17 @@ export default function LandingPage() {
                 <span>Launch Console</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <a
-                href="#pricing"
+              <Link
+                href="/pricing"
                 className="px-8 py-3.5 bg-white text-[#09090b] hover:bg-zinc-150 border-[3px] border-black text-sm font-bold uppercase tracking-wider shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[5px] hover:translate-y-[5px] transition-all"
               >
                 Explore Plans
-              </a>
+              </Link>
             </div>
           </div>
 
           {/* Hero Visuals (Brutalist Mock cards showing OS indicators) */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className="lg:col-span-5 space-y-6 animate-fade-in-up animation-delay-200">
             <div className="bg-[#09090b] text-white p-6 border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(220,38,38,1)] relative">
               <div className="absolute top-0 right-0 w-2 h-2 bg-red-600 m-3" />
               <span className="block font-heading text-xs font-semibold text-red-500 uppercase tracking-widest">Active Operations</span>
@@ -257,8 +257,8 @@ export default function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-20 px-6 border-b-[3px] border-black bg-[#f4f5f7]">
-        <div className="max-w-4xl mx-auto space-y-12 text-center md:text-left">
+      <section id="about" className="py-20 px-6 border-b-[3px] border-black bg-[#f4f5f7] overflow-hidden">
+        <div className="max-w-4xl mx-auto space-y-12 text-center md:text-left animate-fade-in-up">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold text-red-600 uppercase tracking-widest">About IrisOS</span>
             <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase text-[#09090b]">
@@ -280,33 +280,51 @@ export default function LandingPage() {
               retainers, and the ability to scale client capacity without inflating administrative overhead. It represents 
               a paradigm shift: from fragmented chaos to unified agency intelligence.
             </p>
+            <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-medium font-sans mt-6">
+              Built on a state-of-the-art asynchronous architecture, IrisOS integrates directly with your key tooling environment—from Canva workspaces and Meta campaigns to standard banking APIs and multi-currency ledgers. Our platform operates as a secure, decentralized core that drives contractor margin tracking, automated client reporting SLAs, and context-aware database queries. It ensures your agency maintains absolute margin integrity while enabling scalable operations that don't depend on manual spreadsheets or constant Slack synchronization.
+            </p>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-3">
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-100">
               <Layers className="h-6 w-6 text-red-600 mb-2" />
               <span className="block font-bold text-xs uppercase text-[#09090b]">No Fragmentation</span>
               <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Replace multiple disconnected applications with a single operating system.</span>
             </div>
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-200">
               <Shield className="h-6 w-6 text-red-600 mb-2" />
               <span className="block font-bold text-xs uppercase text-[#09090b]">Margin Protection</span>
               <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Identify unprofitable contractor margins and over-allocation instantly.</span>
             </div>
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-300">
               <Users className="h-6 w-6 text-red-600 mb-2" />
               <span className="block font-bold text-xs uppercase text-[#09090b]">Client Onboarding</span>
               <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Generate dedicated clearance portals automatically for real-time reporting.</span>
+            </div>
+            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-100">
+              <DollarSign className="h-6 w-6 text-red-600 mb-2" />
+              <span className="block font-bold text-xs uppercase text-[#09090b]">Unified Ledgers</span>
+              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Keep a single source of truth across USD, EUR, and GBP with real-time currency sync.</span>
+            </div>
+            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-200">
+              <Sparkles className="h-6 w-6 text-red-600 mb-2" />
+              <span className="block font-bold text-xs uppercase text-[#09090b]">Prism AI Engine</span>
+              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Empower your team to query project timelines, ledgers, and metrics using natural language.</span>
+            </div>
+            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-300">
+              <Activity className="h-6 w-6 text-red-600 mb-2" />
+              <span className="block font-bold text-xs uppercase text-[#09090b]">Automated Catalogs</span>
+              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Directly sync Canva brand assets and campaign assets with secure workspace gateways.</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-6 border-b-[3px] border-black bg-white">
+      <section id="features" className="py-20 px-6 border-b-[3px] border-black bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto space-y-12">
           {/* Header */}
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-2 animate-fade-in-up">
             <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Interactive Ecosystem</span>
             <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase text-[#09090b]">The Iris Console</h2>
             <p className="text-xs text-zinc-500 max-w-md mx-auto leading-normal">
@@ -315,7 +333,7 @@ export default function LandingPage() {
           </div>
 
           {/* Interactive Iris layout */}
-          <div className="grid gap-12 lg:grid-cols-12 items-center pt-6">
+          <div className="grid gap-12 lg:grid-cols-12 items-center pt-6 animate-fade-in-up animation-delay-200">
             {/* Column 1: The Iris Interactive SVG */}
             <div className="lg:col-span-6 flex justify-center">
               <div className="relative w-[360px] h-[360px] md:w-[400px] md:h-[400px] shrink-0 border-[4px] border-black bg-zinc-150 p-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
@@ -450,151 +468,116 @@ export default function LandingPage() {
               )}
             </div>
           </div>
+
+          {/* Detailed Feature Breakdown Matrix */}
+          <div className="mt-20 border-t-[3px] border-black pt-16 space-y-8 animate-fade-in-up animation-delay-300">
+            <div className="text-center md:text-left space-y-2">
+              <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Technical Specifications</span>
+              <h3 className="text-2xl md:text-4xl font-extrabold font-heading uppercase text-[#09090b]">Console Module Matrix</h3>
+              <p className="text-xs text-zinc-500 max-w-xl leading-normal">
+                Review the performance profiles, API integration layers, and security frameworks underlying each active console module.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">1</div>
+                  <span className="font-bold text-xs uppercase text-[#09090b]">Prism Automations</span>
+                </div>
+                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
+                  <li><strong className="text-black">Sync latency:</strong> Real-time webhook push</li>
+                  <li><strong className="text-black">API Integration:</strong> Canvas, Slack, Webhook v2</li>
+                  <li><strong className="text-black">Security:</strong> OAuth2.0 Client Credentials</li>
+                  <li><strong className="text-black">LLM Engine:</strong> Context-aware vector retrieval</li>
+                </ul>
+              </div>
+
+              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">2</div>
+                  <span className="font-bold text-xs uppercase text-[#09090b]">Operations &amp; Ledger</span>
+                </div>
+                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
+                  <li><strong className="text-black">Currency Engine:</strong> Hourly exchange updates</li>
+                  <li><strong className="text-black">Leak Checks:</strong> Automated Cron alerts</li>
+                  <li><strong className="text-black">Margin Rules:</strong> Custom contractor formulas</li>
+                  <li><strong className="text-black">Retention:</strong> Infinite ledger auditing</li>
+                </ul>
+              </div>
+
+              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">3</div>
+                  <span className="font-bold text-xs uppercase text-[#09090b]">Design Hub &amp; Sync</span>
+                </div>
+                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
+                  <li><strong className="text-black">Canva Engine:</strong> Bidirectional catalog sync</li>
+                  <li><strong className="text-black">Proof Gating:</strong> Client-clearance tokens</li>
+                  <li><strong className="text-black">Asset Cache:</strong> Vercel KV edge storage</li>
+                  <li><strong className="text-black">Resolution:</strong> High-res visual proofs</li>
+                </ul>
+              </div>
+
+              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">4</div>
+                  <span className="font-bold text-xs uppercase text-[#09090b]">Meta Portal</span>
+                </div>
+                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
+                  <li><strong className="text-black">Meta API:</strong> Campaign Graph v20.0</li>
+                  <li><strong className="text-black">ROAS Metrics:</strong> Aggregated hourly fetch</li>
+                  <li><strong className="text-black">Gated Portal:</strong> Magic link secure tokens</li>
+                  <li><strong className="text-black">Reports SLA:</strong> Auto-generated PDFs</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-6 border-b-[3px] border-black bg-[#f4f5f7]">
-        <div className="max-w-7xl mx-auto space-y-12">
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Flexible Scaling</span>
-            <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase text-[#09090b]">CHOOSE YOUR LEVEL</h2>
-            <p className="text-xs text-zinc-500 max-w-md mx-auto leading-normal">
-              Three workspace tiers. Built to accommodate elite marketing, SEO, design, and web development organizations.
+      {/* Call to Action Section */}
+      <section className="py-24 px-6 border-b-[3px] border-black bg-[#09090b] text-white relative overflow-hidden">
+        {/* Brutalist diagonal background elements */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35 pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto text-center space-y-8 relative z-10 animate-fade-in-up">
+          <span className="text-xs font-bold text-red-500 uppercase tracking-widest bg-zinc-900 border border-zinc-800 px-3 py-1.5 inline-block">
+            DEPLOY THE MONOLITH
+          </span>
+          
+          <div className="space-y-4">
+            <h2 className="text-4xl sm:text-6xl font-extrabold font-heading uppercase leading-[0.9] tracking-tight text-white animate-scale-in">
+              DESTRUCT FRAGMENTATION.<br />
+              <span className="bg-red-600 text-white px-4 py-1.5 inline-block mt-3 transform rotate-1">
+                TRY IT OUT NOW.
+              </span>
+            </h2>
+            <p className="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto leading-relaxed pt-3">
+              Stop bleeding contractor margins across separate billing apps, design hubs, and campaign sheets. Spin up your dedicated, high-fidelity agency operating console in seconds.
             </p>
           </div>
 
-          {/* Grid */}
-          <div className="grid gap-8 md:grid-cols-3 pt-6 max-w-5xl mx-auto">
-            {/* Basic Plan */}
-            <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between p-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="block text-sm font-bold uppercase tracking-tight text-[#09090b]">Basic</span>
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold font-mono">Starter Tier</span>
-                  </div>
-                </div>
-                <div className="border-b-2 border-zinc-200 pb-3">
-                  <span className="font-mono text-3xl font-bold tracking-tight text-[#09090b]">$99</span>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
-                </div>
-                <ul className="space-y-3 font-mono text-[10px] text-zinc-600">
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>1 Agency Specialization</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>Core Finance Ledger</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>Client Portal Gateway</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>Secure Invite Gateway</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="mt-8">
-                <Link
-                  href="/login"
-                  className="w-full text-center py-2.5 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase tracking-wider block"
-                >
-                  Select Basic
-                </Link>
-              </div>
-            </div>
+          <div className="flex flex-wrap justify-center gap-4 pt-4">
+            <Link
+              href="/signup"
+              className="px-8 py-3.5 bg-white text-[#09090b] hover:bg-red-650 hover:text-white border-[3px] border-black text-sm font-bold uppercase tracking-wider shadow-[5px_5px_0px_0px_rgba(220,38,38,1)] hover:shadow-none hover:translate-x-[5px] hover:translate-y-[5px] transition-all flex items-center gap-2"
+            >
+              <span>Try it out now</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/pricing"
+              className="px-8 py-3.5 bg-[#18181b] text-white hover:bg-zinc-800 border-[3px] border-zinc-700 text-sm font-bold uppercase tracking-wider shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[5px] hover:translate-y-[5px] transition-all"
+            >
+              Explore Plans
+            </Link>
+          </div>
 
-            {/* Pro Plan (Featured) */}
-            <div className="bg-white border-[3px] border-red-600 shadow-[6px_6px_0px_0px_rgba(220,38,38,1)] flex flex-col justify-between p-6 relative">
-              <div className="absolute -top-3 right-4 px-2 py-0.5 bg-red-600 text-white text-[8px] font-bold uppercase tracking-wider border border-black">
-                Most Popular
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="block text-sm font-bold uppercase tracking-tight text-red-600">Pro Plan</span>
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold font-mono">Professional Tier</span>
-                  </div>
-                </div>
-                <div className="border-b-2 border-zinc-200 pb-3">
-                  <span className="font-mono text-3xl font-bold tracking-tight text-[#09090b]">$299</span>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
-                </div>
-                <ul className="space-y-3 font-mono text-[10px] text-zinc-700">
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span className="font-bold">Up to 5 Agency Specializations</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>Automated Client Reporting</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span className="font-bold">Active Profit-Leak Checks</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>Prism AI Chat Assistance</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="mt-8">
-                <Link
-                  href="/login"
-                  className="w-full text-center py-2.5 bg-[#09090b] text-white hover:bg-red-650 border-2 border-black text-xs font-bold uppercase tracking-wider block"
-                >
-                  Select Pro
-                </Link>
-              </div>
-            </div>
-
-            {/* Advanced Plan */}
-            <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between p-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="block text-sm font-bold uppercase tracking-tight text-[#09090b]">Advanced</span>
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold font-mono">Enterprise Tier</span>
-                  </div>
-                </div>
-                <div className="border-b-2 border-zinc-200 pb-3">
-                  <span className="font-mono text-3xl font-bold tracking-tight text-[#09090b]">$599</span>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
-                </div>
-                <ul className="space-y-3 font-mono text-[10px] text-zinc-600">
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span className="font-bold">All 10+ Agency Specializations</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>Full Automated Workflow Sync</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>Advanced Margin Forecasting</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span>24/7 Sandbox Clearance</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="mt-8">
-                <Link
-                  href="/login"
-                  className="w-full text-center py-2.5 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase tracking-wider block"
-                >
-                  Select Advanced
-                </Link>
-              </div>
-            </div>
+          <div className="pt-4 font-mono text-[9px] text-zinc-500 flex justify-center gap-8">
+            <span>✓ 14-Day Unlimited Trial</span>
+            <span>✓ No Credit Card Required</span>
+            <span>✓ Secure OAuth Setup</span>
           </div>
         </div>
       </section>

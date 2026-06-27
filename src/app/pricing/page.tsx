@@ -28,9 +28,9 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = React.useState<number | null>(null);
 
   return (
-    <div className="bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none">
+    <div className="bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none animate-fade-in">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between animate-fade-in">
         {/* Left: Logo */}
         <Link href="/" className="flex items-center gap-2 group shrink-0">
           <div className="h-8 w-8 bg-[#09090b] text-white font-bold flex items-center justify-center border-2 border-black group-hover:bg-red-600 transition-colors">
@@ -68,7 +68,7 @@ export default function PricingPage() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-x-0 top-16 bg-white border-b-4 border-black z-40 p-6 flex flex-col gap-6 md:hidden font-sans border-t">
+        <div className="fixed inset-x-0 top-16 bg-white border-b-4 border-black z-40 p-6 flex flex-col gap-6 md:hidden font-sans border-t animate-fade-in">
           <nav className="flex flex-col gap-4 font-semibold text-xs tracking-wider uppercase">
             <Link
               href="/#about"
@@ -104,13 +104,13 @@ export default function PricingPage() {
       )}
 
       {/* Pricing Header Banner */}
-      <section className="relative w-full py-16 px-6 border-b-[3px] border-black bg-white">
+      <section className="relative w-full py-16 px-6 border-b-[3px] border-black bg-white overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30 pointer-events-none" />
-        <div className="max-w-4xl mx-auto text-center space-y-4 relative z-10">
+        <div className="max-w-4xl mx-auto text-center space-y-4 relative z-10 animate-fade-in-up">
           <span className="text-xs font-bold text-red-600 uppercase tracking-widest bg-red-100 px-3 py-1 border border-red-200">
             Clear Workspace Options
           </span>
-          <h1 className="text-4xl sm:text-6xl font-extrabold font-heading text-[#09090b] uppercase tracking-tight">
+          <h1 className="text-4xl sm:text-6xl font-extrabold font-heading text-[#09090b] uppercase tracking-tight animate-scale-in">
             IrisOS Workspace Tiers
           </h1>
           <p className="text-sm text-zinc-550 max-w-lg mx-auto font-medium">
@@ -120,8 +120,8 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Tiers Section */}
-      <section className="py-16 px-6 border-b-[3px] border-black bg-[#f4f5f7]">
-        <div className="max-w-5xl mx-auto grid gap-8 md:grid-cols-3">
+      <section className="py-16 px-6 border-b-[3px] border-black bg-[#f4f5f7] overflow-hidden">
+        <div className="max-w-5xl mx-auto grid gap-8 md:grid-cols-3 animate-fade-in-up animation-delay-200">
           {/* Basic Plan */}
           <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between p-6">
             <div className="space-y-4">
@@ -248,8 +248,8 @@ export default function PricingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 px-6 bg-white border-b-[3px] border-black">
-        <div className="max-w-3xl mx-auto space-y-12">
+      <section className="py-20 px-6 bg-white border-b-[3px] border-black overflow-hidden">
+        <div className="max-w-3xl mx-auto space-y-12 animate-fade-in-up animation-delay-100">
           <div className="text-center space-y-2">
             <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Questions & Answers</span>
             <h2 className="text-3xl font-extrabold font-heading uppercase text-[#09090b]">Pricing FAQ</h2>
