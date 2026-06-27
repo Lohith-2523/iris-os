@@ -43,6 +43,14 @@ export async function updateSession(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname
     const isPublicRoute =
+      pathname === '/' ||
+      pathname === '/home' ||
+      pathname === '/pricing' ||
+      pathname === '/terms' ||
+      pathname === '/privacy' ||
+      pathname.startsWith('/oauth/consent') ||
+      pathname.startsWith('/signup') ||
+      pathname.startsWith('/onboarding') ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/auth') ||
       pathname.includes('/webhook') ||

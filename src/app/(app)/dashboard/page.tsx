@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
-  Activity
+  Activity,
+  ArrowRight
 } from 'lucide-react';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { PrismAIService } from '@/lib/prism-ai/service';
@@ -26,6 +27,30 @@ export default function DashboardPage() {
   const [aiSummary, setAiSummary] = React.useState<string>(formatUserMessage('Lohith, compiling dashboard performance overview metrics via Gemini Flash...'));
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
+
+  // Onboarding states
+  const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
+  const [onboardingState, setOnboardingState] = React.useState({
+    google: false,
+    notion: false,
+    canva: false,
+    meta: false,
+  });
+  const [expandedChecklistIdx, setExpandedChecklistIdx] = React.useState<number | null>(0);
+  const [connectingProvider, setConnectingProvider] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const needs = localStorage.getItem('needsOnboarding') === 'true';
+      setNeedsOnboarding(needs);
+      
+      const google = localStorage.getItem('conn_google') === 'true';
+      const notion = localStorage.getItem('conn_notion') === 'true';
+      const canva = localStorage.getItem('conn_canva') === 'true';
+      const meta = localStorage.getItem('conn_meta') === 'true';
+      setOnboardingState({ google, notion, canva, meta });
+    }
+  }, []);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -69,6 +94,35 @@ export default function DashboardPage() {
     return formatUserMessage(`Lohith, I have detected a leak: ${leakData.description} Recommendation: ${leakData.actionStep} (Impact: ${formatCurrency(leakData.impactValue)}/mo).`);
   }, [leakData, currencyState]);
 
+  const handleConnect = (id: string) => {
+    setConnectingProvider(id);
+    setTimeout(() => {
+      setConnectingProvider(null);
+      setOnboardingState((prev) => {
+        const next = { ...prev, [id]: true };
+        localStorage.setItem(`conn_${id}`, 'true');
+        return next;
+      });
+      
+      setOnboardingState((currState) => {
+        const nextState = { ...currState, [id]: true };
+        const order = ['google', 'notion', 'canva', 'meta'];
+        const nextUncompletedIdx = order.findIndex(p => !nextState[p as keyof typeof nextState]);
+        if (nextUncompletedIdx !== -1) {
+          setExpandedChecklistIdx(nextUncompletedIdx);
+        } else {
+          setExpandedChecklistIdx(null);
+        }
+        return currState;
+      });
+    }, 1500);
+  };
+
+  const handleFinishOnboarding = () => {
+    localStorage.removeItem('needsOnboarding');
+    setNeedsOnboarding(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -84,7 +138,126 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Grid of Executive Metric Cards */}
+      {needsOnboarding ? (
+        <div className="min-h-[500px] flex items-center justify-center py-6">
+          <Card className="w-full max-w-xl bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl relative">
+            <CardHeader className="text-center border-b border-zinc-800/80 pb-5">
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Workspace Activation</span>
+              <CardTitle className="text-lg font-bold uppercase tracking-tight text-white mt-1">Connect Your Integrations</CardTitle>
+              <CardDescription className="text-xs text-zinc-500 max-w-sm mx-auto mt-1">
+                Link your active design, communication, ads, and workflow APIs to populate your operational databases.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 py-6 space-y-4">
+              <div className="space-y-3">
+                {[
+                  {
+                    id: 'google',
+                    name: 'Google Services & Authentication',
+                    description: 'Authorize email tracking, profile sync, and access token retrieval for Google Drive creative assets.',
+                    isConnected: onboardingState.google,
+                  },
+                  {
+                    id: 'notion',
+                    name: 'Notion Workspace API',
+                    description: 'Link your Notion database tables to auto-sync client operational milestones and deliverable logs.',
+                    isConnected: onboardingState.notion,
+                  },
+                  {
+                    id: 'canva',
+                    name: 'Canva Design Hub Sync',
+                    description: 'Synchronize design catalogs, branding materials, templates, and export portals into your asset vault.',
+                    isConnected: onboardingState.canva,
+                  },
+                  {
+                    id: 'meta',
+                    name: 'Meta Ads Manager Integration',
+                    description: 'Synchronize live campaign indicators, target audience profiles, conversion statistics, and actual ROAS metrics.',
+                    isConnected: onboardingState.meta,
+                  }
+                ].map((item, idx) => {
+                  const isExpanded = expandedChecklistIdx === idx;
+                  return (
+                    <div key={item.id} className="border border-zinc-850 bg-zinc-900/20">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedChecklistIdx(isExpanded ? null : idx)}
+                        className="w-full flex items-center justify-between p-4 text-left font-semibold text-xs tracking-wide uppercase text-white hover:bg-zinc-900/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`h-4 w-4 rounded-full flex items-center justify-center border ${
+                            item.isConnected 
+                              ? 'bg-red-650 border-red-600 text-white' 
+                              : 'border-zinc-700 text-transparent'
+                          }`}>
+                            {item.isConnected && (
+                              <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className={`${item.isConnected ? 'line-through text-zinc-500' : 'text-zinc-100'}`}>
+                            {item.name}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          {isExpanded ? 'Collapse' : 'Expand'}
+                        </span>
+                      </button>
+                      
+                      {isExpanded && (
+                        <div className="p-4 border-t border-zinc-850 bg-zinc-950/40 text-xs text-zinc-400 space-y-4 font-sans font-medium leading-relaxed">
+                          <p>{item.description}</p>
+                          <div className="flex justify-end">
+                            {item.isConnected ? (
+                              <Badge variant="risk-low" className="py-1 px-3">
+                                Active Connection Verified
+                              </Badge>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={connectingProvider !== null}
+                                onClick={() => handleConnect(item.id)}
+                                className="h-8 text-[10px] bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer font-bold uppercase flex items-center gap-1.5"
+                              >
+                                {connectingProvider === item.id ? (
+                                  <>
+                                    <span className="h-3 w-3 animate-spin rounded-full border border-t-transparent border-zinc-950" />
+                                    <span>Authorizing...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Connect Integration</span>
+                                    <ArrowUpRight className="h-3 w-3 text-zinc-950" />
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {Object.values(onboardingState).every(Boolean) && (
+                <div className="pt-4 border-t border-zinc-800 mt-6">
+                  <Button
+                    onClick={handleFinishOnboarding}
+                    className="w-full h-11 font-bold text-xs bg-white text-zinc-950 hover:bg-zinc-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.15)] animate-pulse"
+                  >
+                    <span>Launch Agency Console</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <>
+          {/* Grid of Executive Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card hoverEffect>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -301,6 +474,8 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
