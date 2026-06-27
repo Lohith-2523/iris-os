@@ -41,19 +41,23 @@ export async function GET(request: NextRequest) {
     let clientId = process.env.CANVA_CLIENT_ID || '';
     let clientSecret = process.env.CANVA_CLIENT_SECRET || '';
 
-    const existingConnection = await prisma.integrationConnection.findFirst({
-      where: { provider: 'CANVA' }
-    });
-    
     let parsedConfig: any = {};
-    if (existingConnection?.syncLogs) {
-      try {
-        parsedConfig = JSON.parse(existingConnection.syncLogs);
-        if (parsedConfig.customClientId) clientId = parsedConfig.customClientId;
-        if (parsedConfig.customClientSecret) clientSecret = parsedConfig.customClientSecret;
-      } catch (e) {
-        // Ignore JSON errors
+    try {
+      const existingConnection = await prisma.integrationConnection.findFirst({
+        where: { provider: 'CANVA' }
+      });
+      
+      if (existingConnection?.syncLogs) {
+        try {
+          parsedConfig = JSON.parse(existingConnection.syncLogs);
+          if (parsedConfig.customClientId) clientId = parsedConfig.customClientId;
+          if (parsedConfig.customClientSecret) clientSecret = parsedConfig.customClientSecret;
+        } catch (e) {
+          // Ignore JSON errors
+        }
       }
+    } catch (dbError: any) {
+      console.warn('Prisma database connection failed in Canva callback route (retrieving config). Falling back to env variables.', dbError.message);
     }
 
     if (!clientId) clientId = 'OC-AZ7biQWiih90';
@@ -97,37 +101,46 @@ export async function GET(request: NextRequest) {
     }
 
     // Persist credentials inside database connection logs
-    const org = await prisma.organization.findFirst();
-    if (org) {
-      const syncLogsObj = {
-        ...parsedConfig,
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token,
-        expiresAt: Date.now() + (tokenData.expires_in * 1000),
-        profile: profileData,
-        connectedAt: new Date().toISOString()
-      };
+    try {
+      const org = await prisma.organization.findFirst();
+      if (org) {
+        const syncLogsObj = {
+          ...parsedConfig,
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          expiresAt: Date.now() + (tokenData.expires_in * 1000),
+          profile: profileData,
+          connectedAt: new Date().toISOString()
+        };
 
-      if (existingConnection) {
-        await prisma.integrationConnection.update({
-          where: { id: existingConnection.id },
-          data: {
-            status: 'CONNECTED',
-            lastSync: new Date(),
-            syncLogs: JSON.stringify(syncLogsObj)
-          }
+        const existingConnection = await prisma.integrationConnection.findFirst({
+          where: { provider: 'CANVA' }
         });
-      } else {
-        await prisma.integrationConnection.create({
-          data: {
-            provider: 'CANVA',
-            status: 'CONNECTED',
-            lastSync: new Date(),
-            syncLogs: JSON.stringify(syncLogsObj),
-            orgId: org.id
-          }
-        });
+
+        if (existingConnection) {
+          await prisma.integrationConnection.update({
+            where: { id: existingConnection.id },
+            data: {
+              status: 'CONNECTED',
+              lastSync: new Date(),
+              syncLogs: JSON.stringify(syncLogsObj)
+            }
+          });
+        } else {
+          await prisma.integrationConnection.create({
+            data: {
+              provider: 'CANVA',
+              status: 'CONNECTED',
+              lastSync: new Date(),
+              syncLogs: JSON.stringify(syncLogsObj),
+              orgId: org.id
+            }
+          });
+        }
       }
+    } catch (dbError: any) {
+      console.error('Failed to persist Canva credentials in database:', dbError.message);
+      // Proceed gracefully, redirecting the user to the frontend since authentication succeeded
     }
 
     return NextResponse.redirect(`${baseUrl}/design-hub?oauth=success`);

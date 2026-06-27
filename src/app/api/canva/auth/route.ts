@@ -30,19 +30,23 @@ export async function GET(request: NextRequest) {
     // Check if custom credentials exist in the DB connection logs
     let clientId = process.env.CANVA_CLIENT_ID || '';
     
-    const existingConnection = await prisma.integrationConnection.findFirst({
-      where: { provider: 'CANVA' }
-    });
-    
-    if (existingConnection?.syncLogs) {
-      try {
-        const config = JSON.parse(existingConnection.syncLogs);
-        if (config.customClientId) {
-          clientId = config.customClientId;
+    try {
+      const existingConnection = await prisma.integrationConnection.findFirst({
+        where: { provider: 'CANVA' }
+      });
+      
+      if (existingConnection?.syncLogs) {
+        try {
+          const config = JSON.parse(existingConnection.syncLogs);
+          if (config.customClientId) {
+            clientId = config.customClientId;
+          }
+        } catch (e) {
+          // Ignore JSON parsing errors
         }
-      } catch (e) {
-        // Ignore JSON parsing errors
       }
+    } catch (dbError: any) {
+      console.warn('Prisma database connection failed in Canva auth route. Falling back to env variables.', dbError.message);
     }
 
     if (!clientId) {
