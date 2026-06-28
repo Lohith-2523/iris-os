@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Search, Sparkles, Command, Menu, X, BrainCircuit, Play, ArrowRight, Sun, Moon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatUserMessage } from '@/lib/utils';
@@ -19,6 +19,8 @@ interface CommandItem {
 
 export function Topbar({ onMenuToggle }: TopbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isClient = pathname === '/client-dashboard';
   const [isCommandOpen, setIsCommandOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [prismQuery, setPrismQuery] = React.useState('');
@@ -126,34 +128,38 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
           </Button>
 
           {/* Quick Portfolio Stats */}
-          <div className="hidden lg:flex items-center gap-6 text-xs border-r border-zinc-800 pr-6 mr-1">
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500 font-medium">Agency Health Score:</span>
-              <span className="font-semibold text-white px-2 py-0.5 rounded-none bg-zinc-900 border border-zinc-800">84/100</span>
+          {!isClient && (
+            <div className="hidden lg:flex items-center gap-6 text-xs border-r border-zinc-800 pr-6 mr-1">
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-500 font-medium">Agency Health Score:</span>
+                <span className="font-semibold text-white px-2 py-0.5 rounded-none bg-zinc-900 border border-zinc-800">84/100</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-500 font-medium">Active Leaks:</span>
+                <span className="font-semibold notification-risk-alert text-rose-400 px-2 py-0.5 rounded-none bg-rose-950/20 border border-rose-900/30">2 Detected</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500 font-medium">Active Leaks:</span>
-              <span className="font-semibold notification-risk-alert text-rose-400 px-2 py-0.5 rounded-none bg-rose-950/20 border border-rose-900/30">2 Detected</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Center: Ask Prism Form */}
-        <div className="flex-1 max-w-md mx-4 hidden md:block">
-          <form onSubmit={handlePrismSubmit} className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
-            </div>
-            <input
-              type="text"
-              placeholder="Ask Prism AI (e.g. summarize health, forecast)..."
-              value={prismQuery}
-              onChange={(e) => setPrismQuery(e.target.value)}
-              className="w-full rounded-md border border-zinc-800 bg-zinc-900/40 py-1.5 pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-all font-sans"
-            />
-            <button type="submit" className="hidden" />
-          </form>
-        </div>
+        {!isClient && (
+          <div className="flex-1 max-w-md mx-4 hidden md:block">
+            <form onSubmit={handlePrismSubmit} className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+              </div>
+              <input
+                type="text"
+                placeholder="Ask Prism AI (e.g. summarize health, forecast)..."
+                value={prismQuery}
+                onChange={(e) => setPrismQuery(e.target.value)}
+                className="w-full rounded-md border border-zinc-800 bg-zinc-900/40 py-1.5 pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-all font-sans"
+              />
+              <button type="submit" className="hidden" />
+            </form>
+          </div>
+        )}
 
         {/* Right: Search & Theme Toggle */}
         <div className="flex items-center gap-3">
@@ -167,19 +173,21 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
-          <div
-            onClick={() => setIsCommandOpen(true)}
-            className="flex h-9 w-40 items-center justify-between rounded-md border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Search className="h-3.5 w-3.5 text-zinc-500" />
-              <span>Search...</span>
-            </div>
-            <div className="flex items-center gap-0.5 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] border border-zinc-800 text-zinc-400 font-mono">
-              <Command className="h-2 w-2 mr-0.5" />
-              <span>K</span>
-            </div>
-          </div>
+            {!isClient && (
+              <div
+                onClick={() => setIsCommandOpen(true)}
+                className="flex h-9 w-40 items-center justify-between rounded-md border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Search className="h-3.5 w-3.5 text-zinc-500" />
+                  <span>Search...</span>
+                </div>
+                <div className="flex items-center gap-0.5 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] border border-zinc-800 text-zinc-400 font-mono">
+                  <Command className="h-2 w-2 mr-0.5" />
+                  <span>K</span>
+                </div>
+              </div>
+            )}
         </div>
       </header>
 

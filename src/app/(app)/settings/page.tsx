@@ -19,7 +19,17 @@ import {
   FileText,
   Video,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  Blocks,
+  ArrowLeft,
+  Key,
+  RefreshCw,
+  Wallet,
+  TrendingUp,
+  Activity,
+  CheckCircle,
+  XCircle,
+  HelpCircle
 } from 'lucide-react';
 
 const AGENCY_INDUSTRIES = [
@@ -36,7 +46,7 @@ const AGENCY_INDUSTRIES = [
 ];
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = React.useState<'profile' | 'billing'>('profile');
+  const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
   const [orgName, setOrgName] = React.useState('Apex Creative Group');
   const [billingEmail, setBillingEmail] = React.useState('billing@apex.co');
   const [currency, setCurrency] = React.useState('USD');
@@ -46,6 +56,36 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
+
+  // Integrations States
+  const [integrations, setIntegrations] = React.useState<any[]>([]);
+  const [loadingIntegrations, setLoadingIntegrations] = React.useState(false);
+  const [connectingProvider, setConnectingProvider] = React.useState<string | null>(null);
+  const [keyIdInput, setKeyIdInput] = React.useState('');
+  const [keySecretInput, setKeySecretInput] = React.useState('');
+  const [verifyingKeys, setVerifyingKeys] = React.useState(false);
+  const [integrationError, setIntegrationError] = React.useState('');
+
+  const fetchIntegrations = React.useCallback(async () => {
+    setLoadingIntegrations(true);
+    try {
+      const res = await fetch('/api/integrations');
+      if (res.ok) {
+        const data = await res.json();
+        setIntegrations(data);
+      }
+    } catch (e) {
+      console.error('Error fetching integrations:', e);
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (activeTab === 'integrations') {
+      fetchIntegrations();
+    }
+  }, [activeTab, fetchIntegrations]);
 
   React.useEffect(() => {
     async function loadOrg() {
@@ -187,10 +227,25 @@ export default function SettingsPage() {
         >
           Billing & Subscription
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('integrations');
+            setErrorMessage('');
+            setConnectingProvider(null);
+          }}
+          className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+            activeTab === 'integrations'
+              ? 'border-white text-white font-bold'
+              : 'border-transparent text-zinc-500 hover:text-zinc-350'
+          }`}
+        >
+          Integrations
+        </button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        {activeTab === 'profile' ? (
+      {activeTab === 'profile' && (
+        <form onSubmit={handleSave} className="space-y-6">
           <div className="grid gap-6 md:grid-cols-3">
             {/* Form Settings */}
             <div className="md:col-span-2 space-y-6">
@@ -252,7 +307,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {errorMessage && (
-                    <div className="flex gap-2.5 rounded border border-rose-900/30 bg-rose-950/10 p-3.5 text-xs text-rose-400">
+                    <div className="flex gap-2.5 rounded border border-rose-900/30 bg-rose-950/10 p-3.5 text-xs text-rose-450">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       <span>{errorMessage}</span>
                     </div>
@@ -364,7 +419,7 @@ export default function SettingsPage() {
                     </span>
                   )}
                   {saveStatus === 'error' && (
-                    <span className="text-center block text-[10px] font-semibold text-rose-400 mt-2">
+                    <span className="text-center block text-[10px] font-semibold text-rose-450 mt-2">
                       Error: Update failed.
                     </span>
                   )}
@@ -372,7 +427,11 @@ export default function SettingsPage() {
               </Card>
             </div>
           </div>
-        ) : (
+        </form>
+      )}
+
+      {activeTab === 'billing' && (
+        <form onSubmit={handleSave} className="space-y-6">
           <div className="grid gap-6 md:grid-cols-3">
             {/* Plan Tier Selection */}
             <div className="md:col-span-2 space-y-6">
@@ -385,7 +444,7 @@ export default function SettingsPage() {
                   <CardDescription>Select a workspace tier that fits your agency size and workload.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Grid of plans (3 column layout in billing tab!) */}
+                  {/* Grid of plans */}
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div
                       onClick={() => {
@@ -524,7 +583,7 @@ export default function SettingsPage() {
                       </span>
                     )}
                     {saveStatus === 'error' && (
-                      <span className="text-center block text-[10px] font-semibold text-rose-400 mt-1">
+                      <span className="text-center block text-[10px] font-semibold text-rose-450 mt-1">
                         Error: Update failed.
                       </span>
                     )}
@@ -533,8 +592,303 @@ export default function SettingsPage() {
               </Card>
             </div>
           </div>
-        )}
-      </form>
+        </form>
+      )}
+
+      {activeTab === 'integrations' && (
+        <div className="space-y-6">
+          {/* Header metrics */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card hoverEffect>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Connected Services</CardTitle>
+                <Blocks className="h-4 w-4 text-zinc-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold font-mono tracking-tight text-white">
+                  {integrations.filter((i) => i.status === 'CONNECTED').length} Active
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Issues Flagged</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-rose-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold font-mono tracking-tight text-rose-400">
+                  {integrations.filter((i) => i.status === 'DISCONNECTED' || i.status === 'ERROR').length} Flagged
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">API Sync Health</CardTitle>
+                <Activity className="h-4 w-4 text-emerald-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold font-mono tracking-tight text-emerald-400">
+                  98.4% Stable
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {connectingProvider === 'RAZORPAY' || connectingProvider === 'PAYPAL' || connectingProvider === 'STRIPE' ? (
+            <Card className="max-w-xl border-zinc-800">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Key className="h-4.5 w-4.5 text-zinc-400" />
+                  <span>Link {connectingProvider === 'STRIPE' ? 'Stripe' : connectingProvider === 'RAZORPAY' ? 'Razorpay' : 'PayPal'} Gateway Credentials</span>
+                </CardTitle>
+                <CardDescription>
+                  Provide your {connectingProvider === 'STRIPE' ? 'Restricted API Key (rk_...) or Secret Key (sk_...)' : connectingProvider === 'RAZORPAY' ? 'Key ID and Secret Key' : 'Client ID and Client Secret Key'} to connect. Your credentials are encrypted and used solely for ledger audits and financial transactions synchronization.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-xs font-sans">
+                {integrationError && (
+                  <div className="flex gap-2.5 rounded border border-rose-900/30 bg-rose-950/10 p-3.5 text-xs text-rose-400">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>{integrationError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-zinc-400 block">
+                    {connectingProvider === 'STRIPE' ? 'Stripe Restricted API Key (Recommended)' : connectingProvider === 'RAZORPAY' ? 'Razorpay Key ID' : 'PayPal Client ID'}
+                  </label>
+                  <input
+                    type={connectingProvider === 'STRIPE' ? 'password' : 'text'}
+                    value={keyIdInput}
+                    onChange={(e) => setKeyIdInput(e.target.value)}
+                    placeholder={connectingProvider === 'STRIPE' ? 'rk_live_... / sk_live_...' : connectingProvider === 'RAZORPAY' ? 'rzp_test_...' : 'Client ID...'}
+                    className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all font-mono"
+                  />
+                </div>
+
+                {connectingProvider !== 'STRIPE' && (
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-zinc-400 block">
+                      {connectingProvider === 'RAZORPAY' ? 'Razorpay Key Secret' : 'PayPal Client Secret'}
+                    </label>
+                    <input
+                      type="password"
+                      value={keySecretInput}
+                      onChange={(e) => setKeySecretInput(e.target.value)}
+                      placeholder="••••••••••••••••"
+                      className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all font-mono"
+                    />
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-3 justify-between items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (connectingProvider === 'RAZORPAY') {
+                        setKeyIdInput('rzp_test_T6wXv1phNxSL5Q');
+                        setKeySecretInput('f7Lc6zOMbDngZAmvtnY5AzOd');
+                      } else if (connectingProvider === 'STRIPE') {
+                        setKeyIdInput('rk_test_51P2u238947239847293847');
+                        setKeySecretInput('');
+                      } else {
+                        setKeyIdInput('paypal_client_id_test_99');
+                        setKeySecretInput('paypal_client_secret_test_23');
+                      }
+                    }}
+                    className="text-xs h-9 border-zinc-850 hover:bg-zinc-900 font-semibold"
+                  >
+                    Autofill Sandbox Keys
+                  </Button>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setConnectingProvider(null);
+                        setKeyIdInput('');
+                        setKeySecretInput('');
+                        setIntegrationError('');
+                      }}
+                      className="text-xs h-9 text-zinc-400 hover:text-white"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={verifyingKeys}
+                      onClick={async () => {
+                        setVerifyingKeys(true);
+                        setIntegrationError('');
+                        try {
+                          const res = await fetch('/api/integrations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              provider: connectingProvider,
+                              keyId: keyIdInput,
+                              keySecret: keySecretInput,
+                            }),
+                          });
+                          const data = await res.json();
+                          if (res.ok && data.success) {
+                            await fetchIntegrations();
+                            setConnectingProvider(null);
+                            setKeyIdInput('');
+                            setKeySecretInput('');
+                          } else {
+                            setIntegrationError(data.error || `Failed to authenticate ${connectingProvider} keys.`);
+                          }
+                        } catch (err) {
+                          setIntegrationError('A connection error occurred. Check backend console.');
+                        } finally {
+                          setVerifyingKeys(false);
+                        }
+                      }}
+                      className="text-xs h-9 bg-white text-zinc-950 font-bold hover:bg-zinc-200"
+                    >
+                      {verifyingKeys ? 'Verifying...' : 'Verify & Connect'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold text-white">Workspace Integrations Directory</CardTitle>
+                <CardDescription>Verify link statuses and sync connection logs across workspace integrations.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs font-sans text-left">
+                    <thead>
+                      <tr className="border-b border-zinc-850 text-zinc-500 font-semibold text-[10px] uppercase tracking-wider bg-zinc-950/20">
+                        <th className="p-4">Integration Provider</th>
+                        <th className="p-4">Link Status</th>
+                        <th className="p-4">Connection Audit Logs</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-850 text-zinc-400">
+                      {loadingIntegrations ? (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-zinc-650">
+                            <div className="flex items-center justify-center gap-2">
+                              <RefreshCw className="h-4 w-4 animate-spin text-zinc-500" />
+                              <span>Loading integration list...</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        integrations.map((item) => (
+                          <tr key={item.provider} className="hover:bg-zinc-900/10">
+                            <td className="p-4 font-bold text-white tracking-wider flex items-center gap-2">
+                              <div className="h-7 w-7 rounded bg-zinc-900 flex items-center justify-center text-zinc-400">
+                                <Blocks className="h-4 w-4" />
+                              </div>
+                              {item.provider}
+                            </td>
+                            <td className="p-4">
+                              <Badge
+                                variant={
+                                  item.status === 'CONNECTED'
+                                    ? 'risk-low'
+                                    : item.status === 'SYNCING'
+                                    ? 'outline'
+                                    : 'risk-high'
+                                }
+                              >
+                                {item.status}
+                              </Badge>
+                            </td>
+                            <td className="p-4 text-[11px] leading-relaxed max-w-sm truncate">{item.logs}</td>
+                            <td className="p-4 text-right">
+                              {item.provider === 'RAZORPAY' || item.provider === 'PAYPAL' || item.provider === 'STRIPE' ? (
+                                item.status === 'CONNECTED' ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={async () => {
+                                      try {
+                                        await fetch('/api/integrations', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ provider: item.provider, action: 'disconnect' }),
+                                        });
+                                        await fetchIntegrations();
+                                      } catch (e) {
+                                        console.error(e);
+                                      }
+                                    }}
+                                    className="h-8 text-rose-450 hover:text-rose-350 hover:bg-rose-950/10 text-xs font-semibold"
+                                  >
+                                    Disconnect
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                      window.location.href = `/api/${item.provider.toLowerCase()}/connect`;
+                                    }}
+                                    className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
+                                  >
+                                    Connect Account
+                                  </Button>
+                                )
+                              ) : (
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={async () => {
+                                      alert(formatUserMessage(`Lohith, triggering manual synchronization for: ${item.provider}`));
+                                    }}
+                                    className="h-8 border-transparent text-zinc-400 hover:text-white text-xs font-semibold"
+                                  >
+                                    Sync
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={async () => {
+                                      try {
+                                        await fetch('/api/integrations', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ provider: item.provider, action: 'disconnect' }),
+                                        });
+                                        await fetchIntegrations();
+                                      } catch (e) {
+                                        console.error(e);
+                                      }
+                                    }}
+                                    className="h-8 text-rose-450 hover:text-rose-350 text-xs font-semibold"
+                                  >
+                                    Disconnect
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

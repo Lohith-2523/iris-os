@@ -1,5 +1,5 @@
 export interface IntegrationState {
-  provider: 'CANVA' | 'QUICKBOOKS' | 'STRIPE' | 'HUBSPOT' | 'SLACK';
+  provider: 'CANVA' | 'PAYPAL' | 'STRIPE' | 'HUBSPOT' | 'SLACK' | 'RAZORPAY';
   status: 'CONNECTED' | 'DISCONNECTED' | 'SYNCING' | 'ERROR';
   lastSync: Date | null;
   logs: string;
@@ -18,20 +18,44 @@ export const IntegrationAdapters = {
    * Fetches the connection status of all integration providers.
    */
   async getStates(): Promise<IntegrationState[]> {
-    // Return mock connections safely for client bundling
+    try {
+      const res = await fetch('/api/integrations');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error('Error fetching integrations in adapter:', e);
+    }
+    // Return mock connections safely if API fails
     return [
       { provider: 'CANVA', status: 'CONNECTED', lastSync: new Date(), logs: 'Synced 12 assets from Canva workspace root.' },
-      { provider: 'QUICKBOOKS', status: 'CONNECTED', lastSync: new Date(), logs: 'Synced 18 invoices and 24 ledger items.' },
+      { provider: 'PAYPAL', status: 'DISCONNECTED', lastSync: null, logs: 'Not connected. Connect your PayPal Client ID and Secret.' },
       { provider: 'STRIPE', status: 'CONNECTED', lastSync: new Date(), logs: 'Synced subscription events, active webhooks verified.' },
       { provider: 'HUBSPOT', status: 'DISCONNECTED', lastSync: null, logs: 'Token expired. Re-authentication required.' },
       { provider: 'SLACK', status: 'SYNCING', lastSync: new Date(), logs: 'Listening for notification dispatch events...' },
+      { provider: 'RAZORPAY', status: 'DISCONNECTED', lastSync: null, logs: 'Not connected. Connect your Razorpay Key ID and Secret.' },
     ];
   },
 
   /**
-   * Triggers a mock sync for a specific provider.
+   * Triggers a sync for a specific provider.
    */
   async syncProvider(provider: string): Promise<IntegrationState> {
+    try {
+      const res = await fetch('/api/integrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider }),
+      });
+      if (res.ok) {
+        const states = await this.getStates();
+        const updated = states.find((s) => s.provider === provider);
+        if (updated) return updated;
+      }
+    } catch (e) {
+      console.error('Error syncing provider in adapter:', e);
+    }
+
     const status = provider === 'HUBSPOT' ? 'CONNECTED' : 'SYNCING';
     const logs = `Manual sync triggered. Synced successfully at ${new Date().toLocaleTimeString()}.`;
     

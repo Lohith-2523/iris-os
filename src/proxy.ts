@@ -1,7 +1,31 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/middleware';
 
 export async function proxy(request: NextRequest) {
+  const host = request.headers.get('host') || '';
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isComingSoon = process.env.NEXT_PUBLIC_COMING_SOON === 'true';
+
+  if (isProduction && !isLocalhost && isComingSoon) {
+    const { pathname } = request.nextUrl;
+
+    // Skip Next.js internals, images, sitemaps, robots, favicon
+    const isStaticAsset =
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/images') ||
+      pathname === '/favicon.ico' ||
+      pathname === '/robots.txt' ||
+      pathname === '/sitemap.xml' ||
+      pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf)$/i);
+
+    if (pathname !== '/coming-soon' && !isStaticAsset) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/coming-soon';
+      return NextResponse.redirect(url);
+    }
+  }
+
   return await updateSession(request);
 }
 

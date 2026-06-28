@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [aiSummary, setAiSummary] = React.useState<string>(formatUserMessage('Lohith, compiling dashboard performance overview metrics via Gemini Flash...'));
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
+  const [clientsList, setClientsList] = React.useState<any[]>([]);
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
@@ -72,6 +73,12 @@ export default function DashboardPage() {
         if (res.ok) {
           const json = await res.json();
           setDbData(json);
+        }
+        
+        const clientsRes = await fetch('/api/data?domain=clients');
+        if (clientsRes.ok) {
+          const clientsJson = await clientsRes.json();
+          setClientsList(clientsJson);
         }
         
         // Fetch AI outputs from service boundary
@@ -431,6 +438,49 @@ export default function DashboardPage() {
                       <Badge variant="risk-medium">MEDIUM RISK</Badge>
                     </div>
                   </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Onboarded Clients List */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="text-sm font-semibold text-white">Onboarded Clients Portfolio</CardTitle>
+                <CardDescription>Accounts active in agency command network.</CardDescription>
+              </div>
+              <Link href="/clients">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[10px] border-zinc-800 text-zinc-300 font-semibold px-2 hover:text-white rounded-none"
+                >
+                  View All Clients
+                </Button>
+              </Link>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y divide-zinc-900 border-t border-zinc-900">
+                {clientsList.length > 0 ? (
+                  clientsList.slice(0, 5).map((client: any) => (
+                    <div key={client.id} className="flex items-center justify-between px-6 py-4">
+                      <div>
+                        <span className="block text-xs font-semibold text-white">{client.name}</span>
+                        <span className="text-[10px] text-zinc-500 mt-1 block font-mono">{client.domain}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono text-zinc-400">Health: {client.healthScore}/100</span>
+                        <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'}>
+                          {client.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-zinc-500 text-xs">
+                    No onboarded clients found.
+                  </div>
                 )}
               </div>
             </CardContent>

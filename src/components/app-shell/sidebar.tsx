@@ -144,7 +144,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
   const visibleItems = React.useMemo(() => {
     if (user?.role?.toLowerCase() === 'client') {
-      return navigationItems.filter(item => item.name === 'Meta Portal');
+      return [{ name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard }];
     }
     return navigationItems;
   }, [user]);
