@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, User, Lock, ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Sparkles, User, Lock, ArrowRight, ShieldCheck, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/client';
 
 function InvitePageContent() {
@@ -17,7 +17,8 @@ function InvitePageContent() {
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
   const [name, setName] = React.useState('');
-  const [password, setPassword] = React.useState('Password123!');
+  const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -125,7 +126,7 @@ function InvitePageContent() {
             I
           </div>
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">
-            Set Up Your IrisOS Account
+            Set Up Your Iris OS Account
           </CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
             {inviteData ? `Access portal for ${inviteData.client?.name}` : 'Enterprise Client Activation Hub'}
@@ -182,13 +183,24 @@ function InvitePageContent() {
                     <Lock className="h-3.5 w-3.5 text-zinc-500" />
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Choose a strong password"
-                    className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2.5 pl-9 pr-3 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                    className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2.5 pl-9 pr-10 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500 hover:text-white focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 

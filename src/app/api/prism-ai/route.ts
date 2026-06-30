@@ -212,7 +212,7 @@ If these represent billable hours or contract rates, the projected direct impact
     return `Lohith, here is the strategic execution checklist to orchestrate the **${entityTitle}** project plan:
 - \`[ ]\` **Phase 1: Creative Asset Review** — Audit brand kit color palettes and Canva templates contrast ratios.
 - \`[ ]\` **Phase 2: Contractor Realignment** — Verify utilization rates and reallocate milestones to senior designers.
-- \`[ ]\` **Phase 3: Integration Checks** — Ensure QuickBooks webhook logs and Meta Ads API sync parameters are active.
+- \`[ ]\` **Phase 3: Integration Checks** — Ensure ledger webhook logs and Meta Ads API sync parameters are active.
 - \`[ ]\` **Phase 4: Risk Mitigation** — Prepare client-facing retrospectives to align delivery timelines.`;
   }
 
@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
     switch (action) {
       // 1. Low-Level AI: Gemini Flash (dashboards, reports, summaries)
       case 'dashboard-summary': {
-        const prompt = `You are Prism AI inside IrisOS, a premium executive command center.
+        const prompt = `You are Prism AI inside Iris OS, a premium executive command center.
         Review this operational status and write a short, executive brief (max 3 sentences) summarizing organization performance.
         Rule: Address the user as "Lohith" first. Do not use markdown format tags except bolding.
         Context: ${JSON.stringify(context || {})}`;
@@ -375,7 +375,7 @@ export async function POST(request: NextRequest) {
 
       // 2. Mid-Level AI: ChatGPT (financial analysis, forecasting, profit leaks)
       case 'finance-analysis': {
-        const systemPrompt = 'You are Prism AI inside IrisOS. You are an expert financial consultant for agencies. Always start your response addressing the user as "Lohith".';
+        const systemPrompt = 'You are Prism AI inside Iris OS. You are an expert financial consultant for agencies. Always start your response addressing the user as "Lohith".';
         const userPrompt = `Audit these ledger billing details and contractor allocations to highlight profit leaks:
         Context: ${JSON.stringify(context || {})}`;
         const output = await callChatGPT(systemPrompt, userPrompt);
@@ -383,7 +383,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'forecasting': {
-        const systemPrompt = 'You are Prism AI inside IrisOS. You run rolling projections and predictive models. Always start your response addressing the user as "Lohith".';
+        const systemPrompt = 'You are Prism AI inside Iris OS. You run rolling projections and predictive models. Always start your response addressing the user as "Lohith".';
         const userPrompt = `Calculate Q3 gross billings projections and cash flow capacity from this financial data:
         Context: ${JSON.stringify(context || {})}`;
         const output = await callChatGPT(systemPrompt, userPrompt);
@@ -428,17 +428,17 @@ export async function POST(request: NextRequest) {
         // Delegate query to selected model
         let output = '';
         if (delegatedModel === 'Gemini') {
-          const prompt = `You are Prism AI (Gemini), the data retrieval and dashboards overview engine for IrisOS.
+          const prompt = `You are Prism AI (Gemini), the data retrieval and dashboards overview engine for Iris OS.
           Start your response addressing the user as "Lohith". Focus on quick metrics overview, database records, and reasoning-free summaries.
           Query: ${query}
           Context: ${JSON.stringify(context || {})}`;
           output = await callGemini(prompt);
         } else if (delegatedModel === 'ChatGPT') {
-          const systemPrompt = 'You are Prism AI (ChatGPT), the financial and data forecasting intelligence for IrisOS. Always start your response addressing the user as "Lohith". Focus on contractor rate analysis, SaaS cost leak audits, numerical calculations, and cash flow projections.';
+          const systemPrompt = 'You are Prism AI (ChatGPT), the financial and data forecasting intelligence for Iris OS. Always start your response addressing the user as "Lohith". Focus on contractor rate analysis, SaaS cost leak audits, numerical calculations, and cash flow projections.';
           const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}`;
           output = await callChatGPT(systemPrompt, userPrompt);
         } else {
-          const systemPrompt = 'You are Prism AI (Claude), the senior strategies counselor and cognitive planning assistant for IrisOS. Always start your response addressing the user as "Lohith". Focus on campaign optimizations, team structure risk mitigations, planning checklists, and deep logical reasoning.';
+          const systemPrompt = 'You are Prism AI (Claude), the senior strategies counselor and cognitive planning assistant for Iris OS. Always start your response addressing the user as "Lohith". Focus on campaign optimizations, team structure risk mitigations, planning checklists, and deep logical reasoning.';
           const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}`;
           output = await callClaude(systemPrompt, userPrompt);
         }
@@ -461,7 +461,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'operations-advice': {
-        const systemPrompt = 'You are Prism AI, the senior strategy counselor for IrisOS. You deliver precise operations advise. Always address "Lohith" at the start of your message.';
+        const systemPrompt = 'You are Prism AI, the senior strategy counselor for Iris OS. You deliver precise operations advise. Always address "Lohith" at the start of your message.';
         const userPrompt = `Give strategic project capacity advice or risk mitigation tips based on this team workload data:
         Context: ${JSON.stringify(context || {})}`;
         const output = await callClaude(systemPrompt, userPrompt);

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Sparkles, ArrowRight, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { PrismIcon } from './prism-icon';
+import { ArrowRight, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Button } from './button';
 
 export interface InsightPanelProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -34,7 +35,7 @@ export function InsightPanel({
       case 'health':
         return <ShieldCheck className="h-5 w-5 text-emerald-400" />;
       default:
-        return <Sparkles className="h-5 w-5 text-zinc-300" />;
+        return <PrismIcon className="h-5 w-5" />;
     }
   };
 

@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, User, ArrowRight } from 'lucide-react';
+import { Sparkles, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/client';
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [email, setEmail] = React.useState('lohith@apex.co');
-  const [password, setPassword] = React.useState('Password123!');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
@@ -43,7 +44,7 @@ export default function LoginPage() {
                 password,
                 options: {
                   data: {
-                    name: email.split('@')[0] === 'lohith' ? 'Lohith Kumar' : 'Sarah Chen',
+                    name: email.split('@')[0] === 'lohith' ? 'Lohith Sundar' : 'Sarah Chen',
                     role: 'ADMIN',
                   }
                 }
@@ -122,7 +123,7 @@ export default function LoginPage() {
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 font-bold text-zinc-950 shadow-md border border-zinc-200 mb-4 text-base">
             I
           </div>
-          <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Sign in to IrisOS</CardTitle>
+          <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Sign in to Iris OS</CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
             Enterprise Agency & Creative Workspace Monolith (Supabase Secured)
           </CardDescription>
@@ -153,12 +154,25 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <label className="font-semibold text-zinc-400 block">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2.5 px-3 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2.5 pl-3 pr-10 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500 hover:text-white focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">
@@ -194,18 +208,6 @@ export default function LoginPage() {
             <Link href="/signup" className="text-white hover:text-red-500 font-bold underline transition-colors">
               Sign Up
             </Link>
-          </div>
-
-          <div className="rounded-lg border border-zinc-850 bg-zinc-900/10 p-4 space-y-2 flex items-start gap-3">
-            <div className="h-6 w-6 rounded bg-zinc-850 flex items-center justify-center shrink-0">
-              <User className="h-3.5 w-3.5 text-zinc-350" />
-            </div>
-            <div>
-              <span className="block font-semibold text-zinc-300">Supabase Auth Gateway</span>
-              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
-                Sign in with demo credentials `lohith@apex.co` (Password: `Password123!`). New users will be automatically registered in the Supabase user directory.
-              </span>
-            </div>
           </div>
         </CardContent>
       </Card>

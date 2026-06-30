@@ -95,14 +95,14 @@ export async function POST(request: NextRequest) {
     console.log('\n==================================================');
     console.log(`✉️ WELCOME EMAIL SIMULATED FOR CLIENT: ${name}`);
     console.log(`TO: ${inviteEmail} (${inviteName})`);
-    console.log('SUBJECT: Welcome to IrisOS - Set Up Your Client Account');
+    console.log('SUBJECT: Welcome to Iris OS - Set Up Your Client Account');
     console.log('BODY:');
     console.log(`Hello ${inviteName},\n`);
-    console.log(`Welcome to IrisOS! You have been invited by the team at Apex Creative to connect.`);
+    console.log(`Welcome to Iris OS! You have been invited by the team at Apex Creative to connect.`);
     console.log(`You can register your account and access your Meta Portal dashboard using the link below:`);
     console.log(`http://localhost:3000/invite?token=${token}\n`);
     console.log('This invite token will expire in 7 days.');
-    console.log('Best regards,\nIrisOS Automation Engine');
+    console.log('Best regards,\nIris OS Automation Engine');
     console.log('==================================================\n');
 
     return NextResponse.json({

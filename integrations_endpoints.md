@@ -1,6 +1,6 @@
-# IrisOS Integrations Endpoints Directory
+# Iris OS Integrations Endpoints Directory
 
-This document contains a compiled list of all authorization redirects, API callbacks, and webhook URLs configured for active and simulated integration modules across IrisOS, supporting both `localhost` and `127.0.0.1` local network mappings.
+This document contains a compiled list of all authorization redirects, API callbacks, and webhook URLs configured for active and simulated integration modules across Iris OS, supporting both `localhost` and `127.0.0.1` local network mappings.
 
 ---
 

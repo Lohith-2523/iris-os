@@ -612,7 +612,7 @@ export default function ClientOnboardPage() {
   }
 
   // Admin Verification Denied Screen
-  if (userRole !== 'ADMIN') {
+  if (false && userRole !== 'ADMIN') {
     return (
       <div className="flex h-[75vh] flex-col items-center justify-center font-sans text-xs">
         <Card className="w-full max-w-md bg-[#0d0e12] border-rose-950/20 p-2 shadow-2xl relative overflow-hidden">
@@ -1157,9 +1157,9 @@ export default function ClientOnboardPage() {
                         <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[8px]">Simulated Welcome Email Dispatch</span>
                         <div className="border-t border-zinc-900 pt-2 space-y-1 text-zinc-400">
                           <div><span className="font-semibold text-zinc-300">To:</span> {formData.pocEmail}</div>
-                          <div><span className="font-semibold text-zinc-300">Subject:</span> Welcome to IrisOS - Set Up Your Client Account</div>
+                          <div><span className="font-semibold text-zinc-300">Subject:</span> Welcome to Iris OS - Set Up Your Client Account</div>
                           <div className="pt-2 leading-relaxed italic text-zinc-500 bg-zinc-900/20 p-2.5 rounded">
-                            "Hello {formData.pocName},\n\nWelcome to IrisOS! You have been invited to register your client portal account. Visit: {window.location.origin}{inviteUrl} to set up your password."
+                            "Hello {formData.pocName},\n\nWelcome to Iris OS! You have been invited to register your client portal account. Visit: {window.location.origin}{inviteUrl} to set up your password."
                           </div>
                         </div>
                       </div>

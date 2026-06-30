@@ -1,14 +1,14 @@
-# IrisOS Product And Architecture Plan
+# Iris OS Product And Architecture Plan
 
 ## Product Summary
 
-IrisOS is an enterprise-grade SaaS operating system for freelancers, agencies, consulting firms, marketing organizations, creative studios, and multi-brand enterprises.
+Iris OS is an enterprise-grade SaaS operating system for freelancers, agencies, consulting firms, marketing organizations, creative studios, and multi-brand enterprises.
 
 The product unifies finance, operations, clients, projects, reporting, forecasting, business intelligence, creative operations, automation, executive reporting, and proprietary AI intelligence.
 
 Prisma AI is the embedded intelligence layer. It should power insights, recommendations, forecasts, summaries, risk signals, health scores, and Ask Prisma experiences throughout the app.
 
-Design Hub is an IrisOS-owned creative operations workspace powered by Canva workflows. Canva can be visible as the underlying provider, but IrisOS remains the primary product.
+Design Hub is an Iris OS-owned creative operations workspace powered by Canva workflows. Canva can be visible as the underlying provider, but Iris OS remains the primary product.
 
 ## Product Experience Requirements
 

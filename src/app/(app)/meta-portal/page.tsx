@@ -33,6 +33,7 @@ import {
   Check,
   User
 } from 'lucide-react';
+import { PrismIcon } from '@/components/ui/prism-icon';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 
@@ -180,7 +181,7 @@ export default function MetaPortalPage() {
       id: 'post-1',
       platform: ['instagram', 'facebook'],
       postType: 'carousel',
-      caption: '🚀 Elevate your marketing funnel with IrisOS integrations! Synced design pipelines from Canva straight to Meta campaign layouts. Learn how David Kim optimizes creative performance in seconds. #Agencies #CreativeOperations',
+      caption: '🚀 Elevate your marketing funnel with Iris OS integrations! Synced design pipelines from Canva straight to Meta campaign layouts. Learn how David Kim optimizes creative performance in seconds. #Agencies #CreativeOperations',
       mediaUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60',
       status: 'PUBLISHED',
       scheduledAt: '2026-06-25T14:30:00Z',
@@ -1002,7 +1003,7 @@ export default function MetaPortalPage() {
               : 'border-transparent text-zinc-405 hover:text-white'
           }`}
         >
-          <Sparkles className="h-3.5 w-3.5" />
+          <PrismIcon className="h-3.5 w-3.5" />
           <span>Prism AI Strategy</span>
         </button>
       </div>
@@ -1883,7 +1884,7 @@ export default function MetaPortalPage() {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-violet-400" />
+                    <PrismIcon className="h-4 w-4 text-violet-400" />
                     <span>Claude strategy generation plan</span>
                   </CardTitle>
                   <CardDescription>Analyze campaigns, spends, click logs, and lead conversions. Get high-fidelity performance strategies directly from Claude.</CardDescription>
@@ -1900,7 +1901,7 @@ export default function MetaPortalPage() {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-3.5 w-3.5" />
+                      <PrismIcon className="h-3.5 w-3.5" />
                       <span>Generate Campaign Strategy</span>
                     </>
                   )}
@@ -1915,7 +1916,7 @@ export default function MetaPortalPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-zinc-500 space-y-3">
                   <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-full">
-                    <Sparkles className="h-6 w-6 text-violet-400 animate-pulse" />
+                    <PrismIcon className="h-6 w-6 text-violet-400 animate-pulse" />
                   </div>
                   <div className="max-w-md">
                     <span className="block text-xs font-semibold text-zinc-300">No strategy report compiled yet</span>

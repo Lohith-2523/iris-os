@@ -1,10 +1,10 @@
-# IrisOS Product Spec
+# Iris OS Product Spec
 
 ## Product Identity
 
-IrisOS is an enterprise-grade SaaS operating system for modern agencies and creative enterprises. It unifies finance, operations, clients, projects, reporting, forecasting, intelligence, and content production from a single platform.
+Iris OS is an enterprise-grade SaaS operating system for modern agencies and creative enterprises. It unifies finance, operations, clients, projects, reporting, forecasting, intelligence, and content production from a single platform.
 
-IrisOS includes Prisma AI as its proprietary intelligence layer. Prisma should appear across the product through names such as Prisma Insights, Prisma Forecasting, Prisma Recommendations, Prisma Reports, Prisma Analysis, Ask Prisma, and Prisma Command Center.
+Iris OS includes Prisma AI as its proprietary intelligence layer. Prisma should appear across the product through names such as Prisma Insights, Prisma Forecasting, Prisma Recommendations, Prisma Reports, Prisma Analysis, Ask Prisma, and Prisma Command Center.
 
 ## Target Users
 
@@ -16,7 +16,7 @@ Generate every screen, workflow, dashboard, interaction, and realistic sample-da
 
 ## Main Navigation
 
-IrisOS must include these main modules:
+Iris OS must include these main modules:
 
 - Dashboard
 - Finance
@@ -43,9 +43,9 @@ Do not use bright blue, bright green, bright red, neon colors, cartoon graphics,
 
 ## Design Hub
 
-Design Hub is IrisOS's centralized platform for creative operations, content production, publishing, asset management, campaign design, creative analytics, and brand governance.
+Design Hub is Iris OS's centralized platform for creative operations, content production, publishing, asset management, campaign design, creative analytics, and brand governance.
 
-Canva powers the underlying design workflows while IrisOS remains the primary product.
+Canva powers the underlying design workflows while Iris OS remains the primary product.
 
 ### Basic Plan
 
@@ -138,7 +138,7 @@ Pages:
 
 ## Prisma Capabilities
 
-Prisma is IrisOS's dedicated flagship intelligence experience and should be deeply integrated into every module.
+Prisma is Iris OS's dedicated flagship intelligence experience and should be deeply integrated into every module.
 
 Finance capabilities:
 

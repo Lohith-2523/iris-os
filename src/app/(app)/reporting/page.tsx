@@ -35,6 +35,18 @@ export default function ReportingPage() {
     }, 2000);
   };
 
+  const downloadReport = (title: string) => {
+    const fileContent = `Report Title: ${title}\nDate: ${new Date().toLocaleDateString()}\nGenerated via Iris OS Executive Reporting.`;
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.txt`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -146,7 +158,12 @@ export default function ReportingPage() {
                         <Badge variant="outline">{r.type}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-400 hover:text-white rounded">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => downloadReport(r.title)}
+                          className="h-7 w-7 text-zinc-400 hover:text-white rounded cursor-pointer"
+                        >
                           <Download className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
@@ -167,7 +184,7 @@ export default function ReportingPage() {
             scoreLabel="SCHEDULE COMPLIANCE"
             riskLevel="LOW"
           >
-            {formatUserMessage("Lohith, the monthly **Client Profitability Report** is scheduled to compile on **June 30**. All connected QuickBooks ledger items are fully reconciled and sync verified.")}
+            {formatUserMessage("Lohith, the monthly **Client Profitability Report** is scheduled to compile on **June 30**. All connected ledger items are fully reconciled and sync verified.")}
           </InsightPanel>
 
           <Card>

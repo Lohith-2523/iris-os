@@ -65,7 +65,7 @@ export default function DesignHubPage() {
 
   const [isPublishing, setIsPublishing] = React.useState<boolean>(false);
   const [publishProgress, setPublishProgress] = React.useState<string>('');
-  const [publishingChannel, setPublishingChannel] = React.useState<string>('linkedin');
+  const [publishingChannel, setPublishingChannel] = React.useState<string>('meta-api');
   const [selectedPublishDesign, setSelectedPublishDesign] = React.useState<string>('1');
   const [exportedUrl, setExportedUrl] = React.useState<string | null>(null);
   const [metaCampaigns, setMetaCampaigns] = React.useState<{ id: string; name: string; ads: { id: string; name: string; platform: string; imageUrl?: string | null }[] }[]>([]);
@@ -107,6 +107,7 @@ export default function DesignHubPage() {
     type: string;
     format: string;
     editUrl?: string;
+    thumbnailUrl?: string;
   }
 
   interface ApprovalItem {
@@ -116,6 +117,7 @@ export default function DesignHubPage() {
     brand: string;
     submittedAt: string;
     status: string;
+    thumbnailUrl?: string;
   }
 
   interface ScheduledPost {
@@ -150,10 +152,10 @@ export default function DesignHubPage() {
   }
 
   const [designs, setDesigns] = React.useState<DesignAsset[]>([
-    { id: '1', name: 'Summer Campaign Instagram Square', campaign: 'Summer Launch 2026', status: 'APPROVED', lastSync: '2 hours ago', type: 'Social Media', format: 'PNG' },
-    { id: '2', name: 'Aether Social Ads Banner', campaign: 'Summer Launch 2026', status: 'IN_REVIEW', lastSync: '4 hours ago', type: 'Display Ads', format: 'JPG' },
-    { id: '3', name: 'Vortex Brand Deck Assets', campaign: 'Corporate Redesign 2026', status: 'DRAFT', lastSync: '1 day ago', type: 'Marketing Decks', format: 'PDF' },
-    { id: '4', name: 'Helios Media Ad Template', campaign: 'General Production', status: 'APPROVED', lastSync: '3 days ago', type: 'Templates', format: 'PNG' },
+    { id: '1', name: 'Summer Campaign Instagram Square', campaign: 'Summer Launch 2026', status: 'APPROVED', lastSync: '2 hours ago', type: 'Social', format: 'PNG', thumbnailUrl: '/designs/social_square.png' },
+    { id: '2', name: 'Aether Social Ads Banner', campaign: 'Summer Launch 2026', status: 'IN_REVIEW', lastSync: '4 hours ago', type: 'Ad Creative', format: 'JPG', thumbnailUrl: '/designs/summer_banner.png' },
+    { id: '3', name: 'Vortex Brand Deck Assets', campaign: 'Corporate Redesign 2026', status: 'DRAFT', lastSync: '1 day ago', type: 'E-Books', format: 'PDF', thumbnailUrl: '/designs/logo_concepts.png' },
+    { id: '4', name: 'Helios Media Ad Template', campaign: 'General Production', status: 'APPROVED', lastSync: '3 days ago', type: 'Templates', format: 'PNG', thumbnailUrl: '/designs/social_square.png' },
   ]);
 
   const [templates, setTemplates] = React.useState<CanvaTemplate[]>([
@@ -163,13 +165,13 @@ export default function DesignHubPage() {
   ]);
 
   const [approvals, setApprovals] = React.useState<ApprovalItem[]>([
-    { id: 'A1', name: 'Aether Technologies Banner Ad', designer: 'David Kim', brand: 'Aether Digital', submittedAt: '10:15 AM', status: 'PENDING' },
-    { id: 'A2', name: 'Vortex Pitch Deck', designer: 'Sophie Dubois', brand: 'Vortex Studio', submittedAt: 'Yesterday', status: 'PENDING' },
+    { id: 'A1', name: 'Aether Technologies Banner Ad', designer: 'David Kim', brand: 'Aether Digital', submittedAt: '10:15 AM', status: 'PENDING', thumbnailUrl: '/designs/social_square.png' },
+    { id: 'A2', name: 'Vortex Pitch Deck', designer: 'Sophie Dubois', brand: 'Vortex Studio', submittedAt: 'Yesterday', status: 'PENDING', thumbnailUrl: '/designs/logo_concepts.png' },
   ]);
 
   const [scheduledPosts, setScheduledPosts] = React.useState<ScheduledPost[]>([
-    { id: 'S1', title: 'Summer Social Blast', brand: 'Aether Digital', scheduledAt: 'June 22, 2026', channel: 'Instagram', status: 'SCHEDULED' },
-    { id: 'S2', title: 'B2B E-book Assets', brand: 'Vortex Studio', scheduledAt: 'June 24, 2026', channel: 'LinkedIn', status: 'SCHEDULED' },
+    { id: 'S1', title: 'Summer Social Blast', brand: 'Aether Digital', scheduledAt: 'June 22, 2026', channel: 'Meta Portal', status: 'SCHEDULED' },
+    { id: 'S2', title: 'B2B E-book Assets', brand: 'Vortex Studio', scheduledAt: 'June 24, 2026', channel: 'Meta Portal', status: 'SCHEDULED' },
   ]);
 
   const [complianceRules, setComplianceRules] = React.useState<ComplianceRule[]>([
@@ -1151,7 +1153,7 @@ export default function DesignHubPage() {
                 <div className="space-y-6">
                   {/* Folders Filters */}
                   <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                    {['All Folders', 'Social Media', 'Display Ads', 'Marketing Decks', 'Templates'].map(folder => (
+                    {['All Folders', 'Social', 'Ad Creative', 'E-Books', 'Templates'].map(folder => (
                       <button
                         key={folder}
                         onClick={() => setActiveFolder(folder)}
@@ -1177,8 +1179,16 @@ export default function DesignHubPage() {
                         .filter(d => activeFolder === 'All Folders' || d.type === activeFolder)
                         .map(design => (
                           <div key={design.id} className="border border-zinc-850 bg-zinc-950 p-4 space-y-4 rounded-none">
-                            <div className="aspect-[1.91/1] w-full bg-zinc-900 border border-zinc-800 flex items-center justify-center relative">
-                              <ImageIcon className="h-8 w-8 text-zinc-700" />
+                             <div className="aspect-[1.91/1] w-full bg-zinc-900 border border-zinc-800 flex items-center justify-center relative overflow-hidden">
+                              {design.thumbnailUrl ? (
+                                <img 
+                                  src={design.thumbnailUrl} 
+                                  alt={design.name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <ImageIcon className="h-8 w-8 text-zinc-700" />
+                              )}
                               <Badge className="absolute top-2 right-2 text-[9px] uppercase tracking-wider" variant={design.status === 'APPROVED' ? 'risk-low' : 'risk-medium'}>
                                 {design.status}
                               </Badge>
@@ -1651,8 +1661,16 @@ export default function DesignHubPage() {
                           <TableRow key={app.id}>
                             <TableCell className="font-semibold text-white">
                               <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-                                  <ImageIcon className="h-3 w-3 text-zinc-500" />
+                                <div className="h-6 w-6 bg-zinc-900 border border-zinc-800 flex items-center justify-center overflow-hidden">
+                                  {app.thumbnailUrl ? (
+                                    <img 
+                                      src={app.thumbnailUrl} 
+                                      alt={app.name} 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <ImageIcon className="h-3 w-3 text-zinc-500" />
+                                  )}
                                 </div>
                                 <span>{app.name}</span>
                               </div>
@@ -1735,10 +1753,7 @@ export default function DesignHubPage() {
                           onChange={(e) => setPublishingChannel(e.target.value)}
                           className="w-full border border-zinc-850 bg-zinc-900 p-2 text-xs text-white focus:outline-none rounded-none cursor-pointer"
                         >
-                          <option value="linkedin">LinkedIn Business Feed</option>
-                          <option value="instagram">Instagram Campaign Ads</option>
-                          <option value="facebook">Facebook Brand Ads</option>
-                          <option value="meta-api">Meta Ads API Sync</option>
+                          <option value="meta-api">Meta Portal</option>
                         </select>
                       </div>
 
@@ -1845,7 +1860,9 @@ export default function DesignHubPage() {
                         <div key={post.id} className="p-4 border border-zinc-850 bg-zinc-950 flex flex-col justify-between rounded-none gap-4">
                           <div className="space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="text-[9px] font-mono text-zinc-500 uppercase">{post.channel}</span>
+                              <span className="text-[9px] font-mono text-zinc-500 uppercase">
+                                {post.channel === 'meta-api' ? 'Meta Portal' : post.channel}
+                              </span>
                               <Badge variant={post.status === 'PUBLISHED' ? 'risk-low' : 'outline'} className="text-[9px] uppercase">
                                 {post.status}
                               </Badge>
@@ -2025,7 +2042,7 @@ export default function DesignHubPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-sm font-semibold text-white">Active Creative Automations</CardTitle>
-                      <CardDescription>Automation rules configured inside IrisOS.</CardDescription>
+                      <CardDescription>Automation rules configured inside Iris OS.</CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                       <Table>
@@ -2088,7 +2105,7 @@ export default function DesignHubPage() {
                       <div className="border border-zinc-800 bg-zinc-950/40 p-4 space-y-4 rounded-none">
                         <span className="block text-xs font-bold text-white uppercase tracking-wider">Configure Custom Canva Developer credentials</span>
                         <span className="block text-[10px] text-zinc-500 leading-relaxed">
-                          To hook this IrisOS workspace into a live Canva team, insert your Canva Connect integration Client ID and Secret key. Ensure redirect URIs match: <code className="text-zinc-300 font-mono text-[9px] bg-zinc-900 px-1 py-0.2">{origin}/api/canva/callback</code>.
+                          To hook this Iris OS workspace into a live Canva team, insert your Canva Connect integration Client ID and Secret key. Ensure redirect URIs match: <code className="text-zinc-300 font-mono text-[9px] bg-zinc-900 px-1 py-0.2">{origin}/api/canva/callback</code>.
                         </span>
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="space-y-1.5">

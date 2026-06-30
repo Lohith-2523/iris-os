@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const protocol = protoHeader ? protoHeader.split(',')[0].trim() : requestUrl.protocol.replace(':', '');
     const baseUrl = process.env.NEXTAUTH_URL || `${protocol}://${host}`;
     const redirectUri = process.env.CANVA_REDIRECT_URI || `${baseUrl}/api/canva/callback`;
-    const scope = process.env.CANVA_SCOPES || 'design:read design:meta:read design:content:read design:content:write asset:read asset:write profile:read brand-kit:read brandtemplate:meta:read brandtemplate:content:read folder:read folder:write export:read export:write';
+    const scope = 'comment:read profile:read asset:write folder:permission:write design:meta:read folder:write folder:read design:permission:read design:content:read brandtemplate:meta:read design:permission:write design:content:write app:write app:read brandtemplate:content:write comment:write asset:read folder:permission:read brandtemplate:content:read';
 
     // Canva Auth URL redirect
     const authUrl = `https://www.canva.com/api/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&code_challenge=${codeChallenge}&code_challenge_method=s256&state=${state}`;

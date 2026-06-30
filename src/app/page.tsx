@@ -14,13 +14,14 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import { PrismIcon } from '@/components/ui/prism-icon';
 
 const SECTORS = [
   {
     title: 'Prism AI & Automations',
     description: 'Trigger automated workflows, sync client pipelines, and utilize LLM-powered context engines.',
     details: [
-      'Automated Workflow Orchestrator: Connect tools like Canva, Slack, and email into seamless pipelines.',
+      'Automated Workflow Orchestrator: Connect tools like Canva and email into seamless pipelines.',
       'Prism AI Chat Assistant: Query financial ledgers, project trackers, and client details using plain language.',
       'Real-time Event Triggers: Set up instant alerts for contractor profit leaks or margin risks.'
     ],
@@ -103,7 +104,7 @@ export default function LandingPage() {
           <div className="h-8 w-8 bg-[#09090b] text-white font-bold flex items-center justify-center border-2 border-black group-hover:bg-red-600 transition-colors">
             I
           </div>
-          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">IrisOS</span>
+          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">Iris OS</span>
         </Link>
 
         {/* Center Nav Links */}
@@ -260,7 +261,7 @@ export default function LandingPage() {
       <section id="about" className="py-20 px-6 border-b-[3px] border-black bg-[#f4f5f7] overflow-hidden">
         <div className="max-w-4xl mx-auto space-y-12 text-center md:text-left animate-fade-in-up">
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold text-red-600 uppercase tracking-widest">About IrisOS</span>
+            <span className="text-xs font-bold text-red-600 uppercase tracking-widest">About Iris OS</span>
             <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase text-[#09090b]">
               Redefining Professional Services Operations
             </h2>
@@ -270,9 +271,9 @@ export default function LandingPage() {
             <div className="absolute top-0 left-0 w-8 h-2 bg-red-600" />
             <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-medium font-sans">
               Spreadsheets fail. Chat threads scatter. Client reporting consumes hours of manual synchronization. 
-              IrisOS is the definitive solution—a singular, unified operating system designed to run all facets 
+              Iris OS is the definitive solution—a singular, unified operating system designed to run all facets 
               of a professional service firm. By combining multi-currency ledgers, automatic client-clearance portals, 
-              milestone trackers, and real-time anomaly alerts, IrisOS streamlines operations from client acquisition 
+              milestone trackers, and real-time anomaly alerts, Iris OS streamlines operations from client acquisition 
               to final delivery.
             </p>
             <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-medium font-sans mt-6">
@@ -281,7 +282,7 @@ export default function LandingPage() {
               a paradigm shift: from fragmented chaos to unified agency intelligence.
             </p>
             <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-medium font-sans mt-6">
-              Built on a state-of-the-art asynchronous architecture, IrisOS integrates directly with your key tooling environment—from Canva workspaces and Meta campaigns to standard banking APIs and multi-currency ledgers. Our platform operates as a secure, decentralized core that drives contractor margin tracking, automated client reporting SLAs, and context-aware database queries. It ensures your agency maintains absolute margin integrity while enabling scalable operations that don't depend on manual spreadsheets or constant Slack synchronization.
+              Built on a state-of-the-art asynchronous architecture, Iris OS integrates directly with your key tooling environment—from Canva workspaces and Meta campaigns to standard banking APIs and multi-currency ledgers. Our platform operates as a secure, decentralized core that drives contractor margin tracking, automated client reporting SLAs, and context-aware database queries. It ensures your agency maintains absolute margin integrity while enabling scalable operations that don't depend on manual spreadsheets or constant manual synchronization.
             </p>
           </div>
 
@@ -307,7 +308,7 @@ export default function LandingPage() {
               <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Keep a single source of truth across USD, EUR, and GBP with real-time currency sync.</span>
             </div>
             <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-200">
-              <Sparkles className="h-6 w-6 text-red-600 mb-2" />
+              <PrismIcon className="h-6 w-6 text-red-600 mb-2" />
               <span className="block font-bold text-xs uppercase text-[#09090b]">Prism AI Engine</span>
               <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Empower your team to query project timelines, ledgers, and metrics using natural language.</span>
             </div>
@@ -487,7 +488,7 @@ export default function LandingPage() {
                 </div>
                 <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
                   <li><strong className="text-black">Sync latency:</strong> Real-time webhook push</li>
-                  <li><strong className="text-black">API Integration:</strong> Canvas, Slack, Webhook v2</li>
+                  <li><strong className="text-black">API Integration:</strong> Canvas, Webhook v2</li>
                   <li><strong className="text-black">Security:</strong> OAuth2.0 Client Credentials</li>
                   <li><strong className="text-black">LLM Engine:</strong> Context-aware vector retrieval</li>
                 </ul>
@@ -589,7 +590,7 @@ export default function LandingPage() {
             <div className="h-7 w-7 bg-white text-[#09090b] font-bold flex items-center justify-center border border-white">
               I
             </div>
-            <span className="text-md font-bold font-heading tracking-tight">IrisOS</span>
+            <span className="text-md font-bold font-heading tracking-tight">Iris OS</span>
             <span className="text-[10px] text-zinc-500 font-mono mt-1">© 2026. All rights reserved.</span>
           </div>
 

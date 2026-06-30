@@ -115,10 +115,10 @@ export async function GET(request: NextRequest) {
 
     // Default mock fallback designs if Canva calls fail or aren't authenticated yet
     const fallbackDesigns = [
-      { id: '1', name: 'Summer Campaign Instagram Square', campaign: 'Summer Launch 2026', status: 'APPROVED', lastSync: '2 hours ago', type: 'Social Media', format: 'PNG' },
-      { id: '2', name: 'Aether Social Ads Banner', campaign: 'Summer Launch 2026', status: 'IN_REVIEW', lastSync: '4 hours ago', type: 'Display Ads', format: 'JPG' },
-      { id: '3', name: 'Vortex Brand Deck Assets', campaign: 'Corporate Redesign 2026', status: 'DRAFT', lastSync: '1 day ago', type: 'Marketing Decks', format: 'PDF' },
-      { id: '4', name: 'Helios Media Ad Template', campaign: 'General Production', status: 'APPROVED', lastSync: '3 days ago', type: 'Templates', format: 'PNG' },
+      { id: '1', name: 'Summer Campaign Instagram Square', campaign: 'Summer Launch 2026', status: 'APPROVED', lastSync: '2 hours ago', type: 'Social', format: 'PNG', thumbnailUrl: '/designs/social_square.png' },
+      { id: '2', name: 'Aether Social Ads Banner', campaign: 'Summer Launch 2026', status: 'IN_REVIEW', lastSync: '4 hours ago', type: 'Ad Creative', format: 'JPG', thumbnailUrl: '/designs/summer_banner.png' },
+      { id: '3', name: 'Vortex Brand Deck Assets', campaign: 'Corporate Redesign 2026', status: 'DRAFT', lastSync: '1 day ago', type: 'E-Books', format: 'PDF', thumbnailUrl: '/designs/logo_concepts.png' },
+      { id: '4', name: 'Helios Media Ad Template', campaign: 'General Production', status: 'APPROVED', lastSync: '3 days ago', type: 'Templates', format: 'PNG', thumbnailUrl: '/designs/social_square.png' },
     ];
 
     if (!connected) {
@@ -158,16 +158,29 @@ export async function GET(request: NextRequest) {
 
       if (designsRes.ok) {
         const apiData = await designsRes.json();
-        activeDesigns = (apiData.items || []).map((item: any, idx: number) => ({
-          id: item.id,
-          name: item.name,
-          campaign: idx % 2 === 0 ? 'Summer Launch 2026' : 'General Production',
-          status: idx % 3 === 0 ? 'APPROVED' : 'DRAFT',
-          lastSync: 'Synced Just Now',
-          type: 'Social Media',
-          format: 'PNG',
-          editUrl: item.urls?.edit_url || 'https://www.canva.com'
-        }));
+        activeDesigns = (apiData.items || []).map((item: any, idx: number) => {
+          const title = (item.title || item.name || '').toLowerCase();
+          let type = 'Social';
+          if (title.includes('banner') || title.includes('ad') || title.includes('promo') || title.includes('creative')) {
+            type = 'Ad Creative';
+          } else if (title.includes('book') || title.includes('deck') || title.includes('presentation') || title.includes('doc') || title.includes('pdf') || title.includes('ppt')) {
+            type = 'E-Books';
+          } else if (title.includes('template')) {
+            type = 'Templates';
+          }
+
+          return {
+            id: item.design_id || item.id,
+            name: item.title || item.name || 'Untitled Design',
+            campaign: idx % 2 === 0 ? 'Summer Launch 2026' : 'General Production',
+            status: idx % 3 === 0 ? 'APPROVED' : 'DRAFT',
+            lastSync: 'Synced Just Now',
+            type,
+            format: 'PNG',
+            thumbnailUrl: item.thumbnail?.url || '/designs/social_square.png',
+            editUrl: item.urls?.edit_url || item.edit_url || 'https://www.canva.com'
+          };
+        });
       } else {
         const errorText = await designsRes.text();
         apiError = { status: designsRes.status, body: errorText };

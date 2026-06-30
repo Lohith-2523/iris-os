@@ -1,4 +1,4 @@
-# IrisOS Architecture Plan
+# Iris OS Architecture Plan
 
 ## Preferred Stack
 
@@ -19,7 +19,7 @@ Use this stack unless the user explicitly chooses otherwise:
 
 ## Architecture
 
-Build IrisOS as a modular monolith. Keep one deployable application with domain-oriented routes, services, data access, validation, and integration adapters.
+Build Iris OS as a modular monolith. Keep one deployable application with domain-oriented routes, services, data access, validation, and integration adapters.
 
 Prefer Server Components and server-side data loading where practical. Use client components for interactive tables, charts, filters, dialogs, builders, and command experiences.
 

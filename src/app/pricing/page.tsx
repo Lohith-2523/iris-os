@@ -7,7 +7,7 @@ import { ArrowRight, Check, Menu, X, HelpCircle } from 'lucide-react';
 const FAQS = [
   {
     question: "What agency industry specializations are supported?",
-    answer: "IrisOS supports marketing, social media, SEO, paid advertising, brand strategy, design, content, video, and web development. Selected specializations map directly into your workspace ledgers and project frameworks."
+    answer: "Iris OS supports marketing, social media, SEO, paid advertising, brand strategy, design, content, video, and web development. Selected specializations map directly into your workspace ledgers and project frameworks."
   },
   {
     question: "How does the profit-leak detection work?",
@@ -19,7 +19,7 @@ const FAQS = [
   },
   {
     question: "Is there a setup fee or lock-in contract?",
-    answer: "No. All IrisOS subscriptions are billed monthly on a pay-as-you-go basis. You can cancel your subscription at any time without penalty."
+    answer: "No. All Iris OS subscriptions are billed monthly on a pay-as-you-go basis. You can cancel your subscription at any time without penalty."
   }
 ];
 
@@ -36,7 +36,7 @@ export default function PricingPage() {
           <div className="h-8 w-8 bg-[#09090b] text-white font-bold flex items-center justify-center border-2 border-black group-hover:bg-red-600 transition-colors">
             I
           </div>
-          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">IrisOS</span>
+          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">Iris OS</span>
         </Link>
 
         {/* Center Nav Links */}
@@ -111,7 +111,7 @@ export default function PricingPage() {
             Clear Workspace Options
           </span>
           <h1 className="text-4xl sm:text-6xl font-extrabold font-heading text-[#09090b] uppercase tracking-tight animate-scale-in">
-            IrisOS Workspace Tiers
+            Iris OS Workspace Tiers
           </h1>
           <p className="text-sm text-zinc-550 max-w-lg mx-auto font-medium">
             From agile agencies to multi-industry enterprises, choose a level that matches your team scale and operational complexity.
@@ -286,7 +286,7 @@ export default function PricingPage() {
             <div className="h-7 w-7 bg-white text-[#09090b] font-bold flex items-center justify-center border border-white">
               I
             </div>
-            <span className="text-md font-bold font-heading tracking-tight">IrisOS</span>
+            <span className="text-md font-bold font-heading tracking-tight">Iris OS</span>
             <span className="text-[10px] text-zinc-500 font-mono mt-1 font-medium">© 2026. All rights reserved.</span>
           </div>
 

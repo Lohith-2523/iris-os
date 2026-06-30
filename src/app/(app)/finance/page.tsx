@@ -308,6 +308,32 @@ export default function FinancePage() {
     });
   }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData]);
 
+  const handleExportCSV = () => {
+    const headers = ['Transaction ID', 'Source / Ledger', 'Customer / Client', 'Date', 'Amount (USD)', 'Status'];
+    const rows = combinedTransactions.map((tx: any) => [
+      tx.id,
+      tx.source,
+      tx.customer,
+      tx.date,
+      tx.amountUSD.toFixed(2),
+      tx.rawStatus
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `financial_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -317,13 +343,14 @@ export default function FinancePage() {
           <p className="text-xs text-zinc-500">Track combined agency revenue, invoice statuses, and integrated gateway payouts.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="h-8 border-zinc-800 text-zinc-300 gap-1.5">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExportCSV}
+            className="h-8 border-zinc-800 text-zinc-300 gap-1.5 cursor-pointer"
+          >
             <Download className="h-3.5 w-3.5" />
             <span>Export CSV</span>
-          </Button>
-          <Button variant="default" size="sm" className="h-8 gap-1.5 font-semibold">
-            <Plus className="h-3.5 w-3.5" />
-            <span>Issue Invoice</span>
           </Button>
         </div>
       </div>
@@ -564,14 +591,7 @@ export default function FinancePage() {
         <div className="space-y-6">
           {/* Header Action */}
           <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="risk-low" className="text-[9px] scale-90">
-                {stripeData?.usingDemoData ? 'Connected Sandbox' : 'Connected Live'}
-              </Badge>
-              <span className="text-[10px] text-zinc-500 font-mono">
-                {stripeData?.usingDemoData ? 'Key: rk_test_...' : 'Key Verified'}
-              </span>
-            </div>
+            <div />
             <Button
               type="button"
               variant="outline"
@@ -787,14 +807,7 @@ export default function FinancePage() {
         <div className="space-y-6">
           {/* Header Action */}
           <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="risk-low" className="text-[9px] scale-90">
-                {paypalData?.usingDemoData ? 'Connected Sandbox' : 'Connected Live'}
-              </Badge>
-              <span className="text-[10px] text-zinc-500 font-mono">
-                {paypalData?.usingDemoData ? 'Key: Client ID ...' : 'Production Active'}
-              </span>
-            </div>
+            <div />
             <Button
               type="button"
               variant="outline"
@@ -1010,10 +1023,7 @@ export default function FinancePage() {
         <div className="space-y-6">
           {/* Header Action */}
           <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="risk-low" className="text-[9px] scale-90">Connected Sandbox</Badge>
-              <span className="text-[10px] text-zinc-500 font-mono">Key ID: rzp_test_...</span>
-            </div>
+            <div />
             <Button
               type="button"
               variant="outline"

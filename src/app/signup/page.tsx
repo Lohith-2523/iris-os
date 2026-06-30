@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, Phone, Lock, ArrowRight } from 'lucide-react';
+import { User, Phone, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
@@ -55,7 +56,7 @@ export default function SignupPage() {
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 font-bold text-zinc-950 shadow-md border border-zinc-200 mb-4 text-base">
             I
           </div>
-          <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Create IrisOS Workspace</CardTitle>
+          <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Create Iris OS Workspace</CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
             Deploy an isolated enterprise operating console (Supabase Secured)
           </CardDescription>
@@ -107,12 +108,23 @@ export default function SignupPage() {
                   <Lock className="h-3.5 w-3.5 text-zinc-500" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
+                  className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2.5 pl-9 pr-10 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500 hover:text-white focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
 

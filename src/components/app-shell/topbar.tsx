@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Search, Sparkles, Command, Menu, X, BrainCircuit, Play, ArrowRight, Sun, Moon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatUserMessage } from '@/lib/utils';
+import { PrismIcon } from '../ui/prism-icon';
 
 interface TopbarProps {
   onMenuToggle: () => void;
@@ -147,7 +148,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
           <div className="flex-1 max-w-md mx-4 hidden md:block">
             <form onSubmit={handlePrismSubmit} className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+                <PrismIcon className="h-3.5 w-3.5" />
               </div>
               <input
                 type="text"

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
+import { PrismIcon } from '@/components/ui/prism-icon';
 
 // Inline SVGs for Facebook & Instagram to avoid compilation issues
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -496,7 +497,7 @@ export default function ClientDashboardPage() {
               <Card className="bg-[#0b0c10] border-zinc-800">
                 <CardHeader>
                   <CardTitle className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4" />
+                    <PrismIcon className="h-4 w-4" />
                     <span>Prism Strategy Insights</span>
                   </CardTitle>
                 </CardHeader>

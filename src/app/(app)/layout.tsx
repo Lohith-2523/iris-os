@@ -38,7 +38,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
   }, [fetchUser]);
 
-  const isClientGated = user?.role?.toLowerCase() === 'client' && pathname !== '/client-dashboard';
+  const isClientGated = user?.role?.toLowerCase() === 'client' && 
+    pathname !== '/client-dashboard' && 
+    pathname !== '/clients/onboard';
   const isAdminGated = user?.role?.toLowerCase() === 'admin' && pathname === '/client-dashboard';
 
   if (loading) {

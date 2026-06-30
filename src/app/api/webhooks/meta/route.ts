@@ -129,6 +129,10 @@ export async function POST(request: NextRequest) {
 
     // Helper to log connection events to IntegrationConnection log
     const logConnectionEvent = async (provider: string, message: string) => {
+      if (provider === 'SLACK' || provider === 'HUBSPOT') {
+        console.log(`[Meta Webhook Debug - Redirected from ${provider}]: ${message}`);
+        return;
+      }
       const conn = await prisma.integrationConnection.findFirst({
         where: { provider }
       });

@@ -35,10 +35,10 @@ const MOCK_EXISTING_SPECIALISTS = [
 export default function TeamPage() {
   // Main stateful active team list
   const [teamList, setTeamList] = React.useState([
-    { id: '1', name: 'Lohith Kumar', role: 'Executive CEO', projects: 'All Accounts', utilization: 90, status: 'EXCELLENT', email: 'lohith@apex.co', phone: '+123456789' },
+    { id: '1', name: 'Lohith Sundar', role: 'Executive CEO', projects: 'All Accounts', utilization: 90, status: 'EXCELLENT', email: 'lohith@apex.co', phone: '+123456789' },
     { id: '2', name: 'Sarah Chen', role: 'Operations Lead', projects: 'Vortex Retail, Solaria', utilization: 85, status: 'EXCELLENT', email: 'sarah@apex.co', phone: '+123456780' },
     { id: '3', name: 'Marcus Aurelius', role: 'Creative Director', projects: 'Aether Technologies', utilization: 78, status: 'GOOD', email: 'marcus@apex.co', phone: '+123456781' },
-    { id: '4', name: 'Elena Rostova', role: 'Financial Analyst', projects: 'QuickBooks Auditing', utilization: 60, status: 'GOOD', email: 'elena@apex.co', phone: '+123456782' },
+    { id: '4', name: 'Elena Rostova', role: 'Financial Analyst', projects: 'Financial Ledger Auditing', utilization: 60, status: 'GOOD', email: 'elena@apex.co', phone: '+123456782' },
     { id: '5', name: 'David Kim', role: 'Senior Designer', projects: 'Pulse Media, Onyx', utilization: 92, status: 'EXCELLENT', email: 'david@apex.co', phone: '+123456783' },
     { id: '6', name: 'Sophie Dubois', role: 'Lead Copywriter', projects: 'Pinnacle Health, Vortex', utilization: 95, status: 'EXCELLENT', email: 'sophie@apex.co', phone: '+123456784' },
   ]);
@@ -182,7 +182,7 @@ export default function TeamPage() {
 
   // --- TEMPLATE DOWNLOAD HANDLERS ---
   const downloadCsvTemplate = () => {
-    const csvContent = "IrisOS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects,Utilization %\nIRIS_OS_USER_IMPORT_v1,Vikram Patel,vikram@apex.co,+91 98765 43210,Senior Architect,Solaria Redesign,85\nIRIS_OS_USER_IMPORT_v1,Aditi Sharma,aditi@apex.co,+91 99887 76655,Lead Designer,Design Hub,70";
+    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects,Utilization %\nIRIS_OS_USER_IMPORT_v1,Vikram Patel,vikram@apex.co,+91 98765 43210,Senior Architect,Solaria Redesign,85\nIRIS_OS_USER_IMPORT_v1,Aditi Sharma,aditi@apex.co,+91 99887 76655,Lead Designer,Design Hub,70";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -196,7 +196,7 @@ export default function TeamPage() {
 
   const downloadXlsxTemplate = () => {
     const data = [
-      ["IrisOS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects", "Utilization %"],
+      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects", "Utilization %"],
       ["IRIS_OS_USER_IMPORT_v1", "Vikram Patel", "vikram@apex.co", "+91 98765 43210", "Senior Architect", "Solaria Redesign", 85],
       ["IRIS_OS_USER_IMPORT_v1", "Aditi Sharma", "aditi@apex.co", "+91 99887 76655", "Lead Designer", "Design Hub", 70]
     ];

@@ -1,5 +1,5 @@
 export interface IntegrationState {
-  provider: 'CANVA' | 'PAYPAL' | 'STRIPE' | 'HUBSPOT' | 'SLACK' | 'RAZORPAY';
+  provider: 'CANVA' | 'PAYPAL' | 'STRIPE' | 'RAZORPAY';
   status: 'CONNECTED' | 'DISCONNECTED' | 'SYNCING' | 'ERROR';
   lastSync: Date | null;
   logs: string;
@@ -31,8 +31,6 @@ export const IntegrationAdapters = {
       { provider: 'CANVA', status: 'CONNECTED', lastSync: new Date(), logs: 'Synced 12 assets from Canva workspace root.' },
       { provider: 'PAYPAL', status: 'DISCONNECTED', lastSync: null, logs: 'Not connected. Connect your PayPal Client ID and Secret.' },
       { provider: 'STRIPE', status: 'CONNECTED', lastSync: new Date(), logs: 'Synced subscription events, active webhooks verified.' },
-      { provider: 'HUBSPOT', status: 'DISCONNECTED', lastSync: null, logs: 'Token expired. Re-authentication required.' },
-      { provider: 'SLACK', status: 'SYNCING', lastSync: new Date(), logs: 'Listening for notification dispatch events...' },
       { provider: 'RAZORPAY', status: 'DISCONNECTED', lastSync: null, logs: 'Not connected. Connect your Razorpay Key ID and Secret.' },
     ];
   },
@@ -56,7 +54,7 @@ export const IntegrationAdapters = {
       console.error('Error syncing provider in adapter:', e);
     }
 
-    const status = provider === 'HUBSPOT' ? 'CONNECTED' : 'SYNCING';
+    const status = 'SYNCING';
     const logs = `Manual sync triggered. Synced successfully at ${new Date().toLocaleTimeString()}.`;
     
     return {

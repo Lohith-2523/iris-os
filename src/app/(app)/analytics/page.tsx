@@ -28,10 +28,6 @@ export default function AnalyticsPage() {
           <p className="text-xs text-zinc-500">Cross-module campaign attribution, creative engagement metrics, and Client ROI statistics.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="h-8 border-zinc-800 text-zinc-300 gap-1.5">
-            <Filter className="h-3.5 w-3.5" />
-            <span>Customize Dashboards</span>
-          </Button>
         </div>
       </div>
 

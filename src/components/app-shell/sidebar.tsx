@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
+import { PrismIcon } from '@/components/ui/prism-icon';
 import {
   LayoutDashboard,
   DollarSign,
@@ -59,11 +60,11 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
         const data = await res.json();
         setUser(data);
       } else {
-        setUser({ name: 'Lohith Kumar', email: email, role: 'ADMIN' });
+        setUser({ name: 'Lohith Sundar', email: email, role: 'ADMIN' });
       }
     } catch (e) {
       console.error('Error loading user in sidebar:', e);
-      setUser({ name: 'Lohith Kumar', email: emailParam || 'lohith@apex.co', role: 'ADMIN' });
+      setUser({ name: 'Lohith Sundar', email: emailParam || 'lohith@apex.co', role: 'ADMIN' });
     }
   }, []);
 
@@ -123,7 +124,6 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Finance', href: '/finance', icon: DollarSign },
     { name: 'Clients', href: '/clients', icon: Users },
-    { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Team', href: '/team', icon: UserCheck },
     { name: 'Reporting', href: '/reporting', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
@@ -134,11 +134,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       badge: 'Canva',
     },
     { name: 'Meta Portal', href: '/meta-portal', icon: Megaphone },
-    { name: 'Prism AI', href: '/prism', icon: Sparkles, highlight: true },
-    { name: 'Automations', href: '/automations', icon: Zap },
-    { name: 'Forecasting', href: '/forecasting', icon: TrendingUp },
-    { name: 'Operations', href: '/operations', icon: Activity },
-    { name: 'Integrations', href: '/integrations', icon: Blocks },
+    { name: 'Prism AI', href: '/prism', icon: PrismIcon, highlight: true },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -183,7 +179,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
             I
           </div>
           <div>
-            <span className="text-sm font-bold tracking-tight text-white">IrisOS</span>
+            <span className="text-sm font-bold tracking-tight text-white">Iris OS</span>
             <span className="block text-[10px] text-zinc-500 font-medium">Enterprise Suite</span>
           </div>
         </Link>
@@ -259,7 +255,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
               </div>
               <div className="truncate">
                 <span className="block text-xs font-semibold text-white leading-none">
-                  {user?.name || 'Lohith Kumar'}
+                  {user?.name || 'Lohith Sundar'}
                 </span>
                 <span className="text-[10px] text-zinc-500 mt-1 block truncate">
                   {user?.email || 'lohith@apex.co'} {plan ? `(${plan})` : ''}

@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
           <div className="h-8 w-8 bg-[#09090b] text-white font-bold flex items-center justify-center border-2 border-black group-hover:bg-red-600 transition-colors">
             I
           </div>
-          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">IrisOS</span>
+          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">Iris OS</span>
         </Link>
 
         {/* Center Nav Links */}
@@ -128,7 +128,7 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>
               Shards Media (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is the Data Controller responsible for the processing of your personal data 
-              on the IrisOS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR) and acts as the Data Fiduciary 
+              on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR) and acts as the Data Fiduciary 
               under Section 3 of the Digital Personal Data Protection (DPDP) Act of India.
             </p>
           </section>
@@ -261,7 +261,7 @@ export default function PrivacyPolicyPage() {
             <div className="h-7 w-7 bg-white text-[#09090b] font-bold flex items-center justify-center border border-white">
               I
             </div>
-            <span className="text-md font-bold font-heading tracking-tight">IrisOS</span>
+            <span className="text-md font-bold font-heading tracking-tight">Iris OS</span>
             <span className="text-[10px] text-zinc-500 font-mono mt-1 font-medium">© 2026. All rights reserved.</span>
           </div>
 

@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Send, Bot, User, Trash2, HelpCircle } from 'lucide-react';
+import { PrismIcon } from '@/components/ui/prism-icon';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { cn, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -91,7 +92,7 @@ export default function PrismPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Prism Command Center</h1>
             <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300 py-0.5 px-2 flex items-center gap-1 font-semibold">
-              <Sparkles className="h-3 w-3 text-zinc-300" />
+              <PrismIcon className="h-3 w-3" />
               <span>Proprietary AI Engine</span>
             </Badge>
           </div>

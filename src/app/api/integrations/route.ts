@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-const PROVIDERS = ['CANVA', 'PAYPAL', 'STRIPE', 'HUBSPOT', 'SLACK', 'RAZORPAY'];
+const PROVIDERS = ['CANVA', 'PAYPAL', 'STRIPE', 'RAZORPAY'];
 
 const DEFAULT_LOGS: Record<string, string> = {
   CANVA: 'Synced 12 assets from Canva workspace root.',
   PAYPAL: 'Not connected. Connect your PayPal Client ID and Secret Key.',
   STRIPE: 'Not connected. Connect your Stripe Restricted API Key.',
-  HUBSPOT: 'Token expired. Re-authentication required.',
-  SLACK: 'Listening for notification dispatch events...',
   RAZORPAY: 'Not connected. Connect your Razorpay Key ID and Secret.',
 };
 
@@ -32,7 +30,7 @@ export async function GET() {
       const isMockStripe = provider === 'STRIPE' && dbConn?.syncLogs === 'Synced subscription events, active webhooks verified';
       
       let status = 'CONNECTED';
-      if (provider === 'HUBSPOT' || provider === 'RAZORPAY' || provider === 'PAYPAL') {
+      if (provider === 'RAZORPAY' || provider === 'PAYPAL') {
         status = dbConn ? dbConn.status : 'DISCONNECTED';
       } else if (provider === 'STRIPE') {
         status = (dbConn && !isMockStripe) ? dbConn.status : 'DISCONNECTED';

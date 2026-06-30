@@ -17,7 +17,7 @@ const PLANS = [
       '1 Agency Specialization Included',
       'Core Operational Ledger Console',
       'Client Read-Only Portal Gate',
-      'Standard Slack Integration Hook'
+      'Standard Webhook Integration Hook'
     ]
   },
   {
@@ -157,7 +157,7 @@ export default function OnboardingPage() {
         <div className="h-8 w-8 bg-white text-zinc-950 font-bold flex items-center justify-center border border-white">
           I
         </div>
-        <span className="text-md font-bold font-heading tracking-tight">IrisOS Onboarding</span>
+        <span className="text-md font-bold font-heading tracking-tight">Iris OS Onboarding</span>
       </div>
 
       {/* Main container */}
@@ -385,7 +385,7 @@ export default function OnboardingPage() {
                       </div>
                       <input
                         type="text"
-                        placeholder="Lohith Kumar"
+                        placeholder="Lohith Sundar"
                         value={cardName}
                         onChange={(e) => setCardName(e.target.value)}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
@@ -466,7 +466,7 @@ export default function OnboardingPage() {
 
       {/* Footer */}
       <div className="max-w-6xl mx-auto w-full flex items-center justify-between text-zinc-600 text-[10px] font-mono border-t border-zinc-900 pt-6 relative z-10 shrink-0">
-        <span>© 2026 IrisOS Inc.</span>
+        <span>© 2026 Iris OS Inc.</span>
         <div className="flex gap-4">
           <Link href="/terms" className="hover:text-zinc-450">Terms</Link>
           <Link href="/privacy" className="hover:text-zinc-450">Privacy</Link>

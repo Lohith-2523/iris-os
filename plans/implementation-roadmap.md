@@ -1,4 +1,4 @@
-# IrisOS Implementation Roadmap
+# Iris OS Implementation Roadmap
 
 ## Phase 1: Foundation
 
@@ -68,7 +68,7 @@ Build Design Hub as a first-class module:
 Acceptance:
 
 - Design Hub includes dashboard, library, publishing center, content calendar, brand center, approval queue, creative analytics, asset manager, governance, automation builder, and design API console.
-- Canva is represented as the workflow provider without making IrisOS feel secondary.
+- Canva is represented as the workflow provider without making Iris OS feel secondary.
 
 ## Phase 5: Automation, Integrations, And Settings
 

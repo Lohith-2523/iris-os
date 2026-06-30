@@ -49,6 +49,15 @@ async function main() {
     },
   });
 
+  const shardsOrg = await prisma.organization.create({
+    data: {
+      name: 'Shards Media',
+      plan: 'PRO',
+      hasAddon: false,
+      agencyTypes: ['Digital Marketing Agency'],
+    },
+  });
+
   // 2. Brands
   const brand1 = await prisma.brand.create({
     data: {
@@ -84,10 +93,19 @@ async function main() {
   const user1 = await prisma.user.create({
     data: {
       email: 'lohith@apex.co',
-      name: 'Lohith Kumar',
+      name: 'Lohith Sundar',
       role: 'admin', // Executive CEO
       avatarUrl: '/avatars/lohith.png',
       orgId: org.id,
+    },
+  });
+
+  const shardsUser = await prisma.user.create({
+    data: {
+      email: 'shardsmedia.ai@gmail.com',
+      name: 'Tarun Dayanand',
+      role: 'admin',
+      orgId: shardsOrg.id,
     },
   });
 
@@ -135,6 +153,16 @@ async function main() {
     data: {
       email: 'sophie.d@client.co',
       name: 'Sophie Dubois',
+      role: 'client',
+      avatarUrl: '/avatars/sophie.png',
+      orgId: org.id,
+    },
+  });
+
+  const userClientNew = await prisma.user.create({
+    data: {
+      email: 'client_new@client.co',
+      name: 'New Client',
       role: 'client',
       avatarUrl: '/avatars/sophie.png',
       orgId: org.id,
@@ -191,11 +219,16 @@ async function main() {
     });
   }
 
-  // 4b. Associate user6 to Aether Technologies and seed ScheduledPosts
+  // 4b. Associate user6 and client_new to Aether Technologies and seed ScheduledPosts
   const aetherClient = clients.find(c => c.name === 'Aether Technologies');
   if (aetherClient) {
     await prisma.user.update({
       where: { email: 'sophie.d@client.co' },
+      data: { clientId: aetherClient.id }
+    });
+
+    await prisma.user.update({
+      where: { email: 'client_new@client.co' },
       data: { clientId: aetherClient.id }
     });
 
@@ -204,7 +237,7 @@ async function main() {
       data: {
         platform: ['instagram', 'facebook'],
         postType: 'carousel',
-        caption: '🚀 Elevate your marketing funnel with IrisOS integrations! Synced design pipelines from Canva straight to Meta campaign layouts. Learn how David Kim optimizes creative performance in seconds. #Agencies #CreativeOperations',
+        caption: '🚀 Elevate your marketing funnel with Iris OS integrations! Synced design pipelines from Canva straight to Meta campaign layouts. Learn how David Kim optimizes creative performance in seconds. #Agencies #CreativeOperations',
         mediaUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60',
         status: 'PUBLISHED',
         scheduledAt: new Date('2026-06-25T14:30:00Z'),
@@ -438,10 +471,7 @@ async function main() {
   // 9. Integration Connections
   const integrations = [
     { provider: 'CANVA', status: 'CONNECTED', syncLogs: 'Synced 12 assets from Canva workspace root' },
-    { provider: 'QUICKBOOKS', status: 'CONNECTED', syncLogs: 'Synced 18 invoices and 24 ledger items' },
     { provider: 'STRIPE', status: 'CONNECTED', syncLogs: 'Synced subscription events, active webhooks verified' },
-    { provider: 'HUBSPOT', status: 'DISCONNECTED', syncLogs: 'Token expired. Re-authentication required.' },
-    { provider: 'SLACK', status: 'SYNCING', syncLogs: 'Listening for notification dispatch events...' },
   ];
 
   for (const intg of integrations) {
@@ -459,10 +489,10 @@ async function main() {
   // 10. Automations & Runs
   const auto1 = await prisma.automation.create({
     data: {
-      name: 'Invoice Alert Slack Sync',
-      description: 'Post to #finance-alerts when a new invoice is issued.',
+      name: 'Invoice Alert Email Sync',
+      description: 'Send email alert when a new invoice is issued.',
       trigger: 'Invoice Created',
-      action: 'Slack Notification Dispatch',
+      action: 'Email Notification Dispatch',
       status: 'ACTIVE',
       createdById: user1.id,
       orgId: org.id,
@@ -486,7 +516,7 @@ async function main() {
       status: 'SUCCESS',
       triggeredBy: 'Invoice Creator Service',
       finishedAt: new Date(),
-      logs: 'Slack API payload dispatched successfully to #finance-alerts. Code 200 OK.',
+      logs: 'Email dispatch payload sent successfully. Code 200 OK.',
       automationId: auto1.id,
     },
   });

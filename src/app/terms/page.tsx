@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
           <div className="h-8 w-8 bg-[#09090b] text-white font-bold flex items-center justify-center border-2 border-black group-hover:bg-red-600 transition-colors">
             I
           </div>
-          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">IrisOS</span>
+          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">Iris OS</span>
         </Link>
 
         {/* Center Nav Links */}
@@ -127,7 +127,7 @@ export default function TermsOfServicePage() {
               1. Acceptance of Terms & Services
             </h2>
             <p>
-              Welcome to IrisOS (the &quot;Platform&quot; or &quot;Services&quot;), operated by Shards Media (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). 
+              Welcome to Iris OS (the &quot;Platform&quot; or &quot;Services&quot;), operated by Shards Media (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). 
               By registering an account, purchasing a subscription tier, or accessing the workspace console, you, the user (&quot;Customer&quot;, &quot;you&quot;), 
               agree to be legally bound by these Terms of Service, which incorporate all compliance requirements under GDPR, the Digital Personal Data 
               Protection (DPDP) Act, and applicable global commerce and technology regulations. If you do not agree to these terms, do not access 
@@ -142,7 +142,7 @@ export default function TermsOfServicePage() {
             </h2>
             <p>
               To deploy an agency workspace, you must create a corporate profile linked to a valid business email. You are fully responsible 
-              for securing access keys and authorization credentials. IrisOS supports secondary enterprise authentication gateways, 
+              for securing access keys and authorization credentials. Iris OS supports secondary enterprise authentication gateways, 
               including Google Authentication and Notion Authentication APIs.
             </p>
             <p className="font-semibold text-[#09090b]">
@@ -177,12 +177,12 @@ export default function TermsOfServicePage() {
               4. Third-Party Connections & API Integrations
             </h2>
             <p>
-              IrisOS integrates directly with external platforms, including Google Services, Notion API, Canva design interfaces, 
+              Iris OS integrates directly with external platforms, including Google Services, Notion API, Canva design interfaces, 
               and Meta Ads portals. By enabling these integrations:
             </p>
             <ul className="list-disc pl-4 space-y-1">
               <li>You warrant that you hold sufficient administrative permissions to connect these data endpoints.</li>
-              <li>You authorize IrisOS to retrieve and store connection tokens required to sync files and performance metrics.</li>
+              <li>You authorize Iris OS to retrieve and store connection tokens required to sync files and performance metrics.</li>
               <li>You acknowledge that company connections are governed by third-party developer policies, and Shards Media is not responsible for API outages or service termination on external platforms.</li>
             </ul>
           </section>
@@ -248,7 +248,7 @@ export default function TermsOfServicePage() {
             <div className="h-7 w-7 bg-white text-[#09090b] font-bold flex items-center justify-center border border-white">
               I
             </div>
-            <span className="text-md font-bold font-heading tracking-tight">IrisOS</span>
+            <span className="text-md font-bold font-heading tracking-tight">Iris OS</span>
             <span className="text-[10px] text-zinc-500 font-mono mt-1 font-medium">© 2026. All rights reserved.</span>
           </div>
 
