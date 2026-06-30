@@ -91,7 +91,7 @@ function InvitePageContent() {
         window.dispatchEvent(new Event('user-updated'));
 
         setTimeout(() => {
-          router.push('/meta-portal');
+          router.push('/client-dashboard');
         }, 300);
       } else {
         const err = await res.json();

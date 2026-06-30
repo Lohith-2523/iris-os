@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
           roiMetric: c.roiMetric,
           renewalDate: c.renewalDate ? c.renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
           upsellOpportunityValue: c.upsellOpportunityValue,
+          metadata: c.metadata || null,
         }));
 
         return NextResponse.json(formattedClients);

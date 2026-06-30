@@ -75,7 +75,16 @@ export default function OnboardingPage() {
   const [email, setEmail] = React.useState('');
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      setEmail(localStorage.getItem('signup_email') || 'executive@shardsmedia.com');
+      setEmail(localStorage.getItem('currentUserEmail') || localStorage.getItem('signup_email') || 'executive@shardsmedia.com');
+      setAgencyName(localStorage.getItem('agencyName') || '');
+      setUsername(localStorage.getItem('username') || '');
+      setCurrency(localStorage.getItem('dashboardCurrency') || 'USD');
+      
+      const params = new URLSearchParams(window.location.search);
+      const stepParam = params.get('step');
+      if (stepParam === 'pricing' || stepParam === 'payment') {
+        setStep(stepParam as any);
+      }
     }
   }, []);
 
@@ -124,10 +133,29 @@ export default function OnboardingPage() {
         localStorage.setItem('username', username);
         localStorage.setItem('dashboardCurrency', currency);
         
-        setTimeout(() => {
-          setIsProcessing(false);
-          router.push('/dashboard');
-        }, 800);
+        // Update organization plan in PostgreSQL
+        fetch('/api/organization', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: agencyName,
+            plan: selectedPlanId.toUpperCase(),
+            hasAddon: selectedPlanId === 'basic' ? false : undefined,
+          })
+        }).then(() => {
+          setTimeout(() => {
+            setIsProcessing(false);
+            const params = new URLSearchParams(window.location.search);
+            const redirectUrl = params.get('redirect') || '/dashboard';
+            router.push(redirectUrl);
+          }, 800);
+        }).catch((err) => {
+          console.error('Error updating organization plan on onboarding completion:', err);
+          setTimeout(() => {
+            setIsProcessing(false);
+            router.push('/dashboard');
+          }, 800);
+        });
       }
     }, 1000);
   };

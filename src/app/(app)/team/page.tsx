@@ -21,7 +21,9 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   Check,
-  Loader2
+  Loader2,
+  Edit2,
+  Activity
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -42,6 +44,39 @@ export default function TeamPage() {
     { id: '5', name: 'David Kim', role: 'Senior Designer', projects: 'Pulse Media, Onyx', utilization: 92, status: 'EXCELLENT', email: 'david@apex.co', phone: '+123456783' },
     { id: '6', name: 'Sophie Dubois', role: 'Lead Copywriter', projects: 'Pinnacle Health, Vortex', utilization: 95, status: 'EXCELLENT', email: 'sophie@apex.co', phone: '+123456784' },
   ]);
+
+  // Selected Member Task Panel Drawer States
+  const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
+  const [memberTasks, setMemberTasks] = React.useState<any[]>([]);
+  const [loadingMemberTasks, setLoadingMemberTasks] = React.useState(false);
+  const [editingTaskId, setEditingTaskId] = React.useState<string | null>(null);
+  const [taskEditForm, setTaskEditForm] = React.useState({
+    status: 'TODO',
+    progress: 0,
+    blocker: '',
+    update: ''
+  });
+
+  const fetchMemberTasks = React.useCallback(async (userId: string) => {
+    setLoadingMemberTasks(true);
+    try {
+      const res = await fetch(`/api/tasks?assignedToId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMemberTasks(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMemberTasks(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedMember) {
+      fetchMemberTasks(selectedMember.id);
+    }
+  }, [selectedMember, fetchMemberTasks]);
 
   // Modal Dialog Open/Close States
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
@@ -504,7 +539,14 @@ export default function TeamPage() {
                 </TableHeader>
                 <TableBody>
                   {teamList.map((t) => (
-                    <TableRow key={t.id}>
+                    <TableRow 
+                      key={t.id} 
+                      className="cursor-pointer hover:bg-zinc-900/30 transition-colors"
+                      onClick={() => {
+                        setSelectedMember(t);
+                        setEditingTaskId(null);
+                      }}
+                    >
                       <TableCell className="font-semibold text-white">
                         <div>
                           <span>{t.name}</span>
@@ -1000,6 +1042,225 @@ export default function TeamPage() {
                 </div>
               )}
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- DETAIL MEMBER TASK DRAWER --- */}
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end">
+          {/* Click outside to close */}
+          <div className="flex-1" onClick={() => setSelectedMember(null)} />
+          
+          <div className="w-full max-w-md bg-[#09090b] border-l border-zinc-800 p-6 flex flex-col h-full overflow-y-auto animate-slideIn">
+            <div className="flex items-center justify-between border-b border-zinc-900 pb-4 mb-4">
+              <div>
+                <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Specialist Desk</span>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider mt-0.5">{selectedMember.name} Tasks</h3>
+                <span className="text-[10px] text-zinc-550 block font-mono">{selectedMember.role} | {selectedMember.email}</span>
+              </div>
+              <button
+                onClick={() => setSelectedMember(null)}
+                className="text-zinc-500 hover:text-white border border-zinc-900 hover:border-zinc-800 p-1.5 transition-colors cursor-pointer"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Task list inside drawer */}
+            <div className="flex-1 space-y-4">
+              <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px] mb-2">Active Task List</span>
+              
+              {loadingMemberTasks ? (
+                <div className="p-8 text-center text-zinc-500 flex items-center justify-center gap-2">
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                  <span>Loading specialist tasks...</span>
+                </div>
+              ) : memberTasks.length === 0 ? (
+                <div className="p-8 border border-dashed border-zinc-900 text-center text-zinc-650 italic">
+                  No tasks assigned to this specialist.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {memberTasks.map((task) => {
+                    const isEditing = editingTaskId === task.id;
+                    return (
+                      <div key={task.id} className="border border-zinc-900 bg-zinc-950/20 p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block font-sans">{task.client?.name}</span>
+                            <span className="font-semibold text-white block mt-0.5">{task.title}</span>
+                            {task.description && <span className="text-[10px] text-zinc-500 mt-1 block">{task.description}</span>}
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Badge
+                              variant={
+                                task.status === 'COMPLETED'
+                                  ? 'risk-low'
+                                  : task.status === 'BLOCKED'
+                                  ? 'risk-high'
+                                  : task.status === 'IN_PROGRESS'
+                                  ? 'risk-medium'
+                                  : 'outline'
+                              }
+                              className="rounded-none uppercase tracking-wider text-[8px]"
+                            >
+                              {task.status}
+                            </Badge>
+                            {!isEditing && (
+                              <button
+                                onClick={() => {
+                                  setEditingTaskId(task.id);
+                                  setTaskEditForm({
+                                    status: task.status,
+                                    progress: task.progress,
+                                    blocker: task.blocker || '',
+                                    update: task.update || ''
+                                  });
+                                }}
+                                className="text-zinc-500 hover:text-white p-1 border border-zinc-900 hover:border-zinc-800 transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] text-zinc-550">
+                            <span>Task Progress</span>
+                            <span>{task.progress}%</span>
+                          </div>
+                          <div className="h-1 bg-zinc-900 overflow-hidden">
+                            <div
+                              style={{ width: `${task.progress}%` }}
+                              className={`h-full ${
+                                task.status === 'COMPLETED'
+                                  ? 'bg-emerald-500'
+                                  : task.status === 'BLOCKED'
+                                  ? 'bg-rose-500'
+                                  : 'bg-amber-500'
+                              }`}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Inline Task Edit Section */}
+                        {isEditing && (
+                          <div className="border border-zinc-850 bg-zinc-955 p-3 space-y-3 text-xs">
+                            <div className="grid gap-2 grid-cols-2">
+                              <div className="space-y-1">
+                                <label className="text-[9px] uppercase tracking-wider text-zinc-500">Status</label>
+                                <select
+                                  value={taskEditForm.status}
+                                  onChange={(e) => setTaskEditForm(prev => ({ ...prev, status: e.target.value }))}
+                                  className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-none"
+                                >
+                                  <option value="TODO">To Do</option>
+                                  <option value="IN_PROGRESS">In Progress</option>
+                                  <option value="COMPLETED">Completed</option>
+                                  <option value="BLOCKED">Blocked</option>
+                                </select>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] uppercase tracking-wider text-zinc-500">Progress ({taskEditForm.progress}%)</label>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  step="5"
+                                  value={taskEditForm.progress}
+                                  onChange={(e) => setTaskEditForm(prev => ({ ...prev, progress: Number(e.target.value) }))}
+                                  className="w-full bg-zinc-800 h-1 accent-white"
+                                />
+                              </div>
+                            </div>
+                            
+                            {taskEditForm.status === 'BLOCKED' && (
+                              <div className="space-y-1">
+                                <label className="text-[9px] uppercase tracking-wider text-rose-450 font-semibold block">Blocker Note</label>
+                                <input
+                                  type="text"
+                                  placeholder="Describe the blocker..."
+                                  value={taskEditForm.blocker}
+                                  onChange={(e) => setTaskEditForm(prev => ({ ...prev, blocker: e.target.value }))}
+                                  className="w-full text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-none"
+                                />
+                              </div>
+                            )}
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] uppercase tracking-wider text-zinc-500 block">Recent Update</label>
+                              <input
+                                type="text"
+                                placeholder="Log progress update..."
+                                value={taskEditForm.update}
+                                onChange={(e) => setTaskEditForm(prev => ({ ...prev, update: e.target.value }))}
+                                className="w-full text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-none"
+                              />
+                            </div>
+
+                            <div className="flex justify-end gap-1.5 pt-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setEditingTaskId(null)}
+                                className="h-6 text-[9px] rounded-none px-2 text-zinc-500 hover:text-white"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch('/api/tasks', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        action: 'update_task',
+                                        id: task.id,
+                                        status: taskEditForm.status,
+                                        progress: taskEditForm.progress,
+                                        blocker: taskEditForm.blocker,
+                                        update: taskEditForm.update
+                                      })
+                                    });
+                                    if (res.ok) {
+                                      setEditingTaskId(null);
+                                      fetchMemberTasks(selectedMember.id);
+                                    }
+                                  } catch (e) {
+                                    console.error(e);
+                                  }
+                                }}
+                                className="h-6 text-[9px] rounded-none px-3 bg-white text-zinc-950 hover:bg-zinc-200"
+                              >
+                                Save Updates
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {!isEditing && task.status === 'BLOCKED' && task.blocker && (
+                          <div className="bg-rose-955/10 border border-rose-950/40 p-2 text-[10px] text-rose-400 flex items-start gap-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            <span><strong>Blocker:</strong> {task.blocker}</span>
+                          </div>
+                        )}
+                        {!isEditing && task.update && (
+                          <div className="bg-zinc-955 p-2 text-[10px] text-zinc-450 border border-zinc-900 flex items-start gap-1.5">
+                            <Activity className="h-3.5 w-3.5 text-zinc-650 shrink-0" />
+                            <span><strong>Latest Update:</strong> {task.update}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

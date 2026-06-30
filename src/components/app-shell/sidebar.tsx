@@ -124,6 +124,8 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Finance', href: '/finance', icon: DollarSign },
     { name: 'Clients', href: '/clients', icon: Users },
+    { name: 'Projects', href: '/projects', icon: FolderKanban },
+    { name: 'Tasks', href: '/tasks', icon: Activity },
     { name: 'Team', href: '/team', icon: UserCheck },
     { name: 'Reporting', href: '/reporting', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },

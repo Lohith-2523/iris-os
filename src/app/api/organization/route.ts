@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, plan, hasAddon, agencyTypes } = body;
+    const { name, plan, hasAddon, agencyTypes, bankNames } = body;
 
     const org = await prisma.organization.findFirst();
     if (!org) {
@@ -26,11 +26,13 @@ export async function POST(request: NextRequest) {
 
     // Limit check
     let maxAllowed = 0;
-    if (plan === 'BASIC') {
-      maxAllowed = hasAddon ? 2 : 1;
-    } else if (plan === 'PRO') {
+    const planToCheck = plan !== undefined ? plan : org.plan;
+    const hasAddonToCheck = hasAddon !== undefined ? hasAddon : org.hasAddon;
+    if (planToCheck === 'BASIC') {
+      maxAllowed = hasAddonToCheck ? 2 : 1;
+    } else if (planToCheck === 'PRO') {
       maxAllowed = 5;
-    } else if (plan === 'ADVANCED') {
+    } else if (planToCheck === 'ADVANCED') {
       maxAllowed = 1000; // unlimited
     } else {
       return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (agencyTypes && agencyTypes.length > maxAllowed) {
       return NextResponse.json({
-        error: `Selected agency types exceed the limit for the ${plan} plan${plan === 'BASIC' && hasAddon ? ' with add-on' : ''}. Allowed max: ${maxAllowed}.`
+        error: `Selected agency types exceed the limit for the ${planToCheck} plan${planToCheck === 'BASIC' && hasAddonToCheck ? ' with add-on' : ''}. Allowed max: ${maxAllowed}.`
       }, { status: 400 });
     }
 
@@ -49,6 +51,7 @@ export async function POST(request: NextRequest) {
         plan: plan !== undefined ? plan : org.plan,
         hasAddon: hasAddon !== undefined ? hasAddon : org.hasAddon,
         agencyTypes: agencyTypes !== undefined ? agencyTypes : org.agencyTypes,
+        bankNames: bankNames !== undefined ? bankNames : org.bankNames,
       },
     });
 

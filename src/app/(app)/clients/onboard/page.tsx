@@ -18,7 +18,9 @@ import {
   Sparkles,
   DollarSign,
   AlertTriangle,
-  Info
+  Info,
+  Layers as LayersIcon,
+  X
 } from 'lucide-react';
 
 const AGENCY_TYPES = [
@@ -98,7 +100,26 @@ export default function ClientOnboardPage() {
     monthlyRetainer: '',
     paymentTerms: 'NET_30',
     adAccountId: '',
+    assignedTeamMemberId: '',
+    // Step 6: Initial Project Setup
+    createProject: true,
+    projectName: '',
+    projectServiceLine: 'Paid Ads & CRO',
+    projectBudget: '',
+    projectTimeline: '3 Months',
+    projectStartDate: new Date().toISOString().split('T')[0],
+    projectDeadline: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    projectDeliverables: 'Design banner ads, Launch campaign, Optimize conversion metrics',
+    projectMemberIds: [] as string[],
+    projectStages: [
+      { name: 'Discovery & Plan', startDate: '', endDate: '' },
+      { name: 'Creative Design', startDate: '', endDate: '' },
+      { name: 'Execution & Launch', startDate: '', endDate: '' },
+      { name: 'Optimization', startDate: '', endDate: '' },
+    ],
   });
+
+  const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
 
   const [inviteUrl, setInviteUrl] = React.useState('');
 
@@ -132,11 +153,49 @@ export default function ClientOnboardPage() {
     }
     setUserEmail(email);
     checkRole(email);
+
+    async function fetchTeam() {
+      try {
+        const res = await fetch('/api/data?domain=team');
+        if (res.ok) {
+          const data = await res.json();
+          setTeamMembers(data);
+        }
+      } catch (e) {
+        console.error('Error fetching team:', e);
+      }
+    }
+    fetchTeam();
   }, []);
+
+  const recalculateStages = (stagesList: any[], startDateStr: string, endDateStr: string) => {
+    const start = startDateStr ? new Date(startDateStr) : new Date();
+    const end = endDateStr ? new Date(endDateStr) : new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const totalMs = end.getTime() - start.getTime();
+    const msPerStage = totalMs / Math.max(stagesList.length, 1);
+
+    return stagesList.map((stage, i) => {
+      const sStart = new Date(start.getTime() + i * msPerStage);
+      const sEnd = new Date(start.getTime() + (i + 1) * msPerStage);
+      return {
+        ...stage,
+        startDate: sStart.toISOString().split('T')[0],
+        endDate: sEnd.toISOString().split('T')[0]
+      };
+    });
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      let nextData = { ...prev, [name]: value };
+      if (name === 'projectStartDate' || name === 'projectDeadline') {
+        const start = name === 'projectStartDate' ? value : prev.projectStartDate;
+        const end = name === 'projectDeadline' ? value : prev.projectDeadline;
+        nextData.projectStages = recalculateStages(prev.projectStages, start, end);
+      }
+      return nextData;
+    });
     setFormError('');
   };
 
@@ -158,7 +217,51 @@ export default function ClientOnboardPage() {
       setFormError(formatUserMessage('Lohith, Point of Contact Name and Email are required.'));
       return;
     }
-    setStep((prev) => Math.min(prev + 1, 6));
+    if (step === 5 && !formData.assignedTeamMemberId) {
+      setFormError(formatUserMessage('Lohith, please assign a team member to work with the client.'));
+      return;
+    }
+    if (step === 5) {
+      const start = new Date();
+      const end = new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
+      const defaultStartStr = start.toISOString().split('T')[0];
+      const defaultEndStr = end.toISOString().split('T')[0];
+
+      // Auto-initialize project defaults when proceeding to project setup step
+      setFormData(prev => {
+        const projStart = prev.projectStartDate || defaultStartStr;
+        const projEnd = prev.projectDeadline || defaultEndStr;
+        const baseStages = prev.projectStages.map(s => s.name);
+        
+        // Recalculate stage timelines
+        const totalMs = new Date(projEnd).getTime() - new Date(projStart).getTime();
+        const msPerStage = totalMs / Math.max(baseStages.length, 1);
+        const updatedStages = baseStages.map((name, i) => {
+          const sStart = new Date(new Date(projStart).getTime() + i * msPerStage);
+          const sEnd = new Date(new Date(projStart).getTime() + (i + 1) * msPerStage);
+          return {
+            name,
+            startDate: sStart.toISOString().split('T')[0],
+            endDate: sEnd.toISOString().split('T')[0]
+          };
+        });
+
+        return {
+          ...prev,
+          projectStartDate: projStart,
+          projectDeadline: projEnd,
+          projectName: prev.projectName || `${prev.name} Initial Campaign`,
+          projectBudget: prev.projectBudget || (prev.monthlyRetainer ? (parseFloat(prev.monthlyRetainer) * 3).toString() : ''),
+          projectMemberIds: prev.projectMemberIds.length > 0 ? prev.projectMemberIds : (prev.assignedTeamMemberId ? [prev.assignedTeamMemberId] : []),
+          projectStages: updatedStages
+        };
+      });
+    }
+    if (step === 6 && formData.createProject && !formData.projectName) {
+      setFormError(formatUserMessage('Lohith, Project Name is required if creating a project.'));
+      return;
+    }
+    setStep((prev) => Math.min(prev + 1, 7));
     setFormError('');
   };
 
@@ -202,6 +305,7 @@ export default function ClientOnboardPage() {
           shortTermGoals: formData.shortTermGoals,
           longTermGoals: formData.longTermGoals,
           paymentTerms: formData.paymentTerms,
+          assignedTeamMemberId: formData.assignedTeamMemberId || null,
           // Service Specific Data
           metaData: {
             currentSpend: formData.metaCurrentSpend,
@@ -239,12 +343,40 @@ export default function ClientOnboardPage() {
 
       if (res.ok) {
         const data = await res.json();
+        const createdClient = data.client;
+
+        // If createProject is enabled, trigger Project API creation
+        if (formData.createProject && createdClient) {
+          try {
+            await fetch('/api/projects', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                clientId: createdClient.id,
+                name: formData.projectName,
+                serviceLine: formData.projectServiceLine,
+                budget: formData.projectBudget,
+                timeline: formData.projectTimeline,
+                startDate: formData.projectStartDate,
+                endDate: formData.projectDeadline || null,
+                memberIds: formData.projectMemberIds,
+                deliverables: formData.projectDeliverables 
+                  ? formData.projectDeliverables.split(',').map((d: string) => d.trim()).filter(Boolean) 
+                  : [],
+                stages: formData.projectStages
+              })
+            });
+          } catch (projError) {
+            console.error('Error creating initial client project:', projError);
+          }
+        }
+
         setInviteUrl(data.inviteUrl || '');
         setSubmitStatus('success');
       } else {
-        const errorData = await res.json();
+        const errData = await res.json();
+        setFormError(formatUserMessage(`Lohith, client creation failed: ${errData.error || 'Server error'}`));
         setSubmitStatus('error');
-        setFormError(errorData.error || 'Failed to onboard client.');
       }
     } catch (err) {
       console.error(err);
@@ -666,7 +798,7 @@ export default function ClientOnboardPage() {
           </Button>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white silver-text-gradient">Client Onboarding Portal</h1>
-            <p className="text-[10px] text-zinc-500 mt-0.5">Administrator Terminal | Step {step} of 6</p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">Administrator Terminal | Step {step} of 7</p>
           </div>
         </div>
       </div>
@@ -680,7 +812,8 @@ export default function ClientOnboardPage() {
             { s: 3, name: 'Service Selection', desc: 'Dropdown agency industry' },
             { s: 4, name: 'Specific Checklist', desc: 'Dynamic requirements' },
             { s: 5, name: 'Goals & Budget', desc: 'Retainers and terms' },
-            { s: 6, name: 'Review & Verify', desc: 'Complete onboarding' },
+            { s: 6, name: 'Project Setup', desc: 'Launch initial campaign' },
+            { s: 7, name: 'Review & Verify', desc: 'Complete onboarding' },
           ].map((item) => (
             <div
               key={item.s}
@@ -1057,11 +1190,327 @@ export default function ClientOnboardPage() {
                       })}
                     </div>
                   </div>
+
+                  {/* Assign Team Member */}
+                  <div className="space-y-3 pt-4 border-t border-zinc-900">
+                    <span className="font-semibold text-zinc-400 block">Assign Lead Specialist / Client Manager *</span>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {teamMembers
+                        .filter((t: any) => t.role?.toLowerCase() !== 'client') // Only team members
+                        .map((member: any) => {
+                          const isSelected = formData.assignedTeamMemberId === member.id;
+                          return (
+                            <button
+                              type="button"
+                              key={member.id}
+                              onClick={() => setFormData(prev => ({ ...prev, assignedTeamMemberId: member.id }))}
+                              className={`flex flex-col p-3 border transition-all text-left relative ${
+                                isSelected
+                                  ? 'border-white bg-zinc-900/60 shadow-lg'
+                                  : 'border-zinc-850 hover:border-zinc-700 bg-zinc-950/20'
+                              }`}
+                            >
+                              {/* Checkmark indicator */}
+                              {isSelected && (
+                                <div className="absolute top-2.5 right-2.5 h-4 w-4 rounded-full bg-white flex items-center justify-center">
+                                  <CheckCircle className="h-3 w-3 text-zinc-950 fill-zinc-950" />
+                                </div>
+                              )}
+                              
+                              <div className="font-semibold text-white text-xs">{member.name}</div>
+                              <div className="text-[10px] text-zinc-400 mt-0.5">{member.role}</div>
+                              <div className="text-[9px] text-zinc-500 font-mono mt-1">{member.email}</div>
+                              
+                              {/* Bandwidth / Utilization progress bar */}
+                              <div className="mt-3 space-y-1 w-full">
+                                <div className="flex justify-between text-[9px] font-medium text-zinc-500">
+                                  <span>Current Workload Utilization</span>
+                                  <span className={member.utilization >= 90 ? 'text-rose-400' : member.utilization >= 75 ? 'text-amber-400' : 'text-emerald-400'}>
+                                    {member.utilization}%
+                                  </span>
+                                </div>
+                                <div className="h-1 bg-zinc-900 overflow-hidden w-full">
+                                  <div
+                                    style={{ width: `${member.utilization}%` }}
+                                    className={`h-full ${
+                                      member.utilization >= 90 ? 'bg-rose-500' : member.utilization >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
+                                    }`}
+                                  />
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Step 6: Review & finalize */}
+              {/* Step 6: Initial Project Setup */}
               {step === 6 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
+                    <Layers className="h-4 w-4 text-zinc-400" />
+                    <h2 className="text-sm font-semibold text-white">Create Initial Project for Client</h2>
+                  </div>
+
+                  <div className="flex items-center gap-2 pb-2">
+                    <input
+                      type="checkbox"
+                      id="createProject"
+                      name="createProject"
+                      checked={formData.createProject}
+                      onChange={(e) => setFormData(prev => ({ ...prev, createProject: e.target.checked }))}
+                      className="rounded bg-zinc-900 border-zinc-850 text-white accent-white cursor-pointer h-4 w-4"
+                    />
+                    <label htmlFor="createProject" className="font-semibold text-zinc-350 text-xs cursor-pointer select-none">
+                      Initialize a core project with deliverables & budgets immediately
+                    </label>
+                  </div>
+
+                  {formData.createProject && (
+                    <div className="space-y-4 pt-2 border-t border-zinc-900/60 animate-fadeIn">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Project Name *</label>
+                          <input
+                            type="text"
+                            name="projectName"
+                            placeholder="e.g. Aether Summer Campaign"
+                            value={formData.projectName}
+                            onChange={handleInputChange}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Service Focus Line</label>
+                          <select
+                            name="projectServiceLine"
+                            value={formData.projectServiceLine}
+                            onChange={handleInputChange}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                          >
+                            <option value="Paid Ads & CRO">Paid Ads & CRO</option>
+                            <option value="Search Engine Optimization">Search Engine Optimization</option>
+                            <option value="Web Development & Shopify">Web Development & Shopify</option>
+                            <option value="Social Media (SMM)">Social Media (SMM)</option>
+                            <option value="Brand Rebuilding">Brand Rebuilding</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-4">
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Project Budget Allocation ($)</label>
+                          <input
+                            type="number"
+                            name="projectBudget"
+                            placeholder="e.g. 15000"
+                            value={formData.projectBudget}
+                            onChange={handleInputChange}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Project Timeline Range</label>
+                          <input
+                            type="text"
+                            name="projectTimeline"
+                            placeholder="e.g. 3 Months, Jul - Sep"
+                            value={formData.projectTimeline}
+                            onChange={handleInputChange}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Start Date</label>
+                          <input
+                            type="date"
+                            name="projectStartDate"
+                            value={formData.projectStartDate}
+                            onChange={handleInputChange}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Target Deadline Date</label>
+                          <input
+                            type="date"
+                            name="projectDeadline"
+                            value={formData.projectDeadline}
+                            onChange={handleInputChange}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Project Stages Section */}
+                      <div className="space-y-3 pt-3 border-t border-zinc-900/60">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-zinc-350 text-xs">Project Development Stages (Max 8)</span>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData((prev) => {
+                                  if (prev.projectStages.length >= 8) return prev;
+                                  const newStages = [...prev.projectStages, { name: `Phase ${prev.projectStages.length + 1}`, startDate: '', endDate: '' }];
+                                  return {
+                                    ...prev,
+                                    projectStages: recalculateStages(newStages, prev.projectStartDate, prev.projectDeadline)
+                                  };
+                                });
+                              }}
+                              disabled={formData.projectStages.length >= 8}
+                              className="h-6 px-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-white text-[10px] font-semibold flex items-center gap-1"
+                            >
+                              <span>+ Add Stage</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  projectStages: recalculateStages(prev.projectStages, prev.projectStartDate, prev.projectDeadline)
+                                }));
+                              }}
+                              className="h-6 px-2 border border-zinc-850 hover:bg-zinc-900 text-zinc-450 hover:text-white text-[10px] font-semibold"
+                            >
+                              Distribute Equally
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                          {formData.projectStages.map((stage, idx) => (
+                            <div key={idx} className="flex gap-2 items-center bg-zinc-950/20 p-2 border border-zinc-900/50">
+                              <span className="font-mono text-zinc-500 text-[10px] w-5 text-center">{idx + 1}</span>
+                              <input
+                                type="text"
+                                placeholder="Stage Name"
+                                value={stage.name}
+                                onChange={(e) => {
+                                  const nameVal = e.target.value;
+                                  setFormData((prev) => {
+                                    const nextStages = prev.projectStages.map((s, sIdx) => 
+                                      sIdx === idx ? { ...s, name: nameVal } : s
+                                    );
+                                    return { ...prev, projectStages: nextStages };
+                                  });
+                                }}
+                                className="flex-1 text-[11px] bg-zinc-900 border border-zinc-850 px-2 py-1 text-white outline-none focus:border-zinc-750"
+                              />
+                              <div className="flex items-center gap-1.5 text-[10px] text-zinc-550 shrink-0">
+                                <input
+                                  type="date"
+                                  value={stage.startDate}
+                                  onChange={(e) => {
+                                    const dateVal = e.target.value;
+                                    setFormData((prev) => {
+                                      const nextStages = prev.projectStages.map((s, sIdx) => 
+                                        sIdx === idx ? { ...s, startDate: dateVal } : s
+                                      );
+                                      return { ...prev, projectStages: nextStages };
+                                    });
+                                  }}
+                                  className="w-26 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
+                                />
+                                <span>to</span>
+                                <input
+                                  type="date"
+                                  value={stage.endDate}
+                                  onChange={(e) => {
+                                    const dateVal = e.target.value;
+                                    setFormData((prev) => {
+                                      const nextStages = prev.projectStages.map((s, sIdx) => 
+                                        sIdx === idx ? { ...s, endDate: dateVal } : s
+                                      );
+                                      return { ...prev, projectStages: nextStages };
+                                    });
+                                  }}
+                                  className="w-26 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData((prev) => {
+                                    if (prev.projectStages.length <= 1) return prev;
+                                    const newStages = prev.projectStages.filter((_, sIdx) => sIdx !== idx);
+                                    return {
+                                      ...prev,
+                                      projectStages: recalculateStages(newStages, prev.projectStartDate, prev.projectDeadline)
+                                    };
+                                  });
+                                }}
+                                disabled={formData.projectStages.length <= 1}
+                                className="text-zinc-500 hover:text-rose-455 disabled:opacity-30 p-1"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Initial Deliverables Checklist (Comma-separated)</label>
+                        <textarea
+                          name="projectDeliverables"
+                          rows={2}
+                          placeholder="e.g. Design creatives, Launch campaign, A/B testing"
+                          value={formData.projectDeliverables}
+                          onChange={handleInputChange}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* Members Multi-select Grid */}
+                      <div className="space-y-2 pt-2">
+                        <span className="font-semibold text-zinc-400 block">Allocate Team Specialists to Project</span>
+                        <div className="grid gap-2.5 sm:grid-cols-3">
+                          {teamMembers
+                            .filter((t: any) => t.role?.toLowerCase() !== 'client')
+                            .map((member: any) => {
+                              const isAllocated = formData.projectMemberIds.includes(member.id);
+                              return (
+                                <button
+                                  type="button"
+                                  key={member.id}
+                                  onClick={() => {
+                                    setFormData(prev => {
+                                      const ids = prev.projectMemberIds;
+                                      const newIds = ids.includes(member.id) 
+                                        ? ids.filter(id => id !== member.id) 
+                                        : [...ids, member.id];
+                                      return { ...prev, projectMemberIds: newIds };
+                                    });
+                                  }}
+                                  className={`p-2.5 text-left border relative transition-all ${
+                                    isAllocated
+                                      ? 'border-white bg-zinc-900/40 text-white'
+                                      : 'border-zinc-850 hover:border-zinc-750 bg-zinc-950/25 text-zinc-400'
+                                  }`}
+                                >
+                                  {isAllocated && (
+                                    <div className="absolute top-2 right-2 h-3.5 w-3.5 rounded-full bg-white flex items-center justify-center">
+                                      <div className="h-2 w-2 rounded-full bg-zinc-950" />
+                                    </div>
+                                  )}
+                                  <span className="block font-semibold text-xs text-white">{member.name}</span>
+                                  <span className="block text-[9px] text-zinc-550 mt-0.5">{member.role}</span>
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 7: Review & finalize */}
+              {step === 7 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <CheckCircle className="h-4 w-4 text-zinc-400" />
@@ -1112,6 +1561,12 @@ export default function ClientOnboardPage() {
                       <span className="text-zinc-400">Agency industry Focus:</span>
                       <span className="font-semibold text-white">{formData.agencyType}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Assigned Specialist:</span>
+                      <span className="font-semibold text-white">
+                        {teamMembers.find(t => t.id === formData.assignedTeamMemberId)?.name || 'None'}
+                      </span>
+                    </div>
                     <div className="flex justify-between border-t border-zinc-900 pt-2">
                       <span className="text-zinc-400">Retainer Value:</span>
                       <span className="font-bold text-white font-mono">
@@ -1119,6 +1574,33 @@ export default function ClientOnboardPage() {
                       </span>
                     </div>
                   </div>
+
+                  {formData.createProject && (
+                    <div className="rounded border border-zinc-900 p-3 space-y-2 bg-zinc-950/20 text-[11px]">
+                      <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Initial Project & Development Stages</span>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Project Name:</span>
+                        <span className="font-semibold text-white">{formData.projectName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Service Focus:</span>
+                        <span className="text-zinc-300">{formData.projectServiceLine}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Timeline / Budget:</span>
+                        <span className="text-zinc-300 font-mono">{formData.projectTimeline} (${parseFloat(formData.projectBudget || '0').toLocaleString()})</span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-zinc-900/65 space-y-1">
+                        <span className="block text-[8px] text-zinc-500 uppercase font-bold">Planned Development Stages:</span>
+                        {formData.projectStages.map((stage, idx) => (
+                          <div key={idx} className="flex justify-between text-[10px]">
+                            <span className="text-zinc-300">{idx + 1}. {stage.name}</span>
+                            <span className="text-zinc-500 font-mono">{stage.startDate} to {stage.endDate}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {submitStatus === 'success' && (
                     <div className="space-y-4 mt-6">
@@ -1191,8 +1673,8 @@ export default function ClientOnboardPage() {
                   <ArrowLeft className="h-4 w-4" />
                   <span>Back</span>
                 </Button>
-
-                {step < 6 ? (
+ 
+                {step < 7 ? (
                   <Button
                     type="button"
                     onClick={handleNextStep}

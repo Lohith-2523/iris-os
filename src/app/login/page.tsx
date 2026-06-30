@@ -86,7 +86,7 @@ export default function LoginPage() {
         if (role === 'client') {
           setTimeout(() => {
             setIsLoading(false);
-            router.push('/meta-portal');
+            router.push('/client-dashboard');
           }, 100);
           return;
         }

@@ -12,6 +12,7 @@ model Organization {
   plan        String    @default("BASIC")
   hasAddon    Boolean   @default(false)
   agencyTypes String[]  @default([])
+  bankNames   String[]  @default([])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
@@ -26,6 +27,7 @@ model Organization {
   metaAds   MetaAd[]
   metaLeads MetaLead[]
   metaCampaigns MetaCampaign[]
+  transactions Transaction[]
 }
 
 model Brand {
@@ -62,6 +64,8 @@ model User {
   reports        Report[]
   automations    Automation[]
   askPrismMessages AskPrismMessage[]
+  clientTasks    ClientTask[]
+  taskComments   TaskComment[]
 
   @@index([orgId])
   @@index([clientId])
@@ -93,6 +97,7 @@ model Client {
   users                  User[]
   invites                ClientInvite[]
   scheduledPosts         ScheduledPost[]
+  tasks                  ClientTask[]
 
   @@index([orgId])
 }
@@ -120,6 +125,9 @@ model Project {
   progress        Int             @default(0) // 0-100
   riskLevel       String          // LOW, MEDIUM, HIGH
   riskDescription String?
+  timeline        String?
+  serviceLine     String?
+  budget          Float?
   orgId           String
   organization    Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   clientId        String
@@ -129,6 +137,9 @@ model Project {
   
   milestones      Milestone[]
   allocations     ResourceAllocation[]
+  members         ProjectMember[]
+  tasks           ClientTask[]
+  stages          ProjectStage[]
 
   @@index([orgId])
   @@index([clientId])
@@ -136,10 +147,14 @@ model Project {
 
 model ProjectMember {
   id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
+  @@unique([projectId, userId])
+  @@index([projectId])
   @@index([userId])
 }
 
@@ -381,6 +396,9 @@ model MetaLead {
   phone        String?
   status       String     // new, cold-call in progress, call back required, closed, unqualified
   createdTime  DateTime   @default(now())
+  collectionMethod String?
+  approachMethod   String?
+  funnelName       String?
   orgId        String
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
@@ -417,4 +435,95 @@ model ScheduledPost {
   updatedAt      DateTime @updatedAt
 
   @@index([clientId])
+}
+
+model Transaction {
+  id                String   @id @default(uuid())
+  date              DateTime
+  details           String
+  type              String   // UPI, IMPS, NEFT, Cash, Others
+  transactorAccount String   // UPI ID / Account No. of transactor
+  yourAccount       String   // Your Account (Bank Name or custom text)
+  amount            Float
+  referenceNumber   String?
+  comments          String?
+  orgId             String
+  organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([orgId])
+}
+
+model ClientTask {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  status       String   // TODO, IN_PROGRESS, COMPLETED, BLOCKED
+  progress     Int      @default(0) // 0-100
+  blocker      String?  // Description of blocker if blocked
+  update       String?  // Recent progress update
+  timeline     String?
+  deadline     DateTime?
+  outputUrl    String?
+  carryOverComment String?
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stageId      String?
+  stage        ProjectStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?    @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  parentTaskId String?
+  parentTask   ClientTask?  @relation("TaskChain", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  nextTasks    ClientTask[] @relation("TaskChain")
+  updates      TaskUpdate[]
+  comments     TaskComment[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([assignedToId])
+  @@index([projectId])
+  @@index([stageId])
+  @@index([parentTaskId])
+}
+
+model TaskUpdate {
+  id        String   @id @default(uuid())
+  content   String
+  taskId    String
+  task      ClientTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  content   String
+  taskId    String
+  task      ClientTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model ProjectStage {
+  id        String   @id @default(uuid())
+  name      String
+  position  Int      // 0-based order index
+  startDate DateTime
+  endDate   DateTime
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     ClientTask[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
 }

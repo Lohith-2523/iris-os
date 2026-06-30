@@ -21,7 +21,8 @@ import {
   Send, 
   CheckCircle2,
   Lock,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle
 } from 'lucide-react';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -109,11 +110,12 @@ interface ScheduledPost {
 }
 
 export default function ClientDashboardPage() {
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'campaigns' | 'insights' | 'calendar'>('overview');
+  const [activeTab, setActiveTab] = React.useState<string>('overview');
   const [campaigns, setCampaigns] = React.useState<MetaCampaign[]>([]);
   const [leads, setLeads] = React.useState<MetaLead[]>([]);
   const [orphanedAds, setOrphanedAds] = React.useState<MetaAd[]>([]);
   const [scheduledPosts, setScheduledPosts] = React.useState<ScheduledPost[]>([]);
+  const [tasks, setTasks] = React.useState<any[]>([]);
   const [userRole, setUserRole] = React.useState<string>('client');
   const [clientName, setClientName] = React.useState<string | null>(null);
 
@@ -142,8 +144,13 @@ export default function ClientDashboardPage() {
         setLeads(data.leads || []);
         setOrphanedAds(data.orphanedAds || []);
         setScheduledPosts(data.scheduledPosts || []);
-        setUserRole(data.role || 'client');
+        setTasks(data.clientTasks || []);
+        const role = data.role || 'client';
+        setUserRole(role);
         setClientName(data.clientName || 'Aether Technologies');
+        if (role === 'client') {
+          setActiveTab('calendar');
+        }
       }
     } catch (e) {
       console.error('Error fetching client dashboard data:', e);
@@ -341,7 +348,11 @@ export default function ClientDashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
             {clientName} Marketing Command
           </h1>
-          <p className="text-xs text-zinc-500">Live ad performance auditing, content calendar feedback, and engagement charts.</p>
+          <p className="text-xs text-zinc-500">
+            {userRole === 'client' 
+              ? 'Content calendar feedback and broadcast scheduled post approvals.' 
+              : 'Live ad performance auditing, content calendar feedback, and engagement charts.'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -363,47 +374,87 @@ export default function ClientDashboardPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-zinc-850 gap-1.5 scrollbar-none overflow-x-auto">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === 'overview' 
-              ? 'border-white text-white font-bold' 
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
-        >
-          Performance Overview
-        </button>
-        <button
-          onClick={() => setActiveTab('campaigns')}
-          className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === 'campaigns' 
-              ? 'border-white text-white font-bold' 
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
-        >
-          Ads & Campaigns
-        </button>
-        <button
-          onClick={() => setActiveTab('insights')}
-          className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === 'insights' 
-              ? 'border-white text-white font-bold' 
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
-        >
-          Engagement Insights
-        </button>
-        <button
-          onClick={() => setActiveTab('calendar')}
-          className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-            activeTab === 'calendar' 
-              ? 'border-white text-white font-bold' 
-              : 'border-transparent text-zinc-400 hover:text-white'
-          }`}
-        >
-          <CalendarIcon className="h-3.5 w-3.5" />
-          <span>Broadcast Calendar</span>
-        </button>
+        {userRole === 'client' ? (
+          <>
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'calendar' 
+                  ? 'border-white text-white font-bold' 
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              <span>Broadcast Calendar</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'tasks' 
+                  ? 'border-white text-white font-bold' 
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Activity className="h-3.5 w-3.5" />
+              <span>Tasks & Updates</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'overview' 
+                  ? 'border-white text-white font-bold' 
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              Performance Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('campaigns')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'campaigns' 
+                  ? 'border-white text-white font-bold' 
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              Ads & Campaigns
+            </button>
+            <button
+              onClick={() => setActiveTab('insights')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'insights' 
+                  ? 'border-white text-white font-bold' 
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              Engagement Insights
+            </button>
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'calendar' 
+                  ? 'border-white text-white font-bold' 
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              <span>Broadcast Calendar</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'tasks' 
+                  ? 'border-white text-white font-bold' 
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Activity className="h-3.5 w-3.5" />
+              <span>Tasks & Updates</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* TAB 1: OVERVIEW */}
@@ -936,7 +987,7 @@ export default function ClientDashboardPage() {
               </div>
 
               {/* Client Review Interactions */}
-              {selectedDayPost.status === 'SCHEDULED' && (
+              {(selectedDayPost.status === 'SCHEDULED' || selectedDayPost.status === 'APPROVED') && (
                 <div className="space-y-3 pt-3 border-t border-zinc-900">
                   {showFeedbackInput ? (
                     <div className="space-y-2">
@@ -951,7 +1002,10 @@ export default function ClientDashboardPage() {
                         <Button
                           type="button"
                           variant="ghost"
-                          onClick={() => setShowFeedbackInput(false)}
+                          onClick={() => {
+                            setShowFeedbackInput(false);
+                            setFeedbackText('');
+                          }}
                           className="h-8 text-zinc-400 font-semibold"
                         >
                           Cancel
@@ -968,30 +1022,54 @@ export default function ClientDashboardPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setShowFeedbackInput(true)}
-                        className="h-9 border border-zinc-800 text-zinc-300 font-semibold hover:bg-zinc-900"
-                      >
-                        Propose Changes
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => handleClientFeedback(selectedDayPost.id, 'APPROVED')}
-                        className="h-9 bg-white text-zinc-950 font-bold hover:bg-zinc-200"
-                      >
-                        Approve Post
-                      </Button>
+                      {selectedDayPost.status === 'SCHEDULED' ? (
+                        <>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => setShowFeedbackInput(true)}
+                            className="h-9 border border-zinc-800 text-zinc-300 font-semibold hover:bg-zinc-900"
+                          >
+                            Propose Changes
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => handleClientFeedback(selectedDayPost.id, 'APPROVED')}
+                            className="h-9 bg-white text-zinc-950 font-bold hover:bg-zinc-250"
+                          >
+                            Approve Post
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setShowFeedbackInput(true)}
+                          className="h-9 border border-zinc-800 text-zinc-300 font-semibold hover:bg-zinc-900 col-span-2"
+                        >
+                          Cancel Approval & Request Changes
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
               )}
 
               {selectedDayPost.status === 'CHANGES_PROPOSED' && (
-                <div className="p-3 bg-amber-950/15 border border-amber-900/30 text-amber-400 rounded leading-relaxed text-[11px] font-sans">
-                  <span className="font-bold block uppercase tracking-wider text-[9px] mb-1">Feedback Submitted</span>
-                  "{selectedDayPost.clientFeedback || feedbackText}"
+                <div className="space-y-3 pt-3 border-t border-zinc-900">
+                  <div className="p-3 bg-amber-950/15 border border-amber-900/30 text-amber-400 rounded leading-relaxed text-[11px] font-sans">
+                    <span className="font-bold block uppercase tracking-wider text-[9px] mb-1">Feedback Submitted</span>
+                    "{selectedDayPost.clientFeedback || feedbackText}"
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => handleClientFeedback(selectedDayPost.id, 'APPROVED')}
+                      className="h-8 bg-white text-zinc-950 font-bold w-full"
+                    >
+                      Approve Instead
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -1002,6 +1080,88 @@ export default function ClientDashboardPage() {
               >
                 Close Inspector
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {/* TAB: TASKS */}
+      {activeTab === 'tasks' && (
+        <div className="space-y-6 animate-fadeIn">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-white">Project Deliverables & Task Status</CardTitle>
+              <CardDescription>Real-time tasks, active progress, and blockers logged by our team.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {tasks.length === 0 ? (
+                <div className="p-8 text-center text-zinc-550 italic">No tasks have been logged for your account yet.</div>
+              ) : (
+                <div className="divide-y divide-zinc-900">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="p-4 space-y-2 text-xs">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-semibold text-white text-xs block">{task.title}</span>
+                          {task.description && <span className="text-[10px] text-zinc-500 mt-0.5 block">{task.description}</span>}
+                        </div>
+                        <Badge
+                          variant={
+                            task.status === 'COMPLETED'
+                              ? 'risk-low'
+                              : task.status === 'BLOCKED'
+                              ? 'risk-high'
+                              : task.status === 'IN_PROGRESS'
+                              ? 'risk-medium'
+                              : 'outline'
+                          }
+                          className="rounded-none uppercase tracking-wider text-[9px]"
+                        >
+                          {task.status}
+                        </Badge>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[9px] text-zinc-500">
+                          <span>Task Progress</span>
+                          <span className="font-mono">{task.progress}%</span>
+                        </div>
+                        <div className="h-1 bg-zinc-900 overflow-hidden">
+                          <div
+                            style={{ width: `${task.progress}%` }}
+                            className={`h-full ${
+                              task.status === 'COMPLETED'
+                                ? 'bg-emerald-500'
+                                : task.status === 'BLOCKED'
+                                ? 'bg-rose-500'
+                                : 'bg-amber-500'
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Updates & Blockers */}
+                      {task.status === 'BLOCKED' && task.blocker && (
+                        <div className="bg-rose-950/15 border border-rose-950/40 p-2 text-[10px] text-rose-455 flex items-start gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                          <span><strong>Blocker:</strong> {task.blocker}</span>
+                        </div>
+                      )}
+                      {task.update && (
+                        <div className="bg-zinc-955 p-2 text-[10px] text-zinc-450 border border-zinc-900 flex items-start gap-1.5">
+                          <Activity className="h-3.5 w-3.5 text-zinc-650 shrink-0" />
+                          <span><strong>Latest Update:</strong> {task.update}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center text-[9px] text-zinc-650 pt-1">
+                        <span>Lead Specialist:</span>
+                        <span>{task.assignedTo?.name || 'Unassigned'} ({task.assignedTo?.role || 'Apex Specialist'})</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

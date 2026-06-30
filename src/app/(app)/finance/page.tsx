@@ -21,7 +21,8 @@ import {
   RefreshCw,
   CreditCard,
   Blocks,
-  Key
+  Key,
+  Upload
 } from 'lucide-react';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -52,6 +53,192 @@ export default function FinancePage() {
   const [dbData, setDbData] = React.useState<any>(null);
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
+
+  // Manual Entry States
+  const [manualTransactions, setManualTransactions] = React.useState<any[]>([]);
+  const [loadingManual, setLoadingManual] = React.useState(false);
+  const [bankNames, setBankNames] = React.useState<string[]>([]);
+
+  // Form states
+  const [formDate, setFormDate] = React.useState('');
+  const [formDetails, setFormDetails] = React.useState('');
+  const [formType, setFormType] = React.useState('UPI');
+  const [formTransactorAccount, setFormTransactorAccount] = React.useState('');
+  const [formYourAccount, setFormYourAccount] = React.useState('');
+  const [formAmount, setFormAmount] = React.useState('');
+  const [formReferenceNumber, setFormReferenceNumber] = React.useState('');
+  const [formComments, setFormComments] = React.useState('');
+
+  const fetchManualTransactions = React.useCallback(async () => {
+    setLoadingManual(true);
+    try {
+      const res = await fetch('/api/transactions');
+      if (res.ok) {
+        const data = await res.json();
+        setManualTransactions(data);
+      }
+    } catch (e) {
+      console.error('Error loading manual transactions:', e);
+    } finally {
+      setLoadingManual(false);
+    }
+  }, []);
+
+  const fetchOrgBanks = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/organization');
+      if (res.ok) {
+        const data = await res.json();
+        setBankNames(data.bankNames || []);
+      }
+    } catch (e) {
+      console.error('Error loading org banks:', e);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (bankNames.length > 0 && !formYourAccount) {
+      setFormYourAccount(bankNames[0]);
+    }
+  }, [bankNames, formYourAccount]);
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formDate || !formDetails || !formType || !formTransactorAccount || (!formYourAccount && bankNames.length > 0) || !formAmount) {
+      alert('Please fill out all required fields.');
+      return;
+    }
+
+    if (formType === 'Others' && !formComments.trim()) {
+      alert('Please add the transaction type in the comments.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: formDate,
+          details: formDetails,
+          type: formType,
+          transactorAccount: formTransactorAccount,
+          yourAccount: formYourAccount || 'Manual Entry',
+          amount: parseFloat(formAmount),
+          referenceNumber: formReferenceNumber || null,
+          comments: formComments || null,
+        }),
+      });
+
+      if (res.ok) {
+        // Reset form
+        setFormDetails('');
+        setFormTransactorAccount('');
+        setFormAmount('');
+        setFormReferenceNumber('');
+        setFormComments('');
+        // Reload transactions
+        fetchManualTransactions();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to save transaction.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred while saving.');
+    }
+  };
+
+  const downloadTemplate = (format: 'csv' | 'xlsx') => {
+    const headers = ['Date', 'Transaction details', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
+    const sampleRow = ['2026-06-30', 'Ad Campaign Setup Fee', 'NEFT', 'transactor@upi', 'ICICI Bank', '25000', 'TXN776655', 'Initial setup charges'];
+    const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `financial_ledger_template.${format}`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'csv' && ext !== 'xlsx' && ext !== 'xls') {
+      alert('Unsupported file format. Please upload only the downloaded CSV/Excel template.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+      if (lines.length === 0) {
+        alert('The uploaded file is empty.');
+        return;
+      }
+      
+      // Parse headers
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+      const expectedHeaders = ['Date', 'Transaction details', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
+      
+      const headersMatch = expectedHeaders.every((h, i) => headers[i]?.toLowerCase() === h.toLowerCase());
+      if (!headersMatch) {
+        alert('Invalid template format. The columns must match the template exactly: ' + expectedHeaders.join(', '));
+        return;
+      }
+      
+      // Parse rows
+      const txs = [];
+      for (let i = 1; i < lines.length; i++) {
+        // Split line by commas not inside quotes
+        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.trim().replace(/^["']|["']$/g, ''));
+        if (row.length < expectedHeaders.length) continue;
+        
+        txs.push({
+          date: row[0],
+          details: row[1],
+          type: row[2],
+          transactorAccount: row[3],
+          yourAccount: row[4],
+          amount: row[5],
+          referenceNumber: row[6],
+          comments: row[7]
+        });
+      }
+      
+      if (txs.length === 0) {
+        alert('No valid transactions found in the file.');
+        return;
+      }
+      
+      // Send to bulk save API
+      try {
+        const response = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bulk: true, transactions: txs })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          alert(`Successfully imported ${result.count} transactions in bulk!`);
+          fetchManualTransactions();
+        } else {
+          alert('Failed to import transactions. Please verify data formats.');
+        }
+      } catch (error) {
+        console.error('Error importing bulk data:', error);
+        alert('An error occurred during import.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const fetchIntegrations = React.useCallback(async () => {
     try {
@@ -143,7 +330,9 @@ export default function FinancePage() {
     }
     loadBase();
     fetchIntegrations();
-  }, [fetchIntegrations]);
+    fetchManualTransactions();
+    fetchOrgBanks();
+  }, [fetchIntegrations, fetchManualTransactions, fetchOrgBanks]);
 
   const isStripeConnected = React.useMemo(() => {
     return integrations.some((i) => i.provider === 'STRIPE' && i.status === 'CONNECTED');
@@ -217,8 +406,18 @@ export default function FinancePage() {
       razorpayOutstanding = (rzpFailedCount * rzpAovINR) / 83.5;
     }
 
-    const totalGross = baseGross + stripeGross + paypalGross + razorpayGross;
-    const totalExpenses = baseExpenses + stripeExpenses + paypalExpenses + razorpayExpenses;
+    let manualGross = 0;
+    let manualExpenses = 0;
+    manualTransactions.forEach(tx => {
+      if (tx.amount > 0) {
+        manualGross += tx.amount;
+      } else {
+        manualExpenses += Math.abs(tx.amount);
+      }
+    });
+
+    const totalGross = baseGross + stripeGross + paypalGross + razorpayGross + manualGross;
+    const totalExpenses = baseExpenses + stripeExpenses + paypalExpenses + razorpayExpenses + manualExpenses;
     const totalOutstanding = baseOutstanding + stripeOutstanding + paypalOutstanding + razorpayOutstanding;
     const profitMargin = totalGross > 0 ? ((totalGross - totalExpenses) / totalGross) * 100 : 0;
 
@@ -232,6 +431,20 @@ export default function FinancePage() {
 
   const combinedTransactions = React.useMemo(() => {
     const list: any[] = [];
+
+    // Add manual transactions
+    manualTransactions.forEach(tx => {
+      list.push({
+        id: tx.referenceNumber || tx.id.slice(0, 8),
+        source: 'Manual Ledger',
+        customer: tx.transactorAccount || 'N/A',
+        date: new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        amountUSD: tx.amount,
+        status: tx.amount >= 0 ? 'succeeded' : 'failed',
+        rawStatus: tx.amount >= 0 ? 'INCOME' : 'EXPENSE',
+        details: tx.details,
+      });
+    });
 
     // Add standard invoices
     const baseInvoices = dbData?.recentInvoices ?? [
@@ -363,50 +576,22 @@ export default function FinancePage() {
           className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
             activeTab === 'overview'
               ? 'border-white text-white font-bold'
-              : 'border-transparent text-zinc-500 hover:text-zinc-350'
+              : 'border-transparent text-zinc-550 hover:text-zinc-350'
           }`}
         >
           Overview
         </button>
-        {isStripeConnected && (
-          <button
-            type="button"
-            onClick={() => setActiveTab('stripe')}
-            className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
-              activeTab === 'stripe'
-                ? 'border-white text-white font-bold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-350'
-            }`}
-          >
-            Stripe Ledger
-          </button>
-        )}
-        {isPaypalConnected && (
-          <button
-            type="button"
-            onClick={() => setActiveTab('paypal')}
-            className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
-              activeTab === 'paypal'
-                ? 'border-white text-white font-bold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-350'
-            }`}
-          >
-            PayPal Ledger
-          </button>
-        )}
-        {isRazorpayConnected && (
-          <button
-            type="button"
-            onClick={() => setActiveTab('razorpay')}
-            className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
-              activeTab === 'razorpay'
-                ? 'border-white text-white font-bold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-350'
-            }`}
-          >
-            Razorpay Ledger
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setActiveTab('manual' as any)}
+          className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+            activeTab === ('manual' as any)
+              ? 'border-white text-white font-bold'
+              : 'border-transparent text-zinc-550 hover:text-zinc-350'
+          }`}
+        >
+          Manual Ledger
+        </button>
       </div>
 
       {/* OVERVIEW TAB */}
@@ -586,687 +771,263 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* STRIPE TAB */}
-      {activeTab === 'stripe' && isStripeConnected && (
-        <div className="space-y-6">
-          {/* Header Action */}
-          <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-            <div />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={loadingStripe}
-              onClick={fetchStripeData}
-              className="h-8 border-zinc-850 text-zinc-300 font-semibold gap-1 hover:bg-zinc-900"
-            >
-              <RefreshCw className={`h-3 w-3 ${loadingStripe ? 'animate-spin' : ''}`} />
-              <span>Refresh Ledger</span>
-            </Button>
-          </div>
-
-          {loadingStripe && !stripeData ? (
-            <div className="flex h-[30vh] items-center justify-center">
-              <div className="text-zinc-500 text-xs flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-                <span>Loading ledger records from Stripe API...</span>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Stripe Volume (Gross)</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-zinc-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {formatCurrency(stripeData?.stats?.totalVolume || 0)}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-450 font-semibold">
-                      <span>Verified successful volume</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Account Balance</CardTitle>
-                    <Wallet className="h-4 w-4 text-zinc-550" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {formatCurrency(stripeData?.stats?.balance || 0)}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <CheckCircle className="h-3.5 w-3.5 text-emerald-450 shrink-0" />
-                      <span>Available for payout</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Stripe Success Rate</CardTitle>
-                    <Activity className="h-4 w-4 text-zinc-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {stripeData?.stats?.successCount > 0 
-                        ? Math.round((stripeData.stats.successCount / (stripeData.stats.successCount + stripeData.stats.failedCount)) * 100)
-                        : 0}%
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <span>Across recent client charges</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Stripe Fees Paid</CardTitle>
-                    <CreditCard className="h-4 w-4 text-zinc-550" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {formatCurrency((stripeData?.stats?.totalVolume || 0) * 0.029)}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <span>Average processing rate: 2.9%</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Table & Chart Split */}
-              <div className="grid gap-6 md:grid-cols-3">
-                {/* Stripe Charges List */}
-                <div className="md:col-span-2 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm font-semibold text-white">Stripe Charges Ledger</CardTitle>
-                      <CardDescription>Audited log of payment captures directly synced from Stripe Gateway API.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <Table>
-                        <TableHeader>
+      {/* MANUAL LEDGER TAB */}
+      {activeTab === ('manual' as any) && (
+        <div className="space-y-6 animate-fadeIn font-sans text-xs">
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Transactions List */}
+            <div className="md:col-span-2 space-y-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-white">Manual Entry Ledger</CardTitle>
+                    <CardDescription>Record logs of your business account statements and transaction history.</CardDescription>
+                  </div>
+                  <Badge variant="outline" className="font-mono text-zinc-300">
+                    {manualTransactions.length} Transactions
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Details</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Transactor Account</TableHead>
+                          <TableHead>Your Account</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead>Ref Number</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {manualTransactions.length === 0 ? (
                           <TableRow>
-                            <TableHead>Charge ID</TableHead>
-                            <TableHead>Customer Email</TableHead>
-                            <TableHead>Method</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead className="text-right">Status</TableHead>
-                            <TableHead className="text-right">Created Date</TableHead>
+                            <TableCell colSpan={7} className="text-center text-zinc-500 py-8 italic">
+                              No manual transactions entered yet. Use the sidebar form to add entries or import templates.
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {stripeData?.payments?.map((ch: any) => (
-                            <TableRow key={ch.id}>
-                              <TableCell className="font-mono text-xs text-white">{ch.id}</TableCell>
-                              <TableCell>{ch.email}</TableCell>
-                              <TableCell className="uppercase font-mono text-[10px] text-zinc-505">{ch.method}</TableCell>
-                              <TableCell className="text-right font-mono font-bold text-white">
-                                {formatCurrency(ch.amount)}
+                        ) : (
+                          manualTransactions.map((tx) => (
+                            <TableRow key={tx.id}>
+                              <TableCell className="text-zinc-305 font-mono">
+                                {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </TableCell>
-                              <TableCell className="text-right">
-                                <Badge variant={ch.status === 'succeeded' ? 'risk-low' : 'risk-high'}>
-                                  {ch.status}
+                              <TableCell>
+                                <span className="text-white font-semibold block">{tx.details}</span>
+                                {tx.comments && <span className="text-zinc-550 block text-[10px] mt-0.5">{tx.comments}</span>}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-zinc-950 text-[10px] font-bold text-zinc-300 uppercase font-sans">
+                                  {tx.type}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-right text-[10px] text-zinc-505 font-mono">{ch.createdAt}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Sidebar Stripe Chart */}
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm font-semibold text-white">Daily Volume Trend</CardTitle>
-                      <CardDescription>Aggregated Stripe capture analysis.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center pt-2">
-                      <div className="w-full h-36 flex items-end justify-center select-none relative mb-4">
-                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 120">
-                          <defs>
-                            <linearGradient id="stripeChartGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#818cf8" stopOpacity="0.25" />
-                              <stop offset="100%" stopColor="#818cf8" stopOpacity="0.0" />
-                            </linearGradient>
-                          </defs>
-                          <line x1="0" y1="20" x2="300" y2="20" stroke="#1f1f23" strokeDasharray="3" />
-                          <line x1="0" y1="60" x2="300" y2="60" stroke="#1f1f23" strokeDasharray="3" />
-                          <line x1="0" y1="100" x2="300" y2="100" stroke="#1f1f23" strokeDasharray="3" />
-                          <path
-                            d="M 0 110 L 40 70 L 90 85 L 140 50 L 190 65 L 240 30 L 300 10 L 300 120 L 0 120 Z"
-                            fill="url(#stripeChartGrad)"
-                          />
-                          <path
-                            d="M 0 110 L 40 70 L 90 85 L 140 50 L 190 65 L 240 30 L 300 10"
-                            fill="none"
-                            stroke="#818cf8"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                          />
-                          <circle cx="40" cy="70" r="4.5" fill="#09090b" stroke="#818cf8" strokeWidth="2" />
-                          <circle cx="90" cy="85" r="4.5" fill="#09090b" stroke="#818cf8" strokeWidth="2" />
-                          <circle cx="140" cy="50" r="4.5" fill="#09090b" stroke="#818cf8" strokeWidth="2" />
-                          <circle cx="190" cy="65" r="4.5" fill="#09090b" stroke="#818cf8" strokeWidth="2" />
-                          <circle cx="240" cy="30" r="4.5" fill="#09090b" stroke="#818cf8" strokeWidth="2" />
-                          <circle cx="300" cy="10" r="4.5" fill="#09090b" stroke="#818cf8" strokeWidth="2" />
-                        </svg>
-                        <div className="absolute bottom-0 w-full flex justify-between px-2 text-[9px] text-zinc-550 font-semibold font-mono">
-                          <span>Mon</span>
-                          <span>Tue</span>
-                          <span>Wed</span>
-                          <span>Thu</span>
-                          <span>Fri</span>
-                          <span>Sat</span>
-                          <span>Sun</span>
-                        </div>
-                      </div>
-
-                      <div className="w-full space-y-2.5 text-xs">
-                        <div className="flex justify-between items-center text-[10px] text-zinc-550 font-bold border-b border-zinc-900 pb-1.5">
-                          <span>PAYMENT METHOD</span>
-                          <span>DISTRIBUTION</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-zinc-400 font-sans">Credit Card (Visa / MC)</span>
-                          <span className="font-mono text-white font-semibold">85%</span>
-                        </div>
-                        <div className="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
-                          <div className="bg-indigo-400 h-full" style={{ width: '85%' }} />
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <span className="text-zinc-400 font-sans">Other (ApplePay / Link)</span>
-                          <span className="font-mono text-white font-semibold">15%</span>
-                        </div>
-                        <div className="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
-                          <div className="bg-zinc-650 h-full" style={{ width: '15%' }} />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* PAYPAL TAB */}
-      {activeTab === 'paypal' && isPaypalConnected && (
-        <div className="space-y-6">
-          {/* Header Action */}
-          <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-            <div />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={loadingPaypal}
-              onClick={fetchPaypalData}
-              className="h-8 border-zinc-850 text-zinc-300 font-semibold gap-1 hover:bg-zinc-900"
-            >
-              <RefreshCw className={`h-3 w-3 ${loadingPaypal ? 'animate-spin' : ''}`} />
-              <span>Refresh Ledger</span>
-            </Button>
-          </div>
-
-          {loadingPaypal && !paypalData ? (
-            <div className="flex h-[30vh] items-center justify-center">
-              <div className="text-zinc-500 text-xs flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-                <span>Loading ledger records from PayPal API...</span>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-555">PayPal Volume (Gross)</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-zinc-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {formatCurrency(paypalData?.stats?.totalVolume || 0)}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-450 font-semibold">
-                      <span>Verified successful volume</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Account Balance</CardTitle>
-                    <Wallet className="h-4 w-4 text-zinc-555" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {formatCurrency(paypalData?.stats?.balance || 0)}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <CheckCircle className="h-3.5 w-3.5 text-emerald-450 shrink-0" />
-                      <span>Available for transfer</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">PayPal Success Rate</CardTitle>
-                    <Activity className="h-4 w-4 text-zinc-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {paypalData?.stats?.successCount > 0
-                        ? Math.round((paypalData.stats.successCount / (paypalData.stats.successCount + paypalData.stats.failedCount + paypalData.stats.refundedCount)) * 100)
-                        : 0}%
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <span>Across express checkouts</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-555">PayPal Fees Paid</CardTitle>
-                    <CreditCard className="h-4 w-4 text-zinc-555" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {formatCurrency((paypalData?.stats?.totalVolume || 0) * 0.033)}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <span>Average processing rate: 3.3%</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Table & Chart Split */}
-              <div className="grid gap-6 md:grid-cols-3">
-                {/* PayPal Charges List */}
-                <div className="md:col-span-2 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm font-semibold text-white">PayPal Charges Ledger</CardTitle>
-                      <CardDescription>Audited log of payment captures directly synced from PayPal Gateway API.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Transaction ID</TableHead>
-                            <TableHead>Payer Email</TableHead>
-                            <TableHead>Method</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead className="text-right">Status</TableHead>
-                            <TableHead className="text-right">Created Date</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {paypalData?.payments?.map((ch: any) => (
-                            <TableRow key={ch.id}>
-                              <TableCell className="font-mono text-xs text-white">{ch.id}</TableCell>
-                              <TableCell>{ch.email}</TableCell>
-                              <TableCell className="uppercase font-mono text-[10px] text-zinc-505">{ch.method}</TableCell>
-                              <TableCell className="text-right font-mono font-bold text-white">
-                                {formatCurrency(ch.amount)}
+                              <TableCell className="font-mono text-zinc-400">{tx.transactorAccount || '-'}</TableCell>
+                              <TableCell className="font-mono text-zinc-300">{tx.yourAccount || '-'}</TableCell>
+                              <TableCell className={`text-right font-mono font-bold ${tx.amount >= 0 ? 'text-emerald-450' : 'text-red-450'}`}>
+                                {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
                               </TableCell>
-                              <TableCell className="text-right">
-                                <Badge variant={ch.status === 'completed' || ch.status === 'succeeded' ? 'risk-low' : 'risk-high'}>
-                                  {ch.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right text-[10px] text-zinc-505 font-mono">{ch.createdAt}</TableCell>
+                              <TableCell className="font-mono text-zinc-500">{tx.referenceNumber || '-'}</TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </div>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-            {/* Sidebar PayPal Chart */}
+            {/* Forms Panel */}
             <div className="space-y-6">
+              {/* Single Manual Entry Form */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-white">Daily Volume Trend</CardTitle>
-                  <CardDescription>Aggregated PayPal capture analysis.</CardDescription>
+                  <CardTitle className="text-sm font-semibold text-white">Manual Ledger Entry</CardTitle>
+                  <CardDescription>Manually record a single transaction event in the ledger.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center pt-2">
-                  <div className="w-full h-36 flex items-end justify-center select-none relative mb-4">
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 120">
-                      <defs>
-                        <linearGradient id="paypalChartGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#0284c7" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#0284c7" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      <line x1="0" y1="20" x2="300" y2="20" stroke="#1f1f23" strokeDasharray="3" />
-                      <line x1="0" y1="60" x2="300" y2="60" stroke="#1f1f23" strokeDasharray="3" />
-                      <line x1="0" y1="100" x2="300" y2="100" stroke="#1f1f23" strokeDasharray="3" />
-                      <path
-                        d="M 0 110 L 40 80 L 90 75 L 140 60 L 190 70 L 240 40 L 300 20 L 300 120 L 0 120 Z"
-                        fill="url(#paypalChartGrad)"
+                <CardContent>
+                  <form onSubmit={handleManualSubmit} className="space-y-4 font-sans text-xs">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Date</label>
+                      <input
+                        type="date"
+                        required
+                        value={formDate}
+                        onChange={(e) => setFormDate(e.target.value)}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                       />
-                      <path
-                        d="M 0 110 L 40 80 L 90 75 L 140 60 L 190 70 L 240 40 L 300 20"
-                        fill="none"
-                        stroke="#0284c7"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                      />
-                      <circle cx="40" cy="80" r="4.5" fill="#09090b" stroke="#0284c7" strokeWidth="2" />
-                      <circle cx="90" cy="75" r="4.5" fill="#09090b" stroke="#0284c7" strokeWidth="2" />
-                      <circle cx="140" cy="60" r="4.5" fill="#09090b" stroke="#0284c7" strokeWidth="2" />
-                      <circle cx="190" cy="70" r="4.5" fill="#09090b" stroke="#0284c7" strokeWidth="2" />
-                      <circle cx="240" cy="40" r="4.5" fill="#09090b" stroke="#0284c7" strokeWidth="2" />
-                      <circle cx="300" cy="20" r="4.5" fill="#09090b" stroke="#0284c7" strokeWidth="2" />
-                    </svg>
-                    <div className="absolute bottom-0 w-full flex justify-between px-2 text-[9px] text-zinc-550 font-semibold font-mono">
-                      <span>Mon</span>
-                      <span>Tue</span>
-                      <span>Wed</span>
-                      <span>Thu</span>
-                      <span>Fri</span>
-                      <span>Sat</span>
-                      <span>Sun</span>
                     </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Transaction Details</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Retainer Payment"
+                        value={formDetails}
+                        onChange={(e) => setFormDetails(e.target.value)}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Transaction Type</label>
+                      <select
+                        value={formType}
+                        onChange={(e) => setFormType(e.target.value)}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                      >
+                        <option value="UPI">UPI</option>
+                        <option value="IMPS">IMPS</option>
+                        <option value="NEFT">NEFT</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Others">Others</option>
+                      </select>
+                      {formType === 'Others' && (
+                        <div className="p-2 bg-amber-955/15 border border-amber-900/30 text-amber-400 rounded text-[10px] leading-relaxed">
+                          Note: Please specify the transaction type details in the comments field.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Transactor Account / UPI ID</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. transactor@upi"
+                        value={formTransactorAccount}
+                        onChange={(e) => setFormTransactorAccount(e.target.value)}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Your Account</label>
+                      {bankNames.length > 0 ? (
+                        <select
+                          value={formYourAccount}
+                          onChange={(e) => setFormYourAccount(e.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all cursor-pointer"
+                        >
+                          <option value="">Select bank account...</option>
+                          {bankNames.map((bank, index) => (
+                            <option key={index} value={bank}>{bank}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. HDFC Bank, SBI..."
+                            value={formYourAccount}
+                            onChange={(e) => setFormYourAccount(e.target.value)}
+                            className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                          />
+                          <div className="rounded border border-zinc-850 bg-zinc-955/45 p-2 text-[10px] text-zinc-450 leading-relaxed font-sans">
+                            <span className="font-semibold text-white block mb-0.5">Info: Bank accounts config</span>
+                            You can configure up to 5 default bank accounts in your settings profile to select them as a dropdown here.
+                            <button
+                              type="button"
+                              onClick={() => {
+                                window.location.href = '/settings?tab=profile';
+                              }}
+                              className="text-white hover:underline block mt-1 font-semibold cursor-pointer text-left"
+                            >
+                              Go to Settings Profile &rarr;
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Amount (USD)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        placeholder="e.g. 500 (positive for income, negative for expense)"
+                        value={formAmount}
+                        onChange={(e) => setFormAmount(e.target.value)}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Reference Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. REF98765"
+                        value={formReferenceNumber}
+                        onChange={(e) => setFormReferenceNumber(e.target.value)}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Comments</label>
+                      <textarea
+                        placeholder="Transaction notes..."
+                        value={formComments}
+                        onChange={(e) => setFormComments(e.target.value)}
+                        className="w-full h-16 rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all font-sans text-xs resize-none"
+                      />
+                    </div>
+
+                    <Button type="submit" className="w-full h-9 bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-250 cursor-pointer">
+                      Save Transaction
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Bulk Imports Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold text-white">Bulk Financial Import</CardTitle>
+                  <CardDescription>Download templates and upload filled statements for bulk entry.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 font-sans text-xs">
+                  {/* Download Template Buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadTemplate('csv')}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 border border-zinc-855 hover:border-zinc-750 rounded text-[10px] font-semibold text-zinc-300 bg-zinc-900/20 hover:bg-zinc-900 cursor-pointer transition-colors"
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>CSV Template</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadTemplate('xlsx')}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 border border-zinc-855 hover:border-zinc-750 rounded text-[10px] font-semibold text-zinc-300 bg-zinc-900/20 hover:bg-zinc-900 cursor-pointer transition-colors"
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>XLSX Template</span>
+                    </button>
                   </div>
 
-                  <div className="w-full space-y-2.5 text-xs">
-                    <div className="flex justify-between items-center text-[10px] text-zinc-555 font-bold border-b border-zinc-900 pb-1.5">
-                      <span>PAYMENT TYPE</span>
-                      <span>DISTRIBUTION</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-zinc-400 font-sans">PayPal Express Checkout</span>
-                      <span className="font-mono text-white font-semibold">90%</span>
-                    </div>
-                    <div className="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
-                      <div className="bg-sky-500 h-full" style={{ width: '90%' }} />
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-zinc-400 font-sans">Venmo / Credit Card</span>
-                      <span className="font-mono text-white font-semibold">10%</span>
-                    </div>
-                    <div className="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
-                      <div className="bg-zinc-650 h-full" style={{ width: '10%' }} />
-                    </div>
+                  {/* Upload Dropzone */}
+                  <div className="relative border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-900/10 hover:bg-zinc-900/20 rounded-lg p-5 transition-all text-center flex flex-col items-center justify-center cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".csv, .xlsx, .xls"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <Upload className="h-6 w-6 text-zinc-450 mb-2" />
+                    <span className="block font-semibold text-zinc-300">Upload Filled Template</span>
+                    <span className="block text-[9px] text-zinc-550 mt-1">Accepts CSV or XLSX templates only</span>
                   </div>
                 </CardContent>
               </Card>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  )}
-
-      {/* RAZORPAY TAB */}
-      {activeTab === 'razorpay' && isRazorpayConnected && (
-        <div className="space-y-6">
-          {/* Header Action */}
-          <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-            <div />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={loadingRazorpay}
-              onClick={fetchRazorpayData}
-              className="h-8 border-zinc-850 text-zinc-300 font-semibold gap-1 hover:bg-zinc-900"
-            >
-              <RefreshCw className={`h-3 w-3 ${loadingRazorpay ? 'animate-spin' : ''}`} />
-              <span>Refresh Ledger</span>
-            </Button>
-          </div>
-
-          {loadingRazorpay && !razorpayData ? (
-            <div className="flex h-[30vh] items-center justify-center">
-              <div className="text-zinc-500 text-xs flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-                <span>Loading ledger records from Razorpay API...</span>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Metric Cards Grid */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Ledger Balance</CardTitle>
-                    <Wallet className="h-4 w-4 text-zinc-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      ₹{(razorpayData?.stats?.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <CheckCircle className="h-3.5 w-3.5 text-emerald-455 shrink-0" />
-                      <span>Active test ledger node</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-555">Sync Volume (Gross)</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-zinc-555" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      ₹{(razorpayData?.stats?.totalVolume || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-405 font-semibold">
-                      <span>Verified successful volume</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-555">Avg. Order Value (AOV)</CardTitle>
-                    <CreditCard className="h-4 w-4 text-zinc-555" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      ₹{(razorpayData?.stats?.aov || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-550">
-                      <span>Across connected transactions</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card hoverEffect>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-555">Transaction Success Rate</CardTitle>
-                    <Activity className="h-4 w-4 text-zinc-555" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                      {razorpayData?.stats?.successCount > 0 
-                        ? Math.round((razorpayData?.stats?.successCount / (razorpayData?.stats?.successCount + razorpayData?.stats?.failedCount + razorpayData?.stats?.refundedCount)) * 100)
-                        : 0}%
-                    </div>
-                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500">
-                      <span>
-                        {razorpayData?.stats?.successCount || 0} Successful / {razorpayData?.stats?.failedCount || 0} Failed
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {razorpayData?.usingDemoData && (
-                <div className="flex gap-2.5 rounded border border-amber-905/30 bg-amber-950/10 p-3.5 text-xs text-amber-400">
-                  <HelpCircle className="h-4 w-4 shrink-0" />
-                  <span>
-                    Showing demo transactions because the connected Razorpay test account does not have payments yet.
-                  </span>
-                </div>
-              )}
-
-              {/* Main Split */}
-              <div className="grid gap-6 md:grid-cols-3">
-                {/* Transactions Table */}
-                <div className="md:col-span-2 space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm font-semibold text-white">Live Transactions Ledger</CardTitle>
-                      <CardDescription>Real-time audit log of payment captures directly from Razorpay endpoints.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Payment ID</TableHead>
-                            <TableHead>Customer Email</TableHead>
-                            <TableHead>Method</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-right">Created Date</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {razorpayData?.payments?.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={6} className="p-8 text-center text-zinc-650">
-                                No transaction ledger events found.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            razorpayData?.payments?.map((payment: any) => (
-                              <TableRow key={payment.id} className="hover:bg-zinc-900/10">
-                                <TableCell className="font-mono font-semibold text-white">{payment.id}</TableCell>
-                                <TableCell className="max-w-[120px] truncate">{payment.email}</TableCell>
-                                <TableCell className="uppercase font-mono text-[10px] text-zinc-550">{payment.method}</TableCell>
-                                <TableCell className="text-right font-mono font-bold text-white">
-                                  ₹{payment.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Badge
-                                    variant={
-                                      payment.status === 'captured'
-                                        ? 'risk-low'
-                                        : payment.status === 'refunded'
-                                        ? 'outline'
-                                        : 'risk-high'
-                                    }
-                                  >
-                                    {payment.status}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right text-[10px] text-zinc-550 font-mono">{payment.createdAt}</TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Sidebar Analytics */}
-                <div className="space-y-6">
-                  {/* Weekly Volume Trend */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm font-semibold text-white">Weekly Volume Trend</CardTitle>
-                      <CardDescription>Aggregated payment capture analysis.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center pt-2">
-                      <div className="w-full h-36 flex items-end justify-center select-none relative mb-4">
-                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 120">
-                          <defs>
-                            <linearGradient id="razorpayChartGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
-                              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.0" />
-                            </linearGradient>
-                          </defs>
-                          <line x1="0" y1="20" x2="300" y2="20" stroke="#1f1f23" strokeDasharray="3" />
-                          <line x1="0" y1="60" x2="300" y2="60" stroke="#1f1f23" strokeDasharray="3" />
-                          <line x1="0" y1="100" x2="300" y2="100" stroke="#1f1f23" strokeDasharray="3" />
-                          <path
-                            d="M 0 110 L 40 85 L 90 92 L 140 60 L 190 75 L 240 40 L 300 15 L 300 120 L 0 120 Z"
-                            fill="url(#razorpayChartGrad)"
-                          />
-                          <path
-                            d="M 0 110 L 40 85 L 90 92 L 140 60 L 190 75 L 240 40 L 300 15"
-                            fill="none"
-                            stroke="#ffffff"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                          />
-                          <circle cx="40" cy="85" r="4.5" fill="#09090b" stroke="#ffffff" strokeWidth="2" />
-                          <circle cx="90" cy="92" r="4.5" fill="#09090b" stroke="#ffffff" strokeWidth="2" />
-                          <circle cx="140" cy="60" r="4.5" fill="#09090b" stroke="#ffffff" strokeWidth="2" />
-                          <circle cx="190" cy="75" r="4.5" fill="#09090b" stroke="#ffffff" strokeWidth="2" />
-                          <circle cx="240" cy="40" r="4.5" fill="#09090b" stroke="#ffffff" strokeWidth="2" />
-                          <circle cx="300" cy="15" r="4.5" fill="#09090b" stroke="#ffffff" strokeWidth="2" />
-                        </svg>
-                        <div className="absolute bottom-0 w-full flex justify-between px-2 text-[9px] text-zinc-550 font-semibold font-mono">
-                          <span>Mon</span>
-                          <span>Tue</span>
-                          <span>Wed</span>
-                          <span>Thu</span>
-                          <span>Fri</span>
-                          <span>Sat</span>
-                          <span>Sun</span>
-                        </div>
-                      </div>
-
-                      <div className="w-full space-y-2.5 text-xs">
-                        <div className="flex justify-between items-center text-[10px] text-zinc-555 font-bold border-b border-zinc-900 pb-1.5">
-                          <span>METRIC DETAILS</span>
-                          <span>PERCENTAGE</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-zinc-400 font-sans">UPI Payments (GPay/PhonePe)</span>
-                          <span className="font-mono text-white font-semibold">60%</span>
-                        </div>
-                        <div className="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
-                          <div className="bg-white h-full" style={{ width: '60%' }} />
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <span className="text-zinc-400 font-sans">Credit / Debit Cards</span>
-                          <span className="font-mono text-white font-semibold">30%</span>
-                        </div>
-                        <div className="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
-                          <div className="bg-zinc-450 h-full" style={{ width: '30%' }} />
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <span className="text-zinc-400 font-sans">Other (NetBanking / Wallet)</span>
-                          <span className="font-mono text-white font-semibold">10%</span>
-                        </div>
-                        <div className="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
-                          <div className="bg-zinc-650 h-full" style={{ width: '10%' }} />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

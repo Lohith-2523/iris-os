@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     let campaigns;
     let leads;
     let scheduledPosts;
+    let clientTasks;
     let notifications: any[] = [];
 
     if (isClient) {
@@ -48,6 +49,16 @@ export async function GET(request: NextRequest) {
         } : { id: 'none' },
         orderBy: { scheduledAt: 'asc' }
       });
+
+      clientTasks = await prisma.clientTask.findMany({
+        where: clientBusinessId ? {
+          clientId: clientBusinessId
+        } : { id: 'none' },
+        include: {
+          assignedTo: true,
+        },
+        orderBy: { createdAt: 'desc' }
+      });
     } else {
       // Admin view: see everything
       campaigns = await prisma.metaCampaign.findMany({
@@ -61,6 +72,13 @@ export async function GET(request: NextRequest) {
 
       scheduledPosts = await prisma.scheduledPost.findMany({
         orderBy: { scheduledAt: 'asc' }
+      });
+
+      clientTasks = await prisma.clientTask.findMany({
+        include: {
+          assignedTo: true,
+        },
+        orderBy: { createdAt: 'desc' }
       });
 
       // Admin review center: list all posts where client proposed changes
@@ -89,6 +107,7 @@ export async function GET(request: NextRequest) {
       leads,
       orphanedAds,
       scheduledPosts,
+      clientTasks,
       notifications,
       role: user?.role || 'admin',
       clientName: user?.client?.name || null

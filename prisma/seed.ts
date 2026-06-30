@@ -27,14 +27,19 @@ async function main() {
   await prisma.resourceAllocation.deleteMany({});
   await prisma.milestone.deleteMany({});
   await prisma.projectMember.deleteMany({});
+  await prisma.projectStage.deleteMany({});
   await prisma.project.deleteMany({});
   await prisma.contact.deleteMany({});
+  await prisma.taskComment.deleteMany({});
+  await prisma.taskUpdate.deleteMany({});
+  await prisma.clientTask.deleteMany({});
   await prisma.client.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.brand.deleteMany({});
   await prisma.metaLead.deleteMany({});
   await prisma.metaAd.deleteMany({});
   await prisma.metaCampaign.deleteMany({});
+  await prisma.transaction.deleteMany({});
   await prisma.organization.deleteMany({});
 
   console.log('Seeding database...');
@@ -203,6 +208,13 @@ async function main() {
         upsellOpportunityValue: c.status === 'ACTIVE' ? Math.floor(Math.random() * 50000) : 0,
         orgId: org.id,
         adAccountId: c.name === 'Aether Technologies' ? 'act_109283741' : null,
+        metadata: {
+          assignedTeamMemberId: 
+            c.name === 'Aether Technologies' ? user3.id : 
+            (c.name === 'Vertex Retail' || c.name === 'Solaria Energy') ? user2.id : 
+            (c.name === 'Pulse Media' || c.name === 'Onyx Logistics' || c.name === 'Nebula Creative Studio') ? user5.id : 
+            user1.id
+        }
       },
     });
     clients.push(client);
@@ -334,6 +346,7 @@ async function main() {
     // Create Project Members
     await prisma.projectMember.create({
       data: {
+        projectId: project.id,
         userId: user3.id,
       },
     });
@@ -709,6 +722,9 @@ async function main() {
       phone: '+1-555-0199',
       status: 'new',
       createdTime: new Date('2026-06-18T10:30:00Z'),
+      collectionMethod: 'Facebook Lead Form',
+      approachMethod: 'Cold Email',
+      funnelName: 'Aether Enterprise Funnel',
       orgId: org.id,
     }
   });
@@ -723,6 +739,9 @@ async function main() {
       phone: '+1-555-0182',
       status: 'cold-call in progress',
       createdTime: new Date('2026-06-18T14:45:00Z'),
+      collectionMethod: 'LinkedIn InMail',
+      approachMethod: 'LinkedIn message',
+      funnelName: 'Vertex Direct Outbound',
       orgId: org.id,
     }
   });
@@ -737,6 +756,9 @@ async function main() {
       phone: '+1-555-0174',
       status: 'call back required',
       createdTime: new Date('2026-06-19T09:15:00Z'),
+      collectionMethod: 'Website Chatbot',
+      approachMethod: 'Cold Call',
+      funnelName: 'AI Assistant Conversational Funnel',
       orgId: org.id,
     }
   });
@@ -751,6 +773,9 @@ async function main() {
       phone: '+1-555-0165',
       status: 'closed',
       createdTime: new Date('2026-06-19T16:20:00Z'),
+      collectionMethod: 'Direct Outreach',
+      approachMethod: 'Cold Call',
+      funnelName: 'Outbound Lead List',
       orgId: org.id,
     }
   });
@@ -765,6 +790,9 @@ async function main() {
       phone: '+1-555-0155',
       status: 'new',
       createdTime: new Date('2026-06-20T08:05:00Z'),
+      collectionMethod: 'Facebook Lead Form',
+      approachMethod: 'Cold Email',
+      funnelName: 'Aether Enterprise Funnel',
       orgId: org.id,
     }
   });
@@ -779,6 +807,9 @@ async function main() {
       phone: '+1-555-0144',
       status: 'unqualified',
       createdTime: new Date('2026-06-20T11:50:00Z'),
+      collectionMethod: 'Website Chatbot',
+      approachMethod: 'Cold Email',
+      funnelName: 'AI Assistant Conversational Funnel',
       orgId: org.id,
     }
   });
@@ -793,6 +824,9 @@ async function main() {
       phone: '+1-555-0133',
       status: 'cold-call in progress',
       createdTime: new Date('2026-06-20T14:10:00Z'),
+      collectionMethod: 'Website Chatbot',
+      approachMethod: 'Cold Call',
+      funnelName: 'AI Assistant Conversational Funnel',
       orgId: org.id,
     }
   });
@@ -807,9 +841,396 @@ async function main() {
       phone: '+1-555-0122',
       status: 'closed',
       createdTime: new Date('2026-06-20T15:30:00Z'),
+      collectionMethod: 'LinkedIn InMail',
+      approachMethod: 'Cold Call',
+      funnelName: 'Vertex Direct Outbound',
       orgId: org.id,
     }
   });
+
+  console.log('Seeding Projects and Project Members...');
+  // Find clients
+  const aether = clients.find(c => c.name === 'Aether Technologies');
+  const vertex = clients.find(c => c.name === 'Vertex Retail');
+  const solaria = clients.find(c => c.name === 'Solaria Energy');
+  const pulse = clients.find(c => c.name === 'Pulse Media');
+
+  // Create Projects
+  let projAether: any, projVertex: any, projSolaria: any, projPulse: any;
+  let stageAether1: any, stageAether2: any, stageAether3: any;
+  let stageVertex1: any, stageVertex2: any, stageVertex3: any;
+  let stageSolaria1: any, stageSolaria2: any;
+  let stagePulse1: any, stagePulse2: any;
+
+  if (aether) {
+    projAether = await prisma.project.create({
+      data: {
+        name: 'Aether Summer Growth Campaign',
+        status: 'IN_PROGRESS',
+        startDate: new Date('2026-07-01T00:00:00Z'),
+        endDate: new Date('2026-09-30T23:59:59Z'),
+        progress: 50,
+        riskLevel: 'LOW',
+        timeline: 'Jul 1 - Sep 30, 2026',
+        serviceLine: 'Paid Ads & CRO',
+        budget: 15000,
+        orgId: org.id,
+        clientId: aether.id,
+      }
+    });
+
+    // Project Members
+    await prisma.projectMember.create({ data: { projectId: projAether.id, userId: user3.id } }); // Marcus
+    await prisma.projectMember.create({ data: { projectId: projAether.id, userId: user2.id } }); // Sarah
+    await prisma.projectMember.create({ data: { projectId: projAether.id, userId: user1.id } }); // Lohith
+
+    // Stages
+    stageAether1 = await prisma.projectStage.create({
+      data: {
+        name: 'Strategy & Creative Brief',
+        position: 0,
+        startDate: new Date('2026-07-01T00:00:00Z'),
+        endDate: new Date('2026-07-31T23:59:59Z'),
+        projectId: projAether.id
+      }
+    });
+    stageAether2 = await prisma.projectStage.create({
+      data: {
+        name: 'Asset Design & Development',
+        position: 1,
+        startDate: new Date('2026-08-01T00:00:00Z'),
+        endDate: new Date('2026-08-31T23:59:59Z'),
+        projectId: projAether.id
+      }
+    });
+    stageAether3 = await prisma.projectStage.create({
+      data: {
+        name: 'Ad Launch & Optimization',
+        position: 2,
+        startDate: new Date('2026-09-01T00:00:00Z'),
+        endDate: new Date('2026-09-30T23:59:59Z'),
+        projectId: projAether.id
+      }
+    });
+  }
+
+  if (vertex) {
+    projVertex = await prisma.project.create({
+      data: {
+        name: 'Vertex E-commerce Launch',
+        status: 'IN_PROGRESS',
+        startDate: new Date('2026-06-01T00:00:00Z'),
+        endDate: new Date('2026-08-31T23:59:59Z'),
+        progress: 60,
+        riskLevel: 'MEDIUM',
+        timeline: 'Jun 1 - Aug 31, 2026',
+        serviceLine: 'Web Dev & Shopify',
+        budget: 25000,
+        orgId: org.id,
+        clientId: vertex.id,
+      }
+    });
+
+    await prisma.projectMember.create({ data: { projectId: projVertex.id, userId: user2.id } }); // Sarah
+    await prisma.projectMember.create({ data: { projectId: projVertex.id, userId: user5.id } }); // David
+
+    // Stages
+    stageVertex1 = await prisma.projectStage.create({
+      data: {
+        name: 'Store Audit & Planning',
+        position: 0,
+        startDate: new Date('2026-06-01T00:00:00Z'),
+        endDate: new Date('2026-06-30T23:59:59Z'),
+        projectId: projVertex.id
+      }
+    });
+    stageVertex2 = await prisma.projectStage.create({
+      data: {
+        name: 'Theme Setup & Development',
+        position: 1,
+        startDate: new Date('2026-07-01T00:00:00Z'),
+        endDate: new Date('2026-07-31T23:59:59Z'),
+        projectId: projVertex.id
+      }
+    });
+    stageVertex3 = await prisma.projectStage.create({
+      data: {
+        name: 'UAT & Launch',
+        position: 2,
+        startDate: new Date('2026-08-01T00:00:00Z'),
+        endDate: new Date('2026-08-31T23:59:59Z'),
+        projectId: projVertex.id
+      }
+    });
+  }
+
+  if (solaria) {
+    projSolaria = await prisma.project.create({
+      data: {
+        name: 'Solaria Keyword Expansion & SEO',
+        status: 'IN_PROGRESS',
+        startDate: new Date('2026-06-15T00:00:00Z'),
+        endDate: new Date('2026-12-15T23:59:59Z'),
+        progress: 20,
+        riskLevel: 'HIGH',
+        timeline: 'Jun 15 - Dec 15, 2026',
+        serviceLine: 'SEO Audits & Optimization',
+        budget: 12000,
+        orgId: org.id,
+        clientId: solaria.id,
+      }
+    });
+
+    await prisma.projectMember.create({ data: { projectId: projSolaria.id, userId: user2.id } }); // Sarah
+
+    // Stages
+    stageSolaria1 = await prisma.projectStage.create({
+      data: {
+        name: 'Keyword Audit',
+        position: 0,
+        startDate: new Date('2026-06-15T00:00:00Z'),
+        endDate: new Date('2026-09-15T23:59:59Z'),
+        projectId: projSolaria.id
+      }
+    });
+    stageSolaria2 = await prisma.projectStage.create({
+      data: {
+        name: 'SEO Implementation',
+        position: 1,
+        startDate: new Date('2026-09-16T00:00:00Z'),
+        endDate: new Date('2026-12-15T23:59:59Z'),
+        projectId: projSolaria.id
+      }
+    });
+  }
+
+  if (pulse) {
+    projPulse = await prisma.project.create({
+      data: {
+        name: 'Pulse Rebranding Playbook',
+        status: 'IN_PROGRESS',
+        startDate: new Date('2026-05-01T00:00:00Z'),
+        endDate: new Date('2026-07-15T23:59:59Z'),
+        progress: 80,
+        riskLevel: 'LOW',
+        timeline: 'May 1 - Jul 15, 2026',
+        serviceLine: 'Brand Guidelines & Video',
+        budget: 9500,
+        orgId: org.id,
+        clientId: pulse.id,
+      }
+    });
+
+    await prisma.projectMember.create({ data: { projectId: projPulse.id, userId: user5.id } }); // David
+
+    // Stages
+    stagePulse1 = await prisma.projectStage.create({
+      data: {
+        name: 'Brand Discovery & Guidelines',
+        position: 0,
+        startDate: new Date('2026-05-01T00:00:00Z'),
+        endDate: new Date('2026-06-07T23:59:59Z'),
+        projectId: projPulse.id
+      }
+    });
+    stagePulse2 = await prisma.projectStage.create({
+      data: {
+        name: 'Social Media Concept Storyboards',
+        position: 1,
+        startDate: new Date('2026-06-08T00:00:00Z'),
+        endDate: new Date('2026-07-15T23:59:59Z'),
+        projectId: projPulse.id
+      }
+    });
+  }
+
+  console.log('Seeding Client Tasks, Updates, and Comments...');
+
+  if (aether && projAether) {
+    const task1 = await prisma.clientTask.create({
+      data: {
+        title: 'Design Summer Banner Ads',
+        description: 'Create social square and landscape banners for Summer relaunch.',
+        status: 'COMPLETED',
+        progress: 100,
+        timeline: 'Jul 1 - Jul 10',
+        deadline: new Date('2026-07-10T17:00:00Z'),
+        update: 'Assets approved by client and uploaded to Canva Hub.',
+        clientId: aether.id,
+        projectId: projAether.id,
+        stageId: stageAether1.id,
+        assignedToId: user3.id, // Marcus
+      }
+    });
+
+    // Task Updates
+    await prisma.taskUpdate.create({ data: { content: 'Initial moodboards created and reviewed.', taskId: task1.id, createdAt: new Date('2026-06-28T10:00:00Z') } });
+    await prisma.taskUpdate.create({ data: { content: 'Version 1 creatives uploaded to Figma.', taskId: task1.id, createdAt: new Date('2026-06-29T14:30:00Z') } });
+
+    // Task Comments
+    await prisma.taskComment.create({ data: { content: 'Can we try a warmer color palette for the main CTA?', taskId: task1.id, userId: user6.id, createdAt: new Date('2026-06-29T16:00:00Z') } }); // Sophie (client)
+    await prisma.taskComment.create({ data: { content: 'Updated the CTA buttons to amber. Looks great.', taskId: task1.id, userId: user3.id, createdAt: new Date('2026-06-29T18:00:00Z') } }); // Marcus
+
+    const task2 = await prisma.clientTask.create({
+      data: {
+        title: 'Optimize landing page conversion funnel',
+        description: 'Analyze user drop-offs and test CTA copy variations.',
+        status: 'IN_PROGRESS',
+        progress: 65,
+        timeline: 'Jul 10 - Jul 25',
+        deadline: new Date('2026-07-25T17:00:00Z'),
+        update: 'Currently testing 3 different button styles. Bounce rate decreased by 4%.',
+        clientId: aether.id,
+        projectId: projAether.id,
+        stageId: stageAether2.id,
+        assignedToId: user3.id, // Marcus
+      }
+    });
+
+    await prisma.taskUpdate.create({ data: { content: 'A/B testing tools configured on Webflow.', taskId: task2.id, createdAt: new Date('2026-06-27T09:00:00Z') } });
+    await prisma.taskUpdate.create({ data: { content: 'Gathering clickmap data on the primary hero section.', taskId: task2.id, createdAt: new Date('2026-06-29T11:00:00Z') } });
+    await prisma.taskComment.create({ data: { content: 'Bounce rate dropped by 4.2% since yesterday.', taskId: task2.id, userId: user3.id, createdAt: new Date('2026-06-30T10:00:00Z') } });
+
+    const task3 = await prisma.clientTask.create({
+      data: {
+        title: 'Set up Facebook Lead Ads campaign',
+        description: 'Draft ad sets targeting tech founders and set daily budgets.',
+        status: 'BLOCKED',
+        progress: 40,
+        timeline: 'Jul 15 - Jul 30',
+        deadline: new Date('2026-07-30T17:00:00Z'),
+        blocker: 'Waiting for client to authorize ad account budgets.',
+        update: 'Ad copies drafted and sandbox tested. Ready to publish.',
+        clientId: aether.id,
+        projectId: projAether.id,
+        stageId: stageAether3.id,
+        assignedToId: user1.id, // Lohith
+      }
+    });
+
+    // Seeding Carry-over Handover Task Chain
+    const parentTask = await prisma.clientTask.create({
+      data: {
+        title: 'Shoot Aether Promo Video',
+        description: 'Raw video footage shoot for promotional summer marketing.',
+        status: 'COMPLETED',
+        progress: 100,
+        timeline: 'Jun 20 - Jun 25',
+        deadline: new Date('2026-06-25T17:00:00Z'),
+        outputUrl: 'https://drive.google.com/drive/folders/aether-promo-raw-assets',
+        carryOverComment: 'Raw footage shot in 4K 60fps. Ready for editing. Handing over to Marcus for editing and branding overlays.',
+        clientId: aether.id,
+        projectId: projAether.id,
+        stageId: stageAether1.id,
+        assignedToId: user5.id, // David Kim (Videographer)
+      }
+    });
+
+    const childTask = await prisma.clientTask.create({
+      data: {
+        title: 'Edit Aether Promo Video - Handover',
+        description: 'Edit raw footage, apply color grading and summer branding overlays.',
+        status: 'IN_PROGRESS',
+        progress: 40,
+        timeline: 'Jun 26 - Jul 05',
+        deadline: new Date('2026-07-05T17:00:00Z'),
+        parentTaskId: parentTask.id,
+        clientId: aether.id,
+        projectId: projAether.id,
+        stageId: stageAether2.id,
+        assignedToId: user3.id, // Marcus (Editor)
+      }
+    });
+
+    await prisma.taskUpdate.create({ data: { content: 'Imported Davids raw footage. Basic cut assembly completed.', taskId: childTask.id, createdAt: new Date('2026-06-27T16:00:00Z') } });
+    await prisma.taskComment.create({ data: { content: 'David, the lighting on scene 3 is beautiful. Great job!', taskId: childTask.id, userId: user3.id, createdAt: new Date('2026-06-28T09:00:00Z') } });
+  }
+
+  if (vertex && projVertex) {
+    await prisma.clientTask.create({
+      data: {
+        title: 'Configure Shopify integration sync',
+        description: 'Verify API keys and map Shopify inventory to database.',
+        status: 'COMPLETED',
+        progress: 100,
+        timeline: 'Jun 1 - Jun 10',
+        deadline: new Date('2026-06-10T17:00:00Z'),
+        update: 'Product sync pipeline connected. Logs look clean.',
+        clientId: vertex.id,
+        projectId: projVertex.id,
+        stageId: stageVertex1.id,
+        assignedToId: user2.id, // Sarah
+      }
+    });
+
+    await prisma.clientTask.create({
+      data: {
+        title: 'Draft Q3 email newsletter campaigns',
+        description: 'Draft promotional content and subject lines for Vertex Q3 collections.',
+        status: 'IN_PROGRESS',
+        progress: 75,
+        timeline: 'Jun 20 - Jul 05',
+        deadline: new Date('2026-07-05T17:00:00Z'),
+        update: 'Layout design is ready. Awaiting Sarah Chen check-off.',
+        clientId: vertex.id,
+        projectId: projVertex.id,
+        stageId: stageVertex2.id,
+        assignedToId: user2.id, // Sarah
+      }
+    });
+  }
+
+  if (solaria && projSolaria) {
+    await prisma.clientTask.create({
+      data: {
+        title: 'Audit Google Search Console keywords',
+        description: 'Identify ranking keywords and high-priority optimization gaps.',
+        status: 'IN_PROGRESS',
+        progress: 20,
+        timeline: 'Jun 20 - Jul 20',
+        deadline: new Date('2026-07-20T17:00:00Z'),
+        update: 'Extracted raw keyword data. Mapping CTR drops.',
+        clientId: solaria.id,
+        projectId: projSolaria.id,
+        stageId: stageSolaria1.id,
+        assignedToId: user2.id, // Sarah
+      }
+    });
+  }
+
+  if (pulse && projPulse) {
+    await prisma.clientTask.create({
+      data: {
+        title: 'Create brand guidelines playbook',
+        description: 'Establish typography and color guidelines for Pulse Media rebranding.',
+        status: 'COMPLETED',
+        progress: 100,
+        timeline: 'May 1 - May 20',
+        deadline: new Date('2026-05-20T17:00:00Z'),
+        update: 'Final PDF guidelines delivered to client.',
+        clientId: pulse.id,
+        projectId: projPulse.id,
+        stageId: stagePulse1.id,
+        assignedToId: user5.id, // David
+      }
+    });
+
+    await prisma.clientTask.create({
+      data: {
+        title: 'Develop social media video concepts',
+        description: 'Storyboard 3 video reels showcasing creative staff.',
+        status: 'IN_PROGRESS',
+        progress: 50,
+        timeline: 'Jun 10 - Jul 08',
+        deadline: new Date('2026-07-08T17:00:00Z'),
+        update: 'Concept 1 and 2 storyboards finished. Concept 3 outline in progress.',
+        clientId: pulse.id,
+        projectId: projPulse.id,
+        stageId: stagePulse2.id,
+        assignedToId: user5.id, // David
+      }
+    });
+  }
 
   console.log('Seed completed successfully!');
 }

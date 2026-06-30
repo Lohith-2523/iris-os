@@ -11,9 +11,12 @@ import { ShieldCheck, AlertTriangle, Plus, Filter, Search, UserCheck } from 'luc
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { formatUserMessage } from '@/lib/utils';
+import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
 
 export default function ClientsPage() {
   const [dbClients, setDbClients] = React.useState<any[]>([]);
+  const [team, setTeam] = React.useState<any[]>([]);
+  const [selectedClientId, setSelectedClientId] = React.useState<string | null>(null);
   const [aiText, setAiText] = React.useState<string>(formatUserMessage('Lohith, compiling portfolio churn risks via Claude...'));
 
   React.useEffect(() => {
@@ -23,6 +26,12 @@ export default function ClientsPage() {
         if (res.ok) {
           const json = await res.json();
           setDbClients(json);
+        }
+
+        const teamRes = await fetch('/api/data?domain=team');
+        if (teamRes.ok) {
+          const teamJson = await teamRes.json();
+          setTeam(teamJson);
         }
 
         const churn = await PrismAIService.getChurnPredictions();
@@ -37,15 +46,34 @@ export default function ClientsPage() {
   }, []);
 
   const clients = dbClients.length > 0 ? dbClients : [
-    { id: '1', name: 'Aether Technologies', domain: 'aethertech.com', healthScore: 92, healthStatus: 'EXCELLENT', churnRiskScore: 5, upsellOpportunityValue: 50000 },
-    { id: '2', name: 'Vertex Retail', domain: 'vertexretail.com', healthScore: 88, healthStatus: 'EXCELLENT', churnRiskScore: 12, upsellOpportunityValue: 38500 },
-    { id: '3', name: 'Nova BioLabs', domain: 'novabiolabs.org', healthScore: 74, healthStatus: 'GOOD', churnRiskScore: 24, upsellOpportunityValue: 24000 },
-    { id: '4', name: 'Quantum Capital', domain: 'quantumcap.io', healthScore: 61, healthStatus: 'FAIR', churnRiskScore: 35, upsellOpportunityValue: 45000 },
-    { id: '5', name: 'Solaria Energy', domain: 'solaria.energy', healthScore: 42, healthStatus: 'RISK', churnRiskScore: 68, upsellOpportunityValue: 18000 },
-    { id: '6', name: 'Pulse Media', domain: 'pulsemedia.agency', healthScore: 95, healthStatus: 'EXCELLENT', churnRiskScore: 3, upsellOpportunityValue: 64000 },
-    { id: '7', name: 'Onyx Logistics', domain: 'onyxlogistics.com', healthScore: 55, healthStatus: 'FAIR', churnRiskScore: 48, upsellOpportunityValue: 22000 },
-    { id: '8', name: 'Pinnacle Health', domain: 'pinnaclehealth.co', healthScore: 35, healthStatus: 'RISK', churnRiskScore: 78, upsellOpportunityValue: 15000 },
+    { id: '1', name: 'Aether Technologies', domain: 'aethertech.com', healthScore: 92, healthStatus: 'EXCELLENT', churnRiskScore: 5, upsellOpportunityValue: 50000, metadata: { assignedTeamMemberId: '3' } },
+    { id: '2', name: 'Vertex Retail', domain: 'vertexretail.com', healthScore: 88, healthStatus: 'EXCELLENT', churnRiskScore: 12, upsellOpportunityValue: 38500, metadata: { assignedTeamMemberId: '2' } },
+    { id: '3', name: 'Nova BioLabs', domain: 'novabiolabs.org', healthScore: 74, healthStatus: 'GOOD', churnRiskScore: 24, upsellOpportunityValue: 24000, metadata: { assignedTeamMemberId: '1' } },
+    { id: '4', name: 'Quantum Capital', domain: 'quantumcap.io', healthScore: 61, healthStatus: 'FAIR', churnRiskScore: 35, upsellOpportunityValue: 45000, metadata: { assignedTeamMemberId: '1' } },
+    { id: '5', name: 'Solaria Energy', domain: 'solaria.energy', healthScore: 42, healthStatus: 'RISK', churnRiskScore: 68, upsellOpportunityValue: 18000, metadata: { assignedTeamMemberId: '2' } },
+    { id: '6', name: 'Pulse Media', domain: 'pulsemedia.agency', healthScore: 95, healthStatus: 'EXCELLENT', churnRiskScore: 3, upsellOpportunityValue: 64000, metadata: { assignedTeamMemberId: '5' } },
+    { id: '7', name: 'Onyx Logistics', domain: 'onyxlogistics.com', healthScore: 55, healthStatus: 'FAIR', churnRiskScore: 48, upsellOpportunityValue: 22000, metadata: { assignedTeamMemberId: '5' } },
+    { id: '8', name: 'Pinnacle Health', domain: 'pinnaclehealth.co', healthScore: 35, healthStatus: 'RISK', churnRiskScore: 78, upsellOpportunityValue: 15000, metadata: { assignedTeamMemberId: '6' } },
   ];
+
+  const selectedClient = clients.find(c => c.id === selectedClientId);
+
+  if (selectedClient) {
+    return (
+      <ClientDetailDashboard
+        client={selectedClient}
+        teamMembers={team.length > 0 ? team : [
+          { id: '1', name: 'Lohith Sundar', role: 'Executive CEO', email: 'lohith@apex.co' },
+          { id: '2', name: 'Sarah Chen', role: 'Operations Lead', email: 'sarah@apex.co' },
+          { id: '3', name: 'Marcus Aurelius', role: 'Creative Director', email: 'marcus.a@apex.co' },
+          { id: '4', name: 'Elena Rostova', role: 'Financial Analyst', email: 'elena@apex.co' },
+          { id: '5', name: 'David Kim', role: 'Senior Designer', email: 'david@apex.co' },
+          { id: '6', name: 'Sophie Dubois', role: 'Lead Copywriter', email: 'sophie.d@client.co' },
+        ]}
+        onBack={() => setSelectedClientId(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -153,31 +181,57 @@ export default function ClientsPage() {
                   <TableRow>
                     <TableHead>Client Name</TableHead>
                     <TableHead>Domain</TableHead>
+                    <TableHead>Assigned Specialist</TableHead>
                     <TableHead className="text-center">Health Score</TableHead>
                     <TableHead className="text-center">Churn Risk</TableHead>
                     <TableHead className="text-right">Contract Value</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((c: any) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-semibold text-white">{c.name}</TableCell>
-                      <TableCell className="font-mono text-xs text-zinc-500">{c.domain}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={
-                            c.healthScore >= 80 ? 'risk-low' : c.healthScore >= 50 ? 'risk-medium' : 'risk-high'
-                          }
-                        >
-                          {c.healthScore}/100 ({c.healthStatus})
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className="font-mono text-xs text-zinc-300 font-semibold">{c.churnRiskScore}%</span>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">${(c.upsellOpportunityValue || 20000).toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
+                  {clients.map((c: any) => {
+                    const activeTeam = team.length > 0 ? team : [
+                      { id: '1', name: 'Lohith Sundar' },
+                      { id: '2', name: 'Sarah Chen' },
+                      { id: '3', name: 'Marcus Aurelius' },
+                      { id: '4', name: 'Elena Rostova' },
+                      { id: '5', name: 'David Kim' },
+                      { id: '6', name: 'Sophie Dubois' },
+                    ];
+                    const specialist = activeTeam.find((t: any) => t.id === c.metadata?.assignedTeamMemberId);
+                    return (
+                      <TableRow 
+                        key={c.id} 
+                        className="cursor-pointer hover:bg-zinc-900/30 transition-colors" 
+                        onClick={() => setSelectedClientId(c.id)}
+                      >
+                        <TableCell className="font-semibold text-white">{c.name}</TableCell>
+                        <TableCell className="font-mono text-xs text-zinc-500">{c.domain}</TableCell>
+                        <TableCell className="text-zinc-300">
+                          {specialist ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span>{specialist.name}</span>
+                            </span>
+                          ) : (
+                            <span className="text-zinc-600 italic">Unassigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              c.healthScore >= 80 ? 'risk-low' : c.healthScore >= 50 ? 'risk-medium' : 'risk-high'
+                            }
+                          >
+                            {c.healthScore}/100 ({c.healthStatus})
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-mono text-xs text-zinc-300 font-semibold">{c.churnRiskScore}%</span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold">${(c.upsellOpportunityValue || 20000).toLocaleString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>

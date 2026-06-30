@@ -29,8 +29,28 @@ import {
   Activity,
   CheckCircle,
   XCircle,
-  HelpCircle
+  HelpCircle,
+  Trash2
 } from 'lucide-react';
+
+const INDIAN_BANKS = [
+  'State Bank of India',
+  'HDFC Bank',
+  'ICICI Bank',
+  'Axis Bank',
+  'Kotak Mahindra Bank',
+  'Punjab National Bank',
+  'Canara Bank',
+  'Union Bank of India',
+  'Bank of Baroda',
+  'IndusInd Bank',
+  'Federal Bank',
+  'Yes Bank',
+  'IDBI Bank',
+  'UCO Bank',
+  'Indian Bank',
+  'Central Bank of India'
+];
 
 const AGENCY_INDUSTRIES = [
   { id: 'marketing', name: 'Digital Marketing Agency', icon: Target, description: 'Core leadgen, campaign data, and analytics mapping.' },
@@ -56,6 +76,9 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [selectedBanks, setSelectedBanks] = React.useState<string[]>([]);
+  const [searchBankInput, setSearchBankInput] = React.useState('');
+  const [showBankDropdown, setShowBankDropdown] = React.useState(false);
 
   // Integrations States
   const [integrations, setIntegrations] = React.useState<any[]>([]);
@@ -97,6 +120,7 @@ export default function SettingsPage() {
           setPlan(data.plan || 'BASIC');
           setHasAddon(data.hasAddon || false);
           setSelectedTypes(data.agencyTypes || []);
+          setSelectedBanks(data.bankNames || []);
         }
       } catch (e) {
         console.error('Error loading organization:', e);
@@ -153,6 +177,7 @@ export default function SettingsPage() {
           plan,
           hasAddon,
           agencyTypes: selectedTypes,
+          bankNames: selectedBanks,
         }),
       });
 
@@ -365,6 +390,120 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Bank Accounts Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm font-semibold text-white font-sans">Bank Accounts Configuration</CardTitle>
+                      <CardDescription>Add up to 5 Indian banks where you maintain accounts to enable them in ledger entries.</CardDescription>
+                    </div>
+                    <Badge variant={selectedBanks.length >= 5 ? "risk-high" : "risk-low"} className="font-mono">
+                      {selectedBanks.length}/5 Banks
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 font-sans text-xs">
+                  {/* Search / Add Input */}
+                  {selectedBanks.length < 5 ? (
+                    <div className="relative space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Select/Search Indian Banks</label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            placeholder="Type to search e.g. HDFC, SBI..."
+                            value={searchBankInput}
+                            onChange={(e) => {
+                              setSearchBankInput(e.target.value);
+                              setShowBankDropdown(true);
+                            }}
+                            onFocus={() => setShowBankDropdown(true)}
+                            className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
+                          />
+                          {showBankDropdown && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setShowBankDropdown(false)} 
+                              />
+                              <div className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-zinc-950 border border-zinc-800 rounded shadow-xl z-20 scrollbar-thin">
+                                {INDIAN_BANKS.filter(bank => 
+                                  bank.toLowerCase().includes(searchBankInput.toLowerCase()) &&
+                                  !selectedBanks.includes(bank)
+                                ).map(bank => (
+                                  <button
+                                    key={bank}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedBanks(prev => [...prev, bank]);
+                                      setSearchBankInput('');
+                                      setShowBankDropdown(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-zinc-900 text-zinc-350 hover:text-white transition-all border-b border-zinc-900/50 last:border-0 cursor-pointer"
+                                  >
+                                    {bank}
+                                  </button>
+                                ))}
+                                {INDIAN_BANKS.filter(bank => 
+                                  bank.toLowerCase().includes(searchBankInput.toLowerCase()) &&
+                                  !selectedBanks.includes(bank)
+                                ).length === 0 && (
+                                  <div className="p-3 text-zinc-650 text-[10px]">No matching suggestions</div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        {searchBankInput.trim() && !INDIAN_BANKS.includes(searchBankInput) && !selectedBanks.includes(searchBankInput) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedBanks(prev => [...prev, searchBankInput.trim()]);
+                              setSearchBankInput('');
+                              setShowBankDropdown(false);
+                            }}
+                            className="bg-zinc-800 text-white hover:bg-zinc-700 px-4 h-[38px] font-semibold text-xs cursor-pointer border border-zinc-750 rounded"
+                          >
+                            Add Custom
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-zinc-900/30 border border-zinc-850 rounded text-zinc-550 font-medium">
+                      Maximum of 5 bank accounts reached. Remove an existing bank to add a new one.
+                    </div>
+                  )}
+
+                  {/* List of Added Banks */}
+                  <div className="space-y-2 pt-1">
+                    <span className="font-semibold text-zinc-400 block uppercase tracking-wider text-[9px]">Configured Accounts</span>
+                    {selectedBanks.length === 0 ? (
+                      <div className="text-zinc-650 text-xs italic py-1">No banks configured yet. Manual ledger entries will display Your Account as a text field.</div>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {selectedBanks.map((bank, index) => (
+                          <div 
+                            key={index} 
+                            className="flex items-center justify-between p-2.5 rounded border border-zinc-850 bg-zinc-950/40 text-white font-medium"
+                          >
+                            <span className="truncate pr-2">{bank}</span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedBanks(prev => prev.filter((_, i) => i !== index))}
+                              className="text-zinc-550 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <div className="space-y-6">
@@ -431,102 +570,73 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'billing' && (
-        <form onSubmit={handleSave} className="space-y-6">
+        <div className="space-y-6">
           <div className="grid gap-6 md:grid-cols-3">
-            {/* Plan Tier Selection */}
+            {/* Plan Tier Display */}
             <div className="md:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-white flex items-center gap-1.5">
                     <CreditCard className="h-4.5 w-4.5 text-zinc-400" />
-                    <span>Choose Plan Tier</span>
+                    <span>Active Subscription Plan</span>
                   </CardTitle>
-                  <CardDescription>Select a workspace tier that fits your agency size and workload.</CardDescription>
+                  <CardDescription>Your current workspace tier and billing cycle details.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Grid of plans */}
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div
-                      onClick={() => {
-                        setPlan('BASIC');
-                        setErrorMessage('');
-                      }}
-                      className={`p-4 rounded border cursor-pointer transition-all flex flex-col justify-between ${
-                        plan === 'BASIC'
-                          ? 'border-white bg-zinc-900/40 text-white shadow-lg'
-                          : 'border-zinc-850 bg-zinc-950/20 text-zinc-400 hover:border-zinc-700'
-                      }`}
-                    >
-                      <div>
-                        <span className="font-semibold block text-sm">Basic Plan</span>
-                        <span className="block text-[10px] text-zinc-500 mt-1">1 Agency Type (Max 2 with Add-on)</span>
-                      </div>
-                      <span className="font-mono text-base font-bold text-white mt-4 block">$99/mo</span>
+                <CardContent className="space-y-6 font-sans text-xs">
+                  {/* Locked Plan Display */}
+                  <div className="p-5 rounded border border-zinc-800 bg-zinc-900/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest block">Current Plan</span>
+                      <h3 className="text-base font-bold text-white uppercase">{plan} Plan</h3>
+                      <p className="text-zinc-500 text-[11px]">
+                        {plan === 'BASIC' 
+                          ? '1 Agency Specialization (Max 2 with Add-on)' 
+                          : plan === 'PRO' 
+                          ? 'Up to 5 Agency Specializations' 
+                          : 'All 10+ Agency Specializations'}
+                      </p>
                     </div>
-
-                    <div
-                      onClick={() => {
-                        setPlan('PRO');
-                        setErrorMessage('');
-                      }}
-                      className={`p-4 rounded border cursor-pointer transition-all flex flex-col justify-between relative ${
-                        plan === 'PRO'
-                          ? 'border-white bg-zinc-900/40 text-white shadow-lg'
-                          : 'border-zinc-850 bg-zinc-950/20 text-zinc-400 hover:border-zinc-700'
-                      }`}
-                    >
-                      <div className="absolute -top-2 right-2 px-1.5 py-0.5 bg-red-600 text-white text-[8px] font-bold uppercase tracking-wider">
-                        Popular
-                      </div>
-                      <div>
-                        <span className="font-semibold block text-sm">Pro Plan</span>
-                        <span className="block text-[10px] text-zinc-500 mt-1">Up to 5 Agency Types</span>
-                      </div>
-                      <span className="font-mono text-base font-bold text-white mt-4 block">$299/mo</span>
-                    </div>
-
-                    <div
-                      onClick={() => {
-                        setPlan('ADVANCED');
-                        setErrorMessage('');
-                      }}
-                      className={`p-4 rounded border cursor-pointer transition-all flex flex-col justify-between ${
-                        plan === 'ADVANCED'
-                          ? 'border-white bg-zinc-900/40 text-white shadow-lg'
-                          : 'border-zinc-850 bg-zinc-950/20 text-zinc-400 hover:border-zinc-700'
-                      }`}
-                    >
-                      <div>
-                        <span className="font-semibold block text-sm">Advanced Plan</span>
-                        <span className="block text-[10px] text-zinc-500 mt-1">All 10+ Agency Types</span>
-                      </div>
-                      <span className="font-mono text-base font-bold text-white mt-4 block">$599/mo</span>
+                    <div className="sm:text-right">
+                      <span className="font-mono text-2xl font-black text-white">
+                        {plan === 'BASIC' ? '$99' : plan === 'PRO' ? '$299' : '$599'}
+                      </span>
+                      <span className="text-zinc-500 font-semibold block text-[10px] uppercase font-mono mt-0.5">per month</span>
                     </div>
                   </div>
 
-                  {/* Add-on option for BASIC plan */}
-                  {plan === 'BASIC' && (
-                    <div className="p-4 rounded border border-zinc-850 bg-zinc-900/10 space-y-2">
-                      <label className="flex items-start gap-2.5 cursor-pointer text-zinc-350">
-                        <input
-                          type="checkbox"
-                          checked={hasAddon}
-                          onChange={(e) => {
-                            setHasAddon(e.target.checked);
-                            setErrorMessage('');
-                          }}
-                          className="mt-0.5 rounded border-zinc-800 bg-zinc-950 text-white focus:ring-0 cursor-pointer"
-                        />
-                        <div>
-                          <span className="block font-semibold">Enable 2 Agency Types Add-on</span>
-                          <span className="block text-[10px] text-zinc-500 mt-0.5 leading-normal">
-                            Get allowance for 1 additional industry specialization.
-                          </span>
-                          <span className="block text-[10px] font-mono text-zinc-400 mt-1">+$29/mo billing charge</span>
-                        </div>
-                      </label>
+                  {/* Billing Details */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="p-4 rounded border border-zinc-850 bg-zinc-950/20 space-y-1">
+                      <span className="text-zinc-500 block font-semibold text-[10px] uppercase tracking-wider">Billing Cycle</span>
+                      <span className="text-white font-medium block">Monthly recurring</span>
+                      <span className="text-zinc-500 text-[10px] block mt-1">Next invoice date: July 30, 2026</span>
                     </div>
-                  )}
+
+                    <div className="p-4 rounded border border-zinc-850 bg-zinc-950/20 space-y-1">
+                      <span className="text-zinc-500 block font-semibold text-[10px] uppercase tracking-wider">Default Payment Method</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="h-5 w-8 bg-zinc-850 rounded border border-zinc-800 flex items-center justify-center font-bold text-[8px] tracking-wide text-zinc-300">
+                          VISA
+                        </div>
+                        <span className="text-white font-mono font-medium">•••• 4444</span>
+                      </div>
+                      <span className="text-zinc-500 text-[10px] block mt-1">Expiry date: 12/28</span>
+                    </div>
+                  </div>
+
+                  {/* Upgrade/Change Button */}
+                  <div className="pt-2 flex justify-start">
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = '/onboarding?step=pricing&redirect=/settings';
+                      }}
+                      className="text-xs font-bold h-10 px-6 flex items-center justify-center gap-2 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer animate-fade-in"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      <span>Change / Upgrade Billing Plan</span>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -566,33 +676,11 @@ export default function SettingsPage() {
                       </span>
                     </div>
                   </div>
-
-                  <div className="pt-4 flex flex-col gap-2">
-                    <Button
-                      type="submit"
-                      disabled={saveStatus === 'saving'}
-                      className="w-full text-xs font-semibold h-9 flex items-center justify-center gap-1.5"
-                    >
-                      <Save className="h-4 w-4" />
-                      <span>{saveStatus === 'saving' ? 'Saving Subscription...' : 'Save Subscription'}</span>
-                    </Button>
-
-                    {saveStatus === 'success' && (
-                      <span className="text-center block text-[10px] font-semibold text-emerald-400 mt-1">
-                        Subscription updated successfully.
-                      </span>
-                    )}
-                    {saveStatus === 'error' && (
-                      <span className="text-center block text-[10px] font-semibold text-rose-450 mt-1">
-                        Error: Update failed.
-                      </span>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             </div>
           </div>
-        </form>
+        </div>
       )}
 
       {activeTab === 'integrations' && (
