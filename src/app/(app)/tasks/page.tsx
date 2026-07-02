@@ -206,7 +206,7 @@ export default function TasksPage() {
     if (!newCommentContent || !selectedTask) return;
 
     try {
-      const userEmail = localStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const userEmail = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
       const res = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

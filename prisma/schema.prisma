@@ -28,6 +28,7 @@ model Organization {
   metaLeads MetaLead[]
   metaCampaigns MetaCampaign[]
   transactions Transaction[]
+  calendarEvents CalendarEvent[]
 }
 
 model Brand {
@@ -66,6 +67,7 @@ model User {
   askPrismMessages AskPrismMessage[]
   clientTasks    ClientTask[]
   taskComments   TaskComment[]
+  createdEvents  CalendarEvent[] @relation("CreatedEvents")
 
   @@index([orgId])
   @@index([clientId])
@@ -527,3 +529,39 @@ model ProjectStage {
 
   @@index([projectId])
 }
+
+model CalendarEvent {
+  id             String        @id @default(uuid())
+  title          String
+  description    String?
+  location       String?
+  meetLink       String?       // Google Meet link if enabled
+  startTime      DateTime
+  endTime        DateTime
+  isRecurring    Boolean       @default(false)
+  recurrence     String?       // NONE, DAILY, WEEKLY
+  color          String        @default("#3b82f6") // Event color code
+  
+  // Organization link
+  orgId          String
+  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  // Creator link
+  creatorId      String
+  creator        User          @relation("CreatedEvents", fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  // Attendees
+  attendees      String[]      // Array of emails (guests)
+  attendeeStatus Json?         // Map of attendee email -> RSVP status (ACCEPTED, DECLINED, PENDING)
+  
+  // Google sync details
+  googleEventId  String?       // ID if synced to google calendar
+  isGoogleEvent  Boolean       @default(false)
+  
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([orgId])
+  @@index([creatorId])
+}
+

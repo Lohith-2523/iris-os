@@ -34,7 +34,7 @@ import {
   User
 } from 'lucide-react';
 import { PrismIcon } from '@/components/ui/prism-icon';
-import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { formatCurrency, formatPercent, formatUserMessage, obfuscateEmail } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 
 // Inline SVGs for Facebook & Instagram to avoid compilation issues
@@ -148,7 +148,7 @@ export default function MetaPortalPage() {
   // Accordion toggle states for campaign rows
   const [expandedCampaigns, setExpandedCampaigns] = React.useState<Record<string, boolean>>({});
 
-  // Prism AI Claude Strategy State
+  // Prism AI Strategy State
   const [generatingStrategy, setGeneratingStrategy] = React.useState(false);
   const [strategyText, setStrategyText] = React.useState<string>('');
 
@@ -259,8 +259,8 @@ export default function MetaPortalPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const email = localStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-      const res = await fetch(`/api/meta-portal?email=${encodeURIComponent(email)}`);
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const res = await fetch(`/api/meta-portal?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const data = await res.json();
         const loadedCamps = data.campaigns || [];
@@ -1885,9 +1885,9 @@ export default function MetaPortalPage() {
                 <div>
                   <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                     <PrismIcon className="h-4 w-4 text-violet-400" />
-                    <span>Claude strategy generation plan</span>
+                    <span>Prism AI strategy generation plan</span>
                   </CardTitle>
-                  <CardDescription>Analyze campaigns, spends, click logs, and lead conversions. Get high-fidelity performance strategies directly from Claude.</CardDescription>
+                  <CardDescription>Analyze campaigns, spends, click logs, and lead conversions. Get high-fidelity performance strategies directly from Prism AI.</CardDescription>
                 </div>
                 <Button
                   onClick={handleGenerateStrategy}
@@ -1897,7 +1897,7 @@ export default function MetaPortalPage() {
                   {generatingStrategy ? (
                     <>
                       <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                      <span>Consulting Claude...</span>
+                      <span>Consulting Prism AI...</span>
                     </>
                   ) : (
                     <>
@@ -1920,7 +1920,7 @@ export default function MetaPortalPage() {
                   </div>
                   <div className="max-w-md">
                     <span className="block text-xs font-semibold text-zinc-300">No strategy report compiled yet</span>
-                    <span className="block text-[11px] text-zinc-500 mt-1">Click the button above to request Prism AI Strategy Counselor (Claude) to compile performance audits and budget optimizations.</span>
+                    <span className="block text-[11px] text-zinc-500 mt-1">Click the button above to request Prism AI Strategy Counselor to compile performance audits and budget optimizations.</span>
                   </div>
                 </div>
               )}

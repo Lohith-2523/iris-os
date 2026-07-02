@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Sparkles, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/client';
+import { obfuscateEmail } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +17,31 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [rememberMe, setRememberMe] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const remember = localStorage.getItem('remember_me') === 'true';
+      const savedEmail = localStorage.getItem('currentUserEmail');
+      if (remember && savedEmail) {
+        setIsLoading(true);
+        fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(savedEmail))}`)
+          .then(res => res.json())
+          .then(userData => {
+            const role = userData.role?.toLowerCase() || 'admin';
+            document.cookie = `currentUserRole=${role}; path=/; max-age=2592000`;
+            document.cookie = `currentUserEmail=${obfuscateEmail(savedEmail)}; path=/; max-age=2592000`;
+            window.dispatchEvent(new Event('user-updated'));
+            if (role === 'client') {
+              router.push('/client-dashboard');
+            } else {
+              router.push('/dashboard');
+            }
+          })
+          .catch(() => setIsLoading(false));
+      }
+    }
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,17 +98,28 @@ export default function LoginPage() {
       // Proceed gracefully under mock sandbox fallback
     }
 
-    // Save to local storage for profile lookup APIs
-    localStorage.setItem('currentUserEmail', email);
-    document.cookie = "currentUserEmail=" + email + "; path=/; max-age=86400";
+    if (rememberMe) {
+      localStorage.setItem('currentUserEmail', email);
+      localStorage.setItem('remember_me', 'true');
+      document.cookie = "currentUserEmail=" + obfuscateEmail(email) + "; path=/; max-age=2592000";
+    } else {
+      localStorage.removeItem('currentUserEmail');
+      localStorage.removeItem('remember_me');
+      sessionStorage.setItem('currentUserEmail', email);
+      document.cookie = "currentUserEmail=" + obfuscateEmail(email) + "; path=/";
+    }
     window.dispatchEvent(new Event('user-updated'));
 
     try {
-      const res = await fetch(`/api/user?email=${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const userData = await res.json();
-        const role = userData.role?.toLowerCase();
-        document.cookie = `currentUserRole=${role}; path=/; max-age=86400`;
+        const role = userData.role?.toLowerCase() || 'admin';
+        if (rememberMe) {
+          document.cookie = `currentUserRole=${role}; path=/; max-age=2592000`;
+        } else {
+          document.cookie = `currentUserRole=${role}; path=/`;
+        }
         if (role === 'client') {
           setTimeout(() => {
             setIsLoading(false);
@@ -103,9 +140,18 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     setIsLoading(true);
     const mockGoogleEmail = 'lohith@apex.co';
-    localStorage.setItem('currentUserEmail', mockGoogleEmail);
-    document.cookie = "currentUserEmail=" + mockGoogleEmail + "; path=/; max-age=86400";
-    document.cookie = "currentUserRole=admin; path=/; max-age=86400";
+    if (rememberMe) {
+      localStorage.setItem('currentUserEmail', mockGoogleEmail);
+      localStorage.setItem('remember_me', 'true');
+      document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/; max-age=2592000";
+      document.cookie = "currentUserRole=admin; path=/; max-age=2592000";
+    } else {
+      localStorage.removeItem('currentUserEmail');
+      localStorage.removeItem('remember_me');
+      sessionStorage.setItem('currentUserEmail', mockGoogleEmail);
+      document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/";
+      document.cookie = "currentUserRole=admin; path=/";
+    }
     window.dispatchEvent(new Event('user-updated'));
     setTimeout(() => {
       setIsLoading(false);
@@ -173,6 +219,18 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between py-1 select-none">
+              <label className="flex items-center gap-2 cursor-pointer text-zinc-400">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded bg-zinc-900 border-zinc-800 accent-white h-3.5 w-3.5"
+                />
+                <span>Remember me</span>
+              </label>
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">

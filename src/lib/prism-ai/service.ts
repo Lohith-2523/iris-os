@@ -81,6 +81,50 @@ const MOCK_ASK_REPLY = (query: string) => {
   return `Lohith, I processed your query: "${query}". Based on current portfolio logs, all core systems are active. Our project delivery pipeline is at 74% capacity, and Aether Technologies is currently generating the highest ROI at 4.8x. Ask me about "health scores", "profit leaks", or "revenue forecasts" for deep-dive metrics.`;
 };
 
+async function fetchPrismAI(action: string, bodyData: any = {}): Promise<any> {
+  if (typeof window === 'undefined') {
+    return { result: '' };
+  }
+
+  // Scoped to the session (cleared on log out or tab/screen close)
+  const cacheKey = `prism_cache_${action}_${JSON.stringify(bodyData)}`;
+  const cachedVal = sessionStorage.getItem(cacheKey);
+  if (cachedVal) {
+    try {
+      const { data, timestamp } = JSON.parse(cachedVal);
+      const elapsed = Date.now() - timestamp;
+      if (elapsed < 30 * 60 * 1000) { // 30 minutes in ms
+        console.log(`[Cache Hit] Returning cached response for action: ${action}`);
+        return data;
+      } else {
+        sessionStorage.removeItem(cacheKey);
+      }
+    } catch (e) {
+      // Ignored
+    }
+  }
+
+  const res = await fetch('/api/prism-ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...bodyData })
+  });
+  if (!res.ok) throw new Error();
+  const data = await res.json();
+
+  // Save to cache with timestamp
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    // Session storage full or not available
+  }
+
+  return data;
+}
+
 export const PrismAIService = {
   /**
    * Calculates overall agency health score based on clients and projects.
@@ -90,13 +134,7 @@ export const PrismAIService = {
       return MOCK_HEALTH;
     }
     try {
-      const res = await fetch('/api/prism-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'dashboard-summary' })
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      const data = await fetchPrismAI('dashboard-summary');
       return {
         score: 84,
         rating: 'EXCELLENT',
@@ -115,12 +153,7 @@ export const PrismAIService = {
       return MOCK_CHURN;
     }
     try {
-      const res = await fetch('/api/prism-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'operations-advice' })
-      });
-      if (!res.ok) throw new Error();
+      await fetchPrismAI('operations-advice');
       // Returns dynamic predictions or fallback structured list
       return MOCK_CHURN;
     } catch {
@@ -136,12 +169,7 @@ export const PrismAIService = {
       return MOCK_LEAKS;
     }
     try {
-      const res = await fetch('/api/prism-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'finance-analysis' })
-      });
-      if (!res.ok) throw new Error();
+      await fetchPrismAI('finance-analysis');
       // Returns dynamic list of leaks or mock structures
       return MOCK_LEAKS;
     } catch {
@@ -157,16 +185,10 @@ export const PrismAIService = {
       return { result: MOCK_ASK_REPLY(query), model: 'Mock Heuristics' };
     }
     try {
-      const res = await fetch('/api/prism-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'ask-prism', query, context })
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      const data = await fetchPrismAI('ask-prism', { query, context });
       return {
         result: data.result,
-        model: data.model || 'Claude'
+        model: data.model || 'Prism AI'
       };
     } catch {
       return { result: MOCK_ASK_REPLY(query), model: 'Mock Heuristics' };
@@ -181,12 +203,7 @@ export const PrismAIService = {
       return MOCK_CREATIVE_RECOMMENDATIONS;
     }
     try {
-      const res = await fetch('/api/prism-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reporting-brief' })
-      });
-      if (!res.ok) throw new Error();
+      await fetchPrismAI('reporting-brief');
       return MOCK_CREATIVE_RECOMMENDATIONS;
     } catch {
       return MOCK_CREATIVE_RECOMMENDATIONS;

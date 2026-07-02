@@ -24,7 +24,7 @@ import {
   ArrowRight,
   AlertTriangle
 } from 'lucide-react';
-import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { formatCurrency, formatPercent, formatUserMessage, obfuscateEmail } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { PrismIcon } from '@/components/ui/prism-icon';
 
@@ -136,8 +136,8 @@ export default function ClientDashboardPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const email = localStorage.getItem('currentUserEmail') || 'sophie.d@client.co';
-      const res = await fetch(`/api/meta-portal?email=${encodeURIComponent(email)}`);
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'sophie.d@client.co';
+      const res = await fetch(`/api/meta-portal?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const data = await res.json();
         setCampaigns(data.campaigns || []);

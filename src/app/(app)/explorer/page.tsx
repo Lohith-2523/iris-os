@@ -592,7 +592,7 @@ function ExplorerContent() {
                   <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Prism AI Graph Assistant</CardTitle>
                 </div>
                 <Badge variant="default" className="text-[9px] bg-zinc-900 text-zinc-400 uppercase tracking-wider border-zinc-800 px-2 py-0.5 rounded-none">
-                  Gemini Flash Model
+                  Prism AI Model
                 </Badge>
               </div>
             </CardHeader>

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { deobfuscateEmail } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value || 'lohith@apex.co';
+    const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
+    const email = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
 
     // 1. Fetch user to check role and ad account authorization
     const user = await prisma.user.findUnique({

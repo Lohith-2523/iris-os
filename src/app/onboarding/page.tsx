@@ -75,7 +75,7 @@ export default function OnboardingPage() {
   const [email, setEmail] = React.useState('');
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      setEmail(localStorage.getItem('currentUserEmail') || localStorage.getItem('signup_email') || 'executive@shardsmedia.com');
+      setEmail(localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || localStorage.getItem('signup_email') || 'executive@shardsmedia.com');
       setAgencyName(localStorage.getItem('agencyName') || '');
       setUsername(localStorage.getItem('username') || '');
       setCurrency(localStorage.getItem('dashboardCurrency') || 'USD');

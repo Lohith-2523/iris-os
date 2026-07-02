@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatUserMessage } from '@/lib/utils';
+import { formatUserMessage, obfuscateEmail } from '@/lib/utils';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -130,7 +130,7 @@ export default function ClientOnboardPage() {
   const checkRole = async (email: string) => {
     setAuthLoading(true);
     try {
-      const res = await fetch(`/api/user?email=${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const u = await res.json();
         setUserRole(u.role);
@@ -146,7 +146,7 @@ export default function ClientOnboardPage() {
   };
 
   React.useEffect(() => {
-    let email = localStorage.getItem('currentUserEmail');
+    let email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
     if (!email) {
       email = 'lohith@apex.co';
       localStorage.setItem('currentUserEmail', email);
@@ -286,7 +286,7 @@ export default function ClientOnboardPage() {
         upsellOpportunityValue: parseFloat(formData.monthlyRetainer) * 12 || 0.0,
         agencyType: formData.agencyType,
         businessModel: formData.businessModel,
-        currentUserEmail: userEmail,
+        currentUserEmail: obfuscateEmail(userEmail),
         adAccountId: formData.adAccountId || null,
         contact: {
           name: formData.pocName,

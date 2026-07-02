@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { deobfuscateEmail } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,13 +18,15 @@ export async function POST(request: NextRequest) {
       businessModel,
       metadata,
       contact,
-      currentUserEmail,
+      currentUserEmail: rawUserEmail,
       adAccountId,
     } = body;
 
-    if (!currentUserEmail) {
+    if (!rawUserEmail) {
       return NextResponse.json({ error: 'Missing currentUserEmail authorization context' }, { status: 400 });
     }
+
+    const currentUserEmail = deobfuscateEmail(rawUserEmail);
 
     // Verify admin role (case insensitive to support both 'admin' and 'ADMIN')
     const user = await prisma.user.findUnique({

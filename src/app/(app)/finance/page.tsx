@@ -365,8 +365,8 @@ export default function FinancePage() {
   }, [isRazorpayConnected, fetchRazorpayData]);
 
   const aiLeakText = React.useMemo(() => {
-    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via ChatGPT...');
-    return formatUserMessage(`Lohith, ChatGPT has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
+    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Prism AI...');
+    return formatUserMessage(`Lohith, Prism AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {

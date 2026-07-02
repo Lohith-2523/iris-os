@@ -6,6 +6,7 @@ import { Topbar } from '@/components/app-shell/topbar';
 import { X, Lock, ArrowRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { obfuscateEmail } from '@/lib/utils';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
@@ -17,8 +18,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const fetchUser = React.useCallback(async () => {
     try {
-      const email = localStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-      const res = await fetch(`/api/user?email=${encodeURIComponent(email)}`);
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const data = await res.json();
         setUser(data);
@@ -40,7 +41,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isClientGated = user?.role?.toLowerCase() === 'client' && 
     pathname !== '/client-dashboard' && 
-    pathname !== '/clients/onboard';
+    pathname !== '/clients/onboard' &&
+    pathname !== '/calendar';
   const isAdminGated = user?.role?.toLowerCase() === 'admin' && pathname === '/client-dashboard';
 
   if (loading) {

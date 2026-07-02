@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { cn, obfuscateEmail } from '@/lib/utils';
 import { createClient } from '@/lib/client';
 import { PrismIcon } from '@/components/ui/prism-icon';
 import {
@@ -23,7 +23,8 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  Megaphone
+  Megaphone,
+  Calendar
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -54,8 +55,8 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
   const loadUser = React.useCallback(async (emailParam?: string) => {
     try {
-      const email = emailParam || localStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-      const res = await fetch(`/api/user?email=${encodeURIComponent(email)}`);
+      const email = emailParam || localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const data = await res.json();
         setUser(data);
@@ -116,7 +117,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem('currentUserEmail');
+    localStorage.removeItem('remember_me');
+    sessionStorage.clear();
     document.cookie = "currentUserEmail=; path=/; max-age=0";
+    document.cookie = "currentUserRole=; path=/; max-age=0";
     router.push('/login');
   };
 
@@ -126,6 +130,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Tasks', href: '/tasks', icon: Activity },
+    { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Team', href: '/team', icon: UserCheck },
     { name: 'Reporting', href: '/reporting', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
@@ -142,7 +147,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
   const visibleItems = React.useMemo(() => {
     if (user?.role?.toLowerCase() === 'client') {
-      return [{ name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard }];
+      return [
+        { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
+        { name: 'Calendar', href: '/calendar', icon: Calendar }
+      ];
     }
     return navigationItems;
   }, [user]);

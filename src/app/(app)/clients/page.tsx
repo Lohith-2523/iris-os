@@ -17,7 +17,7 @@ export default function ClientsPage() {
   const [dbClients, setDbClients] = React.useState<any[]>([]);
   const [team, setTeam] = React.useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = React.useState<string | null>(null);
-  const [aiText, setAiText] = React.useState<string>(formatUserMessage('Lohith, compiling portfolio churn risks via Claude...'));
+  const [aiText, setAiText] = React.useState<string>(formatUserMessage('Lohith, compiling portfolio churn risks via Prism AI...'));
 
   React.useEffect(() => {
     async function load() {
@@ -36,7 +36,7 @@ export default function ClientsPage() {
 
         const churn = await PrismAIService.getChurnPredictions();
         if (churn.length > 0) {
-          setAiText(formatUserMessage(`Lohith, Claude has flagged ${churn[0].clientName} as high risk (${churn[0].riskScore}%). Reasons: ${churn[0].reasons.join(', ')}. Recommendation: ${churn[0].recommendation}`));
+          setAiText(formatUserMessage(`Lohith, Prism AI has flagged ${churn[0].clientName} as high risk (${churn[0].riskScore}%). Reasons: ${churn[0].reasons.join(', ')}. Recommendation: ${churn[0].recommendation}`));
         }
       } catch (e) {
         console.error(e);

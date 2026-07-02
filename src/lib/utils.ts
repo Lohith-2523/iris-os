@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export function formatUserMessage(message: string): string {
   if (typeof window === 'undefined') return message;
   
-  const email = localStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+  const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
   let name = 'Lohith';
   
   if (email.includes('sarah')) {
@@ -70,4 +70,38 @@ export function formatCurrency(amount: number, decimals: number = 0): string {
 
 export function formatPercent(value: number): string {
   return `${value}%`;
+}
+
+// Obfuscates a string to avoid exposing emails in query parameters or cookies
+export function obfuscateEmail(email: string): string {
+  if (!email) return '';
+  // Simple XOR with a key followed by base64 encoding
+  const key = 42;
+  const chars = email.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ key)).join('');
+  if (typeof window !== 'undefined') {
+    return btoa(unescape(encodeURIComponent(chars)));
+  } else {
+    return Buffer.from(chars, 'utf-8').toString('base64');
+  }
+}
+
+// Deobfuscates a string back to the original email (with fallback)
+export function deobfuscateEmail(obfuscated: string): string {
+  if (!obfuscated) return '';
+  if (obfuscated.includes('@')) return obfuscated; // fallback if already plain email
+
+  try {
+    let chars = '';
+    if (typeof window !== 'undefined') {
+      chars = decodeURIComponent(escape(atob(obfuscated)));
+    } else {
+      chars = Buffer.from(obfuscated, 'base64').toString('utf-8');
+    }
+    const key = 42;
+    const decrypted = chars.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ key)).join('');
+    if (decrypted.includes('@')) return decrypted;
+  } catch (e) {
+    // Fail silently and return original input
+  }
+  return obfuscated;
 }

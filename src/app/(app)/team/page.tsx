@@ -78,6 +78,23 @@ export default function TeamPage() {
     }
   }, [selectedMember, fetchMemberTasks]);
 
+  React.useEffect(() => {
+    async function loadTeam() {
+      try {
+        const res = await fetch('/api/data?domain=team');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setTeamList(data);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching team list:', e);
+      }
+    }
+    loadTeam();
+  }, []);
+
   // Modal Dialog Open/Close States
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<'single' | 'existing' | 'batch'>('single');
@@ -242,7 +259,7 @@ export default function TeamPage() {
   };
 
   // --- BATCH FILE UPLOAD & AI PARSING HANDLERS ---
-  const triggerChatGPTAnalysis = async (rawText: string) => {
+  const triggerAIAnalysis = async (rawText: string) => {
     setIsParsing(true);
     setErrorMsg('');
     try {
@@ -256,7 +273,7 @@ export default function TeamPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        // Parse chatGPT returned array
+        // Parse Prism AI returned array
         const parsedUsers = JSON.parse(data.result);
         if (Array.isArray(parsedUsers)) {
           setStagedUsers(parsedUsers.map((u: any) => ({
@@ -270,7 +287,7 @@ export default function TeamPage() {
           setIsTemplateAligned(false);
           setUploadStatus('success');
         } else {
-          throw new Error("ChatGPT output could not be parsed into a list.");
+          throw new Error("Prism AI output could not be parsed into a list.");
         }
       } else {
         throw new Error("AI Routing Handler failed.");
@@ -336,8 +353,8 @@ export default function TeamPage() {
             setUploadStatus('success');
             setIsParsing(false);
           } else {
-            // Non-aligned: Ask ChatGPT to parse
-            await triggerChatGPTAnalysis(text);
+            // Non-aligned: Ask Prism AI to parse
+            await triggerAIAnalysis(text);
           }
         };
         reader.readAsText(file);
@@ -386,9 +403,9 @@ export default function TeamPage() {
               setUploadStatus('success');
               setIsParsing(false);
             } else {
-              // Convert worksheet rows to flat text layout description for GPT
+              // Convert worksheet rows to flat text layout description for Prism AI
               const textFormat = rows.map(r => r.join(', ')).join('\n');
-              await triggerChatGPTAnalysis(textFormat);
+              await triggerAIAnalysis(textFormat);
             }
           } catch (err: any) {
             console.error(err);
@@ -899,7 +916,7 @@ export default function TeamPage() {
                     <div className="bg-zinc-950 border border-zinc-900 p-4 text-xs text-zinc-400 flex items-center justify-between rounded-none animate-pulse">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 text-white animate-spin" />
-                        <span>Analyzing layout format. Running ChatGPT extraction pipelines...</span>
+                        <span>Analyzing layout format. Running Prism AI extraction pipelines...</span>
                       </div>
                       <Badge variant="outline" className="text-[9px] bg-zinc-900 border-zinc-800 text-zinc-400 rounded-none uppercase">
                         AI Processing
@@ -932,7 +949,7 @@ export default function TeamPage() {
                             <span className="text-[10px] block mt-0.5 opacity-80">
                               {isTemplateAligned
                                 ? `Imported file matched headers. Extracted ${stagedUsers.length} specialists directly.`
-                                : `ChatGPT parsed custom columns. Extracted ${stagedUsers.length} specialists. Please review details below.`}
+                                : `Prism AI parsed custom columns. Extracted ${stagedUsers.length} specialists. Please review details below.`}
                             </span>
                           </div>
                         </div>

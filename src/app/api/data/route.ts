@@ -124,15 +124,61 @@ export async function GET(request: NextRequest) {
           orderBy: { name: 'asc' }
         });
         
-        // Mocking some workload details for staff details (or calculating from project allocations if fully implemented)
+        const roleMapping: Record<string, string> = {
+          'lohith@apex.co': 'Executive CEO',
+          'sarah.chen@apex.co': 'Operations Lead',
+          'marcus.a@apex.co': 'Creative Director',
+          'elena.r@apex.co': 'Financial Analyst',
+          'david.k@apex.co': 'Senior Designer',
+          'sophie.d@client.co': 'Lead Copywriter',
+          'shardsmedia.ai@gmail.com': 'Solutions Architect',
+        };
+
+        const phoneMapping: Record<string, string> = {
+          'lohith@apex.co': '+123456789',
+          'sarah.chen@apex.co': '+123456780',
+          'marcus.a@apex.co': '+123456781',
+          'elena.r@apex.co': '+123456782',
+          'david.k@apex.co': '+123456783',
+          'sophie.d@client.co': '+123456784',
+        };
+
+        const projectsMapping: Record<string, string> = {
+          'lohith@apex.co': 'All Accounts',
+          'sarah.chen@apex.co': 'Vortex Retail, Solaria',
+          'marcus.a@apex.co': 'Aether Technologies',
+          'elena.r@apex.co': 'Financial Ledger Auditing',
+          'david.k@apex.co': 'Pulse Media, Onyx',
+          'sophie.d@client.co': 'Pinnacle Health, Vortex',
+        };
+
+        const utilizationMapping: Record<string, number> = {
+          'lohith@apex.co': 90,
+          'sarah.chen@apex.co': 85,
+          'marcus.a@apex.co': 78,
+          'elena.r@apex.co': 60,
+          'david.k@apex.co': 92,
+          'sophie.d@client.co': 95,
+        };
+
+        const statusMapping: Record<string, string> = {
+          'lohith@apex.co': 'EXCELLENT',
+          'sarah.chen@apex.co': 'EXCELLENT',
+          'marcus.a@apex.co': 'GOOD',
+          'elena.r@apex.co': 'GOOD',
+          'david.k@apex.co': 'EXCELLENT',
+          'sophie.d@client.co': 'EXCELLENT',
+        };
+
         const team = users.map(u => ({
           id: u.id,
           name: u.name,
           email: u.email,
-          role: u.role,
-          projects: u.role === 'ADMIN' ? 'Cross-organization audits' : 'Apex Design, Solaria Campaign',
-          utilization: u.role === 'ADMIN' ? 70 : 92,
-          status: u.role === 'ADMIN' ? 'EXCELLENT' : 'PEAK WORKLOAD',
+          role: roleMapping[u.email] || u.role,
+          phone: phoneMapping[u.email] || 'N/A',
+          projects: projectsMapping[u.email] || 'None',
+          utilization: utilizationMapping[u.email] || 80,
+          status: statusMapping[u.email] || 'GOOD',
         }));
 
         return NextResponse.json(team);

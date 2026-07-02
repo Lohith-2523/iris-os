@@ -24,7 +24,7 @@ import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 
 export default function DashboardPage() {
   const [dbData, setDbData] = React.useState<any>(null);
-  const [aiSummary, setAiSummary] = React.useState<string>(formatUserMessage('Lohith, compiling dashboard performance overview metrics via Gemini Flash...'));
+  const [aiSummary, setAiSummary] = React.useState<string>(formatUserMessage('Lohith, compiling dashboard performance overview metrics via Prism AI...'));
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
   const [clientsList, setClientsList] = React.useState<any[]>([]);
@@ -97,7 +97,7 @@ export default function DashboardPage() {
   }, []);
 
   const aiLeak = React.useMemo(() => {
-    if (!leakData) return formatUserMessage('Lohith, analyzing active contractor profit leaks via ChatGPT...');
+    if (!leakData) return formatUserMessage('Lohith, analyzing active contractor profit leaks via Prism AI...');
     return formatUserMessage(`Lohith, I have detected a leak: ${leakData.description} Recommendation: ${leakData.actionStep} (Impact: ${formatCurrency(leakData.impactValue)}/mo).`);
   }, [leakData, currencyState]);
 
