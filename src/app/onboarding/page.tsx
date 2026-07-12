@@ -182,10 +182,8 @@ export default function OnboardingPage() {
 
       {/* Top logo */}
       <div className="max-w-6xl mx-auto w-full flex items-center gap-2 mb-8 relative z-10 shrink-0">
-        <div className="h-8 w-8 bg-white text-zinc-950 font-bold flex items-center justify-center border border-white">
-          I
-        </div>
-        <span className="text-md font-bold font-heading tracking-tight">Iris OS Onboarding</span>
+        <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-8 object-contain" />
+        <span className="text-md font-bold font-heading tracking-tight text-zinc-400">Onboarding</span>
       </div>
 
       {/* Main container */}

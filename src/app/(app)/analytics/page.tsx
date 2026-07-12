@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { InsightPanel } from '@/components/ui/insight-panel';
 import { Button } from '@/components/ui/button';
 import { BarChart3, TrendingUp, Sparkles, Filter } from 'lucide-react';
-import { formatUserMessage } from '@/lib/utils';
+import { formatUserMessage, renderFormattedText } from '@/lib/utils';
 
 export default function AnalyticsPage() {
   const roiData = [
@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
             scoreLabel="PORTFOLIO PERFORMANCE MULTIPLIER"
             riskLevel="LOW"
           >
-            {formatUserMessage("Lohith, our high-performing creative deliverables for **Pulse Media** are yielding **5.2x** ROI. Replicating the design structure and content calendars to our **Nova BioLabs** account could improve their yield by up to 45%.")}
+            {renderFormattedText("Lohith, our high-performing creative deliverables for **Pulse Media** are yielding **5.2x** ROI. Replicating the design structure and content calendars to our **Nova BioLabs** account could improve their yield by up to 45%.")}
           </InsightPanel>
         </div>
       </div>

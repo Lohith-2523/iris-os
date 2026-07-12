@@ -20,9 +20,6 @@ export async function GET(request: NextRequest) {
 
     let campaigns;
     let leads;
-    let scheduledPosts;
-    let clientTasks;
-    let notifications: any[] = [];
 
     if (isClient) {
       // Client view: filter campaigns and ads by the client's adAccountId
@@ -44,23 +41,6 @@ export async function GET(request: NextRequest) {
         } : { id: 'none' },
         orderBy: { createdTime: 'desc' },
       });
-
-      scheduledPosts = await prisma.scheduledPost.findMany({
-        where: clientBusinessId ? {
-          clientId: clientBusinessId
-        } : { id: 'none' },
-        orderBy: { scheduledAt: 'asc' }
-      });
-
-      clientTasks = await prisma.clientTask.findMany({
-        where: clientBusinessId ? {
-          clientId: clientBusinessId
-        } : { id: 'none' },
-        include: {
-          assignedTo: true,
-        },
-        orderBy: { createdAt: 'desc' }
-      });
     } else {
       // Admin view: see everything
       campaigns = await prisma.metaCampaign.findMany({
@@ -70,28 +50,6 @@ export async function GET(request: NextRequest) {
 
       leads = await prisma.metaLead.findMany({
         orderBy: { createdTime: 'desc' },
-      });
-
-      scheduledPosts = await prisma.scheduledPost.findMany({
-        orderBy: { scheduledAt: 'asc' }
-      });
-
-      clientTasks = await prisma.clientTask.findMany({
-        include: {
-          assignedTo: true,
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      // Admin review center: list all posts where client proposed changes
-      notifications = await prisma.scheduledPost.findMany({
-        where: {
-          status: 'CHANGES_PROPOSED'
-        },
-        include: {
-          client: true
-        },
-        orderBy: { updatedAt: 'desc' }
       });
     }
 
@@ -108,9 +66,6 @@ export async function GET(request: NextRequest) {
       campaigns,
       leads,
       orphanedAds,
-      scheduledPosts,
-      clientTasks,
-      notifications,
       role: user?.role || 'admin',
       clientName: user?.client?.name || null
     });
@@ -143,68 +98,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, lead: updatedLead });
     }
 
-    // 2. Client Feedback action (approve or propose changes)
-    if (action === 'client_feedback') {
-      const { postId, status, feedback } = body;
-      if (!postId || !status) {
-        return NextResponse.json({ error: 'Missing postId or status' }, { status: 400 });
-      }
-
-      const updatedPost = await prisma.scheduledPost.update({
-        where: { id: postId },
-        data: {
-          status,
-          clientFeedback: feedback || null
-        }
-      });
-
-      return NextResponse.json({ success: true, post: updatedPost });
-    }
-
-    // 3. Admin: Schedule new post from Composer
-    if (action === 'schedule_post') {
-      const { platform, postType, caption, mediaUrl, scheduledAt, clientId } = body;
-      if (!platform || !postType || !caption || !mediaUrl || !scheduledAt) {
-        return NextResponse.json({ error: 'Missing required parameters: platform, postType, caption, mediaUrl, scheduledAt' }, { status: 400 });
-      }
-
-      // Default to first active client if none specified for administration
-      let targetClientId = clientId;
-      if (!targetClientId) {
-        const firstClient = await prisma.client.findFirst({
-          where: { status: 'ACTIVE' }
-        });
-        targetClientId = firstClient?.id;
-      }
-
-      const post = await prisma.scheduledPost.create({
-        data: {
-          platform,
-          postType,
-          caption,
-          mediaUrl,
-          status: 'SCHEDULED',
-          scheduledAt: new Date(scheduledAt),
-          clientId: targetClientId || null
-        }
-      });
-
-      return NextResponse.json({ success: true, post });
-    }
-
-    // 4. Admin: Delete scheduled post
-    if (action === 'delete_post') {
-      const { id } = body;
-      if (!id) {
-        return NextResponse.json({ error: 'Missing post ID' }, { status: 400 });
-      }
-
-      await prisma.scheduledPost.delete({
-        where: { id }
-      });
-
-      return NextResponse.json({ success: true });
-    }
 
     // 5. Create New Campaign
     if (action === 'create_campaign') {
@@ -298,20 +191,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ad: updatedAd });
     }
 
-    // 9. Canva Asset Sync
-    if (action === 'sync_asset') {
-      const { adId, imageUrl } = body;
-      if (!adId || !imageUrl) {
-        return NextResponse.json({ error: 'Missing adId or imageUrl' }, { status: 400 });
-      }
-
-      const updatedAd = await prisma.metaAd.update({
-        where: { id: adId },
-        data: { imageUrl }
-      });
-
-      return NextResponse.json({ success: true, ad: updatedAd });
-    }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: unknown) {

@@ -52,7 +52,9 @@ model User {
   id             String        @id @default(uuid())
   email          String        @unique
   name           String
-  role           String        // admin, client
+  role           String        // admin, client, member
+  phone          String?
+  agencyTypes    String[]      @default([])
   avatarUrl      String?
   orgId          String
   organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -443,6 +445,7 @@ model Transaction {
   id                String   @id @default(uuid())
   date              DateTime
   details           String
+  category          String   @default("Expense") // Revenue, Expense, AI Subscription
   type              String   // UPI, IMPS, NEFT, Cash, Others
   transactorAccount String   // UPI ID / Account No. of transactor
   yourAccount       String   // Your Account (Bank Name or custom text)
@@ -563,5 +566,18 @@ model CalendarEvent {
 
   @@index([orgId])
   @@index([creatorId])
+}
+
+model MemberInvite {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String
+  phone       String?
+  agencyTypes String[] @default([])
+  projects    String[] @default([])
+  token       String   @unique
+  used        Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 }
 

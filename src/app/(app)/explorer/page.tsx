@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatUserMessage } from '@/lib/utils';
+import { formatUserMessage, renderFormattedText } from '@/lib/utils';
 import {
   BarChart3,
   ChevronDown,
@@ -244,7 +244,7 @@ function ExplorerContent() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-none border-zinc-800 text-zinc-400 hover:text-white"
+              className="h-8 w-8 rounded-md border-zinc-800 text-zinc-400 hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -253,7 +253,7 @@ function ExplorerContent() {
             <div className="relative inline-block text-left">
               <button
                 onClick={() => setReportDropdownOpen(!reportDropdownOpen)}
-                className="flex items-center gap-1.5 text-2xl font-bold tracking-tight text-white silver-text-gradient bg-transparent border border-transparent hover:border-zinc-800 px-2 py-0.5 rounded-none transition-all cursor-pointer"
+                className="flex items-center gap-1.5 text-2xl font-bold tracking-tight text-white silver-text-gradient bg-transparent border border-transparent hover:border-zinc-800 px-2 py-0.5 rounded-md transition-all cursor-pointer"
               >
                 <span>{currentDataset.title}</span>
                 <ChevronDown className="h-5 w-5 text-zinc-500 mt-1" />
@@ -264,7 +264,7 @@ function ExplorerContent() {
                     className="fixed inset-0 z-10" 
                     onClick={() => setReportDropdownOpen(false)}
                   />
-                  <div className="absolute left-2 mt-2 w-64 bg-zinc-950 border border-zinc-800 shadow-2xl z-20 rounded-none focus:outline-none">
+                  <div className="absolute left-2 mt-2 w-64 bg-zinc-950 border border-zinc-800 shadow-2xl z-20 rounded-md focus:outline-none overflow-hidden">
                     <div className="py-1">
                       <button
                         onClick={() => {
@@ -309,7 +309,7 @@ function ExplorerContent() {
         </div>
 
         {/* Time Period Frequency selector */}
-        <div className="flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900">
+        <div className="flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-md">
           {(['months', 'quarters', 'years'] as const).map((f) => (
             <button
               key={f}
@@ -317,7 +317,7 @@ function ExplorerContent() {
                 setFrequency(f);
                 setHoveredBarIndex(null);
               }}
-              className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all rounded-none cursor-pointer ${
+              className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all rounded-md cursor-pointer ${
                 frequency === f
                   ? 'bg-white text-zinc-950'
                   : 'text-zinc-500 hover:text-zinc-200'
@@ -333,7 +333,7 @@ function ExplorerContent() {
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Left Side: Parameters Customization Panel */}
         <div className="space-y-6 lg:col-span-1">
-          <Card className="rounded-none border-zinc-800/80 bg-zinc-950/40">
+          <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2 text-zinc-400">
                 <SlidersHorizontal className="h-4 w-4" />
@@ -350,7 +350,7 @@ function ExplorerContent() {
                     <button
                       key={opt.id}
                       onClick={() => setPrimaryY(opt.id)}
-                      className={`text-left px-3 py-2 text-xs border transition-all rounded-none cursor-pointer flex items-center justify-between ${
+                      className={`text-left px-3 py-2 text-xs border transition-all rounded-md cursor-pointer flex items-center justify-between ${
                         primaryY === opt.id
                           ? 'border-white bg-zinc-900 text-white font-semibold'
                           : 'border-zinc-900 bg-transparent text-zinc-400 hover:text-white hover:border-zinc-800'
@@ -369,7 +369,7 @@ function ExplorerContent() {
                 <div className="grid grid-cols-1 gap-1">
                   <button
                     onClick={() => setSecondaryY('none')}
-                    className={`text-left px-3 py-2 text-xs border transition-all rounded-none cursor-pointer ${
+                    className={`text-left px-3 py-2 text-xs border transition-all rounded-md cursor-pointer ${
                       secondaryY === 'none'
                         ? 'border-white bg-zinc-900 text-white font-semibold'
                         : 'border-zinc-900 bg-transparent text-zinc-400 hover:text-white hover:border-zinc-800'
@@ -383,7 +383,7 @@ function ExplorerContent() {
                       <button
                         key={opt.id}
                         onClick={() => setSecondaryY(opt.id)}
-                        className={`text-left px-3 py-2 text-xs border transition-all rounded-none cursor-pointer flex items-center justify-between ${
+                        className={`text-left px-3 py-2 text-xs border transition-all rounded-md cursor-pointer flex items-center justify-between ${
                           secondaryY === opt.id
                             ? 'border-white bg-zinc-900 text-white font-semibold'
                             : 'border-zinc-900 bg-transparent text-zinc-400 hover:text-white hover:border-zinc-800'
@@ -404,7 +404,7 @@ function ExplorerContent() {
                     <button
                       key={order}
                       onClick={() => setXAxisOrder(order)}
-                      className={`text-left px-3 py-2 text-xs border transition-all rounded-none cursor-pointer flex items-center gap-2 ${
+                      className={`text-left px-3 py-2 text-xs border transition-all rounded-md cursor-pointer flex items-center gap-2 ${
                         xAxisOrder === order
                           ? 'border-white bg-zinc-900 text-white font-semibold'
                           : 'border-zinc-900 bg-transparent text-zinc-400 hover:text-white hover:border-zinc-800'
@@ -422,7 +422,7 @@ function ExplorerContent() {
 
         {/* Right Side: The Expanded Interactive Graph */}
         <div className="space-y-6 lg:col-span-3">
-          <Card className="rounded-none border-zinc-800">
+          <Card className="rounded-md border-zinc-800">
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-zinc-900">
               <div>
                 <CardTitle className="text-sm font-semibold text-white">
@@ -473,7 +473,7 @@ function ExplorerContent() {
                         {/* Primary Value Bar */}
                         <div
                           style={{ height: `${(val / maxPrimaryVal) * 100}%` }}
-                          className={`w-full border transition-all duration-150 rounded-none relative ${
+                          className={`w-full border transition-all duration-150 rounded-sm relative ${
                             isNegative ? 'chart-bar-decline' : 'chart-bar-growth'
                           } ${isHovered ? 'scale-x-[1.05] brightness-125' : ''}`}
                         />
@@ -481,7 +481,7 @@ function ExplorerContent() {
                         {secondaryY !== 'none' && (
                           <div
                             style={{ height: `${(secVal / maxSecondaryVal) * 100}%` }}
-                            className={`w-full border bg-zinc-800 border-zinc-700/60 transition-all duration-150 rounded-none hover:bg-zinc-700/80 ${
+                            className={`w-full border bg-zinc-800 border-zinc-700/60 transition-all duration-150 rounded-sm hover:bg-zinc-700/80 ${
                               isHovered ? 'scale-x-[1.05] brightness-125' : ''
                             }`}
                           />
@@ -491,7 +491,7 @@ function ExplorerContent() {
 
                       {/* Floating Tooltip Component */}
                       {isHovered && (
-                        <div className="absolute bottom-[320px] left-1/2 -translate-x-1/2 w-48 bg-zinc-950 border border-zinc-800 p-3 shadow-2xl z-50 text-[10px] space-y-1.5 rounded-none text-zinc-300 font-sans">
+                        <div className="absolute bottom-[320px] left-1/2 -translate-x-1/2 w-48 bg-zinc-950 border border-zinc-800 p-3 shadow-2xl z-50 text-[10px] space-y-1.5 rounded-md text-zinc-300 font-sans">
                           <div className="flex justify-between font-bold border-b border-zinc-900 pb-1 text-white">
                             <span className="uppercase tracking-wider">Period: {item.label}</span>
                             {chronPrev && (
@@ -536,16 +536,16 @@ function ExplorerContent() {
 
               <div className="flex justify-center gap-6 text-[10px] text-zinc-400 font-semibold border-t border-zinc-900 pt-3 mt-3">
                 <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-none chart-bar-growth" />
+                  <div className="h-2.5 w-2.5 rounded-sm chart-bar-growth" />
                   <span>Growth / Stable</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="h-2.5 w-2.5 rounded-none chart-bar-decline" />
+                  <div className="h-2.5 w-2.5 rounded-sm chart-bar-decline" />
                   <span>Decline / Negative</span>
                 </div>
                 {secondaryY !== 'none' && (
                   <div className="flex items-center gap-1.5 border-l border-zinc-800 pl-6">
-                    <div className="h-2.5 w-2.5 bg-zinc-800 border border-zinc-700/60 rounded-none" />
+                    <div className="h-2.5 w-2.5 bg-zinc-800 border border-zinc-700/60 rounded-sm" />
                     <span>Secondary Metric: {secondaryOption?.label}</span>
                   </div>
                 )}
@@ -555,27 +555,27 @@ function ExplorerContent() {
 
           {/* Quick Metrics Statistics Row */}
           <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-none">
+            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-md">
               <span className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Average Value</span>
               <span className="text-sm font-bold font-mono text-zinc-200 mt-1 block">
                 {primaryOption.format(stats.avg)}
               </span>
             </div>
-            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-none">
+            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-md">
               <span className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Highest Peak</span>
               <span className="text-sm font-bold font-mono chart-text-growth mt-1 block flex items-center gap-1">
                 <TrendingUp className="h-3.5 w-3.5" />
                 {primaryOption.format(stats.max)}
               </span>
             </div>
-            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-none">
+            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-md">
               <span className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Lowest Valley</span>
               <span className="text-sm font-bold font-mono chart-text-decline mt-1 block flex items-center gap-1">
                 <TrendingDown className="h-3.5 w-3.5" />
                 {primaryOption.format(stats.min)}
               </span>
             </div>
-            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-none">
+            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-md">
               <span className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Cumulative Sum</span>
               <span className="text-sm font-bold font-mono text-white mt-1 block">
                 {primaryOption.format(stats.total)}
@@ -584,21 +584,21 @@ function ExplorerContent() {
           </div>
 
           {/* Embedded AI Strategic Insight (Addressing Lohith) */}
-          <Card className="rounded-none border-zinc-800 bg-[#09090b]">
+          <Card className="rounded-md border-zinc-800 bg-[#09090b]">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4.5 w-4.5 text-zinc-400" />
                   <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Prism AI Graph Assistant</CardTitle>
                 </div>
-                <Badge variant="default" className="text-[9px] bg-zinc-900 text-zinc-400 uppercase tracking-wider border-zinc-800 px-2 py-0.5 rounded-none">
+                <Badge variant="default" className="text-[9px] bg-zinc-900 text-zinc-400 uppercase tracking-wider border-zinc-800 px-2 py-0.5 rounded-md">
                   Prism AI Model
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-2 text-xs text-zinc-300 leading-relaxed font-sans space-y-3">
-              <p>{formatUserMessage(aiInsightText)}</p>
-              <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-semibold bg-zinc-950/40 border border-zinc-900/60 p-2.5 rounded-none">
+              <p>{renderFormattedText(aiInsightText)}</p>
+              <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-semibold bg-zinc-950/40 border border-zinc-900/60 p-2.5 rounded-md">
                 <Info className="h-4 w-4 shrink-0 text-zinc-600" />
                 <span>Adjust the primary/secondary Y-axis values on the left panel to update model parameters and run live predictions.</span>
               </div>

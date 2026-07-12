@@ -33,10 +33,7 @@ export default function PricingPage() {
       <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between animate-fade-in">
         {/* Left: Logo */}
         <Link href="/" className="flex items-center gap-2 group shrink-0">
-          <div className="h-8 w-8 bg-[#09090b] text-white font-bold flex items-center justify-center border-2 border-black group-hover:bg-red-600 transition-colors">
-            I
-          </div>
-          <span className="text-lg font-bold font-heading tracking-tight text-[#09090b] group-hover:text-red-650 transition-colors">Iris OS</span>
+          <img src="/iris-logo-white-bg.png" alt="Iris OS Logo" className="h-8 object-contain" />
         </Link>
 
         {/* Center Nav Links */}
@@ -283,10 +280,7 @@ export default function PricingPage() {
       <footer className="bg-[#09090b] text-white py-12 px-6 border-t-[3px] border-black">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 bg-white text-[#09090b] font-bold flex items-center justify-center border border-white">
-              I
-            </div>
-            <span className="text-md font-bold font-heading tracking-tight">Iris OS</span>
+            <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-7 object-contain" />
             <span className="text-[10px] text-zinc-500 font-mono mt-1 font-medium">© 2026. All rights reserved.</span>
           </div>
 

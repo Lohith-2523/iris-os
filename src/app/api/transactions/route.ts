@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
           data: {
             date: new Date(t.date || new Date()),
             details: t.details || 'Imported Transaction',
+            category: t.category || (amount >= 0 ? 'Revenue' : 'Expense'),
             type: t.type || 'Others',
             transactorAccount: t.transactorAccount || '',
             yourAccount: t.yourAccount || '',
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, count: createdTransactions.length });
     } else {
       // Single transaction
-      const { date, details, type, transactorAccount, yourAccount, amount, referenceNumber, comments } = body;
+      const { date, details, category, type, transactorAccount, yourAccount, amount, referenceNumber, comments } = body;
 
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount)) {
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
         data: {
           date: new Date(date || new Date()),
           details: details || 'Manual Entry',
+          category: category || (parsedAmount >= 0 ? 'Revenue' : 'Expense'),
           type: type || 'Others',
           transactorAccount: transactorAccount || '',
           yourAccount: yourAccount || '',

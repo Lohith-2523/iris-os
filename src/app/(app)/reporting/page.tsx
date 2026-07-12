@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { InsightPanel } from '@/components/ui/insight-panel';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { FileText, Download, Plus, Sparkles, CheckCircle, RefreshCw } from 'lucide-react';
-import { formatUserMessage } from '@/lib/utils';
+import { FileText, Download, Plus, Sparkles, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
+import { formatUserMessage, renderFormattedText } from '@/lib/utils';
 
 export default function ReportingPage() {
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -184,7 +184,7 @@ export default function ReportingPage() {
             scoreLabel="SCHEDULE COMPLIANCE"
             riskLevel="LOW"
           >
-            {formatUserMessage("Lohith, the monthly **Client Profitability Report** is scheduled to compile on **June 30**. All connected ledger items are fully reconciled and sync verified.")}
+            {renderFormattedText("Lohith, the monthly **Client Profitability Report** is scheduled to compile on **June 30**. All connected ledger items are fully reconciled and sync verified.")}
           </InsightPanel>
 
           <Card>
@@ -198,6 +198,22 @@ export default function ReportingPage() {
               </Button>
               <Button className="w-full text-xs font-semibold h-9" variant="secondary" onClick={triggerReportGeneration}>
                 Compile Solaria Churn Audit
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-white">Data Explorer Hub</CardTitle>
+              <CardDescription>Create interactive charts, scatter plots, and telemetry reports dynamically.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                className="w-full text-xs font-semibold h-9 bg-white text-zinc-950 hover:bg-zinc-200 flex items-center justify-center gap-1.5 rounded-md cursor-pointer" 
+                onClick={() => window.location.href = '/explorer'}
+              >
+                <span>Open Data Explorer</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </CardContent>
           </Card>

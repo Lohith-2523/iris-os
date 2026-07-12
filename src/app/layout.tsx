@@ -23,6 +23,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Iris OS - Enterprise Agency Operating System",
   description: "The operating system used by modern agencies and creative enterprises to manage finance, operations, clients, projects, reporting, forecasting, intelligence, and content production from a single platform.",
+  icons: {
+    icon: [
+      {
+        url: "/iris-logo-black-transparent.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/iris-logo-white-transparent.png",
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

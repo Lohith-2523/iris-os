@@ -121,12 +121,10 @@ function InvitePageContent() {
       <div className="absolute inset-0 bg-radial-[circle_at_center,rgba(255,255,255,0.015)_0%,transparent_70%]" />
 
       <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl font-sans text-xs">
-        <CardHeader className="text-center pt-8 pb-6">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 font-bold text-zinc-950 shadow-md border border-zinc-200 mb-4 text-base">
-            I
-          </div>
+        <CardHeader className="text-center pt-8 pb-6 flex flex-col items-center">
+          <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-10 object-contain mb-4" />
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">
-            Set Up Your Iris OS Account
+            Set Up Your Account
           </CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
             {inviteData ? `Access portal for ${inviteData.client?.name}` : 'Enterprise Client Activation Hub'}

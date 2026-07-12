@@ -1,3 +1,4 @@
+import * as React from "react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -105,3 +106,42 @@ export function deobfuscateEmail(obfuscated: string): string {
   }
   return obfuscated;
 }
+
+export function renderFormattedText(text: string): React.ReactNode {
+  if (!text) return '';
+  
+  // Format user name if "Lohith" is present
+  let processed = text;
+  if (typeof window !== 'undefined') {
+    const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+    let name = 'Lohith';
+    if (email.includes('sarah')) {
+      name = 'Sarah';
+    } else if (email.includes('lohith')) {
+      name = 'Lohith';
+    } else {
+      const prefix = email.split('@')[0];
+      const parts = prefix.split(/[._-]/);
+      if (parts.length > 0) {
+        name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+      }
+    }
+    processed = text.replace(/Lohith/g, name);
+  }
+
+  // Parse markdown: **bold**, *italic*, `code`
+  const parts = processed.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return React.createElement('strong', { key: index, className: 'font-bold text-white' }, part.slice(2, -2));
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return React.createElement('em', { key: index, className: 'italic text-zinc-350' }, part.slice(1, -1));
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return React.createElement('code', { key: index, className: 'font-mono bg-zinc-900 border border-zinc-800 px-1 py-0.5 rounded text-zinc-200 text-[10px]' }, part.slice(1, -1));
+    }
+    return part;
+  });
+}
+

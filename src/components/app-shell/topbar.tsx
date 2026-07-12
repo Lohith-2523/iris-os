@@ -46,13 +46,12 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('iris-theme', next);
-      }
-      return next;
-    });
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('iris-theme', nextTheme);
+      window.dispatchEvent(new CustomEvent('theme-changed', { detail: nextTheme }));
+    }
   };
 
   // Keyboard shortcut Ctrl+K
@@ -81,10 +80,8 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     { name: 'Go to Finance Ledger', category: 'Navigation', href: '/finance' },
     { name: 'Go to Client Portfolio', category: 'Navigation', href: '/clients' },
     { name: 'Go to Project Delivery', category: 'Navigation', href: '/projects' },
-    { name: 'Go to Design Hub (Canva)', category: 'Navigation', href: '/design-hub' },
     { name: 'Go to Prism AI Intelligence', category: 'Navigation', href: '/prism' },
     { name: 'Go to Settings Console', category: 'Navigation', href: '/settings' },
-    { name: 'Sync Canva Asset Catalog', category: 'Action', action: 'sync-canva' },
     { name: 'Export Latest Financial Report', category: 'Action', action: 'export-report' },
     { name: 'Review Contractor Profit Leak', category: 'Action', action: 'view-leak' },
   ];

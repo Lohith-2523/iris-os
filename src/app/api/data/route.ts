@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
         const allClients = await prisma.client.findMany();
         const projects = await prisma.project.findMany();
         const invoices = await prisma.invoice.findMany();
+        const expenses = await prisma.expense.findMany();
 
         const activeClientsCount = clients.length;
         const totalClientsCount = allClients.length;
@@ -25,6 +26,12 @@ export async function GET(request: NextRequest) {
         // Sum current month invoices (June 2026 based on seed)
         const currentMonthRevenue = invoices
           .filter(inv => inv.status === 'PAID')
+          .reduce((sum, inv) => sum + inv.amount, 0);
+
+        const grossBillings = invoices.reduce((sum, inv) => sum + inv.amount, 0);
+        const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const outstandingAmount = invoices
+          .filter(inv => inv.status === 'UNPAID' || inv.status === 'OVERDUE')
           .reduce((sum, inv) => sum + inv.amount, 0);
 
         const projectRisks = projects
@@ -42,6 +49,9 @@ export async function GET(request: NextRequest) {
           activeProjectsCount,
           currentMonthRevenue,
           projectRisks,
+          grossBillings,
+          totalExpenses,
+          outstandingAmount,
         });
       }
 
@@ -74,27 +84,42 @@ export async function GET(request: NextRequest) {
           outstandingAmount,
           totalExpenses,
           recentInvoices,
+          expenses: expenses.map(exp => ({
+            id: exp.id,
+            category: exp.category,
+            amount: exp.amount,
+            date: exp.date.toISOString(),
+            merchant: exp.merchant,
+          })),
         });
       }
 
       case 'clients': {
         const clients = await prisma.client.findMany({
+          include: { invoices: true },
           orderBy: { name: 'asc' }
         });
 
-        const formattedClients = clients.map(c => ({
-          id: c.id,
-          name: c.name,
-          domain: c.domain || '',
-          status: c.status,
-          healthScore: c.healthScore,
-          healthStatus: c.healthStatus,
-          churnRiskScore: c.churnRiskScore,
-          roiMetric: c.roiMetric,
-          renewalDate: c.renewalDate ? c.renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-          upsellOpportunityValue: c.upsellOpportunityValue,
-          metadata: c.metadata || null,
-        }));
+        const formattedClients = clients.map(c => {
+          const revenue = c.invoices
+            .filter(inv => inv.status === 'PAID')
+            .reduce((sum, inv) => sum + inv.amount, 0);
+
+          return {
+            id: c.id,
+            name: c.name,
+            domain: c.domain || '',
+            status: c.status,
+            healthScore: c.healthScore,
+            healthStatus: c.healthStatus,
+            churnRiskScore: c.churnRiskScore,
+            roiMetric: c.roiMetric,
+            renewalDate: c.renewalDate ? c.renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
+            upsellOpportunityValue: c.upsellOpportunityValue,
+            metadata: c.metadata || null,
+            revenue
+          };
+        });
 
         return NextResponse.json(formattedClients);
       }

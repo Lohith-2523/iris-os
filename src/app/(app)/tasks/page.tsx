@@ -25,6 +25,7 @@ import {
   Send,
   Layers
 } from 'lucide-react';
+import { obfuscateEmail } from '@/lib/utils';
 
 export default function TasksPage() {
   const searchParams = useSearchParams();
@@ -33,6 +34,7 @@ export default function TasksPage() {
 
   const [projects, setProjects] = React.useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>('all');
+  const [currentUser, setCurrentUser] = React.useState<any>(null);
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -58,14 +60,6 @@ export default function TasksPage() {
   // Task Interaction Form States
   const [newUpdateContent, setNewUpdateContent] = React.useState('');
   const [newCommentContent, setNewCommentContent] = React.useState('');
-  
-  // Carry Over State
-  const [isCarryOverOpen, setIsCarryOverOpen] = React.useState(false);
-  const [carryOverForm, setCarryOverForm] = React.useState({
-    newAssigneeId: '',
-    outputUrl: '',
-    comment: ''
-  });
 
   // Reset kanban grouping when "All Projects" is selected
   React.useEffect(() => {
@@ -87,6 +81,13 @@ export default function TasksPage() {
       if (teamRes.ok) {
         const data = await teamRes.json();
         setTeamMembers(data.filter((t: any) => t.role?.toLowerCase() !== 'client'));
+      }
+
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      if (userRes.ok) {
+        const data = await userRes.json();
+        setCurrentUser(data);
       }
     } catch (e) {
       console.error(e);
@@ -227,37 +228,7 @@ export default function TasksPage() {
     }
   };
 
-  // Perform carry over handover
-  const handleCarryOver = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTask || !carryOverForm.newAssigneeId || !carryOverForm.outputUrl) return;
 
-    try {
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'carry_over',
-          taskId: selectedTask.id,
-          newAssigneeId: carryOverForm.newAssigneeId,
-          outputUrl: carryOverForm.outputUrl,
-          carryOverComment: carryOverForm.comment
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setIsCarryOverOpen(false);
-        setCarryOverForm({ newAssigneeId: '', outputUrl: '', comment: '' });
-        
-        // Open the newly spawned task details in workspace
-        setSelectedTask(data.newTask);
-        loadTasks();
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   // Retrieve current active project's stages
   const activeProjectObj = projects.find(p => p.id === selectedProjectId);
@@ -905,29 +876,7 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Carry Over Transition Button */}
-              {selectedTask.status !== 'COMPLETED' && (
-                <div className="border border-dashed border-zinc-800 p-3 bg-zinc-950/10 flex justify-between items-center">
-                  <div>
-                    <span className="block font-bold text-zinc-300">Successor carryover Handover</span>
-                    <span className="block text-[9px] text-zinc-550 mt-0.5">Route completed deliverables to the next stage specialist</span>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setCarryOverForm({
-                        newAssigneeId: '',
-                        outputUrl: '',
-                        comment: ''
-                      });
-                      setIsCarryOverOpen(true);
-                    }}
-                    className="h-7 bg-white text-zinc-950 hover:bg-zinc-200 text-[10px] rounded-none font-semibold flex items-center gap-1"
-                  >
-                    <span>Handover Stage</span>
-                    <Play className="h-3 w-3 fill-zinc-950" />
-                  </Button>
-                </div>
-              )}
+
 
               {/* Task Update Logs */}
               <div className="space-y-2 pt-2 border-t border-zinc-900">
@@ -998,86 +947,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* --- CARRY OVER / HANDOVER MODAL --- */}
-      {isCarryOverOpen && selectedTask && (
-        <div className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-850 w-full max-w-sm p-6 shadow-2xl relative">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Carry-over Task Handover</h3>
-              <button onClick={() => setIsCarryOverOpen(false)} className="text-zinc-550 hover:text-white">
-                <X className="h-4.5 w-4.5" />
-              </button>
-            </div>
 
-            <form onSubmit={handleCarryOver} className="space-y-4">
-              <div className="space-y-1">
-                <span className="text-zinc-550 block font-semibold text-[10px]">CURRENT DELIVERABLE:</span>
-                <span className="text-white block font-bold text-xs uppercase">{selectedTask.title}</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Deliverables/Outputs Link *</label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://drive.google.com/file/... or Figma link"
-                  value={carryOverForm.outputUrl}
-                  onChange={(e) => setCarryOverForm({ ...carryOverForm, outputUrl: e.target.value })}
-                  className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750 font-mono"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Assign Next-Stage Specialist *</label>
-                <select
-                  required
-                  value={carryOverForm.newAssigneeId}
-                  onChange={(e) => setCarryOverForm({ ...carryOverForm, newAssigneeId: e.target.value })}
-                  className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750"
-                >
-                  <option value="">-- Choose specialist --</option>
-                  {teamMembers
-                    .filter(t => t.id !== selectedTask.assignedToId)
-                    .map(m => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.role})
-                      </option>
-                    ))
-                  }
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Handover Notes</label>
-                <textarea
-                  rows={3}
-                  placeholder="Notes for the successor specialist..."
-                  value={carryOverForm.comment}
-                  onChange={(e) => setCarryOverForm({ ...carryOverForm, comment: e.target.value })}
-                  className="w-full text-xs bg-zinc-900 border border-zinc-800 p-2.5 text-white outline-none rounded-none focus:border-zinc-750"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsCarryOverOpen(false)}
-                  className="rounded-none text-xs text-zinc-500 hover:text-white"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-none text-xs font-semibold px-4"
-                >
-                  Confirm Handover
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

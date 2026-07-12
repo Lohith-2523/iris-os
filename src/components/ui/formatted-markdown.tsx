@@ -9,7 +9,7 @@ function renderInline(text: string) {
       return (
         <code 
           key={`code-${index}`} 
-          className="px-1.5 py-0.5 bg-zinc-800 text-zinc-200 font-mono text-[10px] border border-zinc-700/60 rounded-none inline-block align-middle"
+          className="px-1.5 py-0.5 bg-zinc-800 text-zinc-200 font-mono text-[10px] border border-zinc-700/60 rounded-md inline-block align-middle"
         >
           {part.slice(1, -1)}
         </code>
@@ -59,7 +59,7 @@ export function FormattedMarkdown({ text }: { text: string }) {
           return (
             <pre 
               key={`block-${blockIdx}`} 
-              className="p-3 bg-zinc-950 border border-zinc-850 text-zinc-300 font-mono text-[10px] rounded-none overflow-x-auto my-2"
+              className="p-3 bg-zinc-950 border border-zinc-850 text-zinc-300 font-mono text-[10px] rounded-md overflow-x-auto my-2"
             >
               <code>{codeLines}</code>
             </pre>

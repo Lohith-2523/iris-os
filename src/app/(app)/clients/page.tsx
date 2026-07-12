@@ -12,6 +12,7 @@ import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { formatUserMessage } from '@/lib/utils';
 import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
+import { ClientRevenueChart } from '@/components/clients/client-revenue-chart';
 
 export default function ClientsPage() {
   const [dbClients, setDbClients] = React.useState<any[]>([]);
@@ -169,7 +170,8 @@ export default function ClientsPage() {
       {/* Main Split */}
       <div className="grid gap-6 md:grid-cols-3">
         {/* Table of clients */}
-        <div className="md:col-span-2 space-y-4">
+        <div className="md:col-span-2 space-y-6">
+          <ClientRevenueChart />
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Active Accounts List</CardTitle>

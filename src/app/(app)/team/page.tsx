@@ -108,6 +108,38 @@ export default function TeamPage() {
     utilization: 80,
     projects: ''
   });
+  const [selectedAgencyTypes, setSelectedAgencyTypes] = React.useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = React.useState<string[]>([]);
+  const [onboardSuccessData, setOnboardSuccessData] = React.useState<any>(null);
+  const [orgAgencyTypes] = React.useState<string[]>([
+    'Digital Marketing Agency',
+    'Social Media Management Agency',
+    'SEO Agency',
+    'Paid Advertising Agency (PPC)',
+    'Brand Strategy & Positioning Agency',
+    'Graphic Design Agency',
+    'Brand Identity & Logo Design Agency',
+    'Content Marketing Agency',
+    'Video Production & Photography Agency',
+    'Web Design & Development Agency'
+  ]);
+  const [availableProjects, setAvailableProjects] = React.useState<any[]>([]);
+
+  // Load available projects
+  React.useEffect(() => {
+    async function loadProjects() {
+      try {
+        const projRes = await fetch('/api/projects');
+        if (projRes.ok) {
+          const projData = await projRes.json();
+          setAvailableProjects(projData);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadProjects();
+  }, []);
   const [singleFormError, setSingleFormError] = React.useState('');
 
   // --- TAB 2: EXISTING SPECIALIST ---
@@ -142,6 +174,9 @@ export default function TeamPage() {
     setIsAddModalOpen(false);
     setActiveTab('single');
     setSingleForm({ name: '', email: '', phone: '', role: 'Member Specialist', utilization: 80, projects: '' });
+    setSelectedAgencyTypes([]);
+    setSelectedProjects([]);
+    setOnboardSuccessData(null);
     setSelectedExistingId('');
     setExistingForm({ role: '', utilization: 80, projects: '' });
     setStagedUsers([]);
@@ -153,7 +188,7 @@ export default function TeamPage() {
   };
 
   // --- ADD SINGLE MEMBER HANDLER ---
-  const handleAddSingle = (e: React.FormEvent) => {
+  const handleAddSingle = async (e: React.FormEvent) => {
     e.preventDefault();
     setSingleFormError('');
     
@@ -168,24 +203,46 @@ export default function TeamPage() {
       return;
     }
 
-    if (teamList.some(u => u.email.toLowerCase() === singleForm.email.toLowerCase())) {
-      setSingleFormError('A team member with this email address already exists.');
+    if (selectedAgencyTypes.length === 0) {
+      setSingleFormError('Please select at least one Agency Type for this member.');
       return;
     }
 
-    const newMember = {
-      id: String(teamList.length + 1),
-      name: singleForm.name,
-      role: singleForm.role,
-      projects: singleForm.projects || 'None',
-      utilization: Number(singleForm.utilization) || 0,
-      status: singleForm.utilization >= 90 ? 'PEAK WORKLOAD' : 'EXCELLENT',
-      email: singleForm.email,
-      phone: singleForm.phone || 'N/A'
-    };
+    try {
+      const res = await fetch('/api/member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'invite_member',
+          name: singleForm.name,
+          email: singleForm.email,
+          phone: singleForm.phone,
+          agencyTypes: selectedAgencyTypes,
+          projects: selectedProjects
+        })
+      });
 
-    setTeamList([...teamList, newMember]);
-    closeModal();
+      if (res.ok) {
+        const data = await res.json();
+        setOnboardSuccessData({
+          simulatedEmail: data.simulatedEmail,
+          token: data.invite.token
+        });
+        
+        // Reload team list
+        const teamRes = await fetch('/api/data?domain=team');
+        if (teamRes.ok) {
+          const freshTeam = await teamRes.json();
+          setTeamList(freshTeam);
+        }
+      } else {
+        const err = await res.json();
+        setSingleFormError(err.error || 'Failed to onboard new specialist.');
+      }
+    } catch (e) {
+      console.error(e);
+      setSingleFormError('Network communication error.');
+    }
   };
 
   // --- REASSIGN EXISTING MEMBER HANDLER ---
@@ -458,7 +515,7 @@ export default function TeamPage() {
           <p className="text-xs text-zinc-500">Monitor team member utilization, capacities, billable hours, and hiring recommendations.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="h-8 border-zinc-800 text-zinc-300 gap-1.5 rounded-none">
+          <Button variant="outline" size="sm" className="h-8 border-zinc-800 text-zinc-300 gap-1.5 rounded-md">
             <Filter className="h-3.5 w-3.5" />
             <span>Filter Team</span>
           </Button>
@@ -466,7 +523,7 @@ export default function TeamPage() {
             variant="default"
             size="sm"
             onClick={() => setIsAddModalOpen(true)}
-            className="h-8 gap-1.5 font-semibold rounded-none bg-white text-zinc-950 hover:bg-zinc-200"
+            className="h-8 gap-1.5 font-semibold rounded-md bg-white text-zinc-950 hover:bg-zinc-200"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add Member</span>
@@ -476,7 +533,7 @@ export default function TeamPage() {
 
       {/* Metric Cards Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card hoverEffect className="rounded-none">
+        <Card hoverEffect className="rounded-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Headcount</CardTitle>
             <UserCheck className="h-4 w-4 text-zinc-500" />
@@ -489,7 +546,7 @@ export default function TeamPage() {
           </CardContent>
         </Card>
 
-        <Card hoverEffect className="rounded-none">
+        <Card hoverEffect className="rounded-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Average Utilization</CardTitle>
             <Zap className="h-4 w-4 text-zinc-500" />
@@ -503,7 +560,7 @@ export default function TeamPage() {
           </CardContent>
         </Card>
 
-        <Card hoverEffect className="rounded-none">
+        <Card hoverEffect className="rounded-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Billable Target</CardTitle>
             <UserCheck className="h-4 w-4 text-zinc-500" />
@@ -517,7 +574,7 @@ export default function TeamPage() {
           </CardContent>
         </Card>
 
-        <Card hoverEffect className="rounded-none">
+        <Card hoverEffect className="rounded-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Hiring Status</CardTitle>
             <Zap className="h-4 w-4 text-rose-400" />
@@ -537,7 +594,7 @@ export default function TeamPage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Team Table */}
         <div className="md:col-span-2 space-y-4">
-          <Card className="rounded-none">
+          <Card className="rounded-md">
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Resource Allocation Matrix</CardTitle>
               <CardDescription>Workload statistics and project assignments for internal staff.</CardDescription>
@@ -576,7 +633,7 @@ export default function TeamPage() {
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-2">
                           <span className="font-mono text-xs text-white font-semibold">{t.utilization}%</span>
-                          <div className="h-1.5 w-12 bg-zinc-800 rounded-none overflow-hidden">
+                          <div className="h-1.5 w-12 bg-zinc-800 rounded-full overflow-hidden">
                             <div
                               style={{ width: `${t.utilization}%` }}
                               className={cn(
@@ -588,7 +645,7 @@ export default function TeamPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={t.status === 'EXCELLENT' ? 'risk-low' : 'outline'} className="rounded-none">
+                        <Badge variant={t.status === 'EXCELLENT' ? 'risk-low' : 'outline'} className="rounded-md">
                           {t.status}
                         </Badge>
                       </TableCell>
@@ -612,7 +669,7 @@ export default function TeamPage() {
             {formatUserMessage(`Lohith, our design team is currently working at high workloads. We have ${overallocatedCount} resources over-allocated (above 90% utilization threshold). Adding a resource or re-assigning roles will help reduce peak stress bounds.`)}
           </InsightPanel>
 
-          <Card className="rounded-none">
+          <Card className="rounded-md">
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Utilization Thresholds</CardTitle>
             </CardHeader>
@@ -637,7 +694,7 @@ export default function TeamPage() {
       {/* --- ADD MEMBER SLIDE OVER / MODAL DIALOG --- */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-800 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-none shadow-2xl relative">
+          <div className="bg-zinc-950 border border-zinc-800 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-lg shadow-2xl relative">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
@@ -647,7 +704,7 @@ export default function TeamPage() {
               </div>
               <button 
                 onClick={closeModal}
-                className="text-zinc-500 hover:text-white border border-zinc-900 hover:border-zinc-800 p-1.5 transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white border border-zinc-900 hover:border-zinc-800 p-1.5 transition-colors cursor-pointer rounded-md"
               >
                 <X className="h-4.5 w-4.5" />
               </button>
@@ -689,96 +746,181 @@ export default function TeamPage() {
               
               {/* TAB 1: SINGLE PROFILE */}
               {activeTab === 'single' && (
-                <form onSubmit={handleAddSingle} className="space-y-4">
-                  {singleFormError && (
-                    <div className="bg-rose-950/30 border border-rose-900/50 p-3 flex items-center gap-2 text-xs text-rose-400">
-                      <AlertTriangle className="h-4 w-4 shrink-0" />
-                      <span>{singleFormError}</span>
+                onboardSuccessData ? (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="bg-emerald-950/30 border border-emerald-900/50 p-4 rounded text-xs space-y-3">
+                      <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                        <Check className="h-5 w-5" />
+                        <span>Specialist Onboarding Initialized Successfully!</span>
+                      </div>
+                      <p className="text-zinc-400">
+                        An onboarding invitation email has been dispatch-logged. The member can use the secure link below to set their password or link their Google login credentials.
+                      </p>
                     </div>
-                  )}
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Full Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={singleForm.name}
-                        onChange={(e) => setSingleForm({ ...singleForm, name: e.target.value })}
-                        placeholder="e.g. Aditi Sharma"
-                        className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-mono"
-                      />
+                    <div className="border border-zinc-900 bg-zinc-950 p-4 space-y-2 rounded">
+                      <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono block">Simulated Outbox Message</span>
+                      <pre className="text-[10px] text-zinc-400 font-mono whitespace-pre-wrap leading-relaxed bg-zinc-900/40 p-3 border border-zinc-900 overflow-x-auto max-h-[250px]">
+                        {onboardSuccessData.simulatedEmail}
+                      </pre>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Email Address *</label>
-                      <input
-                        type="email"
-                        required
-                        value={singleForm.email}
-                        onChange={(e) => setSingleForm({ ...singleForm, email: e.target.value })}
-                        placeholder="e.g. aditi@apex.co"
-                        className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-mono"
-                      />
+
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={`http://localhost:3000/onboarding/member?token=${onboardSuccessData.token}`}
+                          className="bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-[10px] font-mono text-zinc-450 w-[320px] outline-none"
+                        />
+                        <Button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`http://localhost:3000/onboarding/member?token=${onboardSuccessData.token}`);
+                            alert('Onboarding link copied to clipboard!');
+                          }}
+                          className="bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] px-3 font-semibold"
+                        >
+                          Copy Link
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={closeModal}
+                        className="bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-semibold px-4"
+                      >
+                        Close
+                      </Button>
                     </div>
                   </div>
+                ) : (
+                  <form onSubmit={handleAddSingle} className="space-y-4">
+                    {singleFormError && (
+                      <div className="bg-rose-950/30 border border-rose-900/50 p-3 flex items-center gap-2 text-xs text-rose-400">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        <span>{singleFormError}</span>
+                      </div>
+                    )}
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Phone Number</label>
-                      <input
-                        type="text"
-                        value={singleForm.phone}
-                        onChange={(e) => setSingleForm({ ...singleForm, phone: e.target.value })}
-                        placeholder="e.g. +91 99887 76655"
-                        className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-mono"
-                      />
+                    {/* Basic Details: Name, Email, Phone */}
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Full Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={singleForm.name}
+                          onChange={(e) => setSingleForm({ ...singleForm, name: e.target.value })}
+                          placeholder="e.g. Vikram Patel"
+                          className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Email Address *</label>
+                        <input
+                          type="email"
+                          required
+                          value={singleForm.email}
+                          onChange={(e) => setSingleForm({ ...singleForm, email: e.target.value })}
+                          placeholder="e.g. vikram@apex.co"
+                          className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Phone Number</label>
+                        <input
+                          type="text"
+                          value={singleForm.phone}
+                          onChange={(e) => setSingleForm({ ...singleForm, phone: e.target.value })}
+                          placeholder="e.g. +91 98765 43210"
+                          className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md font-mono"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Core Role / Title</label>
-                      <input
-                        type="text"
-                        value={singleForm.role}
-                        onChange={(e) => setSingleForm({ ...singleForm, role: e.target.value })}
-                        placeholder="e.g. UI/UX Specialist"
-                        className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-mono"
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Allocation Projects</label>
-                      <input
-                        type="text"
-                        value={singleForm.projects}
-                        onChange={(e) => setSingleForm({ ...singleForm, projects: e.target.value })}
-                        placeholder="e.g. Canva Hub, Solaria"
-                        className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-mono"
-                      />
+                    {/* Work-Related details: Agency Types selection */}
+                    <div className="space-y-2 border-t border-zinc-900 pt-3">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
+                        Assign Agency Types (Select at least one) *
+                      </label>
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        {orgAgencyTypes.map((type) => {
+                          const isChecked = selectedAgencyTypes.includes(type);
+                          return (
+                            <label
+                              key={type}
+                              className={`flex items-center gap-2.5 p-2.5 border transition-all cursor-pointer rounded-md select-none text-[11px] ${
+                                isChecked 
+                                  ? 'bg-zinc-900 border-zinc-700 text-white' 
+                                  : 'bg-zinc-950/20 border-zinc-900 text-zinc-500 hover:border-zinc-800'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedAgencyTypes([...selectedAgencyTypes, type]);
+                                  } else {
+                                    setSelectedAgencyTypes(selectedAgencyTypes.filter(t => t !== type));
+                                  }
+                                }}
+                                className="h-3.5 w-3.5 accent-white cursor-pointer"
+                              />
+                              <span>{type}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Utilization Rate ({singleForm.utilization}%)</label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={singleForm.utilization}
-                        onChange={(e) => setSingleForm({ ...singleForm, utilization: Number(e.target.value) })}
-                        className="w-full bg-zinc-800 h-1 accent-white"
-                      />
-                    </div>
-                  </div>
 
-                  <div className="pt-4 flex justify-end">
-                    <Button 
-                      type="submit" 
-                      className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-none text-xs font-semibold px-6"
-                    >
-                      Allocate New Profile
-                    </Button>
-                  </div>
-                </form>
+                    {/* Project Allocation checkboxes */}
+                    <div className="space-y-2 border-t border-zinc-900 pt-3">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
+                        Assign Member to active projects
+                      </label>
+                      <div className="grid gap-2 sm:grid-cols-3 max-h-[120px] overflow-y-auto pr-1">
+                        {availableProjects.map((proj) => {
+                          const isChecked = selectedProjects.includes(proj.id);
+                          return (
+                            <label
+                              key={proj.id}
+                              className={`flex items-center gap-2 p-2 border transition-all cursor-pointer select-none text-[10px] rounded-md ${
+                                isChecked 
+                                  ? 'bg-zinc-900 border-zinc-700 text-white' 
+                                  : 'bg-zinc-950/10 border-zinc-900 text-zinc-500 hover:border-zinc-850'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedProjects([...selectedProjects, proj.id]);
+                                  } else {
+                                    setSelectedProjects(selectedProjects.filter(p => p !== proj.id));
+                                  }
+                                }}
+                                className="h-3.5 w-3.5 accent-white cursor-pointer"
+                              />
+                              <span className="truncate">{proj.name}</span>
+                            </label>
+                          );
+                        })}
+                        {availableProjects.length === 0 && (
+                          <span className="text-zinc-600 italic block text-[10px] py-1">No active projects available.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex justify-end">
+                      <Button 
+                        type="submit" 
+                        className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-md text-xs font-semibold px-6 cursor-pointer"
+                      >
+                        Initialize Onboarding On Team Member
+                      </Button>
+                    </div>
+                  </form>
+                )
               )}
 
               {/* TAB 2: EXISITING SPECIALIST ALLOCATION */}
@@ -797,7 +939,7 @@ export default function TeamPage() {
                       required
                       value={selectedExistingId}
                       onChange={(e) => setSelectedExistingId(e.target.value)}
-                      className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-sans"
+                      className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md font-sans"
                     >
                       <option value="">-- Choose Specialist Profile --</option>
                       {MOCK_EXISTING_SPECIALISTS.map(spec => (
@@ -817,7 +959,7 @@ export default function TeamPage() {
                             type="text"
                             value={existingForm.role}
                             onChange={(e) => setExistingForm({ ...existingForm, role: e.target.value })}
-                            className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-mono"
+                            className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md font-mono"
                           />
                         </div>
                         <div className="space-y-1.5">
@@ -826,7 +968,7 @@ export default function TeamPage() {
                             type="text"
                             value={existingForm.projects}
                             onChange={(e) => setExistingForm({ ...existingForm, projects: e.target.value })}
-                            className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-none font-mono"
+                            className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md font-mono"
                           />
                         </div>
                       </div>
@@ -850,7 +992,7 @@ export default function TeamPage() {
                     <Button 
                       type="submit"
                       disabled={!selectedExistingId}
-                      className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-none text-xs font-semibold px-6 disabled:opacity-50"
+                      className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-md text-xs font-semibold px-6 disabled:opacity-50"
                     >
                       Re-allocate Active Specialist
                     </Button>
@@ -862,7 +1004,7 @@ export default function TeamPage() {
               {activeTab === 'batch' && (
                 <div className="space-y-6">
                   {/* Template download header row */}
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-zinc-950/40 p-4 border border-zinc-900">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between bg-zinc-950/40 p-4 border border-zinc-900 rounded-md">
                     <div>
                       <span className="block text-xs font-bold text-white uppercase tracking-wider">Download Imports System Template</span>
                       <span className="text-[10px] text-zinc-500 mt-1 block">Templates contain unique headers required for aligned imports.</span>
@@ -872,7 +1014,7 @@ export default function TeamPage() {
                         type="button"
                         variant="outline"
                         onClick={downloadCsvTemplate}
-                        className="h-8 text-[10px] font-semibold uppercase tracking-wider rounded-none gap-1 border-zinc-800"
+                        className="h-8 text-[10px] font-semibold uppercase tracking-wider rounded-md gap-1 border-zinc-800"
                       >
                         <Download className="h-3 w-3" />
                         <span>CSV Template</span>
@@ -881,7 +1023,7 @@ export default function TeamPage() {
                         type="button"
                         variant="outline"
                         onClick={downloadXlsxTemplate}
-                        className="h-8 text-[10px] font-semibold uppercase tracking-wider rounded-none gap-1 border-zinc-800"
+                        className="h-8 text-[10px] font-semibold uppercase tracking-wider rounded-md gap-1 border-zinc-800"
                       >
                         <Download className="h-3 w-3" />
                         <span>XLSX Template</span>
@@ -894,7 +1036,7 @@ export default function TeamPage() {
                     <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Upload Spreadsheet</label>
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border border-dashed border-zinc-850 bg-zinc-950/20 hover:bg-zinc-950/50 hover:border-zinc-800 p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                      className="border border-dashed border-zinc-850 bg-zinc-950/20 hover:bg-zinc-950/50 hover:border-zinc-800 p-8 text-center cursor-pointer rounded-md transition-all flex flex-col items-center justify-center gap-2 group"
                     >
                       <input
                         type="file"
@@ -913,19 +1055,19 @@ export default function TeamPage() {
 
                   {/* Status Indicator Alerts */}
                   {isParsing && (
-                    <div className="bg-zinc-950 border border-zinc-900 p-4 text-xs text-zinc-400 flex items-center justify-between rounded-none animate-pulse">
+                    <div className="bg-zinc-950 border border-zinc-900 p-4 text-xs text-zinc-400 flex items-center justify-between rounded-md animate-pulse">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 text-white animate-spin" />
                         <span>Analyzing layout format. Running Prism AI extraction pipelines...</span>
                       </div>
-                      <Badge variant="outline" className="text-[9px] bg-zinc-900 border-zinc-800 text-zinc-400 rounded-none uppercase">
+                      <Badge variant="outline" className="text-[9px] bg-zinc-900 border-zinc-800 text-zinc-400 rounded-md uppercase">
                         AI Processing
                       </Badge>
                     </div>
                   )}
 
                   {errorMsg && (
-                    <div className="team-alert-danger bg-rose-950/30 border border-rose-900/50 p-3 flex items-center gap-2 text-xs text-rose-400 rounded-none">
+                    <div className="team-alert-danger bg-rose-950/30 border border-rose-900/50 p-3 flex items-center gap-2 text-xs text-rose-400 rounded-md">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       <span>{errorMsg}</span>
                     </div>
@@ -935,7 +1077,7 @@ export default function TeamPage() {
                     <div className="space-y-4">
                       {/* Alignment Badge Alert */}
                       <div className={cn(
-                        "p-3.5 border text-xs flex items-center justify-between rounded-none",
+                        "p-3.5 border text-xs flex items-center justify-between rounded-md",
                         isTemplateAligned
                           ? "team-alert-success bg-emerald-950/30 border-emerald-900/50 text-emerald-400"
                           : "team-alert-warning bg-amber-950/30 border-amber-900/50 text-amber-400"
@@ -953,13 +1095,13 @@ export default function TeamPage() {
                             </span>
                           </div>
                         </div>
-                        <Badge variant={isTemplateAligned ? "risk-low" : "default"} className="text-[9px] uppercase rounded-none tracking-wider">
+                        <Badge variant={isTemplateAligned ? "risk-low" : "default"} className="text-[9px] uppercase rounded-md tracking-wider">
                           {isTemplateAligned ? 'Aligned' : 'AI Extracted'}
                         </Badge>
                       </div>
 
                       {/* Staging Preview Table (Fully Editable) */}
-                      <div className="border border-zinc-900 bg-zinc-950">
+                      <div className="border border-zinc-900 bg-zinc-950 rounded-md overflow-hidden">
                         <div className="px-4 py-3 border-b border-zinc-900 flex justify-between items-center">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Extracted Specialists Review Table</span>
                           <span className="text-[9px] text-zinc-500 font-semibold font-mono">Editable Staging List</span>
@@ -984,7 +1126,7 @@ export default function TeamPage() {
                                       type="text"
                                       value={user.name}
                                       onChange={(e) => handleStagedChange(idx, 'name', e.target.value)}
-                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-none font-sans font-semibold"
+                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-md font-sans font-semibold"
                                     />
                                   </TableCell>
                                   <TableCell className="p-2">
@@ -992,7 +1134,7 @@ export default function TeamPage() {
                                       type="email"
                                       value={user.email}
                                       onChange={(e) => handleStagedChange(idx, 'email', e.target.value)}
-                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-none font-mono"
+                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-md font-mono"
                                     />
                                   </TableCell>
                                   <TableCell className="p-2">
@@ -1000,7 +1142,7 @@ export default function TeamPage() {
                                       type="text"
                                       value={user.role}
                                       onChange={(e) => handleStagedChange(idx, 'role', e.target.value)}
-                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-none font-sans"
+                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-md font-sans"
                                     />
                                   </TableCell>
                                   <TableCell className="p-2">
@@ -1008,7 +1150,7 @@ export default function TeamPage() {
                                       type="number"
                                       value={user.utilization}
                                       onChange={(e) => handleStagedChange(idx, 'utilization', Number(e.target.value))}
-                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-none font-mono"
+                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-md font-mono"
                                     />
                                   </TableCell>
                                   <TableCell className="p-2">
@@ -1016,14 +1158,14 @@ export default function TeamPage() {
                                       type="text"
                                       value={user.projects}
                                       onChange={(e) => handleStagedChange(idx, 'projects', e.target.value)}
-                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-none font-sans"
+                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-md font-sans"
                                     />
                                   </TableCell>
                                   <TableCell className="p-2 text-right">
                                     <button
                                       type="button"
                                       onClick={() => removeStagedUser(idx)}
-                                      className="text-zinc-500 hover:text-rose-400 p-1 border border-transparent hover:border-zinc-900 transition-colors"
+                                      className="text-zinc-500 hover:text-rose-400 p-1 border border-transparent hover:border-zinc-900 transition-colors rounded-md"
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </button>
@@ -1041,14 +1183,14 @@ export default function TeamPage() {
                           type="button"
                           variant="ghost"
                           onClick={() => setStagedUsers([])}
-                          className="rounded-none text-xs text-zinc-500 hover:text-white"
+                          className="rounded-md text-xs text-zinc-500 hover:text-white"
                         >
                           Clear Import
                         </Button>
                         <Button
                           type="button"
                           onClick={handleImportStaged}
-                          className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-none text-xs font-semibold px-6 flex items-center gap-1.5"
+                          className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-md text-xs font-semibold px-6 flex items-center gap-1.5"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           <span>Import Allocated Specialists ({stagedUsers.length})</span>
@@ -1079,7 +1221,7 @@ export default function TeamPage() {
               </div>
               <button
                 onClick={() => setSelectedMember(null)}
-                className="text-zinc-500 hover:text-white border border-zinc-900 hover:border-zinc-800 p-1.5 transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white border border-zinc-900 hover:border-zinc-800 p-1.5 transition-colors cursor-pointer rounded-md"
               >
                 <X className="h-4.5 w-4.5" />
               </button>
@@ -1095,7 +1237,7 @@ export default function TeamPage() {
                   <span>Loading specialist tasks...</span>
                 </div>
               ) : memberTasks.length === 0 ? (
-                <div className="p-8 border border-dashed border-zinc-900 text-center text-zinc-650 italic">
+                <div className="p-8 border border-dashed border-zinc-900 text-center text-zinc-650 italic rounded-md">
                   No tasks assigned to this specialist.
                 </div>
               ) : (
@@ -1103,7 +1245,7 @@ export default function TeamPage() {
                   {memberTasks.map((task) => {
                     const isEditing = editingTaskId === task.id;
                     return (
-                      <div key={task.id} className="border border-zinc-900 bg-zinc-950/20 p-4 space-y-3">
+                      <div key={task.id} className="border border-zinc-900 bg-zinc-950/20 p-4 space-y-3 rounded-md">
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block font-sans">{task.client?.name}</span>
@@ -1122,7 +1264,7 @@ export default function TeamPage() {
                                   ? 'risk-medium'
                                   : 'outline'
                               }
-                              className="rounded-none uppercase tracking-wider text-[8px]"
+                              className="rounded-md uppercase tracking-wider text-[8px]"
                             >
                               {task.status}
                             </Badge>
@@ -1137,7 +1279,7 @@ export default function TeamPage() {
                                     update: task.update || ''
                                   });
                                 }}
-                                className="text-zinc-500 hover:text-white p-1 border border-zinc-900 hover:border-zinc-800 transition-colors cursor-pointer"
+                                className="text-zinc-500 hover:text-white p-1 border border-zinc-900 hover:border-zinc-800 transition-colors cursor-pointer rounded-md"
                               >
                                 <Edit2 className="h-3 w-3" />
                               </button>
@@ -1151,10 +1293,10 @@ export default function TeamPage() {
                             <span>Task Progress</span>
                             <span>{task.progress}%</span>
                           </div>
-                          <div className="h-1 bg-zinc-900 overflow-hidden">
+                          <div className="h-1.5 bg-zinc-900 overflow-hidden rounded-full">
                             <div
                               style={{ width: `${task.progress}%` }}
-                              className={`h-full ${
+                              className={`h-full rounded-full ${
                                 task.status === 'COMPLETED'
                                   ? 'bg-emerald-500'
                                   : task.status === 'BLOCKED'
@@ -1167,14 +1309,14 @@ export default function TeamPage() {
 
                         {/* Inline Task Edit Section */}
                         {isEditing && (
-                          <div className="border border-zinc-850 bg-zinc-955 p-3 space-y-3 text-xs">
+                          <div className="border border-zinc-850 bg-zinc-955 p-3 space-y-3 text-xs rounded-md">
                             <div className="grid gap-2 grid-cols-2">
                               <div className="space-y-1">
                                 <label className="text-[9px] uppercase tracking-wider text-zinc-500">Status</label>
                                 <select
                                   value={taskEditForm.status}
                                   onChange={(e) => setTaskEditForm(prev => ({ ...prev, status: e.target.value }))}
-                                  className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-none"
+                                  className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-md"
                                 >
                                   <option value="TODO">To Do</option>
                                   <option value="IN_PROGRESS">In Progress</option>
@@ -1204,7 +1346,7 @@ export default function TeamPage() {
                                   placeholder="Describe the blocker..."
                                   value={taskEditForm.blocker}
                                   onChange={(e) => setTaskEditForm(prev => ({ ...prev, blocker: e.target.value }))}
-                                  className="w-full text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-none"
+                                  className="w-full text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-md"
                                 />
                               </div>
                             )}
@@ -1212,11 +1354,11 @@ export default function TeamPage() {
                             <div className="space-y-1">
                               <label className="text-[9px] uppercase tracking-wider text-zinc-500 block">Recent Update</label>
                               <input
-                                type="text"
-                                placeholder="Log progress update..."
-                                value={taskEditForm.update}
-                                onChange={(e) => setTaskEditForm(prev => ({ ...prev, update: e.target.value }))}
-                                className="w-full text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-none"
+                                  type="text"
+                                  placeholder="Log progress update..."
+                                  value={taskEditForm.update}
+                                  onChange={(e) => setTaskEditForm(prev => ({ ...prev, update: e.target.value }))}
+                                  className="w-full text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-md"
                               />
                             </div>
 
@@ -1225,7 +1367,7 @@ export default function TeamPage() {
                                 type="button"
                                 variant="ghost"
                                 onClick={() => setEditingTaskId(null)}
-                                className="h-6 text-[9px] rounded-none px-2 text-zinc-500 hover:text-white"
+                                className="h-6 text-[9px] rounded-md px-2 text-zinc-500 hover:text-white"
                               >
                                 Cancel
                               </Button>
@@ -1253,7 +1395,7 @@ export default function TeamPage() {
                                     console.error(e);
                                   }
                                 }}
-                                className="h-6 text-[9px] rounded-none px-3 bg-white text-zinc-950 hover:bg-zinc-200"
+                                className="h-6 text-[9px] rounded-md px-3 bg-white text-zinc-950 hover:bg-zinc-200"
                               >
                                 Save Updates
                               </Button>
@@ -1262,13 +1404,13 @@ export default function TeamPage() {
                         )}
 
                         {!isEditing && task.status === 'BLOCKED' && task.blocker && (
-                          <div className="bg-rose-955/10 border border-rose-950/40 p-2 text-[10px] text-rose-400 flex items-start gap-1.5">
+                          <div className="bg-rose-955/10 border border-rose-950/40 p-2 text-[10px] text-rose-450 flex items-start gap-1.5 rounded-md">
                             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                             <span><strong>Blocker:</strong> {task.blocker}</span>
                           </div>
                         )}
                         {!isEditing && task.update && (
-                          <div className="bg-zinc-955 p-2 text-[10px] text-zinc-450 border border-zinc-900 flex items-start gap-1.5">
+                          <div className="bg-zinc-955 p-2 text-[10px] text-zinc-450 border border-zinc-900 flex items-start gap-1.5 rounded-md">
                             <Activity className="h-3.5 w-3.5 text-zinc-650 shrink-0" />
                             <span><strong>Latest Update:</strong> {task.update}</span>
                           </div>

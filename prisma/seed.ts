@@ -148,8 +148,19 @@ async function main() {
     data: {
       email: 'david.k@apex.co',
       name: 'David Kim',
-      role: 'admin', // Lead Designer
+      role: 'member', // Lead Designer / Member
       avatarUrl: '/avatars/david.png',
+      orgId: org.id,
+    },
+  });
+
+  const testMember = await prisma.user.create({
+    data: {
+      email: 'member@apex.co',
+      name: 'Test Member',
+      role: 'member',
+      phone: '+91 99999 88888',
+      agencyTypes: ['Digital Marketing Agency', 'SEO Agency'],
       orgId: org.id,
     },
   });
@@ -720,7 +731,7 @@ async function main() {
       fullName: 'Sarah Jenkins',
       email: 'sarah@aethertech.com',
       phone: '+1-555-0199',
-      status: 'new',
+      status: 'procured',
       createdTime: new Date('2026-06-18T10:30:00Z'),
       collectionMethod: 'Facebook Lead Form',
       approachMethod: 'Cold Email',
@@ -737,7 +748,7 @@ async function main() {
       fullName: 'Marcus Thorne',
       email: 'marcus.t@vertex.retail',
       phone: '+1-555-0182',
-      status: 'cold-call in progress',
+      status: 'warm',
       createdTime: new Date('2026-06-18T14:45:00Z'),
       collectionMethod: 'LinkedIn InMail',
       approachMethod: 'LinkedIn message',
@@ -754,7 +765,7 @@ async function main() {
       fullName: 'Elena Rostova',
       email: 'elena@pulsemedia.io',
       phone: '+1-555-0174',
-      status: 'call back required',
+      status: 'cold',
       createdTime: new Date('2026-06-19T09:15:00Z'),
       collectionMethod: 'Website Chatbot',
       approachMethod: 'Cold Call',
@@ -788,7 +799,7 @@ async function main() {
       fullName: 'Aria Montgomery',
       email: 'aria@aethertech.com',
       phone: '+1-555-0155',
-      status: 'new',
+      status: 'procured',
       createdTime: new Date('2026-06-20T08:05:00Z'),
       collectionMethod: 'Facebook Lead Form',
       approachMethod: 'Cold Email',
@@ -805,7 +816,7 @@ async function main() {
       fullName: 'John Doe',
       email: 'john.doe@unknown.com',
       phone: '+1-555-0144',
-      status: 'unqualified',
+      status: 'lost',
       createdTime: new Date('2026-06-20T11:50:00Z'),
       collectionMethod: 'Website Chatbot',
       approachMethod: 'Cold Email',
@@ -822,7 +833,7 @@ async function main() {
       fullName: 'Chloe Frazer',
       email: 'chloe@pulsemedia.io',
       phone: '+1-555-0133',
-      status: 'cold-call in progress',
+      status: 'warm',
       createdTime: new Date('2026-06-20T14:10:00Z'),
       collectionMethod: 'Website Chatbot',
       approachMethod: 'Cold Call',

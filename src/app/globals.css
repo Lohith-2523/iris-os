@@ -102,23 +102,18 @@
   --color-platinum: #f4f4f5;
   --color-chrome: #a1a1aa;
 
-  /* Force all Tailwind theme border radius variables to flat 0px */
-  --radius-lg: 0px;
-  --radius-md: 0px;
-  --radius-sm: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-full: 0px;
+  /* Standard Tailwind theme border radius variables */
+  --radius-lg: 0.5rem;
+  --radius-md: 0.375rem;
+  --radius-sm: 0.25rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-full: 9999px;
 
   /* Custom typography configuration linking Clash Display and Space Grotesk */
   --font-sans: var(--font-space-grotesk), 'Space Grotesk', 'Sansation', system-ui, -apple-system, sans-serif;
   --font-heading: 'Clash Display', sans-serif;
-}
-
-/* Global Border-Radius override for absolute compliance (applies to buttons, inputs, cards, avatars, etc.) */
-* {
-  border-radius: 0px !important;
 }
 
 body {
@@ -189,6 +184,11 @@ h1, h2, h3, h4, h5, h6, .silver-text-gradient {
   .bg-\[\#0d0e15\],
   .bg-\[\#121215\],
   .bg-zinc-900,
+  .bg-zinc-900\/90,
+  .bg-zinc-900\/85,
+  .bg-zinc-900\/60,
+  .bg-zinc-900\/65,
+  .bg-zinc-900\/35,
   .bg-zinc-900\/40,
   .bg-zinc-900\/50,
   .bg-zinc-900\/20,
@@ -267,7 +267,12 @@ h1, h2, h3, h4, h5, h6, .silver-text-gradient {
   .border-zinc-850,
   .border-zinc-900,
   .border-zinc-800\/60,
-  .border-zinc-800\/80 {
+  .border-zinc-800\/80,
+  .border-zinc-805,
+  .border-zinc-800\/30,
+  .border-zinc-900\/40,
+  .border-zinc-900\/60,
+  .border-zinc-900\/65 {
     border-color: var(--border) !important;
   }
 

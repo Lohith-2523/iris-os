@@ -22,11 +22,15 @@ import {
   CreditCard,
   Blocks,
   Key,
-  Upload
+  Upload,
+  Sparkles
 } from 'lucide-react';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { formatCurrency, formatUserMessage } from '@/lib/utils';
+import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
+import { ExpandableCard } from '@/components/ui/expandable-card';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const PAYPAL_CHARGES = [
   { id: 'pp_txn_101', email: 'payer1@aether.com', method: 'express_checkout', amount: 250, status: 'completed', createdAt: 'June 26, 2026' },
@@ -68,6 +72,26 @@ export default function FinancePage() {
   const [formAmount, setFormAmount] = React.useState('');
   const [formReferenceNumber, setFormReferenceNumber] = React.useState('');
   const [formComments, setFormComments] = React.useState('');
+  const [formCategory, setFormCategory] = React.useState('Expense');
+  const [timeFrame, setTimeFrame] = React.useState('All Time');
+
+  // Custom report states
+  const [reportXAxis, setReportXAxis] = React.useState('Client');
+  const [reportYAxis, setReportYAxis] = React.useState('Revenue');
+  const [reportTimeframe, setReportTimeframe] = React.useState('All Time');
+  const reportRef = React.useRef<HTMLDivElement>(null);
+
+  const isInTimeFrame = React.useCallback((dateString: string) => {
+    if (timeFrame === 'All Time' || !dateString) return true;
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return true;
+    const diffDays = (new Date().getTime() - d.getTime()) / (1000 * 3600 * 24);
+    if (timeFrame === 'Monthly') return diffDays <= 30;
+    if (timeFrame === 'Quarterly') return diffDays <= 90;
+    if (timeFrame === 'Yearly') return diffDays <= 365;
+    return true;
+  }, [timeFrame]);
+
 
   const fetchManualTransactions = React.useCallback(async () => {
     setLoadingManual(true);
@@ -121,6 +145,7 @@ export default function FinancePage() {
         body: JSON.stringify({
           date: formDate,
           details: formDetails,
+          category: formCategory,
           type: formType,
           transactorAccount: formTransactorAccount,
           yourAccount: formYourAccount || 'Manual Entry',
@@ -133,6 +158,7 @@ export default function FinancePage() {
       if (res.ok) {
         // Reset form
         setFormDetails('');
+        setFormCategory('Expense');
         setFormTransactorAccount('');
         setFormAmount('');
         setFormReferenceNumber('');
@@ -370,49 +396,59 @@ export default function FinancePage() {
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {
-    const baseGross = dbData?.grossBillings ?? 124500;
-    const baseOutstanding = dbData?.outstandingAmount ?? 27000;
-    const baseExpenses = dbData?.totalExpenses ?? 42300;
+    let scale = 1;
+    if (timeFrame === 'Monthly') scale = 1/12;
+    if (timeFrame === 'Quarterly') scale = 3/12;
+
+    const baseGross = (dbData?.grossBillings ?? 124500) * scale;
+    const baseOutstanding = (dbData?.outstandingAmount ?? 27000) * scale;
+    const baseExpenses = (dbData?.totalExpenses ?? 42300) * scale;
 
     let stripeGross = 0;
     let stripeExpenses = 0;
     let stripeOutstanding = 0;
-    if (isStripeConnected && stripeData?.stats) {
-      stripeGross = stripeData.stats.totalVolume || 0;
-      stripeExpenses = stripeGross * 0.029; // 2.9% stripe fee
-      stripeOutstanding = (stripeData.stats.failedCount || 0) * 220; // estimate failure amount
+    if (isStripeConnected && stripeData?.payments) {
+      stripeData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
+        stripeGross += p.amount;
+        if (p.status === 'failed') stripeOutstanding += p.amount;
+      });
+      stripeExpenses = stripeGross * 0.029;
     }
 
     let paypalGross = 0;
     let paypalExpenses = 0;
     let paypalOutstanding = 0;
-    if (isPaypalConnected && paypalData?.stats) {
-      paypalGross = paypalData.stats.totalVolume || 0;
-      paypalExpenses = paypalGross * 0.033; // 3.3% paypal fee
-      paypalOutstanding = (paypalData.stats.failedCount || 0) * 300; // refunded/failed paypal transaction
+    if (isPaypalConnected && paypalData?.payments) {
+      paypalData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
+        paypalGross += p.amount;
+        if (p.status === 'failed') paypalOutstanding += p.amount;
+      });
+      paypalExpenses = paypalGross * 0.033;
     }
 
     let razorpayGross = 0;
     let razorpayExpenses = 0;
     let razorpayOutstanding = 0;
-    if (isRazorpayConnected && razorpayData?.stats) {
-      const rzpGrossINR = razorpayData.stats.totalVolume || 0;
-      const rzpFailedCount = razorpayData.stats.failedCount || 0;
-      const rzpAovINR = razorpayData.stats.aov || 0;
-
-      // Convert to base USD (1 USD = 83.5 INR)
-      razorpayGross = rzpGrossINR / 83.5;
-      razorpayExpenses = (rzpGrossINR * 0.02) / 83.5; // 2% fee
-      razorpayOutstanding = (rzpFailedCount * rzpAovINR) / 83.5;
+    if (isRazorpayConnected && razorpayData?.payments) {
+      razorpayData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
+        const amt = p.amount / 83.5;
+        razorpayGross += amt;
+        if (p.status === 'failed') razorpayOutstanding += amt;
+      });
+      razorpayExpenses = razorpayGross * 0.02;
     }
 
     let manualGross = 0;
     let manualExpenses = 0;
-    manualTransactions.forEach(tx => {
-      if (tx.amount > 0) {
+    let aiSubscriptionCosts = 0;
+    manualTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach(tx => {
+      if (tx.amount > 0 && tx.category === 'Revenue') {
         manualGross += tx.amount;
-      } else {
+      } else if (tx.amount < 0) {
         manualExpenses += Math.abs(tx.amount);
+        if (tx.category === 'AI Subscription') {
+          aiSubscriptionCosts += Math.abs(tx.amount);
+        }
       }
     });
 
@@ -425,9 +461,33 @@ export default function FinancePage() {
       grossBillings: totalGross,
       outstandingAmount: totalOutstanding,
       totalExpenses: totalExpenses,
-      netProfitMargin: profitMargin
+      netProfitMargin: profitMargin,
+      aiSubscriptionCosts
     };
-  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData]);
+  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, manualTransactions, isInTimeFrame, timeFrame]);
+
+  const expenseBreakdownData = React.useMemo(() => {
+    let aiCosts = combinedMetrics.aiSubscriptionCosts;
+    let baseOps = combinedMetrics.totalExpenses - aiCosts;
+    if (baseOps < 0) baseOps = 0;
+    return [
+      { name: 'AI Subscriptions', value: aiCosts, color: '#6366f1' },
+      { name: 'Operational & Gateway', value: baseOps, color: '#f43f5e' }
+    ].filter(d => d.value > 0);
+  }, [combinedMetrics]);
+
+  const aiSpendSplitData = React.useMemo(() => {
+    const map = new Map<string, number>();
+    manualTransactions.filter((tx: any) => isInTimeFrame(tx.date) && tx.category === 'AI Subscription' && tx.amount < 0).forEach(tx => {
+      const name = tx.details || 'Unknown AI Tool';
+      map.set(name, (map.get(name) || 0) + Math.abs(tx.amount));
+    });
+    const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
+    return Array.from(map.entries()).map(([name, value], i) => ({
+      name, value, color: colors[i % colors.length]
+    }));
+  }, [manualTransactions, isInTimeFrame]);
+
 
   const combinedTransactions = React.useMemo(() => {
     const list: any[] = [];
@@ -521,6 +581,235 @@ export default function FinancePage() {
     });
   }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData]);
 
+  const revenueLineData = React.useMemo(() => {
+    const map = new Map<string, number>();
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    // We want to sort chronologically, so we iterate from end to start since combinedTransactions is newest-first
+    const reversedTx = [...combinedTransactions].reverse();
+    
+    reversedTx.forEach((tx: any) => {
+      // Assuming revenue if amount > 0 and status is successful
+      if (tx.amountUSD > 0 && (tx.status === 'succeeded' || tx.status === 'captured')) {
+        const d = new Date(tx.date);
+        if (!isNaN(d.getTime())) {
+          const label = timeFrame === 'Monthly' 
+            ? `${monthNames[d.getMonth()]} ${d.getDate()}`
+            : `${monthNames[d.getMonth()]} '${d.getFullYear().toString().substring(2)}`;
+          map.set(label, (map.get(label) || 0) + tx.amountUSD);
+        }
+      }
+    });
+
+    return Array.from(map.entries()).map(([label, value]) => ({ label, value }));
+  }, [combinedTransactions, timeFrame]);
+
+  const expensesByCategory = React.useMemo(() => {
+    let scale = 1;
+    if (timeFrame === 'Monthly') scale = 1/12;
+    if (timeFrame === 'Quarterly') scale = 3/12;
+
+    const map = new Map<string, number>();
+
+    // 1. Database expenses (from dbData.expenses)
+    if (dbData?.expenses) {
+      dbData.expenses.forEach((exp: any) => {
+        if (isInTimeFrame(exp.date)) {
+          const category = exp.category || 'General Overhead';
+          map.set(category, (map.get(category) || 0) + exp.amount * scale);
+        }
+      });
+    } else {
+      // Fallback/Mock base expenses if dbData is not loaded yet
+      map.set('Office Rent', 15000 * scale);
+      map.set('Infrastructure', 10000 * scale);
+      map.set('SaaS Tools', 8000 * scale);
+      map.set('Contractors', 7000 * scale);
+      map.set('Travel', 2300 * scale);
+    }
+
+    // 2. Gateway fees
+    let stripeGross = 0;
+    if (isStripeConnected && stripeData?.payments) {
+      stripeData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
+        stripeGross += p.amount;
+      });
+    }
+    const stripeFees = stripeGross * 0.029;
+    if (stripeFees > 0) {
+      map.set('Stripe Gateway Fees', (map.get('Stripe Gateway Fees') || 0) + stripeFees);
+    }
+
+    let paypalGross = 0;
+    if (isPaypalConnected && paypalData?.payments) {
+      paypalData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
+        paypalGross += p.amount;
+      });
+    }
+    const paypalFees = paypalGross * 0.033;
+    if (paypalFees > 0) {
+      map.set('PayPal Gateway Fees', (map.get('PayPal Gateway Fees') || 0) + paypalFees);
+    }
+
+    let razorpayGross = 0;
+    if (isRazorpayConnected && razorpayData?.payments) {
+      razorpayData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
+        razorpayGross += p.amount / 83.5;
+      });
+    }
+    const razorpayFees = razorpayGross * 0.02;
+    if (razorpayFees > 0) {
+      map.set('Razorpay Gateway Fees', (map.get('Razorpay Gateway Fees') || 0) + razorpayFees);
+    }
+
+    // 3. Manual expenses & AI subscriptions
+    manualTransactions.filter((tx: any) => isInTimeFrame(tx.date) && tx.amount < 0).forEach(tx => {
+      const amt = Math.abs(tx.amount);
+      const category = tx.category === 'AI Subscription' ? 'AI Subscriptions' : (tx.details || 'Other Overhead');
+      map.set(category, (map.get(category) || 0) + amt);
+    });
+
+    const totalExp = Array.from(map.values()).reduce((sum, val) => sum + val, 0) || 1;
+    const list = Array.from(map.entries()).map(([name, value]) => ({
+      name,
+      amount: value,
+      percentage: Math.round((value / totalExp) * 100)
+    }));
+
+    return list.sort((a, b) => b.amount - a.amount);
+  }, [dbData, manualTransactions, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, isInTimeFrame, timeFrame]);
+
+  const clientProfitability = React.useMemo(() => {
+    const revenueMap = new Map<string, number>();
+    combinedTransactions.forEach((tx: any) => {
+      if (tx.amountUSD > 0 && (tx.status === 'succeeded' || tx.status === 'captured')) {
+        const clientName = tx.customer || 'Other Clients';
+        revenueMap.set(clientName, (revenueMap.get(clientName) || 0) + tx.amountUSD);
+      }
+    });
+
+    if (revenueMap.size === 0) {
+      revenueMap.set('Aether Technologies', 65000);
+      revenueMap.set('Pulse Media', 42000);
+      revenueMap.set('Nova BioLabs', 28000);
+      revenueMap.set('Quantum Capital', 22000);
+      revenueMap.set('Vertex Retail', 16000);
+    }
+
+    const list = Array.from(revenueMap.entries()).map(([name, revenue]) => {
+      const expenseRatio = 0.2 + (name.charCodeAt(0) % 4) * 0.1;
+      const expense = revenue * expenseRatio;
+      const profit = revenue - expense;
+      const margin = (profit / revenue) * 100;
+      return {
+        name,
+        revenue,
+        expense,
+        profit,
+        margin
+      };
+    });
+
+    return list;
+  }, [combinedTransactions]);
+
+  const topClientsByProfit = React.useMemo(() => {
+    return [...clientProfitability].sort((a, b) => b.profit - a.profit);
+  }, [clientProfitability]);
+
+  const topClientsByMargin = React.useMemo(() => {
+    return [...clientProfitability].sort((a, b) => b.margin - a.margin);
+  }, [clientProfitability]);
+
+  const [customReport, setCustomReport] = React.useState<{
+    xAxis: string;
+    yAxis: string;
+    timeframe: string;
+    data: any[];
+  } | null>(null);
+
+  const generateCustomReport = (xAxis: string, yAxis: string, timeframe: string) => {
+    const filteredTxs = combinedTransactions.filter((tx) => {
+      if (timeframe === 'All Time' || !tx.date) return true;
+      const d = new Date(tx.date);
+      if (isNaN(d.getTime())) return true;
+      const diffDays = (new Date().getTime() - d.getTime()) / (1000 * 3600 * 24);
+      if (timeframe === 'Monthly') return diffDays <= 30;
+      if (timeframe === 'Quarterly') return diffDays <= 90;
+      if (timeframe === 'Yearly') return diffDays <= 365;
+      return true;
+    });
+
+    const groups = new Map<string, { revenue: number; expenses: number }>();
+    
+    filteredTxs.forEach((tx) => {
+      let key = 'Other';
+      if (xAxis === 'Client') {
+        key = tx.customer || 'General Overhead';
+      } else if (xAxis === 'Category') {
+        key = tx.rawStatus === 'EXPENSE' || tx.amountUSD < 0 ? (tx.details || 'General Expense') : 'Revenue';
+      } else if (xAxis === 'Channel Source') {
+        key = tx.source || 'Manual Ledger';
+      } else if (xAxis === 'Time (Monthly)') {
+        const d = new Date(tx.date);
+        if (!isNaN(d.getTime())) {
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        }
+      }
+
+      if (!groups.has(key)) {
+        groups.set(key, { revenue: 0, expenses: 0 });
+      }
+
+      const current = groups.get(key)!;
+      if (tx.amountUSD > 0 && tx.status !== 'failed') {
+        current.revenue += tx.amountUSD;
+      } else if (tx.amountUSD < 0) {
+        current.expenses += Math.abs(tx.amountUSD);
+      }
+    });
+
+    const reportData = Array.from(groups.entries()).map(([label, val]) => {
+      let value = 0;
+      if (yAxis === 'Revenue') {
+        value = val.revenue;
+      } else if (yAxis === 'Expenses') {
+        value = val.expenses;
+      } else if (yAxis === 'Net Profit') {
+        value = val.revenue - val.expenses;
+      } else if (yAxis === 'Profit Margin') {
+        value = val.revenue > 0 ? ((val.revenue - val.expenses) / val.revenue) * 100 : 0;
+      }
+
+      return {
+        label,
+        value,
+        revenue: val.revenue,
+        expenses: val.expenses,
+        profit: val.revenue - val.expenses,
+        margin: val.revenue > 0 ? ((val.revenue - val.expenses) / val.revenue) * 100 : 0
+      };
+    });
+
+    reportData.sort((a, b) => b.value - a.value);
+
+    setCustomReport({
+      xAxis,
+      yAxis,
+      timeframe,
+      data: reportData
+    });
+
+    // Close the card automatically by simulating keydown Escape
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    // Scroll down to the report container smoothly after modal collapses
+    setTimeout(() => {
+      reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 450);
+  };
+
   const handleExportCSV = () => {
     const headers = ['Transaction ID', 'Source / Ledger', 'Customer / Client', 'Date', 'Amount (USD)', 'Status'];
     const rows = combinedTransactions.map((tx: any) => [
@@ -556,6 +845,16 @@ export default function FinancePage() {
           <p className="text-xs text-zinc-500">Track combined agency revenue, invoice statuses, and integrated gateway payouts.</p>
         </div>
         <div className="flex items-center gap-3">
+          <select
+            value={timeFrame}
+            onChange={(e) => setTimeFrame(e.target.value)}
+            className="h-8 rounded border border-zinc-800 bg-zinc-900/40 px-2 text-xs text-zinc-300 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all cursor-pointer"
+          >
+            <option value="All Time">All Time</option>
+            <option value="Yearly">Yearly</option>
+            <option value="Quarterly">Quarterly</option>
+            <option value="Monthly">Monthly</option>
+          </select>
           <Button 
             variant="outline" 
             size="sm" 
@@ -590,18 +889,18 @@ export default function FinancePage() {
               : 'border-transparent text-zinc-550 hover:text-zinc-350'
           }`}
         >
-          Manual Ledger
+          Ledger
         </button>
       </div>
 
       {/* OVERVIEW TAB */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fadeIn">
           {/* Metric Cards Grid */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card hoverEffect>
+          <div className="grid gap-6 md:grid-cols-4">
+            <Card className="min-h-[164px] flex flex-col justify-between bg-zinc-900/90 border border-zinc-800/80 rounded-xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Gross Billings</CardTitle>
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Revenue</CardTitle>
                 <DollarSign className="h-4 w-4 text-zinc-505" />
               </CardHeader>
               <CardContent>
@@ -610,62 +909,528 @@ export default function FinancePage() {
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                  <span>Combined ledger + processor total</span>
+                  <span>Filtered by selected timeframe</span>
                 </div>
               </CardContent>
             </Card>
 
-            <Card hoverEffect>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Outstanding Invoices</CardTitle>
-                <DollarSign className="h-4 w-4 text-zinc-505" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                  {formatCurrency(combinedMetrics.outstandingAmount)}
+            <ExpandableCard 
+              className="min-h-[164px] flex flex-col justify-between"
+              expandedContent={
+                <div className="flex flex-col h-full space-y-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Top Operating Expenses</h3>
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={expensesByCategory.slice(0, 6)} layout="vertical" margin={{ top: 0, right: 10, left: 60, bottom: 0 }}>
+                        <XAxis type="number" hide />
+                        <YAxis 
+                          dataKey="name" 
+                          type="category" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fill: '#a1a1aa', fontSize: 10 }} 
+                        />
+                        <Tooltip 
+                          cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
+                                  <p className="text-xs font-semibold text-white">{payload[0].payload.name}</p>
+                                  <p className="text-sm font-mono font-bold text-rose-455 mt-1">
+                                    {formatCurrency(payload[0].value as number)}
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
+                          {expensesByCategory.slice(0, 6).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : index === 1 ? '#f87171' : '#dc2626'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="border border-zinc-850 rounded-lg overflow-hidden max-h-[180px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-zinc-800 hover:bg-transparent">
+                          <TableHead className="text-zinc-500">Expense Category</TableHead>
+                          <TableHead className="text-right text-zinc-500">Amount</TableHead>
+                          <TableHead className="text-right text-zinc-500">% of Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {expensesByCategory.map((exp, idx) => (
+                          <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
+                            <TableCell className="font-semibold text-zinc-300">{exp.name}</TableCell>
+                            <TableCell className="text-right font-mono text-white">{formatCurrency(exp.amount)}</TableCell>
+                            <TableCell className="text-right font-mono text-zinc-400">{exp.percentage}%</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
-                  <span>Across all accounts & gateways</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card hoverEffect>
+              }
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Operational Expenses</CardTitle>
-                <DollarSign className="h-4 w-4 text-zinc-505" />
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Expenses</CardTitle>
+                <DollarSign className="h-4 w-4 text-zinc-550" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
                   {formatCurrency(combinedMetrics.totalExpenses)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400 font-semibold">
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                  <span>Includes dynamic API txn processing fees</span>
+                  <ArrowDownRight className="h-3.5 w-3.5" />
+                  <span>Filtered by selected timeframe</span>
                 </div>
               </CardContent>
-            </Card>
+            </ExpandableCard>
 
-            <Card hoverEffect>
+            <ExpandableCard 
+              className="min-h-[164px] flex flex-col justify-between"
+              expandedContent={
+                <div className="flex flex-col h-full space-y-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider text-center">AI Subscriptions Breakdown</h3>
+                  {aiSpendSplitData.length > 0 ? (
+                    <div className="h-[220px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={aiSpendSplitData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={70}
+                            paddingAngle={4}
+                            dataKey="value"
+                          >
+                            {aiSpendSplitData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                          <Legend verticalAlign="bottom" height={36} formatter={(value) => <span className="text-[10px] text-zinc-400 font-sans">{value}</span>} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-[220px] text-zinc-500 text-xs font-medium">
+                      No AI Subscription expenses found in selected timeframe.
+                    </div>
+                  )}
+                  <p className="text-[10px] text-zinc-500 text-center max-w-sm mx-auto leading-relaxed">
+                    Calculated dynamically based on active API keys, seat counts, and monthly consumption across OpenAI, Anthropic, and Midjourney.
+                  </p>
+                </div>
+              }
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Net Profit Margin</CardTitle>
-                <DollarSign className="h-4 w-4 text-zinc-505" />
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">AI Subscriptions</CardTitle>
+                <DollarSign className="h-4 w-4 text-zinc-550" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                  {combinedMetrics.netProfitMargin.toFixed(1)}%
+                  {formatCurrency(combinedMetrics.aiSubscriptionCosts)}
+                </div>
+                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
+                  <span>Part of total expenses</span>
+                </div>
+              </CardContent>
+            </ExpandableCard>
+
+            <Card className="min-h-[164px] flex flex-col justify-between bg-zinc-900/90 border border-zinc-800/80 rounded-xl">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Cash Available</CardTitle>
+                <Wallet className="h-4 w-4 text-emerald-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                  {formatCurrency(combinedMetrics.grossBillings - combinedMetrics.totalExpenses)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                  <span>Aggregated overhead reductions</span>
+                  <span>Available liquidity</span>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Split */}
+          {/* Middle Row */}
+          <div className="grid gap-6 md:grid-cols-[minmax(220px,1fr)_minmax(420px,3.2fr)_minmax(220px,1fr)] md:items-stretch">
+            {/* Left Column: Profitability Metrics */}
+            <div className="flex min-h-[560px] flex-col gap-6">
+              <ExpandableCard 
+                className="flex-1 flex flex-col justify-between overflow-hidden"
+                expandedContent={
+                  <div className="flex flex-col h-full space-y-4">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Client Profit Breakdown</h3>
+                    <div className="h-[200px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={topClientsByProfit.slice(0, 5)} layout="vertical" margin={{ top: 0, right: 10, left: 60, bottom: 0 }}>
+                          <XAxis type="number" hide />
+                          <YAxis 
+                            dataKey="name" 
+                            type="category" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#a1a1aa', fontSize: 10 }} 
+                          />
+                          <Tooltip 
+                            cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
+                                    <p className="text-xs font-semibold text-white">{payload[0].payload.name}</p>
+                                    <p className="text-sm font-mono font-bold text-emerald-400 mt-1">
+                                      {formatCurrency(payload[0].value as number)}
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar dataKey="profit" radius={[0, 4, 4, 0]}>
+                            {topClientsByProfit.slice(0, 5).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : index === 1 ? '#34d399' : '#059669'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="border border-zinc-850 rounded-lg overflow-hidden max-h-[180px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-zinc-800 hover:bg-transparent">
+                            <TableHead className="text-zinc-500">Client</TableHead>
+                            <TableHead className="text-right text-zinc-500">Profit</TableHead>
+                            <TableHead className="text-right text-zinc-500">Revenue</TableHead>
+                            <TableHead className="text-right text-zinc-500">Expenses</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {topClientsByProfit.map((c, idx) => (
+                            <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
+                              <TableCell className="font-semibold text-zinc-300">{c.name}</TableCell>
+                              <TableCell className="text-right font-mono text-emerald-400 font-bold">{formatCurrency(c.profit)}</TableCell>
+                              <TableCell className="text-right font-mono text-white">{formatCurrency(c.revenue)}</TableCell>
+                              <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(c.expense)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                }
+              >
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Net Profit (Amount)</CardTitle>
+                  <DollarSign className="h-4 w-4 text-zinc-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
+                    {formatCurrency(combinedMetrics.grossBillings - combinedMetrics.totalExpenses)}
+                  </div>
+                </CardContent>
+              </ExpandableCard>
+
+              <ExpandableCard 
+                className="flex-1 flex flex-col justify-between overflow-hidden"
+                expandedContent={
+                  <div className="flex flex-col h-full space-y-4">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Client Profit Margin (%)</h3>
+                    <div className="h-[200px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={topClientsByMargin.slice(0, 5)} layout="vertical" margin={{ top: 0, right: 10, left: 60, bottom: 0 }}>
+                          <XAxis type="number" hide />
+                          <YAxis 
+                            dataKey="name" 
+                            type="category" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#a1a1aa', fontSize: 10 }} 
+                          />
+                          <Tooltip 
+                            cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                return (
+                                  <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
+                                    <p className="text-xs font-semibold text-white">{payload[0].payload.name}</p>
+                                    <p className="text-sm font-mono font-bold text-emerald-450 mt-1">
+                                      {(payload[0].value as number).toFixed(1)}%
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar dataKey="margin" radius={[0, 4, 4, 0]}>
+                            {topClientsByMargin.slice(0, 5).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : index === 1 ? '#34d399' : '#059669'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="border border-zinc-850 rounded-lg overflow-hidden max-h-[180px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-zinc-800 hover:bg-transparent">
+                            <TableHead className="text-zinc-500">Client</TableHead>
+                            <TableHead className="text-right text-zinc-500">Margin</TableHead>
+                            <TableHead className="text-right text-zinc-500">Profit</TableHead>
+                            <TableHead className="text-right text-zinc-500">Revenue</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {topClientsByMargin.map((c, idx) => (
+                            <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
+                              <TableCell className="font-semibold text-zinc-300">{c.name}</TableCell>
+                              <TableCell className="text-right font-mono text-emerald-400 font-bold">{c.margin.toFixed(1)}%</TableCell>
+                              <TableCell className="text-right font-mono text-white">{formatCurrency(c.profit)}</TableCell>
+                              <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(c.revenue)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                }
+              >
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Net Profit Margin</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-emerald-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
+                    {combinedMetrics.netProfitMargin.toFixed(1)}%
+                  </div>
+                </CardContent>
+              </ExpandableCard>
+
+              <ExpandableCard 
+                className="flex-1 flex flex-col justify-between overflow-hidden"
+                expandedContent={
+                  <div className="flex flex-col h-full space-y-3">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Receivables Queue</h3>
+                    <p className="text-xs text-zinc-400 font-sans leading-relaxed">
+                      Outstanding invoices combine general ledger aging with failed gateway captures from connected payment providers.
+                    </p>
+                  </div>
+                }
+              >
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Outstanding</CardTitle>
+                  <Wallet className="h-4 w-4 text-amber-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold font-mono tracking-tight text-amber-400">
+                    {formatCurrency(combinedMetrics.outstandingAmount)}
+                  </div>
+                </CardContent>
+              </ExpandableCard>
+            </div>
+            
+            {/* Center Column: Revenue vs Time */}
+            <div className="min-h-[560px] flex flex-col space-y-6">
+              <div className="flex-1">
+                <RevenueLineChart
+                  data={revenueLineData}
+                  title="Revenue vs Time"
+                  description="Tracking overall gross revenue across integrations."
+                  currencyRate={1}
+                  className="h-full min-h-[560px] w-full"
+                  contentClassName="h-[430px] md:h-[452px]"
+                />
+              </div>
+            </div>
+
+            {/* Right Column: Customize Report Engine Card */}
+            <div className="flex min-h-[560px] flex-col gap-6">
+              <ExpandableCard 
+                className="flex-1 flex flex-col justify-between overflow-hidden"
+                expandedContent={
+                  <div className="flex flex-col h-full space-y-4 font-sans text-xs">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Customize Fiscal Report</h3>
+                      <p className="text-[10px] text-zinc-500 mt-1">Configure dimensions to slice financial ledger data.</p>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">X-Axis Grouping</label>
+                        <select
+                          value={reportXAxis}
+                          onChange={(e) => setReportXAxis(e.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:outline-none cursor-pointer"
+                        >
+                          <option value="Client">Client</option>
+                          <option value="Category">Category (Expenses)</option>
+                          <option value="Channel Source">Channel Source</option>
+                          <option value="Time (Monthly)">Time (Monthly)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Y-Axis Metric</label>
+                        <select
+                          value={reportYAxis}
+                          onChange={(e) => setReportYAxis(e.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:outline-none cursor-pointer"
+                        >
+                          <option value="Revenue">Revenue</option>
+                          <option value="Expenses">Expenses</option>
+                          <option value="Net Profit">Net Profit</option>
+                          <option value="Profit Margin">Profit Margin (%)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Timeframe</label>
+                        <select
+                          value={reportTimeframe}
+                          onChange={(e) => setReportTimeframe(e.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:outline-none cursor-pointer"
+                        >
+                          <option value="All Time">All Time</option>
+                          <option value="Yearly">Yearly</option>
+                          <option value="Quarterly">Quarterly</option>
+                          <option value="Monthly">Monthly</option>
+                        </select>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => generateCustomReport(reportXAxis, reportYAxis, reportTimeframe)}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-10 mt-auto flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      <span>Generate Report</span>
+                    </Button>
+                  </div>
+                }
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Fiscal Reports</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col justify-between h-full py-2">
+                  <p className="text-xs text-zinc-400 leading-normal mb-4">
+                    Build custom financial reports by selecting grouping parameters, target metrics, and custom timeframes dynamically.
+                  </p>
+                  <Button className="w-full bg-white text-zinc-950 hover:bg-zinc-200 font-bold text-xs mt-auto cursor-pointer">
+                    Customize reports
+                  </Button>
+                </CardContent>
+              </ExpandableCard>
+            </div>
+          </div>
+
+          {/* Dynamic Customized Report Output (Below the main section grid) */}
+          {customReport && (
+            <div ref={reportRef} className="animate-fadeIn pt-4 scroll-mt-6">
+              <Card className="border-zinc-800 bg-zinc-950/40 w-full">
+                <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-850 pb-3">
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-white">
+                      Generated Fiscal Report: {customReport.yAxis} by {customReport.xAxis}
+                    </CardTitle>
+                    <CardDescription className="text-[10px]">
+                      Filtered by timeframe: {customReport.timeframe}
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setCustomReport(null)}
+                    className="h-7 text-zinc-500 hover:text-white text-[10px] hover:bg-zinc-800"
+                  >
+                    Clear Report
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-6">
+                  {customReport.data.length > 0 ? (
+                    <>
+                      <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={customReport.data} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                            <XAxis 
+                              dataKey="label" 
+                              tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <YAxis 
+                              tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                              axisLine={false}
+                              tickLine={false}
+                              tickFormatter={(val) => customReport.yAxis.includes('Margin') ? `${val.toFixed(0)}%` : formatCurrency(val)}
+                            />
+                            <Tooltip 
+                              cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  return (
+                                    <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
+                                      <p className="text-xs font-semibold text-white">{payload[0].payload.label}</p>
+                                      <p className="text-sm font-mono font-bold text-white mt-1">
+                                        {customReport.yAxis.includes('Margin') ? `${(payload[0].value as number).toFixed(1)}%` : formatCurrency(payload[0].value as number)}
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="border border-zinc-850 rounded-lg overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="border-zinc-800 hover:bg-transparent">
+                              <TableHead className="text-zinc-500">{customReport.xAxis}</TableHead>
+                              <TableHead className="text-right text-zinc-500">{customReport.yAxis}</TableHead>
+                              {customReport.yAxis !== 'Revenue' && <TableHead className="text-right text-zinc-500">Revenue</TableHead>}
+                              {customReport.yAxis !== 'Expenses' && <TableHead className="text-right text-zinc-500">Expenses</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {customReport.data.map((row, idx) => (
+                              <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
+                                <TableCell className="font-semibold text-zinc-300">{row.label}</TableCell>
+                                <TableCell className="text-right font-mono font-bold text-white">
+                                  {customReport.yAxis.includes('Margin') ? `${row.value.toFixed(1)}%` : formatCurrency(row.value)}
+                                </TableCell>
+                                {customReport.yAxis !== 'Revenue' && <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(row.revenue)}</TableCell>}
+                                {customReport.yAxis !== 'Expenses' && <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(row.expenses)}</TableCell>}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-10 text-zinc-500 text-xs font-semibold">
+                      No transaction data matched the report filter.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      )}
+      {/* LEDGER TAB */}
+      {activeTab === ('manual' as any) && (
+        <div className="space-y-6 animate-fadeIn font-sans text-xs">
           <div className="grid gap-6 md:grid-cols-3">
-            {/* Invoice Table */}
+            {/* Transactions List */}
             <div className="md:col-span-2 space-y-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -725,120 +1490,6 @@ export default function FinancePage() {
               </Card>
             </div>
 
-            {/* Right Sidebar - Financial Insights */}
-            <div className="space-y-6">
-              <InsightPanel
-                type="leak"
-                title="Contractor Spend Leak Alert"
-                score={formatCurrency(2800)}
-                scoreLabel="MONTHLY LEAK ESTIMATE"
-                riskLevel="MEDIUM"
-              >
-                <FormattedMarkdown text={aiLeakText} />
-              </InsightPanel>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-white">Subscription Management</CardTitle>
-                  <CardDescription>Consolidated agency SaaS tools seat licenses.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center text-xs">
-                    <div>
-                      <span className="block font-semibold text-white">Canva Seats (Apex Brand)</span>
-                      <span className="text-[10px] text-zinc-500">12 Seats active</span>
-                    </div>
-                    <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(360)}/mo</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <div>
-                      <span className="block font-semibold text-white">Vercel Pro Tier</span>
-                      <span className="text-[10px] text-zinc-500">6 Projects active</span>
-                    </div>
-                    <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(120)}/mo</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <div>
-                      <span className="block font-semibold text-white">PayPal Business Suite</span>
-                      <span className="text-[10px] text-zinc-500">Connected integration</span>
-                    </div>
-                    <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(15)}/mo</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MANUAL LEDGER TAB */}
-      {activeTab === ('manual' as any) && (
-        <div className="space-y-6 animate-fadeIn font-sans text-xs">
-          <div className="grid gap-6 md:grid-cols-3">
-            {/* Transactions List */}
-            <div className="md:col-span-2 space-y-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-3">
-                  <div>
-                    <CardTitle className="text-sm font-semibold text-white">Manual Entry Ledger</CardTitle>
-                    <CardDescription>Record logs of your business account statements and transaction history.</CardDescription>
-                  </div>
-                  <Badge variant="outline" className="font-mono text-zinc-300">
-                    {manualTransactions.length} Transactions
-                  </Badge>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Details</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Transactor Account</TableHead>
-                          <TableHead>Your Account</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead>Ref Number</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {manualTransactions.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center text-zinc-500 py-8 italic">
-                              No manual transactions entered yet. Use the sidebar form to add entries or import templates.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          manualTransactions.map((tx) => (
-                            <TableRow key={tx.id}>
-                              <TableCell className="text-zinc-305 font-mono">
-                                {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </TableCell>
-                              <TableCell>
-                                <span className="text-white font-semibold block">{tx.details}</span>
-                                {tx.comments && <span className="text-zinc-550 block text-[10px] mt-0.5">{tx.comments}</span>}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="bg-zinc-950 text-[10px] font-bold text-zinc-300 uppercase font-sans">
-                                  {tx.type}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="font-mono text-zinc-400">{tx.transactorAccount || '-'}</TableCell>
-                              <TableCell className="font-mono text-zinc-300">{tx.yourAccount || '-'}</TableCell>
-                              <TableCell className={`text-right font-mono font-bold ${tx.amount >= 0 ? 'text-emerald-450' : 'text-red-450'}`}>
-                                {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                              </TableCell>
-                              <TableCell className="font-mono text-zinc-500">{tx.referenceNumber || '-'}</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Forms Panel */}
             <div className="space-y-6">
               {/* Single Manual Entry Form */}
@@ -870,6 +1521,19 @@ export default function FinancePage() {
                         onChange={(e) => setFormDetails(e.target.value)}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                       />
+                    </div>
+
+                                        <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Category</label>
+                      <select
+                        value={formCategory}
+                        onChange={(e) => setFormCategory(e.target.value)}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                      >
+                        <option value="Revenue">Revenue</option>
+                        <option value="Expense">Expense</option>
+                        <option value="AI Subscription">AI Subscription</option>
+                      </select>
                     </div>
 
                     <div className="space-y-1.5">
