@@ -1631,14 +1631,14 @@ export default function ClientDashboardPage() {
 
                       {/* Updates & Blockers */}
                       {task.status === 'BLOCKED' && task.blocker && (
-                        <div className="bg-rose-950/15 border border-rose-950/40 p-2 text-[10px] text-rose-455 flex items-start gap-1.5">
+                        <div className="bg-rose-950/15 border border-rose-950/40 p-2 text-[10px] text-rose-500 flex items-start gap-1.5">
                           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                           <span><strong>Blocker:</strong> {task.blocker}</span>
                         </div>
                       )}
                       {task.update && (
-                        <div className="bg-zinc-955 p-2 text-[10px] text-zinc-450 border border-zinc-900 flex items-start gap-1.5">
-                          <Activity className="h-3.5 w-3.5 text-zinc-650 shrink-0" />
+                        <div className="bg-zinc-900 p-2 text-[10px] text-zinc-400 border border-zinc-800 flex items-start gap-1.5">
+                          <Activity className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
                           <span><strong>Latest Update:</strong> {task.update}</span>
                         </div>
                       )}

@@ -1550,7 +1550,7 @@ export default function FinancePage() {
                         <option value="Others">Others</option>
                       </select>
                       {formType === 'Others' && (
-                        <div className="p-2 bg-amber-955/15 border border-amber-900/30 text-amber-400 rounded text-[10px] leading-relaxed">
+                        <div className="p-2 bg-amber-950/15 border border-amber-900/30 text-amber-400 rounded text-[10px] leading-relaxed">
                           Note: Please specify the transaction type details in the comments field.
                         </div>
                       )}
@@ -1564,7 +1564,7 @@ export default function FinancePage() {
                         placeholder="e.g. transactor@upi"
                         value={formTransactorAccount}
                         onChange={(e) => setFormTransactorAccount(e.target.value)}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                        className="w-full rounded border border-zinc-800 bg-zinc-900/40 p-2 text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900 focus:outline-none transition-all"
                       />
                     </div>
 
@@ -1574,7 +1574,7 @@ export default function FinancePage() {
                         <select
                           value={formYourAccount}
                           onChange={(e) => setFormYourAccount(e.target.value)}
-                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all cursor-pointer"
+                          className="w-full rounded border border-zinc-800 bg-zinc-900/40 p-2 text-white focus:border-zinc-700 focus:bg-zinc-900 focus:outline-none transition-all cursor-pointer"
                         >
                           <option value="">Select bank account...</option>
                           {bankNames.map((bank, index) => (
@@ -1589,9 +1589,9 @@ export default function FinancePage() {
                             placeholder="e.g. HDFC Bank, SBI..."
                             value={formYourAccount}
                             onChange={(e) => setFormYourAccount(e.target.value)}
-                            className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                            className="w-full rounded border border-zinc-800 bg-zinc-900/40 p-2 text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900 focus:outline-none transition-all"
                           />
-                          <div className="rounded border border-zinc-850 bg-zinc-955/45 p-2 text-[10px] text-zinc-450 leading-relaxed font-sans">
+                          <div className="rounded border border-zinc-800 bg-zinc-900/45 p-2 text-[10px] text-zinc-400 leading-relaxed font-sans">
                             <span className="font-semibold text-white block mb-0.5">Info: Bank accounts config</span>
                             You can configure up to 5 default bank accounts in your settings profile to select them as a dropdown here.
                             <button
@@ -1599,7 +1599,7 @@ export default function FinancePage() {
                               onClick={() => {
                                 window.location.href = '/settings?tab=profile';
                               }}
-                              className="text-white hover:underline block mt-1 font-semibold cursor-pointer text-left"
+                              className="text-white hover:underline block mt-1 font-semibold cursor-pointer text-left text-[10px]"
                             >
                               Go to Settings Profile &rarr;
                             </button>

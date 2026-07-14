@@ -249,7 +249,7 @@ function MemberOnboardingContent() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-white hover:bg-zinc-200 text-zinc-955 h-9 font-semibold text-xs rounded transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full bg-white hover:bg-zinc-200 text-zinc-950 h-9 font-semibold text-xs rounded transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Activate via Password</span>}
                 </Button>

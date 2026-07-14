@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [metaData, setMetaData] = React.useState<any>(null);
   const [tasksList, setTasksList] = React.useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = React.useState<any[]>([]);
+  const [agencyLeadsData, setAgencyLeadsData] = React.useState<any>(null);
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
@@ -118,6 +119,12 @@ export default function DashboardPage() {
         if (calendarRes.ok) {
           const calendarJson = await calendarRes.json();
           setCalendarEvents(calendarJson.events || []);
+        }
+
+        const agencyLeadsRes = await fetch(`/api/agency-leads?email=${encodeURIComponent(obfuscateEmail(email))}`);
+        if (agencyLeadsRes.ok) {
+          const agencyLeadsJson = await agencyLeadsRes.json();
+          setAgencyLeadsData(agencyLeadsJson);
         }
       } catch (e) {
         console.error(e);
@@ -217,6 +224,23 @@ export default function DashboardPage() {
     const leads = metaData?.leads || [];
     return leads.filter((l: any) => l.status?.toLowerCase() === 'warm');
   }, [metaData]);
+
+  const agencyLeadsList = React.useMemo(() => {
+    if (agencyLeadsData?.leads && agencyLeadsData.leads.length > 0) {
+      return agencyLeadsData.leads;
+    }
+    return [
+      { id: 'mock-1', leadId: 'mock-1', fullName: 'Aarav Mehta', email: 'aarav@mehta.co', status: 'warm', funnelName: 'Enterprise Outreach', collectionMethod: 'Manual Entry', approachMethod: 'Email', createdTime: new Date().toISOString() },
+      { id: 'mock-2', leadId: 'mock-2', fullName: 'Priya Nair', email: 'priya@nairtech.com', status: 'warm', funnelName: 'Direct Inbound', collectionMethod: 'Bulk Import', approachMethod: 'LinkedIn', createdTime: new Date().toISOString() },
+      { id: 'mock-3', leadId: 'mock-3', fullName: 'Rohan Deshmukh', email: 'rohan@deshmukh.org', status: 'procured', funnelName: 'Inbound Form', collectionMethod: 'Manual Entry', approachMethod: 'Phone', createdTime: new Date().toISOString() },
+      { id: 'mock-4', leadId: 'mock-4', fullName: 'Ananya Goel', email: 'ananya@goelcorp.in', status: 'closed', funnelName: 'LinkedIn Campaign', collectionMethod: 'Bulk Import', approachMethod: 'LinkedIn', createdTime: new Date().toISOString() }
+    ];
+  }, [agencyLeadsData]);
+
+  const warmAgencyLeads = React.useMemo(() => {
+    return agencyLeadsList.filter((l: any) => l.status?.toLowerCase() === 'warm');
+  }, [agencyLeadsList]);
+
 
   const top2Clients = React.useMemo(() => {
     return [...clientsList]
@@ -500,17 +524,45 @@ export default function DashboardPage() {
               </CardContent>
             </ExpandableCard>
 
-            <ExpandableCard className="min-h-[164px] flex flex-col justify-between">
+            <ExpandableCard 
+              className="min-h-[164px] flex flex-col justify-between"
+              expandedContent={
+                <div className="flex flex-col h-full space-y-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Operating Profit Breakdown</h3>
+                  <div className="space-y-3 font-sans text-xs">
+                    <div className="flex justify-between items-center py-2 border-b border-zinc-855">
+                      <span className="text-zinc-400 font-semibold">Gross Billings</span>
+                      <span className="font-mono text-white font-bold">
+                        {dbData ? formatCurrency(dbData.grossBillings * currencyRate) : formatCurrency(198000 * currencyRate)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-zinc-855">
+                      <span className="text-zinc-400 font-semibold">Total Expenses</span>
+                      <span className="font-mono text-rose-400 font-bold">
+                        {dbData ? formatCurrency(dbData.totalExpenses * currencyRate) : formatCurrency(74000 * currencyRate)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-zinc-300 font-semibold">Operating Profit</span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(124000 * currencyRate)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Active Clients</CardTitle>
-                <Users className="h-4 w-4 text-zinc-500" />
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Net Profit (Amount)</CardTitle>
+                <DollarSign className="h-4 w-4 text-emerald-450" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                  {dbData ? dbData.activeClientsCount : '12'}
+                <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
+                  {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(124000 * currencyRate)}
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
-                  <span>{dbData ? `${dbData.activeClientsCount} active contracts` : '10 active contracts, 2 pipeline leads'}</span>
+                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                  <span>Net agency earnings</span>
                 </div>
               </CardContent>
             </ExpandableCard>
@@ -563,42 +615,85 @@ export default function DashboardPage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full space-y-4">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Operating Profit Breakdown</h3>
-                    <div className="space-y-3 font-sans text-xs">
-                      <div className="flex justify-between items-center py-2 border-b border-zinc-855">
-                        <span className="text-zinc-400 font-semibold">Gross Billings</span>
-                        <span className="font-mono text-white font-bold">
-                          {dbData ? formatCurrency(dbData.grossBillings * currencyRate) : formatCurrency(198000 * currencyRate)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-zinc-855">
-                        <span className="text-zinc-400 font-semibold">Total Expenses</span>
-                        <span className="font-mono text-rose-400 font-bold">
-                          {dbData ? formatCurrency(dbData.totalExpenses * currencyRate) : formatCurrency(74000 * currencyRate)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-2">
-                        <span className="text-zinc-300 font-semibold">Operating Profit</span>
-                        <span className="font-mono text-emerald-400 font-bold">
-                          {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(124000 * currencyRate)}
-                        </span>
-                      </div>
+                  <div className="flex flex-col h-full space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Agency Leads Pipeline</h3>
+                      <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-400 text-[9px] uppercase font-mono rounded-md">
+                        {agencyLeadsList.length} Total Leads
+                      </Badge>
+                    </div>
+                    
+                    <div className="divide-y divide-zinc-900 border-t border-zinc-900 overflow-y-auto max-h-[220px] pr-1">
+                      {agencyLeadsList.length > 0 ? (
+                        agencyLeadsList.map((l: any) => {
+                          const isWarmFirstTwo = warmAgencyLeads.slice(0, 2).some((wl: any) => wl.leadId === l.leadId);
+                          if (isWarmFirstTwo) return null;
+                          
+                          return (
+                            <div key={l.id || l.leadId} className="flex items-center justify-between py-2 text-xs">
+                              <div className="truncate pr-2">
+                                <span className="block font-semibold text-zinc-250 truncate">{l.fullName}</span>
+                                <span className="block text-[10px] text-zinc-500 font-mono mt-0.5 truncate">{l.email}</span>
+                              </div>
+                              <Badge 
+                                variant={
+                                  l.status?.toLowerCase() === 'closed' ? 'risk-low' :
+                                  l.status?.toLowerCase() === 'lost' ? 'outline' :
+                                  l.status?.toLowerCase() === 'warm' ? 'risk-medium' : 'default'
+                                }
+                                className="text-[9px] px-1.5 py-0 uppercase shrink-0 rounded-md"
+                              >
+                                {l.status}
+                              </Badge>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center text-zinc-650 text-[11px] py-4">No other leads found.</div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-900">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = '/agency-leads';
+                        }}
+                        className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
+                      >
+                        <span>See more</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Net Profit (Amount)</CardTitle>
-                  <DollarSign className="h-4 w-4 text-emerald-450" />
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Agency Leads</CardTitle>
+                  <Users className="h-4 w-4 text-zinc-500" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
-                    {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(124000 * currencyRate)}
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="text-xl font-bold font-mono text-white">
+                      {agencyLeadsList.length} Total
+                    </div>
+                    <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-mono font-bold">Warm Queue</span>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                    <span>Net agency earnings</span>
+                  <div className="space-y-2">
+                    {warmAgencyLeads.slice(0, 2).map((l: any) => (
+                      <div key={l.id || l.leadId} className="flex justify-between items-center bg-zinc-900/35 border border-zinc-900/60 p-2 rounded-md">
+                        <div className="truncate pr-2">
+                          <span className="block text-[11px] font-semibold text-zinc-250 truncate">{l.fullName}</span>
+                          <span className="block text-[9px] font-mono text-zinc-555 truncate">{l.email}</span>
+                        </div>
+                        <Badge variant="risk-medium" className="text-[8px] px-1 py-0 uppercase shrink-0 rounded-md">
+                          Warm
+                        </Badge>
+                      </div>
+                    ))}
+                    {warmAgencyLeads.length === 0 && (
+                      <div className="text-[10px] text-zinc-600 italic py-1">No warm leads currently.</div>
+                    )}
                   </div>
                 </CardContent>
               </ExpandableCard>
@@ -680,7 +775,7 @@ export default function DashboardPage() {
                           e.stopPropagation();
                           window.location.href = '/meta-portal/leads';
                         }}
-                        className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-955 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-none"
+                        className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
                       >
                         <span>See more</span>
                         <ArrowRight className="h-3.5 w-3.5" />

@@ -25,7 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Megaphone,
-  Calendar
+  Calendar,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -157,6 +158,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     { name: 'Reporting', href: '/reporting', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Meta Portal', href: '/meta-portal', icon: Megaphone },
+    { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
     { name: 'Prism AI', href: '/prism', icon: PrismIcon, highlight: true },
     { name: 'Settings', href: '/settings', icon: Settings },
   ], []);

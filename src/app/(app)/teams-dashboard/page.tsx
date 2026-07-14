@@ -852,7 +852,7 @@ export default function TeamsDashboardPage() {
               </div>
 
               {selectedEvent.meetLink && (
-                <div className="pt-2 border-t border-zinc-900 flex justify-between items-center bg-zinc-955 border border-zinc-900 p-2.5 rounded">
+                <div className="pt-2 border-t border-zinc-900 flex justify-between items-center bg-zinc-900 border border-zinc-800 p-2.5 rounded-md">
                   <span className="text-[10px] font-semibold text-zinc-400 flex items-center gap-1">
                     <Video className="h-3.5 w-3.5 text-zinc-550" />
                     <span>Google Meet video call link:</span>

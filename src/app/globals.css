@@ -576,3 +576,160 @@ h1, h2, h3, h4, h5, h6, .silver-text-gradient {
 .animation-delay-300 { animation-delay: 300ms; }
 .animation-delay-400 { animation-delay: 400ms; }
 .animation-delay-500 { animation-delay: 500ms; }
+
+/* ── Space Grotesk (variable, 300–700) ─────────────────────────────────────── */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('https://static.figma.com/font/SpaceGrotesk_wght__1') format('woff2');
+}
+
+/* ── JetBrains Mono (variable, 400–500) ────────────────────────────────────── */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('https://static.figma.com/font/JetBrainsMono_wght__1') format('woff2');
+}
+
+/* ── Geist (variable, 400–700) ─────────────────────────────────────────────── */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('https://static.figma.com/font/Geist-VariableFont_wght_1') format('woff2');
+}
+
+/* ── Geist Mono (variable, 400–700) ────────────────────────────────────────── */
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('https://static.figma.com/font/GeistMono-VariableFont_wght_1') format('woff2');
+}
+
+/* ── Neomorphism utilities ──────────────────────────────────────────────────── */
+.neo-raised {
+  background: #111111;
+  box-shadow: 8px 8px 18px #040404, -8px -8px 18px #1e1e1e;
+  border-radius: 20px;
+}
+
+.neo-raised-sm {
+  background: #111111;
+  box-shadow: 4px 4px 10px #040404, -4px -4px 10px #1e1e1e;
+  border-radius: 14px;
+}
+
+.neo-inset {
+  background: #0e0e0e;
+  box-shadow: inset 6px 6px 14px #040404, inset -6px -6px 14px #1c1c1c;
+  border-radius: 20px;
+}
+
+.neo-button {
+  background: #111111;
+  box-shadow: 5px 5px 12px #040404, -5px -5px 12px #1e1e1e;
+  border-radius: 50px;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.neo-button:hover {
+  box-shadow: 7px 7px 16px #020202, -7px -7px 16px #222222;
+  transform: translateY(-1px);
+}
+
+.neo-button:active {
+  box-shadow: inset 4px 4px 10px #040404, inset -4px -4px 10px #1c1c1c;
+  transform: translateY(0);
+}
+
+.neo-button-accent {
+  background: linear-gradient(135deg, #d0d0d0 0%, #f0f0f0 50%, #c8c8c8 100%);
+  box-shadow: 5px 5px 12px #040404, -5px -5px 12px #1e1e1e;
+  border-radius: 50px;
+  color: #0a0a0a;
+  transition: box-shadow 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+}
+
+.neo-button-accent:hover {
+  box-shadow: 7px 7px 16px #020202, -7px -7px 16px #222222;
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+.neo-button-accent:active {
+  box-shadow: inset 4px 4px 10px rgba(0,0,0,0.3), inset -4px -4px 10px rgba(255,255,255,0.15);
+  transform: translateY(0);
+}
+
+.neo-input {
+  background: #0d0d0d;
+  box-shadow: inset 5px 5px 12px #040404, inset -5px -5px 12px #1a1a1a;
+  border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.04);
+  outline: none;
+  transition: box-shadow 0.2s ease;
+  color: #e8e8e8;
+}
+
+.neo-input:focus {
+  box-shadow: inset 5px 5px 12px #040404, inset -5px -5px 12px #1a1a1a, 0 0 0 1px rgba(255,255,255,0.12);
+}
+
+.neo-input::placeholder {
+  color: #444;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 50%, #ffffff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.float-anim {
+  animation: float 6s ease-in-out infinite;
+}
+
+.pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Fluid fade and rise up entry animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

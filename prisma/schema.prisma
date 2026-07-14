@@ -27,6 +27,7 @@ model Organization {
   metaAds   MetaAd[]
   metaLeads MetaLead[]
   metaCampaigns MetaCampaign[]
+  agencyLeads   AgencyLead[]
   transactions Transaction[]
   calendarEvents CalendarEvent[]
 }
@@ -410,6 +411,26 @@ model MetaLead {
 
   @@index([orgId])
 }
+
+model AgencyLead {
+  id               String       @id @default(uuid())
+  leadId           String       @unique
+  fullName         String
+  email            String
+  phone            String?
+  status           String       // procured, warm, cold, lost, closed
+  collectionMethod String?      // "Bulk Import", "Manual Entry"
+  approachMethod   String?
+  funnelName       String?
+  createdTime      DateTime     @default(now())
+  orgId            String
+  organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([orgId])
+}
+
 
 model ClientInvite {
   id          String   @id @default(uuid())

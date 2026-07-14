@@ -1,603 +1,1446 @@
 'use client';
 
-import * as React from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import {
-  ArrowRight,
-  Sparkles,
-  DollarSign,
-  Activity,
-  Layers,
-  Users,
-  Check,
-  Shield,
-  Menu,
-  X
-} from 'lucide-react';
-import { PrismIcon } from '@/components/ui/prism-icon';
 
-const SECTORS = [
+const irisLogo = '/iris-logo-black-bg.png';
+
+// ─── Font shorthands ──────────────────────────────────────────────────────────
+const DISPLAY = "'Space Grotesk', sans-serif"
+const BODY    = "'Geist', sans-serif"
+const MONO    = "'Geist Mono', monospace"
+const JBMONO  = "'JetBrains Mono', monospace"
+
+// ─── Scroll Reveal Animation Wrapper ──────────────────────────────────────────
+function ScrollReveal({ children, delay = '0s', className = '', id = '', style = {} }: { children: React.ReactNode; delay?: string; className?: string; id?: string; style?: React.CSSProperties }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      {
+        threshold: 0.05,
+        rootMargin: '0px 0px -40px 0px',
+      }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      id={id}
+      className={`${isVisible ? 'animate-fade-in-up' : ''} ${className}`}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'none' : 'translateY(40px)',
+        transition: isVisible ? 'none' : 'opacity 0s, transform 0s',
+        animationDelay: delay,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+function Header() {
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handler)
+    return () => window.removeEventListener('scroll', handler)
+  }, [])
+
+  const navLinks = [
+    { label: 'Preview',  href: '#video'    },
+    { label: 'About',    href: '#about'    },
+    { label: 'Features', href: '#features' },
+  ]
+
+  return (
+    <header
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        padding: '16px 24px',
+        transition: 'all 0.3s ease',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 20px 12px 16px',
+          background: scrolled ? '#111111' : 'rgba(17,17,17,0.6)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: '60px',
+          boxShadow: scrolled
+            ? '8px 8px 18px #040404, -8px -8px 18px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.05)'
+            : '0 0 0 1px rgba(255,255,255,0.05)',
+          transition: 'all 0.3s ease',
+        }}
+      >
+        {/* Logo — imported PNG wordmark */}
+        <a href="#" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <img
+            src={irisLogo}
+            alt="Iris OS"
+            style={{
+              height: '36px',
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        </a>
+
+        {/* Nav */}
+        <nav style={{ display: 'flex', gap: '4px' }}>
+          {navLinks.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              style={{
+                fontFamily: BODY,
+                fontWeight: 500,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.6)',
+                textDecoration: 'none',
+                padding: '8px 18px',
+                borderRadius: '50px',
+                transition: 'color 0.2s ease, background 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#e8e8e8'
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'rgba(232,232,232,0.6)'
+                e.currentTarget.style.background = 'transparent'
+              }}
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
+
+        {/* CTA */}
+        <Link
+          href="/waitlist"
+          className="neo-button-accent"
+          style={{
+            fontFamily: BODY,
+            fontWeight: 600,
+            fontSize: '13px',
+            padding: '10px 22px',
+            border: 'none',
+            cursor: 'pointer',
+            letterSpacing: '0.01em',
+            textDecoration: 'none',
+            display: 'inline-block',
+            color: '#0a0a0a',
+          }}
+        >
+          Join the Waitlist
+        </Link>
+      </div>
+    </header>
+  )
+}
+
+// ─── Hero Section ─────────────────────────────────────────────────────────────
+function Hero() {
+  return (
+    <section
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '120px 24px 80px',
+        position: 'relative',
+        textAlign: 'center',
+      }}
+    >
+      {/* Ambient glow orbs */}
+      <div
+        className="pulse-glow"
+        style={{
+          position: 'absolute',
+          top: '15%',
+          left: '10%',
+          width: '500px',
+          height: '500px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        className="pulse-glow"
+        style={{
+          position: 'absolute',
+          bottom: '20%',
+          right: '8%',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%)',
+          pointerEvents: 'none',
+          animationDelay: '1.5s',
+          }}
+        />
+
+      {/* Floating logo */}
+      <ScrollReveal className="float-anim" style={{ marginBottom: '44px' }}>
+        <div
+          style={{
+            borderRadius: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#111111',
+            boxShadow: '10px 10px 24px #040404, -10px -10px 24px #1e1e1e',
+            padding: '20px 28px',
+          }}
+        >
+          <img
+            src={irisLogo}
+            alt="Iris OS"
+            style={{ height: '52px', width: 'auto', objectFit: 'contain', display: 'block' }}
+          />
+        </div>
+      </ScrollReveal>
+
+      {/* Badge */}
+      <ScrollReveal
+        delay="0.15s"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '6px 16px',
+          background: '#111111',
+          boxShadow: '4px 4px 10px #040404, -4px -4px 10px #1e1e1e',
+          borderRadius: '50px',
+          marginBottom: '32px',
+        }}
+      >
+        <div
+          style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.6)',
+            boxShadow: '0 0 8px rgba(255,255,255,0.4)',
+          }}
+        />
+        <span
+          style={{
+            fontFamily: JBMONO,
+            fontWeight: 400,
+            fontSize: '11px',
+            color: 'rgba(232,232,232,0.55)',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Introducing Iris OS — The Unified Agency Workspace
+        </span>
+      </ScrollReveal>
+
+      {/* Headline */}
+      <ScrollReveal
+        delay="0.3s"
+        style={{
+          maxWidth: '900px',
+          marginBottom: '28px',
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: DISPLAY,
+            fontWeight: 700,
+            fontSize: 'clamp(52px, 8vw, 108px)',
+            lineHeight: 1.0,
+            letterSpacing: '-0.04em',
+            margin: 0,
+          }}
+        >
+          <span className="gradient-text">See it all.</span>
+          <br />
+          <span style={{ color: 'rgba(232,232,232,0.3)', fontWeight: 300 }}>Manage it all.</span>
+        </h1>
+      </ScrollReveal>
+
+      {/* Tagline */}
+      <ScrollReveal
+        delay="0.45s"
+        style={{
+          maxWidth: '720px',
+          marginBottom: '52px',
+        }}
+      >
+        <p
+          style={{
+            fontFamily: BODY,
+            fontWeight: 400,
+            fontSize: 'clamp(15px, 1.8vw, 18px)',
+            color: 'rgba(232,232,232,0.5)',
+            lineHeight: 1.7,
+            margin: 0,
+          }}
+        >
+          Iris OS is the focal point of agency execution. Just as the physical iris regulates light to clarify vision, our platform synthesizes client portals, financial ledgers, creative workflows, and campaign metrics into one unified, crystal-clear operational view.
+        </p>
+      </ScrollReveal>
+
+      {/* CTAs */}
+      <ScrollReveal
+        delay="0.6s"
+        style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}
+      >
+        <Link
+          href="/waitlist"
+          className="neo-button-accent"
+          style={{
+            fontFamily: BODY,
+            fontWeight: 600,
+            fontSize: '15px',
+            padding: '14px 32px',
+            textDecoration: 'none',
+            color: '#0a0a0a',
+            display: 'inline-block',
+          }}
+        >
+          Request Early Access
+        </Link>
+        <a
+          href="#video"
+          className="neo-button"
+          style={{
+            fontFamily: BODY,
+            fontWeight: 500,
+            fontSize: '15px',
+            padding: '14px 32px',
+            color: 'rgba(232,232,232,0.7)',
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="7" stroke="rgba(232,232,232,0.4)" strokeWidth="1.2" />
+            <path d="M6.5 5.5L10.5 8L6.5 10.5V5.5Z" fill="rgba(232,232,232,0.6)" />
+          </svg>
+          Watch the Demo
+        </a>
+      </ScrollReveal>
+
+      {/* Scroll cue */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '36px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+          opacity: 0.3,
+        }}
+      >
+        <span style={{ fontFamily: JBMONO, fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#888' }}>Scroll</span>
+        <div style={{ width: '1px', height: '32px', background: 'linear-gradient(to bottom, #888, transparent)' }} />
+      </div>
+    </section>
+  )
+}
+
+// ─── Video Section ─────────────────────────────────────────────────────────────
+function VideoSection() {
+  const [playing, setPlaying] = useState(false)
+
+  return (
+    <section id="video" style={{ padding: '100px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+        <div className="section-divider" style={{ margin: '0 auto 24px' }} />
+        <h2
+          style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-0.03em', marginBottom: '16px' }}
+          className="gradient-text"
+        >
+          See Iris in Action
+        </h2>
+        <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
+          A two-minute tour of the agency console that regulates your operational focus.
+        </p>
+      </div>
+
+      <div
+        style={{
+          position: 'relative',
+          borderRadius: '28px',
+          overflow: 'hidden',
+          background: '#0d0d0d',
+          boxShadow: 'inset 8px 8px 20px #040404, inset -8px -8px 20px #1a1a1a, 0 0 0 1px rgba(255,255,255,0.05)',
+          aspectRatio: '16 / 9',
+          maxWidth: '900px',
+          margin: '0 auto',
+          cursor: 'pointer',
+        }}
+        onClick={() => setPlaying((p) => !p)}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 40%, transparent 70%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Grid overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+              backgroundSize: '60px 60px',
+            }}
+          />
+
+          {/* Decorative iris rings */}
+          {[120, 180, 240, 300].map((r, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                width: `${r}px`,
+                height: `${r}px`,
+                borderRadius: '50%',
+                border: `1px solid rgba(255,255,255,${0.04 - i * 0.005})`,
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                pointerEvents: 'none',
+              }}
+            />
+          ))}
+
+          {/* Play / pause */}
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 2,
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: '#111111',
+              boxShadow: '8px 8px 18px #040404, -8px -8px 18px #1e1e1e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {playing ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="6" y="5" width="4" height="14" rx="1" fill="rgba(232,232,232,0.8)" />
+                <rect x="14" y="5" width="4" height="14" rx="1" fill="rgba(232,232,232,0.8)" />
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M8 5.5L18.5 12L8 18.5V5.5Z" fill="rgba(232,232,232,0.85)" />
+              </svg>
+            )}
+          </div>
+
+          {/* Label */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '32px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              fontFamily: JBMONO,
+              fontSize: '11px',
+              color: 'rgba(232,232,232,0.3)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {playing ? 'Click to pause' : 'Click to play'}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── About Section ─────────────────────────────────────────────────────────────
+function About() {
+  const stats = [
+    { value: '0.8ms',   label: 'Avg. response latency' },
+    { value: '99.97%',  label: 'Uptime SLA'            },
+    { value: '128-bit', label: 'End-to-end encryption' },
+    { value: '2026',    label: 'Founded'                },
+  ]
+
+  return (
+    <section id="about" style={{ padding: '100px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '48px',
+          alignItems: 'center',
+        }}
+      >
+        {/* Copy */}
+        <div>
+          <div className="section-divider" style={{ marginBottom: '24px' }} />
+          <span
+            style={{
+              fontFamily: JBMONO,
+              fontWeight: 400,
+              fontSize: '11px',
+              color: 'rgba(232,232,232,0.38)',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              display: 'block',
+              marginBottom: '20px',
+            }}
+          >
+            The Lens of Execution
+          </span>
+          <h2
+            style={{
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              fontSize: 'clamp(30px, 3.5vw, 46px)',
+              letterSpacing: '-0.03em',
+              lineHeight: 1.1,
+              marginBottom: '28px',
+            }}
+            className="gradient-text"
+          >
+            The focal point of modern agency operations.
+          </h2>
+          <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8, marginBottom: '20px' }}>
+            We created Iris OS because agency owners are tired of navigating a fragmented stack of disconnected applications. Creative firms lose margin and time juggling client communications, financial tracking, and campaign execution across isolated tools.
+          </p>
+          <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8 }}>
+            Iris OS acts as the operational iris of your firm — regulating the flow of information, aligning client expectations, and focusing contractor utilization. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency's growth.
+          </p>
+        </div>
+
+        {/* Stat grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          {stats.map((s) => (
+            <div key={s.value} className="neo-raised" style={{ padding: '32px 24px' }}>
+              <div
+                style={{
+                  fontFamily: MONO,
+                  fontWeight: 700,
+                  fontSize: '30px',
+                  letterSpacing: '-0.03em',
+                  color: '#e8e8e8',
+                  marginBottom: '10px',
+                }}
+              >
+                {s.value}
+              </div>
+              <div style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.38)', lineHeight: 1.4 }}>
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Features Section ──────────────────────────────────────────────────────────
+const WEDGES = [
   {
-    title: 'Prism AI & Automations',
-    description: 'Trigger automated workflows, sync client pipelines, and utilize LLM-powered context engines.',
+    id: 0,
+    title: 'Core Operations',
+    start: -90,
+    end: -30,
+    side: 'right',
+    color: '#1a1a1a',
+    borderColor: 'rgba(255,255,255,0.1)',
     details: [
-      'Automated Workflow Orchestrator: Connect tools like Canva and email into seamless pipelines.',
-      'Prism AI Chat Assistant: Query financial ledgers, project trackers, and client details using plain language.',
-      'Real-time Event Triggers: Set up instant alerts for contractor profit leaks or margin risks.'
-    ],
-    color: '#09090b',
-    textColor: '#ffffff',
-    borderColor: '#e11d48'
+      'Central Operations: Synthesize campaign alerts, contractor schedules, and finance reviews.',
+      'Core Workflows: Automate invoicing and brand deliveries with high-efficiency pipelines.',
+      'Task Tracking: Unified dashboards for projects and tasks across all agency segments.',
+    ]
   },
   {
-    title: 'Operations & Ledger',
-    description: 'Track invoice margins, monitor contractor utilization, and analyze profit retention.',
+    id: 1,
+    title: 'Revenue Ledger',
+    start: -30,
+    end: 30,
+    side: 'right',
+    color: '#161616',
+    borderColor: 'rgba(255,255,255,0.1)',
     details: [
-      'Multi-Currency Ledgers: Keep a real-time ledger synchronized across USD, EUR, and GBP.',
-      'Profit Leak Detector: Spot inactive retainers or over-allocated contractor resources instantly.',
-      'Forecasting Engines: Model future agency margins and project cashflows with historical billing data.'
-    ],
-    color: '#18181b',
-    textColor: '#ffffff',
-    borderColor: '#e11d48'
+      'Unified Ledger: Multi-currency invoicing and billing (USD, EUR, GBP) in one ledger.',
+      'Margin Protection: Automatically flag contractor allocation spikes and margin leaks.',
+      'Forecasting: Predict next-quarter margins using real-time campaign performance logs.',
+    ]
   },
   {
-    title: 'Design Hub & Canva Sync',
-    description: 'Connect your Canva workspaces, import branding kits, and coordinate visual asset delivery.',
+    id: 2,
+    title: 'Ads & Leads',
+    start: 30,
+    end: 90,
+    side: 'right',
+    color: '#1f1f1f',
+    borderColor: 'rgba(255,255,255,0.1)',
     details: [
-      'Canva Catalog Sync: Authenticate via Canva OAuth to browse design hubs and asset logs.',
-      'Live Proof Clearance: Share creative briefs and asset previews in real-time with clients.',
-      'Enterprise Branding Gate: Enforce consistent colors, assets, and design constraints automatically.'
-    ],
-    color: '#27272a',
-    textColor: '#ffffff',
-    borderColor: '#e11d48'
+      'Lead Sync: Sync incoming campaign data and lead pipelines instantly from Meta campaign forms.',
+      'Campaign Metrics: Aggregated dashboard of active ROAS, click-through, and conversion rates.',
+      'Pipeline Orchestration: Automatically trigger onboarding when leads reach high priority in the pipeline.',
+    ]
   },
   {
-    title: 'Meta Portal & Client Analytics',
-    description: 'Host client-gated performance dashboards, sync Meta Ad campaigns, and generate ROI reports.',
+    id: 3,
+    title: 'Client Portals',
+    start: 90,
+    end: 150,
+    side: 'left',
+    color: '#131313',
+    borderColor: 'rgba(255,255,255,0.1)',
     details: [
-      'Client-Gated Portals: Grant read-only access to campaign budgets, live ROAS, and milestones.',
-      'Meta Ads Integration: Fetch campaign metrics, lead form logs, and conversion rates directly.',
-      'Automated Reporting SLA: Auto-generate executive summaries showing live project metrics.'
-    ],
-    color: '#3f3f46',
-    textColor: '#ffffff',
-    borderColor: '#e11d48'
+      'Clearance Hubs: Gated, read-only portals for live milestone tracking and metrics.',
+      'Creative Proofing: In-app brief reviews, proof collection, and design sign-offs.',
+      'Automated Reports: Trigger campaign reports to send according to client SLAs.',
+    ]
+  },
+  {
+    id: 4,
+    title: 'Team Coordination',
+    start: 150,
+    end: 210,
+    side: 'left',
+    color: '#181818',
+    borderColor: 'rgba(255,255,255,0.1)',
+    details: [
+      'Capacity Sync: Keep track of contractor hours, capacity limits, and allocations.',
+      'Access Control: Secure permission rings for internal teams, contractors, and clients.',
+      'Margin Analysis: Measure cost-to-client ratios in real time for every workspace user.',
+    ]
+  },
+  {
+    id: 5,
+    title: 'Fluid Scheduling',
+    start: 210,
+    end: 270,
+    side: 'left',
+    color: '#1c1c1c',
+    borderColor: 'rgba(255,255,255,0.1)',
+    details: [
+      'Time Orchestration: Frictionless scheduling synced directly to agency availability.',
+      'Calendar Sync: Auto-reconcile timezone shifts for international client reviews.',
+      'Sequencing: Trigger preparation guides and follow-up templates automatically.',
+    ]
   }
 ];
 
-const TRANSLATE_VECTORS = [
-  'translate(-12px, -12px)', // index 0: Top-Left (Quadrant 4)
-  'translate(12px, -12px)',  // index 1: Top-Right (Quadrant 1)
-  'translate(12px, 12px)',   // index 2: Bottom-Right (Quadrant 2)
-  'translate(-12px, 12px)'   // index 3: Bottom-Left (Quadrant 3)
-];
-
-const PATHS = [
-  // index 0: Top-Left Sector (Quadrant 4)
-  'M 150 200 L 40 200 A 160 160 0 0 1 200 40 L 200 150 A 50 50 0 0 0 150 200 Z',
-  // index 1: Top-Right Sector (Quadrant 1)
-  'M 200 150 L 200 40 A 160 160 0 0 1 360 200 L 250 200 A 50 50 0 0 0 200 150 Z',
-  // index 2: Bottom-Right Sector (Quadrant 2)
-  'M 250 200 L 360 200 A 160 160 0 0 1 200 360 L 200 250 A 50 50 0 0 0 250 200 Z',
-  // index 3: Bottom-Left Sector (Quadrant 3)
-  'M 200 250 L 200 360 A 160 160 0 0 1 40 200 L 150 200 A 50 50 0 0 0 200 250 Z'
-];
-
-// compound path for full donut (occupies the entire iris)
-const FULL_DONUT_PATH = 'M 200 40 A 160 160 0 1 1 199.9 40 Z M 200 150 A 50 50 0 1 0 200.1 150 Z';
-
-export default function LandingPage() {
-  const [hoveredSector, setHoveredSector] = React.useState<number | null>(null);
-  const [activeSector, setActiveSector] = React.useState<number | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-
-  const activeInfo = activeSector !== null ? SECTORS[activeSector] : hoveredSector !== null ? SECTORS[hoveredSector] : null;
-
+function PlaceholderCard({ side }: { side: 'left' | 'right' }) {
   return (
-    <div className="bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none animate-fade-in">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between animate-fade-in">
-        {/* Left: Logo */}
-        <Link href="#" className="flex items-center gap-2 group shrink-0">
-          <img src="/iris-logo-white-bg.png" alt="Iris OS Logo" className="h-8 object-contain" />
-        </Link>
-
-        {/* Center Nav Links */}
-        <nav className="hidden md:flex items-center gap-12 font-semibold text-xs tracking-wider uppercase">
-          <a href="#about" className="hover:text-red-600 transition-colors">About</a>
-          <a href="#features" className="hover:text-red-600 transition-colors">Features</a>
-          <Link href="/pricing" className="hover:text-red-600 transition-colors">Pricing</Link>
-        </nav>
-
-        {/* Right Button */}
-        <div className="hidden md:block">
-          <Link
-            href="/login"
-            className="px-5 py-2.5 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase transition-all tracking-wider inline-flex items-center gap-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px]"
-          >
-            <span>Enter Workspace</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {/* Mobile menu toggle */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-black hover:text-red-600 focus:outline-none"
-        >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </header>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-x-0 top-16 bg-white border-b-4 border-black z-40 p-6 flex flex-col gap-6 md:hidden font-sans border-t animate-fade-in">
-          <nav className="flex flex-col gap-4 font-semibold text-xs tracking-wider uppercase">
-            <a
-              href="#about"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
-            >
-              About
-            </a>
-            <a
-              href="#features"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
-            >
-              Features
-            </a>
-            <Link
-              href="/pricing"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
-            >
-              Pricing
-            </Link>
-          </nav>
-          <Link
-            href="/login"
-            onClick={() => setMobileMenuOpen(false)}
-            className="w-full text-center py-3 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase transition-all tracking-wider flex items-center justify-center gap-1.5"
-          >
-            <span>Enter Workspace</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      )}
-
-      {/* Hero Section */}
-      <section className="relative w-full py-16 lg:py-24 px-6 border-b-[3px] border-black overflow-hidden bg-white">
-        {/* Brutalist Grid Background pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e7eb_1px,transparent_1px),linear-gradient(to_bottom,#e5e7eb_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40 pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto grid gap-12 lg:grid-cols-12 items-center relative z-10">
-          {/* Hero Content */}
-          <div className="lg:col-span-7 space-y-8 animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <Sparkles className="h-4 w-4 text-red-600 shrink-0" />
-              <span>The Consolidated Suite for Elite Agencies</span>
-            </div>
-
-            <div className="space-y-4">
-              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold font-heading text-[#09090b] leading-[0.9] uppercase tracking-tight">
-                THE AGENCY <br />
-                <span className="bg-red-600 text-white px-4 py-1 inline-block mt-2 transform -rotate-1">MONOLITH.</span>
-              </h1>
-              <p className="text-base sm:text-lg text-zinc-650 max-w-xl leading-relaxed pt-3 font-medium">
-                The ultimate operating system to manage client campaigns, ledgers, contractor margins, and workflow automations from a single, high-fidelity command center.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-4 pt-2">
-              <Link
-                href="/login"
-                className="px-8 py-3.5 bg-[#09090b] text-white hover:bg-red-600 border-[3px] border-black text-sm font-bold uppercase tracking-wider shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[5px] hover:translate-y-[5px] transition-all flex items-center gap-2"
-              >
-                <span>Launch Console</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/pricing"
-                className="px-8 py-3.5 bg-white text-[#09090b] hover:bg-zinc-150 border-[3px] border-black text-sm font-bold uppercase tracking-wider shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[5px] hover:translate-y-[5px] transition-all"
-              >
-                Explore Plans
-              </Link>
-            </div>
-          </div>
-
-          {/* Hero Visuals (Brutalist Mock cards showing OS indicators) */}
-          <div className="lg:col-span-5 space-y-6 animate-fade-in-up animation-delay-200">
-            <div className="bg-[#09090b] text-white p-6 border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(220,38,38,1)] relative">
-              <div className="absolute top-0 right-0 w-2 h-2 bg-red-600 m-3" />
-              <span className="block font-heading text-xs font-semibold text-red-500 uppercase tracking-widest">Active Operations</span>
-              <span className="block text-2xl font-bold tracking-tight mt-1 font-heading">Apex Creative Group</span>
-              
-              <div className="mt-6 space-y-3 font-mono text-[11px] text-zinc-400">
-                <div className="flex justify-between border-b border-zinc-800 pb-2">
-                  <span>Gross Profit Margin:</span>
-                  <span className="text-emerald-400 font-bold">+28.4%</span>
-                </div>
-                <div className="flex justify-between border-b border-zinc-800 pb-2">
-                  <span>Contractor Margin Leaks:</span>
-                  <span className="text-red-500 font-bold">0 Detected</span>
-                </div>
-                <div className="flex justify-between pb-1">
-                  <span>On-Time Deliverable SLA:</span>
-                  <span className="text-white font-bold">100% SLA Compliant</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white p-4 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="flex items-center gap-2 text-zinc-500">
-                  <DollarSign className="h-4 w-4 text-red-600" />
-                  <span className="text-[10px] font-bold uppercase">Net Ledger</span>
-                </div>
-                <span className="block text-xl font-bold tracking-tight mt-2 font-heading text-[#09090b]">$348,200</span>
-                <span className="text-[9px] text-emerald-600 font-bold block mt-1 font-mono">↑ Optimized Retainers</span>
-              </div>
-
-              <div className="bg-white p-4 border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="flex items-center gap-2 text-zinc-500">
-                  <Activity className="h-4 w-4 text-red-600" />
-                  <span className="text-[10px] font-bold uppercase">Automations</span>
-                </div>
-                <span className="block text-xl font-bold tracking-tight mt-2 font-heading text-[#09090b]">Active</span>
-                <span className="text-[9px] text-[#09090b] font-bold block mt-1 font-mono">4 Pipelines Connected</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section id="about" className="py-20 px-6 border-b-[3px] border-black bg-[#f4f5f7] overflow-hidden">
-        <div className="max-w-4xl mx-auto space-y-12 text-center md:text-left animate-fade-in-up">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold text-red-600 uppercase tracking-widest">About Iris OS</span>
-            <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase text-[#09090b]">
-              Redefining Professional Services Operations
-            </h2>
-          </div>
-
-          <div className="bg-white border-[3px] border-black p-8 md:p-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative">
-            <div className="absolute top-0 left-0 w-8 h-2 bg-red-600" />
-            <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-medium font-sans">
-              Spreadsheets fail. Chat threads scatter. Client reporting consumes hours of manual synchronization. 
-              Iris OS is the definitive solution—a singular, unified operating system designed to run all facets 
-              of a professional service firm. By combining multi-currency ledgers, automatic client-clearance portals, 
-              milestone trackers, and real-time anomaly alerts, Iris OS streamlines operations from client acquisition 
-              to final delivery.
-            </p>
-            <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-medium font-sans mt-6">
-              For agency owners, this means complete transparency into project margins, instant detection of unprofitable 
-              retainers, and the ability to scale client capacity without inflating administrative overhead. It represents 
-              a paradigm shift: from fragmented chaos to unified agency intelligence.
-            </p>
-            <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-medium font-sans mt-6">
-              Built on a state-of-the-art asynchronous architecture, Iris OS integrates directly with your key tooling environment—from Canva workspaces and Meta campaigns to standard banking APIs and multi-currency ledgers. Our platform operates as a secure, decentralized core that drives contractor margin tracking, automated client reporting SLAs, and context-aware database queries. It ensures your agency maintains absolute margin integrity while enabling scalable operations that don't depend on manual spreadsheets or constant manual synchronization.
-            </p>
-          </div>
-
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-100">
-              <Layers className="h-6 w-6 text-red-600 mb-2" />
-              <span className="block font-bold text-xs uppercase text-[#09090b]">No Fragmentation</span>
-              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Replace multiple disconnected applications with a single operating system.</span>
-            </div>
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-200">
-              <Shield className="h-6 w-6 text-red-600 mb-2" />
-              <span className="block font-bold text-xs uppercase text-[#09090b]">Margin Protection</span>
-              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Identify unprofitable contractor margins and over-allocation instantly.</span>
-            </div>
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-300">
-              <Users className="h-6 w-6 text-red-600 mb-2" />
-              <span className="block font-bold text-xs uppercase text-[#09090b]">Client Onboarding</span>
-              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Generate dedicated clearance portals automatically for real-time reporting.</span>
-            </div>
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-100">
-              <DollarSign className="h-6 w-6 text-red-600 mb-2" />
-              <span className="block font-bold text-xs uppercase text-[#09090b]">Unified Ledgers</span>
-              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Keep a single source of truth across USD, EUR, and GBP with real-time currency sync.</span>
-            </div>
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-200">
-              <PrismIcon className="h-6 w-6 text-red-600 mb-2" />
-              <span className="block font-bold text-xs uppercase text-[#09090b]">Prism AI Engine</span>
-              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Empower your team to query project timelines, ledgers, and metrics using natural language.</span>
-            </div>
-            <div className="p-5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] animate-fade-in-up animation-delay-300">
-              <Activity className="h-6 w-6 text-red-600 mb-2" />
-              <span className="block font-bold text-xs uppercase text-[#09090b]">Automated Catalogs</span>
-              <span className="block text-[10px] text-zinc-500 mt-1 leading-normal font-medium">Directly sync Canva brand assets and campaign assets with secure workspace gateways.</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="py-20 px-6 border-b-[3px] border-black bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto space-y-12">
-          {/* Header */}
-          <div className="text-center space-y-2 animate-fade-in-up">
-            <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Interactive Ecosystem</span>
-            <h2 className="text-3xl md:text-5xl font-extrabold font-heading uppercase text-[#09090b]">The Iris Console</h2>
-            <p className="text-xs text-zinc-500 max-w-md mx-auto leading-normal">
-              Click a sector of the Iris eye to expand it and occupy the entire console. Click it again to return. Hover to preview.
-            </p>
-          </div>
-
-          {/* Interactive Iris layout */}
-          <div className="grid gap-12 lg:grid-cols-12 items-center pt-6 animate-fade-in-up animation-delay-200">
-            {/* Column 1: The Iris Interactive SVG */}
-            <div className="lg:col-span-6 flex justify-center">
-              <div className="relative w-[360px] h-[360px] md:w-[400px] md:h-[400px] shrink-0 border-[4px] border-black bg-zinc-150 p-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-                <svg viewBox="0 0 400 400" className="w-full h-full">
-                  {/* Outer circle line */}
-                  <circle cx="200" cy="200" r="160" fill="none" stroke="#09090b" strokeWidth="2" strokeDasharray="6 4" />
-
-                  {/* Sectors mapping */}
-                  {SECTORS.map((sector, index) => {
-                    const isHovered = hoveredSector === index;
-                    const isActive = activeSector === index;
-                    const isAnyActive = activeSector !== null;
-
-                    // If active, render the full donut, else render the quadrant path
-                    const pathData = isActive ? FULL_DONUT_PATH : PATHS[index];
-
-                    // Hide others if one sector is active
-                    if (isAnyActive && !isActive) return null;
-
-                    return (
-                      <path
-                        key={sector.title}
-                        d={pathData}
-                        fill={isHovered ? '#dc2626' : sector.color}
-                        stroke={sector.borderColor}
-                        strokeWidth="3"
-                        onClick={() => {
-                          if (isActive) {
-                            setActiveSector(null);
-                          } else {
-                            setActiveSector(index);
-                          }
-                        }}
-                        onMouseEnter={() => !isAnyActive && setHoveredSector(index)}
-                        onMouseLeave={() => !isAnyActive && setHoveredSector(null)}
-                        className="transition-all duration-300 ease-out cursor-pointer hover:stroke-white"
-                        style={{
-                          transform: !isActive && isHovered ? TRANSLATE_VECTORS[index] : 'translate(0px, 0px)',
-                          opacity: isAnyActive && !isActive ? 0 : 1,
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* Pupil (Center hole of the eye) */}
-                  <circle
-                    cx="200"
-                    cy="200"
-                    r="50"
-                    fill="#09090b"
-                    stroke="#ffffff"
-                    strokeWidth="3"
-                    className="pointer-events-none"
-                  />
-                  {/* Pupil indicator reflection */}
-                  <circle
-                    cx="185"
-                    cy="185"
-                    r="8"
-                    fill="#ffffff"
-                    opacity="0.6"
-                    className="pointer-events-none"
-                  />
-                  <text
-                    x="200"
-                    y="204"
-                    fill="#ffffff"
-                    fontSize="16"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    className="font-heading pointer-events-none"
-                  >
-                    I
-                  </text>
-                </svg>
-              </div>
-            </div>
-
-            {/* Column 2: Information and detail lists */}
-            <div className="lg:col-span-6 flex flex-col justify-center">
-              {activeInfo ? (
-                <div className="bg-[#09090b] text-white p-6 border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(220,38,38,1)] space-y-6 min-h-[300px] flex flex-col justify-between relative">
-                  <div>
-                    <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                      <h3 className="text-xl font-bold font-heading uppercase text-red-500">
-                        {activeInfo.title}
-                      </h3>
-                      {activeSector !== null && (
-                        <button
-                          onClick={() => setActiveSector(null)}
-                          className="px-2 py-1 bg-red-600 text-white font-mono text-[9px] uppercase font-bold border border-black hover:bg-white hover:text-black transition-colors cursor-pointer"
-                        >
-                          Minimize
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-xs text-zinc-300 leading-relaxed font-sans mt-3">
-                      {activeInfo.description}
-                    </p>
-
-                    <div className="mt-4 space-y-3 font-mono text-[10px] text-zinc-400">
-                      {activeInfo.details.map((detail, idx) => {
-                        const [title, desc] = detail.split(': ');
-                        return (
-                          <div key={idx} className="flex gap-2 items-start border-l border-red-600 pl-3">
-                            <div>
-                              <strong className="block text-white uppercase tracking-wider">{title}</strong>
-                              <span className="block text-[9px] text-zinc-400 mt-0.5 leading-normal">{desc}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <p className="text-[9px] text-zinc-500 font-mono italic">
-                    {activeSector !== null ? 'Click again inside the Iris to restore the console view.' : 'Click to lock feature sets into full view.'}
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-white text-[#09090b] p-6 border-[3px] border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-h-[300px] flex flex-col justify-center items-center text-center space-y-4">
-                  <div className="h-12 w-12 bg-zinc-100 text-[#09090b] border-2 border-black flex items-center justify-center font-bold text-lg font-heading">
-                    ?
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold font-heading uppercase">Interactive Feature Mapping</h3>
-                    <p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed mt-2 font-medium">
-                      Hover over different sectors of the Iris circle to reveal details. Left click a quadrant to expand that feature set to occupy the entire Iris.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Detailed Feature Breakdown Matrix */}
-          <div className="mt-20 border-t-[3px] border-black pt-16 space-y-8 animate-fade-in-up animation-delay-300">
-            <div className="text-center md:text-left space-y-2">
-              <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Technical Specifications</span>
-              <h3 className="text-2xl md:text-4xl font-extrabold font-heading uppercase text-[#09090b]">Console Module Matrix</h3>
-              <p className="text-xs text-zinc-500 max-w-xl leading-normal">
-                Review the performance profiles, API integration layers, and security frameworks underlying each active console module.
-              </p>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">1</div>
-                  <span className="font-bold text-xs uppercase text-[#09090b]">Prism Automations</span>
-                </div>
-                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
-                  <li><strong className="text-black">Sync latency:</strong> Real-time webhook push</li>
-                  <li><strong className="text-black">API Integration:</strong> Canvas, Webhook v2</li>
-                  <li><strong className="text-black">Security:</strong> OAuth2.0 Client Credentials</li>
-                  <li><strong className="text-black">LLM Engine:</strong> Context-aware vector retrieval</li>
-                </ul>
-              </div>
-
-              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">2</div>
-                  <span className="font-bold text-xs uppercase text-[#09090b]">Operations &amp; Ledger</span>
-                </div>
-                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
-                  <li><strong className="text-black">Currency Engine:</strong> Hourly exchange updates</li>
-                  <li><strong className="text-black">Leak Checks:</strong> Automated Cron alerts</li>
-                  <li><strong className="text-black">Margin Rules:</strong> Custom contractor formulas</li>
-                  <li><strong className="text-black">Retention:</strong> Infinite ledger auditing</li>
-                </ul>
-              </div>
-
-              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">3</div>
-                  <span className="font-bold text-xs uppercase text-[#09090b]">Design Hub &amp; Sync</span>
-                </div>
-                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
-                  <li><strong className="text-black">Canva Engine:</strong> Bidirectional catalog sync</li>
-                  <li><strong className="text-black">Proof Gating:</strong> Client-clearance tokens</li>
-                  <li><strong className="text-black">Asset Cache:</strong> Vercel KV edge storage</li>
-                  <li><strong className="text-black">Resolution:</strong> High-res visual proofs</li>
-                </ul>
-              </div>
-
-              <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-6 w-6 bg-red-600 text-white flex items-center justify-center font-bold text-[10px] font-heading border border-black">4</div>
-                  <span className="font-bold text-xs uppercase text-[#09090b]">Meta Portal</span>
-                </div>
-                <ul className="space-y-2 font-mono text-[9px] text-zinc-650">
-                  <li><strong className="text-black">Meta API:</strong> Campaign Graph v20.0</li>
-                  <li><strong className="text-black">ROAS Metrics:</strong> Aggregated hourly fetch</li>
-                  <li><strong className="text-black">Gated Portal:</strong> Magic link secure tokens</li>
-                  <li><strong className="text-black">Reports SLA:</strong> Auto-generated PDFs</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action Section */}
-      <section className="py-24 px-6 border-b-[3px] border-black bg-[#09090b] text-white relative overflow-hidden">
-        {/* Brutalist diagonal background elements */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35 pointer-events-none" />
-        
-        <div className="max-w-4xl mx-auto text-center space-y-8 relative z-10 animate-fade-in-up">
-          <span className="text-xs font-bold text-red-500 uppercase tracking-widest bg-zinc-900 border border-zinc-800 px-3 py-1.5 inline-block">
-            DEPLOY THE MONOLITH
-          </span>
-          
-          <div className="space-y-4">
-            <h2 className="text-4xl sm:text-6xl font-extrabold font-heading uppercase leading-[0.9] tracking-tight text-white animate-scale-in">
-              DESTRUCT FRAGMENTATION.<br />
-              <span className="bg-red-600 text-white px-4 py-1.5 inline-block mt-3 transform rotate-1">
-                TRY IT OUT NOW.
-              </span>
-            </h2>
-            <p className="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto leading-relaxed pt-3">
-              Stop bleeding contractor margins across separate billing apps, design hubs, and campaign sheets. Spin up your dedicated, high-fidelity agency operating console in seconds.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-4 pt-4">
-            <Link
-              href="/signup"
-              className="px-8 py-3.5 bg-white text-[#09090b] hover:bg-red-650 hover:text-white border-[3px] border-black text-sm font-bold uppercase tracking-wider shadow-[5px_5px_0px_0px_rgba(220,38,38,1)] hover:shadow-none hover:translate-x-[5px] hover:translate-y-[5px] transition-all flex items-center gap-2"
-            >
-              <span>Try it out now</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="px-8 py-3.5 bg-[#18181b] text-white hover:bg-zinc-800 border-[3px] border-zinc-700 text-sm font-bold uppercase tracking-wider shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[5px] hover:translate-y-[5px] transition-all"
-            >
-              Explore Plans
-            </Link>
-          </div>
-
-          <div className="pt-4 font-mono text-[9px] text-zinc-500 flex justify-center gap-8">
-            <span>✓ 14-Day Unlimited Trial</span>
-            <span>✓ No Credit Card Required</span>
-            <span>✓ Secure OAuth Setup</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-[#09090b] text-white py-12 px-6 border-t-[3px] border-black">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-7 object-contain" />
-            <span className="text-[10px] text-zinc-500 font-mono mt-1 font-medium">© 2026. All rights reserved.</span>
-          </div>
-
-          <div className="flex gap-6 font-mono text-[10px] text-zinc-400">
-            <a href="#about" className="hover:text-red-500">About</a>
-            <a href="#features" className="hover:text-red-500">Features</a>
-            <Link href="/pricing" className="hover:text-red-500">Pricing</Link>
-            <Link href="/terms" className="hover:text-red-500">Terms</Link>
-            <Link href="/privacy" className="hover:text-red-500">Privacy</Link>
-            <Link href="/login" className="hover:text-red-500">Sign In</Link>
-          </div>
-        </div>
-      </footer>
+    <div
+      style={{
+        padding: '36px 32px',
+        border: '1px dashed rgba(255,255,255,0.06)',
+        borderRadius: '24px',
+        width: '100%',
+        minHeight: '280px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        textAlign: 'center',
+        background: 'rgba(255,255,255,0.01)',
+      }}
+    >
+      <div
+        style={{
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          border: '1px dashed rgba(255,255,255,0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '16px',
+          opacity: 0.3,
+        }}
+      >
+        <span style={{ color: '#ffffff', fontSize: '16px' }}>+</span>
+      </div>
+      <p
+        style={{
+          fontFamily: BODY,
+          fontSize: '13px',
+          color: 'rgba(255,255,255,0.25)',
+          maxWidth: '220px',
+          lineHeight: 1.5,
+          margin: 0,
+        }}
+      >
+        Select a module on the {side} side of the Iris console to expand specifications.
+      </p>
     </div>
   );
+}
+
+function DetailCard({
+  wedge,
+  visible,
+  side,
+  targetId,
+}: {
+  wedge: typeof WEDGES[0] | null;
+  visible: boolean;
+  side: 'left' | 'right';
+  targetId: string;
+}) {
+  const [displayWedge, setDisplayWedge] = useState<typeof WEDGES[0] | null>(wedge);
+
+  useEffect(() => {
+    if (wedge) {
+      setDisplayWedge(wedge);
+    }
+  }, [wedge]);
+
+  if (!displayWedge) return null;
+
+  return (
+    <div
+      className="neo-raised"
+      style={{
+        padding: '36px 32px',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '24px',
+        background: '#111111',
+        boxShadow: '8px 8px 24px #040404, -8px -8px 24px #1e1e1e',
+        width: '100%',
+        minHeight: '280px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'relative',
+        opacity: visible ? 1 : 0,
+        transform: visible
+          ? 'translateX(0)'
+          : side === 'left' ? 'translateX(-30px)' : 'translateX(30px)',
+        transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        pointerEvents: visible ? 'auto' : 'none',
+      }}
+    >
+      {/* Target anchor point for the line */}
+      <div
+        id={targetId}
+        style={{
+          position: 'absolute',
+          top: '50%',
+          [targetId === 'left-card-target' ? 'right' : 'left']: '-6px',
+          transform: 'translateY(-50%)',
+          width: '10px',
+          height: '10px',
+          borderRadius: '50%',
+          background: '#ffffff',
+          boxShadow: '0 0 8px #ffffff',
+        }}
+      />
+
+      <div
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0)' : 'translateY(15px)',
+          transition: 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.05s, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) 0.05s',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: JBMONO,
+            fontSize: '11px',
+            color: 'rgba(255,255,255,0.4)',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            display: 'block',
+            marginBottom: '16px',
+          }}
+        >
+          Module Specifications
+        </span>
+        <h3
+          style={{
+            fontFamily: DISPLAY,
+            fontWeight: 700,
+            fontSize: '22px',
+            color: '#ffffff',
+            letterSpacing: '-0.02em',
+            marginBottom: '20px',
+            lineHeight: 1.2,
+          }}
+        >
+          {displayWedge.title}
+        </h3>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {displayWedge.details.map((detail, idx) => {
+            const [boldPart, rest] = detail.split(': ');
+            return (
+              <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <div
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.4)',
+                    marginTop: '8px',
+                    flexShrink: 0,
+                  }}
+                />
+                <p
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(255,255,255,0.6)',
+                    lineHeight: 1.6,
+                    margin: 0,
+                  }}
+                >
+                  <strong style={{ color: '#ffffff', fontWeight: 600 }}>{boldPart}:</strong>
+                  {rest ? ` ${rest}` : ''}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.3)' }} />
+        <span style={{ fontFamily: JBMONO, fontSize: '10px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>
+          Active Link Connection established
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Features() {
+  const [hoveredWedge, setHoveredWedge] = useState<number | null>(null);
+  const [activeWedge, setActiveWedge] = useState<number | null>(null);
+  const [lineCoords, setLineCoords] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const irisRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Listen for clicks outside the Iris to close cards and center
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      
+      // If clicking inside the Iris container, let the wedge click handlers do their job.
+      if (irisRef.current && irisRef.current.contains(target)) {
+        return;
+      }
+      
+      // Check if clicking inside left or right detail cards (if open)
+      const leftCard = document.getElementById('left-card-target')?.parentElement;
+      const rightCard = document.getElementById('right-card-target')?.parentElement;
+      if ((leftCard && leftCard.contains(target)) || (rightCard && rightCard.contains(target))) {
+        return;
+      }
+      
+      // Otherwise, close the detail cards and reset highlights
+      setActiveWedge(null);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Generate radial fibers of a real iris
+  const spokes = useMemo(() => {
+    // Deterministic seeded generator to avoid client/server hydration mismatches
+    let seed = 888;
+    const random = () => {
+      const x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    };
+
+    const temp = [];
+    for (let i = 0; i < 180; i++) {
+      const angle = (i * 2) * Math.PI / 180;
+      const lengthFactor = 0.45 + random() * 0.55;
+      const r_start = 74 + random() * 15;
+      const r_end = r_start + (201 - r_start) * lengthFactor;
+      const opacity = 0.07 + random() * 0.18;
+      temp.push({
+        x1: 250 + r_start * Math.cos(angle),
+        y1: 250 + r_start * Math.sin(angle),
+        x2: 250 + r_end * Math.cos(angle),
+        y2: 250 + r_end * Math.sin(angle),
+        opacity,
+      });
+    }
+    return temp;
+  }, []);
+
+  // Concentric wavy contraction furrows
+  const wavyRing1 = useMemo(() => {
+    let d = '';
+    const points = 72;
+    for (let i = 0; i <= points; i++) {
+      const angle = (i * 360 / points) * Math.PI / 180;
+      const r = 115 + Math.sin(i * 5) * 2.5;
+      const x = 250 + r * Math.cos(angle);
+      const y = 250 + r * Math.sin(angle);
+      if (i === 0) d += `M ${x} ${y}`;
+      else d += ` L ${x} ${y}`;
+    }
+    return d + ' Z';
+  }, []);
+
+  const wavyRing2 = useMemo(() => {
+    let d = '';
+    const points = 90;
+    for (let i = 0; i <= points; i++) {
+      const angle = (i * 360 / points) * Math.PI / 180;
+      const r = 165 + Math.cos(i * 6) * 3;
+      const x = 250 + r * Math.cos(angle);
+      const y = 250 + r * Math.sin(angle);
+      if (i === 0) d += `M ${x} ${y}`;
+      else d += ` L ${x} ${y}`;
+    }
+    return d + ' Z';
+  }, []);
+
+  // Recalculate line connection coordinates dynamically on wedge/window change
+  useEffect(() => {
+    const handleResize = () => {
+      if (activeWedge === null) {
+        setLineCoords(null);
+        return;
+      }
+      
+      const container = document.getElementById('iris-section-container');
+      const wedgeElem = document.getElementById(`wedge-target-${activeWedge}`);
+      const cardTargetElem = activeWedge >= 3 
+        ? document.getElementById('left-card-target') 
+        : document.getElementById('right-card-target');
+      
+      if (container && wedgeElem && cardTargetElem) {
+        const containerRect = container.getBoundingClientRect();
+        const wedgeRect = wedgeElem.getBoundingClientRect();
+        const cardRect = cardTargetElem.getBoundingClientRect();
+        
+        setLineCoords({
+          x1: wedgeRect.left + wedgeRect.width / 2 - containerRect.left,
+          y1: wedgeRect.top + wedgeRect.height / 2 - containerRect.top,
+          x2: cardRect.left + cardRect.width / 2 - containerRect.left,
+          y2: cardRect.top + cardRect.height / 2 - containerRect.top,
+        });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    // Double trigger to account for component mounting and css animation delays
+    const timer1 = setTimeout(handleResize, 100);
+    const timer2 = setTimeout(handleResize, 500);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [activeWedge]);
+
+  // Path generator for donut sectors
+  const getWedgePath = (cx: number, cy: number, r: number, R: number, startAngle: number, endAngle: number) => {
+    const rad = Math.PI / 180;
+    const x1_out = cx + R * Math.cos(startAngle * rad);
+    const y1_out = cy + R * Math.sin(startAngle * rad);
+    const x2_out = cx + R * Math.cos(endAngle * rad);
+    const y2_out = cy + R * Math.sin(endAngle * rad);
+    
+    const x1_in = cx + r * Math.cos(endAngle * rad);
+    const y1_in = cy + r * Math.sin(endAngle * rad);
+    const x2_in = cx + r * Math.cos(startAngle * rad);
+    const y2_in = cy + r * Math.sin(startAngle * rad);
+    
+    return `M ${x1_out} ${y1_out} A ${R} ${R} 0 0 1 ${x2_out} ${y2_out} L ${x1_in} ${y1_in} A ${r} ${r} 0 0 0 ${x2_in} ${y2_in} Z`;
+  };
+
+  return (
+    <section id="features" style={{ padding: '100px 24px', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+      <ScrollReveal style={{ textAlign: 'center', marginBottom: '72px' }}>
+        <div className="section-divider" style={{ margin: '0 auto 24px' }} />
+        <span
+          style={{
+            fontFamily: JBMONO,
+            fontWeight: 400,
+            fontSize: '11px',
+            color: 'rgba(232,232,232,0.38)',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            display: 'block',
+            marginBottom: '20px',
+          }}
+        >
+          Console Ecosystem
+        </span>
+        <h2
+          style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-0.03em', marginBottom: '16px' }}
+          className="gradient-text"
+        >
+          Consolidating your agency's entire<br />operation into a single, high-fidelity lens.
+        </h2>
+        <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
+          Hover and click on the sectors of the Iris console below to expand detailed specifications.
+        </p>
+      </ScrollReveal>
+
+      <ScrollReveal
+        id="iris-section-container"
+        delay="0.2s"
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '40px',
+          position: 'relative',
+          maxWidth: '1300px',
+          margin: '0 auto',
+          minHeight: '600px',
+          width: '100%',
+        }}
+      >
+        
+        {/* Left Side — displays active detail card if left wedge is clicked */}
+        <div
+          style={{
+            width: activeWedge !== null && activeWedge >= 3 ? '360px' : '0px',
+            flexShrink: 0,
+            zIndex: 6,
+            overflow: 'hidden',
+            transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          <div style={{ width: '360px' }}>
+            <DetailCard
+              wedge={activeWedge !== null && activeWedge >= 3 ? WEDGES[activeWedge] : null}
+              visible={activeWedge !== null && activeWedge >= 3}
+              side="left"
+              targetId="left-card-target"
+            />
+          </div>
+        </div>
+
+        {/* Center Panel — holds the Large Interactive Iris Eye */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', zIndex: 7, flexShrink: 0 }}>
+          <div
+            ref={irisRef}
+            style={{
+              width: '580px',
+              maxWidth: '90vw',
+              aspectRatio: '1/1',
+              borderRadius: '50%',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.8), inset 0 0 40px rgba(255,255,255,0.02)',
+              background: '#070707',
+              border: '1px solid rgba(255,255,255,0.03)',
+              padding: '16px',
+            }}
+          >
+            {isMounted ? (
+            <svg
+              viewBox="0 0 500 500"
+              style={{ width: '100%', height: '100%', overflow: 'visible' }}
+            >
+              <defs>
+                {/* Fiber linear gradient */}
+                <linearGradient id="fiber-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+                  <stop offset="50%" stopColor="#a1a1aa" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#27272a" stopOpacity="0.04" />
+                </linearGradient>
+                {/* Glow filter for connecting lines */}
+                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {/* Biological Radial Fibers Background Layer */}
+              <g pointerEvents="none">
+                {spokes.map((s, idx) => (
+                  <line
+                    key={idx}
+                    x1={s.x1}
+                    y1={s.y1}
+                    x2={s.x2}
+                    y2={s.y2}
+                    stroke="url(#fiber-grad)"
+                    strokeWidth="0.8"
+                    opacity={s.opacity}
+                  />
+                ))}
+              </g>
+
+              {/* Concentric Contraction Furrow Waveforms */}
+              <path d={wavyRing1} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="1" strokeDasharray="6 8" pointerEvents="none" />
+              <path d={wavyRing2} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1.2" strokeDasharray="25 15" pointerEvents="none" />
+
+              {/* Interactive Wedges Layer */}
+              <g>
+                {WEDGES.map((w, idx) => {
+                  const isHovered = hoveredWedge === idx;
+                  const isActive = activeWedge === idx;
+                  
+                  // Compute outward translation vector on hover or click
+                  const shift = isHovered ? 12 : isActive ? 6 : 0;
+                  const rad = Math.PI / 180;
+                  const midRad = ((w.start + w.end) / 2) * rad;
+                  const tx = shift * Math.cos(midRad);
+                  const ty = shift * Math.sin(midRad);
+
+                  // Calculate text placement radius and rotation angle
+                  const R_text = 142;
+                  const tx_text = (R_text + shift) * Math.cos(midRad);
+                  const ty_text = (R_text + shift) * Math.sin(midRad);
+                  
+                  const midAngle = (w.start + w.end) / 2;
+                  let rotateAngle = midAngle;
+                  // Flip text on left side of circle to ensure it remains right-side up
+                  if (midAngle > 90 || midAngle < -90) {
+                    rotateAngle = midAngle + 180;
+                  }
+
+                  // Coordinate for connection line target dot
+                  const targetX = 250 + (130 + shift) * Math.cos(midRad);
+                  const targetY = 250 + (130 + shift) * Math.sin(midRad);
+
+                  return (
+                    <g
+                      key={w.id}
+                      onMouseEnter={() => setHoveredWedge(idx)}
+                      onMouseLeave={() => setHoveredWedge(null)}
+                      onClick={() => setActiveWedge(idx)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {/* Base Wedge Path */}
+                      <path
+                        d={getWedgePath(250, 250, 75, 205, w.start, w.end)}
+                        transform={`translate(${tx}, ${ty})`}
+                        fill={isHovered ? 'rgba(255,255,255,0.06)' : isActive ? 'rgba(255,255,255,0.03)' : 'transparent'}
+                        stroke={isActive ? '#ffffff' : isHovered ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.05)'}
+                        strokeWidth={isActive ? '1.5' : '1'}
+                        style={{
+                          transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), fill 0.3s ease, stroke 0.3s ease',
+                        }}
+                      />
+
+                      {/* Floating Text Label */}
+                      <g
+                        transform={`translate(${250 + tx_text}, ${250 + ty_text}) rotate(${rotateAngle})`}
+                        style={{
+                          transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                        }}
+                      >
+                        <text
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          style={{
+                            fontFamily: DISPLAY,
+                            fontWeight: 600,
+                            fontSize: isHovered ? '13px' : '11px',
+                            fill: isHovered || isActive ? '#ffffff' : 'rgba(255,255,255,0.55)',
+                            transition: 'font-size 0.3s ease, fill 0.3s ease',
+                            letterSpacing: '0.04em',
+                            userSelect: 'none',
+                          }}
+                        >
+                          {w.title}
+                        </text>
+                      </g>
+
+                      {/* Target node dot for the dynamic line connection */}
+                      <circle
+                        id={`wedge-target-${w.id}`}
+                        cx={targetX}
+                        cy={targetY}
+                        r="0"
+                        fill="transparent"
+                      />
+                    </g>
+                  );
+                })}
+              </g>
+
+              {/* Pupil Center with gloss reflections */}
+              <circle cx="250" cy="250" r="74" fill="#030303" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" pointerEvents="none" />
+              <circle cx="222" cy="222" r="14" fill="#ffffff" opacity="0.08" filter="url(#glow)" pointerEvents="none" />
+              <circle cx="218" cy="218" r="6" fill="#ffffff" opacity="0.25" pointerEvents="none" />
+            </svg>
+          ) : (
+            <div style={{ width: '100%', height: '100%' }} />
+          )}
+        </div>
+      </div>
+
+        {/* Right Side — displays active detail card if right wedge is clicked */}
+        <div
+          style={{
+            width: activeWedge !== null && activeWedge < 3 ? '360px' : '0px',
+            flexShrink: 0,
+            zIndex: 6,
+            overflow: 'hidden',
+            transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+        >
+          <div style={{ width: '360px' }}>
+            <DetailCard
+              wedge={activeWedge !== null && activeWedge < 3 ? WEDGES[activeWedge] : null}
+              visible={activeWedge !== null && activeWedge < 3}
+              side="right"
+              targetId="right-card-target"
+            />
+          </div>
+        </div>
+
+        {/* Dynamic Connecting Line Overlay (Desktop only) */}
+        <div
+          className="hidden lg:block absolute inset-0 pointer-events-none"
+          style={{
+            width: '100%',
+            height: '100%',
+            zIndex: 5,
+            opacity: activeWedge !== null && lineCoords ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }}
+        >
+          {lineCoords && (
+            <svg width="100%" height="100%">
+              <defs>
+                <linearGradient id="line-glow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                  <stop offset="100%" stopColor="rgba(255,255,255,0.2)" stopOpacity="0.2" />
+                </linearGradient>
+              </defs>
+              {/* Blur glow line behind */}
+              <line
+                x1={lineCoords.x1}
+                y1={lineCoords.y1}
+                x2={lineCoords.x2}
+                y2={lineCoords.y2}
+                stroke="rgba(255, 255, 255, 0.4)"
+                strokeWidth="4"
+                filter="url(#glow)"
+              />
+              {/* Sharp dashed line in front */}
+              <line
+                x1={lineCoords.x1}
+                y1={lineCoords.y1}
+                x2={lineCoords.x2}
+                y2={lineCoords.y2}
+                stroke="url(#line-glow-grad)"
+                strokeWidth="1.5"
+                strokeDasharray="6 4"
+              />
+            </svg>
+          )}
+        </div>
+      </ScrollReveal>
+    </section>
+  );
+}
+
+// ─── Waitlist Section ──────────────────────────────────────────────────────────
+function Waitlist() {
+  return (
+    <section id="waitlist" style={{ padding: '120px 24px 160px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="animate-fade-in-up" style={{ maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
+        <div className="section-divider" style={{ margin: '0 auto 24px' }} />
+        <span
+          style={{
+            fontFamily: JBMONO,
+            fontWeight: 400,
+            fontSize: '11px',
+            color: 'rgba(232,232,232,0.38)',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            display: 'block',
+            marginBottom: '24px',
+          }}
+        >
+          Early Access
+        </span>
+        <h2
+          style={{
+            fontFamily: DISPLAY,
+            fontWeight: 700,
+            fontSize: 'clamp(36px, 5vw, 64px)',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.05,
+            marginBottom: '24px',
+          }}
+          className="gradient-text"
+        >
+          Ready to clarify your agency's vision?
+        </h2>
+        <p style={{ fontFamily: BODY, fontSize: '17px', color: 'rgba(232,232,232,0.45)', lineHeight: 1.7, marginBottom: '56px' }}>
+          Consolidate your tools and focus your operations. Join the waitlist for the definitive all-in-one agency workspace.
+        </p>
+
+        <div className="neo-raised" style={{ padding: '48px 40px', display: 'flex', justifyContent: 'center' }}>
+          <Link
+            href="/waitlist"
+            className="neo-button-accent"
+            style={{
+              fontFamily: BODY,
+              fontWeight: 600,
+              fontSize: '16px',
+              padding: '16px 40px',
+              textDecoration: 'none',
+              color: '#0a0a0a',
+              display: 'inline-block',
+            }}
+          >
+            Join the Waitlist
+          </Link>
+        </div>
+
+        {/* Social proof */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', marginTop: '40px', flexWrap: 'wrap' }}>
+          {['1,200+ on waitlist', 'Ships Q3 2026', 'Invite-only beta'].map((item, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+              <span style={{ fontFamily: JBMONO, fontSize: '11px', color: 'rgba(232,232,232,0.32)', letterSpacing: '0.04em' }}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Footer ────────────────────────────────────────────────────────────────────
+function Footer() {
+  return (
+    <footer
+      style={{
+        borderTop: '1px solid rgba(255,255,255,0.05)',
+        padding: '36px 24px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px',
+      }}
+    >
+      <img src={irisLogo} alt="Iris OS" style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
+      <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
+        © 2026 Iris OS, Inc. All rights reserved.
+      </span>
+      <div style={{ display: 'flex', gap: '24px' }}>
+        {['Privacy', 'Terms', 'Security'].map((item) => {
+          const href = item === 'Privacy' ? '/privacy' : item === 'Terms' ? '/terms' : '#';
+          if (href !== '#') {
+            return (
+              <Link
+                key={item}
+                href={href}
+                style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
+              >
+                {item}
+              </Link>
+            )
+          }
+          return (
+            <a
+              key={item}
+              href="#"
+              style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
+            >
+              {item}
+            </a>
+          )
+        })}
+      </div>
+    </footer>
+  )
+}
+
+// ─── App Root ─────────────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(ellipse 80% 60% at 10% 10%, rgba(255,255,255,0.055) 0%, transparent 55%),
+          radial-gradient(ellipse 60% 50% at 90% 15%, rgba(255,255,255,0.04) 0%, transparent 50%),
+          radial-gradient(ellipse 70% 60% at 50% 95%, rgba(255,255,255,0.025) 0%, transparent 55%),
+          #0a0a0a
+        `,
+      }}
+    >
+      <Header />
+      <Hero />
+      <VideoSection />
+      <About />
+      <Features />
+      <Waitlist />
+      <Footer />
+    </div>
+  )
 }

@@ -4,92 +4,284 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ArrowRight, Menu, X } from 'lucide-react';
 
+// ─── Font shorthands ──────────────────────────────────────────────────────────
+const DISPLAY = "'Space Grotesk', sans-serif";
+const BODY    = "'Geist', sans-serif";
+const MONO    = "'Geist Mono', monospace";
+const JBMONO  = "'JetBrains Mono', monospace";
+
 export default function PrivacyPolicyPage() {
+  const [scrolled, setScrolled] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
+  React.useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handler);
+    return () => window.removeEventListener('scroll', handler);
+  }, []);
+
   return (
-    <div className="bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none">
+    <div
+      style={{
+        minHeight: '100vh',
+        background: `
+          radial-gradient(ellipse 80% 60% at 10% 10%, rgba(255,255,255,0.055) 0%, transparent 55%),
+          radial-gradient(ellipse 60% 50% at 90% 15%, rgba(255,255,255,0.04) 0%, transparent 50%),
+          radial-gradient(ellipse 70% 60% at 50% 95%, rgba(255,255,255,0.025) 0%, transparent 55%),
+          #0a0a0a
+        `,
+        color: '#e8e8e8',
+        fontFamily: BODY,
+      }}
+      className="relative select-none"
+    >
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between">
-        {/* Left: Logo */}
-        <Link href="/" className="flex items-center gap-2 group shrink-0">
-          <img src="/iris-logo-white-bg.png" alt="Iris OS Logo" className="h-8 object-contain" />
-        </Link>
-
-        {/* Center Nav Links */}
-        <nav className="hidden md:flex items-center gap-12 font-semibold text-xs tracking-wider uppercase">
-          <Link href="/#about" className="hover:text-red-600 transition-colors">About</Link>
-          <Link href="/#features" className="hover:text-red-600 transition-colors">Features</Link>
-          <Link href="/pricing" className="hover:text-red-600 transition-colors">Join Now</Link>
-        </nav>
-
-        {/* Right Button */}
-        <div className="hidden md:block">
-          <Link
-            href="/login"
-            className="px-5 py-2.5 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase transition-all tracking-wider inline-flex items-center gap-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px]"
-          >
-            <span>Enter Workspace</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {/* Mobile menu toggle */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-black hover:text-red-600 focus:outline-none"
+      <header
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          padding: '16px 24px',
+          transition: 'all 0.3s ease',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 20px 12px 16px',
+            background: scrolled ? '#111111' : 'rgba(17,17,17,0.6)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '60px',
+            boxShadow: scrolled
+              ? '8px 8px 18px #040404, -8px -8px 18px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.05)'
+              : '0 0 0 1px rgba(255,255,255,0.05)',
+            transition: 'all 0.3s ease',
+          }}
         >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+          {/* Logo */}
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img
+              src="/iris-logo-black-bg.png"
+              alt="Iris OS"
+              style={{
+                height: '36px',
+                width: 'auto',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
+          </Link>
+
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex" style={{ gap: '4px' }}>
+            <Link
+              href="/#about"
+              style={{
+                fontFamily: BODY,
+                fontWeight: 500,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.6)',
+                textDecoration: 'none',
+                padding: '8px 18px',
+                borderRadius: '50px',
+                transition: 'color 0.2s ease, background 0.2s ease',
+              }}
+              className="hover:bg-[rgba(255,255,255,0.06)] hover:text-[#e8e8e8]"
+            >
+              About
+            </Link>
+            <Link
+              href="/#features"
+              style={{
+                fontFamily: BODY,
+                fontWeight: 500,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.6)',
+                textDecoration: 'none',
+                padding: '8px 18px',
+                borderRadius: '50px',
+                transition: 'color 0.2s ease, background 0.2s ease',
+              }}
+              className="hover:bg-[rgba(255,255,255,0.06)] hover:text-[#e8e8e8]"
+            >
+              Features
+            </Link>
+          </nav>
+
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center gap-4">
+            <Link
+              href="/#waitlist"
+              className="neo-button-accent"
+              style={{
+                fontFamily: BODY,
+                fontWeight: 600,
+                fontSize: '13px',
+                padding: '10px 22px',
+                textDecoration: 'none',
+                color: '#0a0a0a',
+                border: 'none',
+              }}
+            >
+              Request Early Access
+            </Link>
+          </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 text-white hover:text-gray-300 focus:outline-none"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </header>
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-x-0 top-16 bg-white border-b-4 border-black z-40 p-6 flex flex-col gap-6 md:hidden font-sans border-t">
-          <nav className="flex flex-col gap-4 font-semibold text-xs tracking-wider uppercase">
+        <div
+          className="fixed md:hidden z-40 p-6 flex flex-col gap-4 neo-raised"
+          style={{
+            top: '90px',
+            left: '24px',
+            right: '24px',
+            background: 'rgba(17, 17, 17, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: '10px 10px 24px #040404, -10px -10px 24px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.08)',
+            border: 'none',
+          }}
+        >
+          <nav className="flex flex-col gap-3">
             <Link
               href="/#about"
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
+              style={{
+                fontFamily: BODY,
+                fontSize: '15px',
+                color: 'rgba(232,232,232,0.8)',
+                textDecoration: 'none',
+                padding: '10px 16px',
+                borderRadius: '12px',
+                transition: 'background 0.2s',
+              }}
+              className="hover:bg-[rgba(255,255,255,0.06)]"
             >
               About
             </Link>
             <Link
               href="/#features"
               onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
+              style={{
+                fontFamily: BODY,
+                fontSize: '15px',
+                color: 'rgba(232,232,232,0.8)',
+                textDecoration: 'none',
+                padding: '10px 16px',
+                borderRadius: '12px',
+                transition: 'background 0.2s',
+              }}
+              className="hover:bg-[rgba(255,255,255,0.06)]"
             >
               Features
             </Link>
-            <Link
-              href="/pricing"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
-            >
-              Join Now
-            </Link>
+
           </nav>
           <Link
-            href="/login"
+            href="/#waitlist"
             onClick={() => setMobileMenuOpen(false)}
-            className="w-full text-center py-3 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase transition-all tracking-wider flex items-center justify-center gap-1.5"
+            className="neo-button-accent"
+            style={{
+              fontFamily: BODY,
+              fontWeight: 600,
+              fontSize: '14px',
+              padding: '12px',
+              textAlign: 'center',
+              textDecoration: 'none',
+              color: '#0a0a0a',
+              marginTop: '8px',
+            }}
           >
-            <span>Enter Workspace</span>
-            <ArrowRight className="h-4 w-4" />
+            Request Early Access
           </Link>
         </div>
       )}
 
       {/* Hero Banner */}
-      <section className="relative w-full py-12 px-6 border-b-[3px] border-black bg-white">
-        <div className="max-w-4xl mx-auto text-center space-y-3">
-          <span className="text-xs font-bold text-red-600 uppercase tracking-widest bg-red-100 px-3 py-1 border border-red-200">
+      <section
+        style={{
+          paddingTop: '140px',
+          paddingBottom: '60px',
+          paddingLeft: '24px',
+          paddingRight: '24px',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {/* Badge */}
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 16px',
+              background: '#111111',
+              boxShadow: '4px 4px 10px #040404, -4px -4px 10px #1e1e1e',
+              borderRadius: '50px',
+              marginBottom: '28px',
+              fontFamily: JBMONO,
+              fontWeight: 400,
+              fontSize: '11px',
+              color: 'rgba(232,232,232,0.55)',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <div
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.6)',
+                boxShadow: '0 0 8px rgba(255,255,255,0.4)',
+              }}
+            />
             Security & Consent
           </span>
-          <h1 className="text-3xl sm:text-5xl font-extrabold font-heading text-[#09090b] uppercase tracking-tight">
+
+          <h1
+            className="gradient-text"
+            style={{
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              fontSize: 'clamp(32px, 5vw, 56px)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
+              marginBottom: '16px',
+              textTransform: 'uppercase',
+              margin: '0 0 16px 0',
+            }}
+          >
             Data Usage & Privacy Policy
           </h1>
-          <p className="text-xs text-zinc-550 font-mono">
+
+          <p
+            style={{
+              fontFamily: MONO,
+              fontSize: '11px',
+              color: 'rgba(232,232,232,0.4)',
+              letterSpacing: '0.05em',
+              margin: 0,
+            }}
+          >
             Last Updated: June 27, 2026 • GDPR & DPDP Compliant • Shards Media
           </p>
         </div>
@@ -99,31 +291,104 @@ export default function PrivacyPolicyPage() {
       <section className="max-w-6xl mx-auto py-12 px-6 grid gap-10 md:grid-cols-12">
         {/* Document Index (Left side in desktop) */}
         <aside className="md:col-span-4 space-y-4">
-          <div className="bg-white border-[3px] border-black p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sticky top-28">
-            <span className="block font-heading font-bold text-xs uppercase border-b-2 border-black pb-2 mb-3">
+          <div
+            className="neo-raised animate-fade-in-up"
+            style={{
+              padding: '24px',
+              position: 'sticky',
+              top: '120px',
+              border: '1px solid rgba(255,255,255,0.05)',
+            }}
+          >
+            <span
+              style={{
+                display: 'block',
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '13px',
+                color: '#e8e8e8',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                paddingBottom: '12px',
+                marginBottom: '16px',
+              }}
+            >
               Policy Sections
             </span>
-            <nav className="flex flex-col gap-2.5 font-mono text-[10px] uppercase font-bold text-zinc-650">
-              <a href="#controller" className="hover:text-red-600">1. Data Controller</a>
-              <a href="#data-collection" className="hover:text-red-600">2. Personal Data We Collect</a>
-              <a href="#purpose" className="hover:text-red-600">3. Purpose & Legal Basis</a>
-              <a href="#integrations" className="hover:text-red-600">4. Google & Notion APIs</a>
-              <a href="#retention" className="hover:text-red-600">5. Retention & Erasure</a>
-              <a href="#user-rights" className="hover:text-red-600">6. GDPR & DPDP Act Rights</a>
-              <a href="#transfers" className="hover:text-red-600">7. International Transfers</a>
-              <a href="#dpo" className="hover:text-red-600">8. Contact DPO</a>
+            <nav
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                fontFamily: JBMONO,
+                fontSize: '11px',
+                textTransform: 'uppercase',
+              }}
+            >
+              {[
+                { id: 'controller', label: '1. Data Controller' },
+                { id: 'data-collection', label: '2. Personal Data We Collect' },
+                { id: 'purpose', label: '3. Purpose & Legal Basis' },
+                { id: 'integrations', label: '4. Google & Notion APIs' },
+                { id: 'retention', label: '5. Retention & Erasure' },
+                { id: 'user-rights', label: '6. GDPR & DPDP Act Rights' },
+                { id: 'transfers', label: '7. International Transfers' },
+                { id: 'dpo', label: '8. Contact DPO' },
+              ].map((item) => (
+                <a
+                  key={item.id}
+                  href={`#${item.id}`}
+                  style={{
+                    color: 'rgba(232,232,232,0.45)',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s, padding-left 0.2s',
+                  }}
+                  className="hover:text-white hover:pl-1"
+                >
+                  {item.label}
+                </a>
+              ))}
             </nav>
           </div>
         </aside>
 
         {/* Legal Text (Right side) */}
-        <article className="md:col-span-8 space-y-10 font-sans text-xs leading-relaxed text-zinc-800 font-medium">
+        <article className="md:col-span-8 space-y-8">
           {/* Section 1 */}
-          <section id="controller" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="controller"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               1. Data Controller Identification
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               Shards Media (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is the Data Controller responsible for the processing of your personal data 
               on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR) and acts as the Data Fiduciary 
               under Section 3 of the Digital Personal Data Protection (DPDP) Act of India.
@@ -131,101 +396,366 @@ export default function PrivacyPolicyPage() {
           </section>
 
           {/* Section 2 */}
-          <section id="data-collection" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="data-collection"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               2. Categories of Personal Data We Collect
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               When you use the Platform, we process the following categories of data:
             </p>
-            <ul className="list-disc pl-4 space-y-1.5">
-              <li><strong>Identity & Account Metadata:</strong> Corporate name, billing address, currency settings, administrator emails.</li>
-              <li><strong>Financial Data:</strong> Internal ledgers, client invoices, amount totals, expenses, merchant names.</li>
-              <li><strong>Integration Telemetry & Access Tokens:</strong> OAuth authorization tokens for Canva catalogs, Meta Ads metrics, and Google or Notion workspaces.</li>
-              <li><strong>Human Resources & Contractor Allocation Logs:</strong> Contractor name initials, allocated deliverable hours, utilization metrics.</li>
-              <li><strong>System Logs & Telemetry:</strong> IP address, device headers, authentication timestamps.</li>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                { title: 'Identity & Account Metadata', desc: 'Corporate name, billing address, currency settings, administrator emails.' },
+                { title: 'Financial Data', desc: 'Internal ledgers, client invoices, amount totals, expenses, merchant names.' },
+                { title: 'Integration Telemetry & Access Tokens', desc: 'OAuth authorization tokens for Canva catalogs, Meta Ads metrics, and Google or Notion workspaces.' },
+                { title: 'Human Resources & Contractor Allocation Logs', desc: 'Contractor name initials, allocated deliverable hours, utilization metrics.' },
+                { title: 'System Logs & Telemetry', desc: 'IP address, device headers, authentication timestamps.' }
+              ].map((li, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  <strong style={{ color: '#e8e8e8' }}>{li.title}:</strong> {li.desc}
+                </li>
+              ))}
             </ul>
           </section>
 
           {/* Section 3 */}
-          <section id="purpose" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="purpose"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               3. Purpose and Legal Basis of Processing
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               Under Article 6 of the GDPR, we process data based on:
             </p>
-            <ul className="list-disc pl-4 space-y-1.5">
-              <li><strong>Contractual Performance (Art. 6.1.b):</strong> To deploy settings, calculate invoices, sync project milestones, and authorize client logins.</li>
-              <li><strong>Explicit Consent (Art. 6.1.a):</strong> To connect Canva, Google, Notion, and Meta APIs.</li>
-              <li><strong>Legitimate Interests (Art. 6.1.f):</strong> To execute Prism AI heuristics, identify contractor profit leaks, and detect anomalous security activity.</li>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                { title: 'Contractual Performance (Art. 6.1.b)', desc: 'To deploy settings, calculate invoices, sync project milestones, and authorize client logins.' },
+                { title: 'Explicit Consent (Art. 6.1.a)', desc: 'To connect Canva, Google, Notion, and Meta APIs.' },
+                { title: 'Legitimate Interests (Art. 6.1.f)', desc: 'To execute Prism AI heuristics, identify contractor profit leaks, and detect anomalous security activity.' }
+              ].map((li, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  <strong style={{ color: '#e8e8e8' }}>{li.title}:</strong> {li.desc}
+                </li>
+              ))}
             </ul>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               Under Section 4 and 5 of the Indian DPDP Act, we process personal data only for specified, lawful purposes to which you have given 
               unambiguous, affirmative consent.
             </p>
           </section>
 
           {/* Section 4 */}
-          <section id="integrations" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="integrations"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               4. Google and Notion Authentication APIs & Data Scope
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               Our Platform utilizes Google Authentication and Notion Authentication to enable single-sign-on (SSO) and database integrations:
             </p>
-            <ul className="list-disc pl-4 space-y-1.5">
-              <li><strong>Google Authentication:</strong> We access your Google user profile data (email address, profile picture) and authorization tokens. We do not access, scan, or read your emails, documents, or photos unless explicit, additional drive permissions are granted.</li>
-              <li><strong>Notion Authentication:</strong> We retrieve authorized database schema read/write tokens. This scope is strictly confined to workspace databases you explicitly select for project reporting.</li>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                { title: 'Google Authentication', desc: 'We access your Google user profile data (email address, profile picture) and authorization tokens. We do not access, scan, or read your emails, documents, or photos unless explicit, additional drive permissions are granted.' },
+                { title: 'Notion Authentication', desc: 'We retrieve authorized database schema read/write tokens. This scope is strictly confined to workspace databases you explicitly select for project reporting.' }
+              ].map((li, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  <strong style={{ color: '#e8e8e8' }}>{li.title}:</strong> {li.desc}
+                </li>
+              ))}
             </ul>
-            <p className="font-mono text-[10px] text-zinc-650 bg-zinc-100 p-2.5 border border-zinc-350">
+            <div
+              className="neo-inset"
+              style={{
+                padding: '18px 24px',
+                fontFamily: MONO,
+                fontSize: '12px',
+                color: 'rgba(232,232,232,0.5)',
+                lineHeight: 1.6,
+                border: '1px solid rgba(255,255,255,0.03)',
+                borderRadius: '16px',
+              }}
+            >
               Tokens retrieved via Google and Notion APIs are encrypted using industry-standard AES-256 algorithms and are stored securely. 
               You can revoke permissions at any time from your Google or Notion security consoles.
-            </p>
+            </div>
           </section>
 
           {/* Section 5 */}
-          <section id="retention" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="retention"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               5. Data Retention, Erasure, & Anonymization
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               In accordance with GDPR Article 17 (Right to Erasure) and DPDP Act Section 12 (Right to Erasure of Personal Data):
             </p>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               We retain personal data only for as long as your workspace account is active or as necessary to fulfill the primary purposes 
               of processing. Upon contract termination or a valid erasure request:
             </p>
-            <ul className="list-disc pl-4 space-y-1">
-              <li>All API tokens (Google, Notion, Meta) are immediately and permanently purged from active databases.</li>
-              <li>Your identity details are deleted or fully anonymized.</li>
-              <li>Historical operational logs used by Prism AI are fully scrubbed of identifiable references.</li>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                'All API tokens (Google, Notion, Meta) are immediately and permanently purged from active databases.',
+                'Your identity details are deleted or fully anonymized.',
+                'Historical operational logs used by Prism AI are fully scrubbed of identifiable references.'
+              ].map((item, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {item}
+                </li>
+              ))}
             </ul>
           </section>
 
           {/* Section 6 */}
-          <section id="user-rights" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="user-rights"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               6. GDPR & DPDP Act Data Subject Rights
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               You hold the following legal rights regarding your personal data:
             </p>
-            <ul className="list-disc pl-4 space-y-1.5">
-              <li><strong>Right of Access & Portability:</strong> Obtain a structured JSON copy of all data held.</li>
-              <li><strong>Right to Rectification:</strong> Request correction of inaccurate ledgers or profiles.</li>
-              <li><strong>Right of Consent Withdrawal:</strong> Revoke API permissions at any time.</li>
-              <li><strong>Right to Grievance Redressal (DPDP Act):</strong> Raise grievances directly with our DPO.</li>
-              <li><strong>Right to Nominate (DPDP Act):</strong> Designate an individual to exercise your rights in the event of death or incapacity.</li>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                { title: 'Right of Access & Portability', desc: 'Obtain a structured JSON copy of all data held.' },
+                { title: 'Right to Rectification', desc: 'Request correction of inaccurate ledgers or profiles.' },
+                { title: 'Right of Consent Withdrawal', desc: 'Revoke API permissions at any time.' },
+                { title: 'Right to Grievance Redressal (DPDP Act)', desc: 'Raise grievances directly with our DPO.' },
+                { title: 'Right to Nominate (DPDP Act)', desc: 'Designate an individual to exercise your rights in the event of death or incapacity.' }
+              ].map((li, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  <strong style={{ color: '#e8e8e8' }}>{li.title}:</strong> {li.desc}
+                </li>
+              ))}
             </ul>
           </section>
 
           {/* Section 7 */}
-          <section id="transfers" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="transfers"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               7. International Cross-Border Data Transfers
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               Personal data collected under these policies is processed in secure servers located within the United States, 
               the EEA, and India. To facilitate cross-border transfers from the EEA, Shards Media relies on Standard Contractual 
               Clauses (SCCs) approved by the European Commission. Transfers under the DPDP Act are executed in full compliance 
@@ -234,36 +764,109 @@ export default function PrivacyPolicyPage() {
           </section>
 
           {/* Section 8 */}
-          <section id="dpo" className="bg-white border-[3px] border-black p-6 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
-            <h2 className="text-sm font-bold font-heading uppercase text-red-600 border-b border-zinc-200 pb-2">
+          <section
+            id="dpo"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
               8. Contact Our Data Protection Officer (DPO)
             </h2>
-            <p>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
               To exercise your legal data rights, withdraw consent, or file a complaint regarding our privacy practices:
             </p>
-            <div className="bg-zinc-100 p-4 border border-zinc-350 font-mono text-[10px] space-y-1">
-              <span className="block"><strong>Fiduciary:</strong> Shards Media</span>
-              <span className="block"><strong>Data Protection Officer:</strong> Privacy Compliance Department</span>
-              <span className="block"><strong>Email:</strong> studio@shardsmedia.com</span>
-              <span className="block"><strong>Subject Header:</strong> PRIVACY: DATA RIGHTS EXERCISE</span>
+            <div
+              className="neo-inset"
+              style={{
+                padding: '20px',
+                fontFamily: MONO,
+                fontSize: '12px',
+                color: 'rgba(232,232,232,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                border: '1px solid rgba(255,255,255,0.03)',
+                borderRadius: '16px',
+              }}
+            >
+              <div><strong style={{ color: '#e8e8e8' }}>Fiduciary:</strong> Shards Media</div>
+              <div><strong style={{ color: '#e8e8e8' }}>Data Protection Officer:</strong> Privacy Compliance Department</div>
+              <div><strong style={{ color: '#e8e8e8' }}>Email:</strong> studio@shardsmedia.com</div>
+              <div><strong style={{ color: '#e8e8e8' }}>Subject Header:</strong> PRIVACY: DATA RIGHTS EXERCISE</div>
             </div>
           </section>
         </article>
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#09090b] text-white py-12 px-6 border-t-[3px] border-black">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-7 object-contain" />
-            <span className="text-[10px] text-zinc-500 font-mono mt-1 font-medium">© 2026. All rights reserved.</span>
-          </div>
-
-          <div className="flex gap-6 font-mono text-[10px] text-zinc-400">
-            <Link href="/#about" className="hover:text-red-500">About</Link>
-            <Link href="/#features" className="hover:text-red-500">Features</Link>
-            <Link href="/pricing" className="hover:text-red-500">Pricing</Link>
-            <Link href="/login" className="hover:text-red-500">Sign In</Link>
+      <footer
+        style={{
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          padding: '48px 24px',
+          marginTop: '60px',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1200px',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            width: '100%',
+          }}
+        >
+          <img src="/iris-logo-black-bg.png" alt="Iris OS" style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
+          <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
+            © 2026 Iris OS, Inc. All rights reserved.
+          </span>
+          <div style={{ display: 'flex', gap: '24px' }}>
+            {[
+              { label: 'Privacy', href: '/privacy' },
+              { label: 'Terms', href: '/terms' },
+              { label: 'Security', href: '#' },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                style={{
+                  fontFamily: BODY,
+                  fontSize: '13px',
+                  color: 'rgba(232,232,232,0.3)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease',
+                }}
+                className="hover:text-[rgba(232,232,232,0.65)]"
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
       </footer>

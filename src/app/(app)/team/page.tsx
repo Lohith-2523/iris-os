@@ -1309,7 +1309,7 @@ export default function TeamPage() {
 
                         {/* Inline Task Edit Section */}
                         {isEditing && (
-                          <div className="border border-zinc-850 bg-zinc-955 p-3 space-y-3 text-xs rounded-md">
+                          <div className="border border-zinc-850 bg-zinc-900 p-3 space-y-3 text-xs rounded-md">
                             <div className="grid gap-2 grid-cols-2">
                               <div className="space-y-1">
                                 <label className="text-[9px] uppercase tracking-wider text-zinc-500">Status</label>
@@ -1404,14 +1404,14 @@ export default function TeamPage() {
                         )}
 
                         {!isEditing && task.status === 'BLOCKED' && task.blocker && (
-                          <div className="bg-rose-955/10 border border-rose-950/40 p-2 text-[10px] text-rose-450 flex items-start gap-1.5 rounded-md">
+                          <div className="bg-rose-950/10 border border-rose-900/40 p-2 text-[10px] text-rose-500 flex items-start gap-1.5 rounded-md">
                             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                             <span><strong>Blocker:</strong> {task.blocker}</span>
                           </div>
                         )}
                         {!isEditing && task.update && (
-                          <div className="bg-zinc-955 p-2 text-[10px] text-zinc-450 border border-zinc-900 flex items-start gap-1.5 rounded-md">
-                            <Activity className="h-3.5 w-3.5 text-zinc-650 shrink-0" />
+                          <div className="bg-zinc-900 p-2 text-[10px] text-zinc-400 border border-zinc-800 flex items-start gap-1.5 rounded-md">
+                            <Activity className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
                             <span><strong>Latest Update:</strong> {task.update}</span>
                           </div>
                         )}
