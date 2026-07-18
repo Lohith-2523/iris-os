@@ -516,11 +516,23 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
       }
       
       case 'reporting-brief': {
-        const prompt = `You are Prism AI. Write an executive performance report brief (max 4 sentences).
-        Summarize client delivery ratings, financial progress, and automated compliance schedule checks.
-        Context: ${JSON.stringify(context || {})}
-        
-        ${dbContextText}`;
+        const type = context?.type || 'financial';
+        let prompt = '';
+        if (type === 'marketing') {
+          prompt = `You are Prism AI inside Iris OS. Generate a Comprehensive Marketing & Lead Performance Report.
+          Review the agency leads and campaign statistics from the database.
+          Provide a detailed executive breakdown of total leads, lead status distribution, and advertising channel performance.
+          If no leads/campaigns are recorded, note that marketing channels are currently clean and awaiting integration.
+          Rule: Keep it to max 5 sentences, professional, and action-oriented.
+          Database Context: ${dbContextText}`;
+        } else {
+          prompt = `You are Prism AI inside Iris OS. Generate a Comprehensive Financial Performance Report.
+          Review the transactions, invoices, and expenses from the database.
+          Provide a detailed executive breakdown of gross billings, overhead costs, profit leaks, and net margins.
+          If no financial records exist, note that the ledger is currently clean/empty.
+          Rule: Keep it to max 5 sentences, professional, and action-oriented.
+          Database Context: ${dbContextText}`;
+        }
         const output = await callGemini(prompt);
         return NextResponse.json({ result: output, model: 'Prism AI' });
       }

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getRequestUser } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json([]);
+    }
+
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
 
@@ -27,14 +33,21 @@ export async function GET(request: NextRequest) {
       }
     };
 
+    const scopedWhere = {
+      orgId: user.orgId,
+      ...(user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {}),
+      ...(clientId ? { clientId } : {}),
+    };
+
     if (clientId) {
       projects = await prisma.project.findMany({
-        where: { clientId },
+        where: scopedWhere,
         include: defaultInclude,
         orderBy: { createdAt: 'desc' },
       });
     } else {
       projects = await prisma.project.findMany({
+        where: scopedWhere,
         include: defaultInclude,
         orderBy: { createdAt: 'desc' },
       });
@@ -49,6 +62,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'User context required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       name,
@@ -78,6 +96,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    if (client.orgId !== user.orgId || (user.role.toLowerCase() === 'client' && user.clientId !== client.id)) {
+      return NextResponse.json({ error: 'Unauthorized project scope' }, { status: 403 });
+    }
+
     const orgId = client.orgId;
 
     // Create the project
@@ -100,6 +122,8 @@ export async function POST(request: NextRequest) {
     // Create project members
     if (memberIds && Array.isArray(memberIds)) {
       for (const userId of memberIds) {
+        const member = await prisma.user.findUnique({ where: { id: userId } });
+        if (!member || member.orgId !== orgId) continue;
         await prisma.projectMember.create({
           data: {
             projectId: newProject.id,
@@ -110,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate dates and create stages (max 8)
-    let createdStages: any[] = [];
+    const createdStages: any[] = [];
     if (stages && Array.isArray(stages)) {
       const validStages = stages.slice(0, 8);
       const numStages = validStages.length;
@@ -185,6 +209,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'User context required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       projectId,
@@ -213,6 +242,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
+    if (currentProject.orgId !== user.orgId || (user.role.toLowerCase() === 'client' && user.clientId !== currentProject.clientId)) {
+      return NextResponse.json({ error: 'Unauthorized project scope' }, { status: 403 });
+    }
+
     // 1. Update project basic commercial info
     await prisma.project.update({
       where: { id: projectId },
@@ -234,6 +267,8 @@ export async function PUT(request: NextRequest) {
         where: { projectId }
       });
       for (const userId of memberIds) {
+        const member = await prisma.user.findUnique({ where: { id: userId } });
+        if (!member || member.orgId !== currentProject.orgId) continue;
         await prisma.projectMember.create({
           data: { projectId, userId }
         });

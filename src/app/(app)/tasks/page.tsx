@@ -83,11 +83,13 @@ export default function TasksPage() {
         setTeamMembers(data.filter((t: any) => t.role?.toLowerCase() !== 'client'));
       }
 
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-      const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
-      if (userRes.ok) {
-        const data = await userRes.json();
-        setCurrentUser(data);
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+      if (email) {
+        const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+        if (userRes.ok) {
+          const data = await userRes.json();
+          setCurrentUser(data);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -204,8 +206,10 @@ export default function TasksPage() {
     e.preventDefault();
     if (!newCommentContent || !selectedTask) return;
 
+    const userEmail = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+    if (!userEmail) return;
+
     try {
-      const userEmail = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
       const res = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

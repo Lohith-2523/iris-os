@@ -72,7 +72,7 @@ export default function LoginPage() {
                 password,
                 options: {
                   data: {
-                    name: email.split('@')[0] === 'lohith' ? 'Lohith Sundar' : 'Sarah Chen',
+                    name: typeof window !== 'undefined' ? (localStorage.getItem('signup_name') || (email.split('@')[0] === 'lohith' ? 'Lohith Sundar' : 'Sarah Chen')) : 'Executive User',
                     role: 'ADMIN',
                   }
                 }

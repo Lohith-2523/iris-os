@@ -11,37 +11,76 @@ import { formatUserMessage, renderFormattedText } from '@/lib/utils';
 
 export default function ReportingPage() {
   const [isGenerating, setIsGenerating] = React.useState(false);
-  const [reports, setReports] = React.useState([
-    { id: '1', title: 'Q2 Financial Performance Brief', client: 'Apex Creative Group', type: 'FINANCE', status: 'READY', date: 'June 15, 2026' },
-    { id: '2', title: 'Solaria Energy Account Health Assessment', client: 'Solaria Energy', type: 'CLIENT', status: 'READY', date: 'June 10, 2026' },
-    { id: '3', title: 'Vertex Retail Summer Campaign Performance', client: 'Vertex Retail', type: 'CREATIVE', status: 'READY', date: 'June 08, 2026' },
-    { id: '4', title: 'Aether Technologies Growth Forecast', client: 'Aether Technologies', type: 'FINANCE', status: 'READY', date: 'June 01, 2026' },
-  ]);
+  const [reports, setReports] = React.useState<any[]>([]);
+  const [reportType, setReportType] = React.useState<'financial' | 'marketing'>('financial');
+  const [clients, setClients] = React.useState<any[]>([]);
 
-  const triggerReportGeneration = () => {
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('saved_comprehensive_reports');
+      if (saved) {
+        try {
+          setReports(JSON.parse(saved));
+        } catch (e) {
+          // Ignore
+        }
+      }
+      
+      // Load clients for client list sidebar
+      fetch('/api/data?domain=clients')
+        .then(res => {
+          if (res.ok) return res.json();
+          return [];
+        })
+        .then(data => setClients(data))
+        .catch(err => console.error(err));
+    }
+  }, []);
+
+  const triggerReportGeneration = async () => {
     setIsGenerating(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/prism-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reporting-brief',
+          context: { type: reportType }
+        })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const content = json.result || 'No content returned from Prism AI.';
+        const newReport = {
+          id: Date.now().toString(),
+          title: `Comprehensive ${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
+          client: 'Apex Creative Group',
+          type: reportType.toUpperCase(),
+          status: 'READY',
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          content
+        };
+        const updated = [newReport, ...reports];
+        setReports(updated);
+        localStorage.setItem('saved_comprehensive_reports', JSON.stringify(updated));
+      } else {
+        alert('Failed to generate report from Prism AI.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error triggering report generation.');
+    } finally {
       setIsGenerating(false);
-      const newReport = {
-        id: (reports.length + 1).toString(),
-        title: `Automated Executive Brief - ${new Date().toLocaleDateString()}`,
-        client: 'Apex Creative Group',
-        type: 'FINANCE',
-        status: 'READY',
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      };
-      setReports([newReport, ...reports]);
-      alert(formatUserMessage('Lohith, Prism AI has generated the Executive Performance Report successfully.'));
-    }, 2000);
+    }
   };
 
-  const downloadReport = (title: string) => {
-    const fileContent = `Report Title: ${title}\nDate: ${new Date().toLocaleDateString()}\nGenerated via Iris OS Executive Reporting.`;
+  const downloadReport = (report: any) => {
+    const fileContent = report.content || `Report Title: ${report.title}\nDate: ${report.date}\nGenerated via Iris OS Executive Reporting.`;
     const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `${title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.txt`);
+    link.setAttribute('download', `${report.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.txt`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -55,7 +94,15 @@ export default function ReportingPage() {
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Executive Reporting</h1>
           <p className="text-xs text-zinc-500">Configure report automation pipelines, audit executive performance logs, and generate client-facing briefs.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <select
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value as 'financial' | 'marketing')}
+            className="h-8 bg-zinc-900 border border-zinc-800 text-white text-xs rounded px-2.5 outline-none focus:border-zinc-700 font-semibold"
+          >
+            <option value="financial">Financial Report</option>
+            <option value="marketing">Marketing Report</option>
+          </select>
           <Button
             variant="default"
             size="sm"
@@ -68,7 +115,7 @@ export default function ReportingPage() {
             ) : (
               <Sparkles className="h-3.5 w-3.5" />
             )}
-            <span>{isGenerating ? 'Generating...' : 'One-Click Report'}</span>
+            <span>{isGenerating ? 'Generating...' : 'Comprehensive Report'}</span>
           </Button>
         </div>
       </div>
@@ -81,7 +128,9 @@ export default function ReportingPage() {
             <FileText className="h-4 w-4 text-zinc-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">4 Automated</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
+              {reports.length > 0 ? '2 Active' : '0 Active'}
+            </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
               <span>Weekly & monthly executive syncs</span>
             </div>
@@ -94,7 +143,9 @@ export default function ReportingPage() {
             <CheckCircle className="h-4 w-4 text-zinc-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">18 Briefs</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
+              {reports.length} Briefs
+            </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
               <span>All client audits verified</span>
             </div>
@@ -107,7 +158,9 @@ export default function ReportingPage() {
             <FileText className="h-4 w-4 text-zinc-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">1.8 seconds</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
+              {reports.length > 0 ? '1.8 seconds' : '—'}
+            </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
               <span>Powered by Prism compiler</span>
             </div>
@@ -120,7 +173,9 @@ export default function ReportingPage() {
             <CheckCircle className="h-4 w-4 text-zinc-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">99.2%</div>
+            <div className="text-2xl font-bold font-mono tracking-tight text-white">
+              {reports.length > 0 ? '99.2%' : '—'}
+            </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
               <span>Stable compliance metrics</span>
             </div>
@@ -149,26 +204,34 @@ export default function ReportingPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reports.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-semibold text-white">{r.title}</TableCell>
-                      <TableCell>{r.client}</TableCell>
-                      <TableCell>{r.date}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{r.type}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => downloadReport(r.title)}
-                          className="h-7 w-7 text-zinc-400 hover:text-white rounded cursor-pointer"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
+                  {reports.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
+                        No reports generated yet. Click &quot;Comprehensive Report&quot; to compile one.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    reports.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-semibold text-white">{r.title}</TableCell>
+                        <TableCell>{r.client}</TableCell>
+                        <TableCell>{r.date}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{r.type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => downloadReport(r)}
+                            className="h-7 w-7 text-zinc-400 hover:text-white rounded cursor-pointer"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -189,16 +252,24 @@ export default function ReportingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-white">One-Click Client Reporting</CardTitle>
+              <CardTitle className="text-sm font-semibold text-white">Client Summary Briefs</CardTitle>
               <CardDescription>Generate individual client health summaries instantly.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button className="w-full text-xs font-semibold h-9" variant="secondary" onClick={triggerReportGeneration}>
-                Compile Aether Performance Brief
-              </Button>
-              <Button className="w-full text-xs font-semibold h-9" variant="secondary" onClick={triggerReportGeneration}>
-                Compile Solaria Churn Audit
-              </Button>
+              {clients.length > 0 ? (
+                clients.slice(0, 3).map(c => (
+                  <Button
+                    key={c.id}
+                    className="w-full text-xs font-semibold h-9 justify-start truncate"
+                    variant="secondary"
+                    onClick={triggerReportGeneration}
+                  >
+                    Compile {c.name} Brief
+                  </Button>
+                ))
+              ) : (
+                <div className="text-[10px] text-zinc-500 italic text-center py-2">No active clients.</div>
+              )}
             </CardContent>
           </Card>
 

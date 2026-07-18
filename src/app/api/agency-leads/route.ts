@@ -5,9 +5,17 @@ import { getOrganization } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
+    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
+    if (isSkippedAll) {
+      return NextResponse.json({ leads: [] });
+    }
+
     const { searchParams } = new URL(request.url);
     const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    const email = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
+    if (!rawEmail) {
+      return NextResponse.json({ leads: [] });
+    }
+    const email = deobfuscateEmail(rawEmail);
 
     // Fetch user to scope organization
     const user = await prisma.user.findUnique({
@@ -55,7 +63,7 @@ export async function POST(request: NextRequest) {
       }
 
       const updatedLead = await prisma.agencyLead.update({
-        where: { leadId },
+        where: { leadId, orgId: org.id },
         data: { status }
       });
 
@@ -141,7 +149,7 @@ export async function POST(request: NextRequest) {
       }
 
       await prisma.agencyLead.delete({
-        where: { id }
+        where: { id, orgId: org.id }
       });
 
       return NextResponse.json({ success: true });

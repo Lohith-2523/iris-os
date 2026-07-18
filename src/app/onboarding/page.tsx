@@ -81,7 +81,8 @@ export default function OnboardingPage() {
     if (typeof window !== 'undefined') {
       setEmail(localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || localStorage.getItem('signup_email') || 'executive@shardsmedia.com');
       setAgencyName(localStorage.getItem('agencyName') || '');
-      setUsername(localStorage.getItem('username') || '');
+      setUsername(localStorage.getItem('username') || localStorage.getItem('signup_name') || '');
+      setCardName(localStorage.getItem('signup_name') || '');
       setCurrency(localStorage.getItem('dashboardCurrency') || 'USD');
       
       const params = new URLSearchParams(window.location.search);
@@ -156,6 +157,8 @@ export default function OnboardingPage() {
             hasAddon: selectedPlanId === 'basic' ? false : undefined,
             currency: currency,
             aiSharingConsent: aiSharingConsent,
+            username: username,
+            email: email,
           })
         }).then(() => {
           setTimeout(() => {
@@ -501,7 +504,7 @@ export default function OnboardingPage() {
                       </div>
                       <input
                         type="text"
-                        placeholder="Lohith Sundar"
+                        placeholder="e.g. John Doe"
                         value={cardName}
                         onChange={(e) => setCardName(e.target.value)}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"

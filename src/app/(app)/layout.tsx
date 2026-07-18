@@ -18,7 +18,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const fetchUser = React.useCallback(async () => {
     try {
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+      if (!email) {
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const data = await res.json();
@@ -43,7 +47,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname !== '/client-dashboard' && 
     pathname !== '/clients/onboard' &&
     pathname !== '/calendar';
-  const isAdminGated = user?.role?.toLowerCase() === 'admin' && pathname === '/client-dashboard';
+  
+  const isMemberGated = user?.role?.toLowerCase() === 'member' && 
+    pathname !== '/teams-dashboard' && 
+    pathname !== '/tasks' &&
+    pathname !== '/calendar';
+
+  const isAdminGated = user?.role?.toLowerCase() === 'admin' && 
+    (pathname === '/client-dashboard' || pathname === '/teams-dashboard');
 
   if (loading) {
     return (
@@ -89,7 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         
         {/* Page Content area */}
         <main className="flex-1 overflow-y-auto bg-[#0c0c0e] p-6 lg:p-8">
-          {isAdminGated ? (
+           {isAdminGated ? (
             <div className="flex h-[70vh] flex-col items-center justify-center font-sans text-xs">
               <div className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 p-6 rounded-lg shadow-2xl space-y-6 text-center relative overflow-hidden">
                 <div className="absolute top-0 inset-x-0 h-0.5 bg-zinc-800" />
@@ -99,7 +110,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="space-y-1.5">
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">Restricted Area</h2>
                   <p className="text-[11px] text-zinc-500 max-w-xs mx-auto leading-normal">
-                    This Client Dashboard is dedicated to client accounts. Admins should view operational data in the Command Center.
+                    This workspace is dedicated to client or team member accounts. Admins should view operational data in the Command Center.
                   </p>
                 </div>
                 <div className="pt-2">
@@ -123,7 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div className="space-y-1.5">
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">Restricted Area</h2>
                   <p className="text-[11px] text-zinc-500 max-w-xs mx-auto leading-normal">
-                    Your account has client clearance level and is authorized to view only the **Client Dashboard**.
+                    Your account has client clearance level and is authorized to view only the **Client Dashboard** and **Calendar**.
                   </p>
                 </div>
                 <div className="pt-2">
@@ -132,6 +143,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     className="w-full h-9 font-semibold bg-white text-zinc-950 hover:bg-zinc-200 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Proceed to Client Dashboard</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : isMemberGated ? (
+            <div className="flex h-[70vh] flex-col items-center justify-center font-sans text-xs">
+              <div className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 p-6 rounded-lg shadow-2xl space-y-6 text-center relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-0.5 bg-zinc-800" />
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider">Restricted Area</h2>
+                  <p className="text-[11px] text-zinc-500 max-w-xs mx-auto leading-normal">
+                    Your account has team member clearance level and is authorized to view only the **Teams Dashboard**, **Tasks**, and **Calendar**.
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <Button
+                    onClick={() => router.push('/teams-dashboard')}
+                    className="w-full h-9 font-semibold bg-white text-zinc-950 hover:bg-zinc-200 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Proceed to Teams Dashboard</span>
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>

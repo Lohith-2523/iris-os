@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
@@ -23,9 +24,12 @@ import {
   X,
   Calendar
 } from 'lucide-react';
-import { formatCurrency, obfuscateEmail } from '@/lib/utils';
+import { formatCurrency, obfuscateEmail, getCurrencySymbol } from '@/lib/utils';
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isSkippedAll = typeof window !== 'undefined' && localStorage.getItem('skipped_all_steps') === 'true';
   const [dbData, setDbData] = React.useState<any>(null);
   const [isRevenueModalOpen, setIsRevenueModalOpen] = React.useState(false);
   const [currencyState, setCurrencyState] = React.useState('USD');
@@ -38,34 +42,45 @@ export default function DashboardPage() {
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
-  const [onboardingState, setOnboardingState] = React.useState({
-    google: false,
-    notion: false,
-    canva: false,
-    meta: false,
+  const [onboardingState, setOnboardingState] = React.useState<{
+    google: 'not_started' | 'connected' | 'skipped';
+    meta: 'not_started' | 'connected' | 'skipped';
+    financial: 'not_started' | 'uploaded' | 'skipped';
+    leads: 'not_started' | 'uploaded' | 'skipped';
+  }>({
+    google: 'not_started',
+    meta: 'not_started',
+    financial: 'not_started',
+    leads: 'not_started',
   });
   const [expandedChecklistIdx, setExpandedChecklistIdx] = React.useState<number | null>(0);
   const [connectingProvider, setConnectingProvider] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
+      const googleConnectedParam = searchParams.get('google_connected');
+      if (googleConnectedParam === 'true') {
+        localStorage.setItem('conn_google', 'connected');
+        router.replace('/dashboard');
+      }
+
       const needs = localStorage.getItem('needsOnboarding') === 'true';
       setNeedsOnboarding(needs);
       
-      const google = localStorage.getItem('conn_google') === 'true';
-      const notion = localStorage.getItem('conn_notion') === 'true';
-      const canva = localStorage.getItem('conn_canva') === 'true';
-      const meta = localStorage.getItem('conn_meta') === 'true';
-      setOnboardingState({ google, notion, canva, meta });
+      const google = (localStorage.getItem('conn_google') || 'not_started') as any;
+      const meta = (localStorage.getItem('conn_meta') || 'not_started') as any;
+      const financial = (localStorage.getItem('conn_financial') || 'not_started') as any;
+      const leads = (localStorage.getItem('conn_leads') || 'not_started') as any;
+      setOnboardingState({ google, meta, financial, leads });
     }
-  }, []);
+  }, [searchParams, router]);
 
   React.useEffect(() => {
     const statusChangeCallback = (response: any) => {
       if (response.status === 'connected') {
         console.log('Meta connected via FB SDK:', response);
-        localStorage.setItem('conn_meta', 'true');
-        setOnboardingState(prev => ({ ...prev, meta: true }));
+        localStorage.setItem('conn_meta', 'connected');
+        setOnboardingState(prev => ({ ...prev, meta: 'connected' }));
         fetch('/api/integrations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -146,23 +161,25 @@ export default function DashboardPage() {
         }
         
         // Fetch Meta ads data
-        const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-        const metaRes = await fetch(`/api/meta-portal?email=${encodeURIComponent(obfuscateEmail(email))}`);
-        if (metaRes.ok) {
-          const metaJson = await metaRes.json();
-          setMetaData(metaJson);
-        }
+        const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+        if (email) {
+          const metaRes = await fetch(`/api/meta-portal?email=${encodeURIComponent(obfuscateEmail(email))}`);
+          if (metaRes.ok) {
+            const metaJson = await metaRes.json();
+            setMetaData(metaJson);
+          }
 
-        const calendarRes = await fetch(`/api/calendar?email=${encodeURIComponent(obfuscateEmail(email))}`);
-        if (calendarRes.ok) {
-          const calendarJson = await calendarRes.json();
-          setCalendarEvents(calendarJson.events || []);
-        }
+          const calendarRes = await fetch(`/api/calendar?email=${encodeURIComponent(obfuscateEmail(email))}`);
+          if (calendarRes.ok) {
+            const calendarJson = await calendarRes.json();
+            setCalendarEvents(calendarJson.events || []);
+          }
 
-        const agencyLeadsRes = await fetch(`/api/agency-leads?email=${encodeURIComponent(obfuscateEmail(email))}`);
-        if (agencyLeadsRes.ok) {
-          const agencyLeadsJson = await agencyLeadsRes.json();
-          setAgencyLeadsData(agencyLeadsJson);
+          const agencyLeadsRes = await fetch(`/api/agency-leads?email=${encodeURIComponent(obfuscateEmail(email))}`);
+          if (agencyLeadsRes.ok) {
+            const agencyLeadsJson = await agencyLeadsRes.json();
+            setAgencyLeadsData(agencyLeadsJson);
+          }
         }
       } catch (e) {
         console.error(e);
@@ -173,19 +190,23 @@ export default function DashboardPage() {
 
   
   const handleConnect = (id: string) => {
+    if (id === 'google') {
+      window.location.href = '/api/google/auth';
+      return;
+    }
     setConnectingProvider(id);
     setTimeout(() => {
       setConnectingProvider(null);
       setOnboardingState((prev) => {
-        const next = { ...prev, [id]: true };
-        localStorage.setItem(`conn_${id}`, 'true');
+        const next = { ...prev, [id]: 'connected' as const };
+        localStorage.setItem(`conn_${id}`, 'connected');
         return next;
       });
-      
+
       setOnboardingState((currState) => {
-        const nextState = { ...currState, [id]: true };
-        const order = ['google', 'notion', 'canva', 'meta'];
-        const nextUncompletedIdx = order.findIndex(p => !nextState[p as keyof typeof nextState]);
+        const nextState = { ...currState, [id]: 'connected' as const };
+        const order = ['google', 'meta', 'financial', 'leads'];
+        const nextUncompletedIdx = order.findIndex(p => nextState[p as keyof typeof nextState] === 'not_started');
         if (nextUncompletedIdx !== -1) {
           setExpandedChecklistIdx(nextUncompletedIdx);
         } else {
@@ -196,9 +217,210 @@ export default function DashboardPage() {
     }, 1500);
   };
 
-  const handleFinishOnboarding = () => {
-    localStorage.removeItem('needsOnboarding');
-    setNeedsOnboarding(false);
+  const handleGoogleSkip = () => {
+    setOnboardingState(prev => {
+      const next = { ...prev, google: 'skipped' as const };
+      localStorage.setItem('conn_google', 'skipped');
+      return next;
+    });
+  };
+
+  const handleMetaSkip = () => {
+    setOnboardingState(prev => {
+      const next = { ...prev, meta: 'skipped' as const };
+      localStorage.setItem('conn_meta', 'skipped');
+      return next;
+    });
+  };
+
+  const handleFinancialSkip = () => {
+    setOnboardingState(prev => {
+      const next = { ...prev, financial: 'skipped' as const };
+      localStorage.setItem('conn_financial', 'skipped');
+      return next;
+    });
+  };
+
+  const handleLeadsSkip = () => {
+    setOnboardingState(prev => {
+      const next = { ...prev, leads: 'skipped' as const };
+      localStorage.setItem('conn_leads', 'skipped');
+      return next;
+    });
+  };
+
+  const downloadFinancialTemplate = () => {
+    const csvContent = "Type,Identifier,Name,Amount,Date,Status\n" +
+      "INVOICE,INV-001,Aether Technologies,65000,2026-07-15,PAID\n" +
+      "INVOICE,INV-002,Pulse Media,42000,2026-07-18,UNPAID\n" +
+      "EXPENSE,Software,Adobe Systems,350,2026-07-10,APPROVED\n" +
+      "EXPENSE,Office rent,WeWork,2500,2026-07-01,APPROVED";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "financial_onboarding_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadLeadsTemplate = () => {
+    const csvContent = "Full Name,Email,Phone,Status,Funnel Name,Collection Method,Approach Method\n" +
+      "Aarav Mehta,aarav@mehta.co,+123456789,warm,Enterprise Outreach,Manual Entry,Email\n" +
+      "Priya Nair,priya@nairtech.com,+123456780,warm,Direct Inbound,Bulk Import,LinkedIn\n" +
+      "Rohan Deshmukh,rohan@deshmukh.org,+123456781,procured,Inbound Form,Manual Entry,Phone\n" +
+      "Ananya Goel,ananya@goelcorp.in,+123456782,closed,LinkedIn Campaign,Bulk Import,LinkedIn";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "leads_onboarding_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFinancialUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+      if (lines.length <= 1) {
+        alert('File is empty or invalid.');
+        return;
+      }
+
+      const rows = [];
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index];
+        });
+        rows.push(row);
+      }
+
+      try {
+        const res = await fetch('/api/onboarding/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'financial', data: rows }),
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          alert(`Successfully uploaded ${result.invoices} invoices and ${result.expenses} expenses!`);
+          setOnboardingState(prev => {
+            const next = { ...prev, financial: 'uploaded' as const };
+            localStorage.setItem('conn_financial', 'uploaded');
+            return next;
+          });
+        } else {
+          alert('Failed to upload financial data. Please check template format.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error uploading financial data.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleLeadsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+      if (lines.length <= 1) {
+        alert('File is empty or invalid.');
+        return;
+      }
+
+      const rows = [];
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index];
+        });
+        rows.push(row);
+      }
+
+      try {
+        const res = await fetch('/api/onboarding/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'leads', data: rows }),
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          alert(`Successfully uploaded ${result.count} leads!`);
+          setOnboardingState(prev => {
+            const next = { ...prev, leads: 'uploaded' as const };
+            localStorage.setItem('conn_leads', 'uploaded');
+            return next;
+          });
+        } else {
+          alert('Failed to upload leads. Please check template format.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error uploading leads.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleFinishOnboarding = async () => {
+    const isGoogleSkipped = onboardingState.google === 'skipped';
+    const isMetaSkipped = onboardingState.meta === 'skipped';
+    const isFinancialSkipped = onboardingState.financial === 'skipped';
+    const isLeadsSkipped = onboardingState.leads === 'skipped';
+
+    const skippedAll = isGoogleSkipped && isMetaSkipped && isFinancialSkipped && isLeadsSkipped;
+
+    try {
+      const res = await fetch('/api/onboarding/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          google: onboardingState.google,
+          meta: onboardingState.meta,
+          financial: onboardingState.financial,
+          leads: onboardingState.leads,
+          skippedAll
+        })
+      });
+
+      if (res.ok) {
+        if (skippedAll) {
+          localStorage.setItem('skipped_all_steps', 'true');
+          document.cookie = "skipped_all_steps=true; path=/; max-age=86400";
+        } else {
+          localStorage.setItem('skipped_all_steps', 'false');
+          document.cookie = "skipped_all_steps=false; path=/; max-age=86400";
+        }
+
+        localStorage.removeItem('needsOnboarding');
+        setNeedsOnboarding(false);
+        window.location.reload();
+      } else {
+        alert('Failed to complete onboarding on server.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error completing onboarding.');
+    }
   };
 
   // Computations for Meta Ads Reports
@@ -213,9 +435,9 @@ export default function DashboardPage() {
 
   const adReports = React.useMemo(() => {
     const leads = metaData?.leads || [];
-    const totalSpend = ads.reduce((sum, ad) => sum + ad.spend, 0) || 4950.00;
-    const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressions, 0) || 130500;
-    const totalLeads = leads.length || 174;
+    const totalSpend = ads.reduce((sum, ad) => sum + ad.spend, 0);
+    const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressions, 0);
+    const totalLeads = leads.length;
 
     const closedLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'closed').length;
     const lostLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'lost').length;
@@ -264,16 +486,12 @@ export default function DashboardPage() {
   }, [metaData]);
 
   const agencyLeadsList = React.useMemo(() => {
+    if (isSkippedAll) return [];
     if (agencyLeadsData?.leads && agencyLeadsData.leads.length > 0) {
       return agencyLeadsData.leads;
     }
-    return [
-      { id: 'mock-1', leadId: 'mock-1', fullName: 'Aarav Mehta', email: 'aarav@mehta.co', status: 'warm', funnelName: 'Enterprise Outreach', collectionMethod: 'Manual Entry', approachMethod: 'Email', createdTime: new Date().toISOString() },
-      { id: 'mock-2', leadId: 'mock-2', fullName: 'Priya Nair', email: 'priya@nairtech.com', status: 'warm', funnelName: 'Direct Inbound', collectionMethod: 'Bulk Import', approachMethod: 'LinkedIn', createdTime: new Date().toISOString() },
-      { id: 'mock-3', leadId: 'mock-3', fullName: 'Rohan Deshmukh', email: 'rohan@deshmukh.org', status: 'procured', funnelName: 'Inbound Form', collectionMethod: 'Manual Entry', approachMethod: 'Phone', createdTime: new Date().toISOString() },
-      { id: 'mock-4', leadId: 'mock-4', fullName: 'Ananya Goel', email: 'ananya@goelcorp.in', status: 'closed', funnelName: 'LinkedIn Campaign', collectionMethod: 'Bulk Import', approachMethod: 'LinkedIn', createdTime: new Date().toISOString() }
-    ];
-  }, [agencyLeadsData]);
+    return [];
+  }, [agencyLeadsData, isSkippedAll]);
 
   const warmAgencyLeads = React.useMemo(() => {
     return agencyLeadsList.filter((l: any) => l.status?.toLowerCase() === 'warm');
@@ -292,16 +510,8 @@ export default function DashboardPage() {
   }, [clientsList]);
 
   const priorityTasks = React.useMemo(() => {
-    if (!tasksList || tasksList.length === 0) {
-      // Fallback mock tasks
-      return [
-        { id: 't-1', title: 'Approve final design assets for Aether Tech', status: 'IN_PROGRESS', progress: 80, deadline: '2026-07-10' },
-        { id: 't-2', title: 'Prepare Q2 financial audit statement', status: 'TODO', progress: 0, deadline: '2026-07-12' },
-        { id: 't-3', title: 'Resolve Meta API token sync warning', status: 'TODO', progress: 10, deadline: '2026-07-10' },
-        { id: 't-4', title: 'Onboard Solar Energy marketing lead', status: 'DONE', progress: 100, deadline: '2026-07-08' },
-        { id: 't-5', title: 'Schedule retainer review call with Pulsar', status: 'TODO', progress: 0, deadline: '2026-07-15' },
-      ];
-    }
+    if (isSkippedAll) return [];
+    if (!tasksList || tasksList.length === 0) return [];
     return [...tasksList]
       .filter((t: any) => t.status !== 'DONE')
       .sort((a, b) => {
@@ -309,47 +519,11 @@ export default function DashboardPage() {
         if (!b.deadline) return -1;
         return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
       });
-  }, [tasksList]);
+  }, [tasksList, isSkippedAll]);
 
   const todayEvents = React.useMemo(() => {
-    if (!calendarEvents || calendarEvents.length === 0) {
-      // Fallback mock meetings for today
-      const today = new Date();
-      return [
-        {
-          id: 'mock-1',
-          title: 'Project Kickoff: Nova BioLabs',
-          startTime: new Date(new Date(today).setHours(10, 0, 0, 0)).toISOString(),
-          endTime: new Date(new Date(today).setHours(10, 45, 0, 0)).toISOString(),
-          description: 'Nova BioLabs web portal requirements gathering',
-          location: 'Google Meet',
-        },
-        {
-          id: 'mock-2',
-          title: 'Retainer Alignment: Aether Tech',
-          startTime: new Date(new Date(today).setHours(13, 30, 0, 0)).toISOString(),
-          endTime: new Date(new Date(today).setHours(14, 0, 0, 0)).toISOString(),
-          description: 'Reviewing retainer terms and campaign reports',
-          location: 'Zoom',
-        },
-        {
-          id: 'mock-3',
-          title: 'Design Critique & Assets Review',
-          startTime: new Date(new Date(today).setHours(15, 0, 0, 0)).toISOString(),
-          endTime: new Date(new Date(today).setHours(15, 45, 0, 0)).toISOString(),
-          description: 'Weekly team design alignment',
-          location: 'Google Meet',
-        },
-        {
-          id: 'mock-4',
-          title: 'Client Sync: Pulse Media',
-          startTime: new Date(new Date(today).setHours(16, 30, 0, 0)).toISOString(),
-          endTime: new Date(new Date(today).setHours(17, 0, 0, 0)).toISOString(),
-          description: 'Reviewing conversion statistics and ad creatives',
-          location: 'Zoom',
-        }
-      ];
-    }
+    if (isSkippedAll) return [];
+    if (!calendarEvents || calendarEvents.length === 0) return [];
 
     const startOfToday = new Date();
     startOfToday.setHours(0,0,0,0);
@@ -362,7 +536,7 @@ export default function DashboardPage() {
         return d >= startOfToday && d <= endOfToday;
       })
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  }, [calendarEvents]);
+  }, [calendarEvents, isSkippedAll]);
 
   return (
     <div className="space-y-6">
@@ -386,7 +560,7 @@ export default function DashboardPage() {
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Workspace Activation</span>
               <CardTitle className="text-lg font-bold uppercase tracking-tight text-white mt-1">Connect Your Integrations</CardTitle>
               <CardDescription className="text-xs text-zinc-500 max-w-sm mx-auto mt-1">
-                Link your active design, communication, ads, and workflow APIs to populate your operational databases.
+                Link your active design, communication, ads, and workflow APIs or load your CSV data to populate your databases.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 py-6 space-y-4">
@@ -396,28 +570,40 @@ export default function DashboardPage() {
                     id: 'google',
                     name: 'Google Services & Authentication',
                     description: 'Authorize email tracking, profile sync, and access token retrieval for Google Drive creative assets.',
-                    isConnected: onboardingState.google,
-                  },
-                  {
-                    id: 'notion',
-                    name: 'Notion Workspace API',
-                    description: 'Link your Notion database tables to auto-sync client operational milestones and deliverable logs.',
-                    isConnected: onboardingState.notion,
-                  },
-                  {
-                    id: 'canva',
-                    name: 'Canva Design Hub Sync',
-                    description: 'Synchronize design catalogs, branding materials, templates, and export portals into your asset vault.',
-                    isConnected: onboardingState.canva,
+                    status: onboardingState.google,
+                    type: 'connect' as const
                   },
                   {
                     id: 'meta',
                     name: 'Meta Ads Manager Integration',
                     description: 'Synchronize live campaign indicators, target audience profiles, conversion statistics, and actual ROAS metrics.',
-                    isConnected: onboardingState.meta,
+                    status: onboardingState.meta,
+                    type: 'connect' as const
+                  },
+                  {
+                    id: 'financial',
+                    name: 'Financial Ledger & Invoices',
+                    description: 'Load your agency financial ledger details, invoice records, and operational expenditures using our template.',
+                    status: onboardingState.financial,
+                    type: 'upload' as const,
+                    downloadTemplate: downloadFinancialTemplate,
+                    handleUpload: handleFinancialUpload
+                  },
+                  {
+                    id: 'leads',
+                    name: 'Leads Data & Pipelines',
+                    description: 'Load your marketing leads database, pipeline stages, funnel structures, and acquisition sources.',
+                    status: onboardingState.leads,
+                    type: 'upload' as const,
+                    downloadTemplate: downloadLeadsTemplate,
+                    handleUpload: handleLeadsUpload
                   }
                 ].map((item, idx) => {
                   const isExpanded = expandedChecklistIdx === idx;
+                  const isCompleted = item.status !== 'not_started';
+                  const isSkipped = item.status === 'skipped';
+                  const isConnectedOrUploaded = item.status === 'connected' || item.status === 'uploaded';
+
                   return (
                     <div key={item.id} className="border border-zinc-850 bg-zinc-900/20">
                       <button
@@ -427,53 +613,105 @@ export default function DashboardPage() {
                       >
                         <div className="flex items-center gap-3">
                           <div className={`h-4 w-4 rounded-full flex items-center justify-center border ${
-                            item.isConnected 
-                              ? 'bg-red-650 border-red-600 text-white' 
+                            isCompleted 
+                              ? isSkipped ? 'bg-amber-600 border-amber-600 text-white' : 'bg-red-650 border-red-600 text-white' 
                               : 'border-zinc-700 text-transparent'
                           }`}>
-                            {item.isConnected && (
+                            {isCompleted && (
                               <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>
                             )}
                           </div>
-                          <span className={`${item.isConnected ? 'line-through text-zinc-500' : 'text-zinc-100'}`}>
+                          <span className={`${isCompleted ? 'line-through text-zinc-500' : 'text-zinc-100'}`}>
                             {item.name}
                           </span>
                         </div>
-                        <span className="text-[10px] text-zinc-500 font-mono">
-                          {isExpanded ? 'Collapse' : 'Expand'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {isCompleted && (
+                            <Badge variant={isSkipped ? "default" : "risk-low"} className={`py-0.5 px-2 text-[9px] uppercase ${isSkipped ? 'bg-zinc-850 text-zinc-400 border-zinc-700' : ''}`}>
+                              {isSkipped ? 'Skipped' : isConnectedOrUploaded ? (item.type === 'connect' ? 'Connected' : 'Uploaded') : 'Done'}
+                            </Badge>
+                          )}
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            {isExpanded ? 'Collapse' : 'Expand'}
+                          </span>
+                        </div>
                       </button>
                       
                       {isExpanded && (
                         <div className="p-4 border-t border-zinc-850 bg-zinc-950/40 text-xs text-zinc-400 space-y-4 font-sans font-medium leading-relaxed">
                           <p>{item.description}</p>
-                          <div className="flex justify-end">
-                            {item.isConnected ? (
-                              <Badge variant="risk-low" className="py-1 px-3">
-                                Active Connection Verified
-                              </Badge>
-                            ) : (
-                              <Button
-                                size="sm"
-                                disabled={connectingProvider !== null}
-                                onClick={() => handleConnect(item.id)}
-                                className="h-8 text-[10px] bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer font-bold uppercase flex items-center gap-1.5"
-                              >
-                                {connectingProvider === item.id ? (
-                                  <>
-                                    <span className="h-3 w-3 animate-spin rounded-full border border-t-transparent border-zinc-950" />
-                                    <span>Authorizing...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span>Connect Integration</span>
-                                    <ArrowUpRight className="h-3 w-3 text-zinc-950" />
-                                  </>
-                                )}
-                              </Button>
-                            )}
+                          <div className="flex items-center justify-between gap-4 pt-2">
+                            <div>
+                              {item.type === 'upload' && !isCompleted && (
+                                <Button
+                                  size="sm"
+                                  onClick={item.downloadTemplate}
+                                  className="h-8 text-[10px] border border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 cursor-pointer font-bold uppercase"
+                                >
+                                  Download Template
+                                </Button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!isCompleted ? (
+                                <>
+                                  {item.type === 'connect' ? (
+                                    <Button
+                                      size="sm"
+                                      disabled={connectingProvider !== null}
+                                      onClick={() => handleConnect(item.id)}
+                                      className="h-8 text-[10px] bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer font-bold uppercase flex items-center gap-1.5"
+                                    >
+                                      {connectingProvider === item.id ? (
+                                        <>
+                                          <span className="h-3 w-3 animate-spin rounded-full border border-t-transparent border-zinc-950" />
+                                          <span>Authorizing...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span>Connect Integration</span>
+                                          <ArrowUpRight className="h-3 w-3 text-zinc-950" />
+                                        </>
+                                      )}
+                                    </Button>
+                                  ) : (
+                                    <div className="relative">
+                                      <Button
+                                        size="sm"
+                                        className="h-8 text-[10px] bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer font-bold uppercase"
+                                      >
+                                        Upload CSV
+                                      </Button>
+                                      <input
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={item.handleUpload}
+                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                      />
+                                    </div>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      if (item.id === 'google') handleGoogleSkip();
+                                      else if (item.id === 'meta') handleMetaSkip();
+                                      else if (item.id === 'financial') handleFinancialSkip();
+                                      else if (item.id === 'leads') handleLeadsSkip();
+                                    }}
+                                    className="h-8 text-[10px] border-zinc-800 text-zinc-400 hover:text-white cursor-pointer font-bold uppercase"
+                                  >
+                                    Skip Step
+                                  </Button>
+                                </>
+                              ) : (
+                                <Badge variant="risk-low" className="py-1 px-3">
+                                  {isSkipped ? 'Skipped' : 'Verification Active'}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -481,8 +719,8 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
-
-              {Object.values(onboardingState).every(Boolean) && (
+ 
+              {Object.values(onboardingState).every(val => val !== 'not_started') && (
                 <div className="pt-4 border-t border-zinc-800 mt-6">
                   <Button
                     onClick={handleFinishOnboarding}
@@ -549,11 +787,11 @@ export default function DashboardPage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Monthly Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-zinc-500" />
+                <span className="font-bold text-zinc-500 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                  {dbData ? formatCurrency(dbData.currentMonthRevenue * currencyRate) : formatCurrency(198000 * currencyRate)}
+                  {dbData ? formatCurrency(dbData.currentMonthRevenue * currencyRate) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
                   <ArrowUpRight className="h-3.5 w-3.5" />
@@ -561,7 +799,7 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </ExpandableCard>
-
+ 
             <ExpandableCard 
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
@@ -571,19 +809,19 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-center py-2 border-b border-zinc-855">
                       <span className="text-zinc-400 font-semibold">Gross Billings</span>
                       <span className="font-mono text-white font-bold">
-                        {dbData ? formatCurrency(dbData.grossBillings * currencyRate) : formatCurrency(198000 * currencyRate)}
+                        {dbData ? formatCurrency(dbData.grossBillings * currencyRate) : formatCurrency(0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-zinc-855">
                       <span className="text-zinc-400 font-semibold">Total Expenses</span>
                       <span className="font-mono text-rose-400 font-bold">
-                        {dbData ? formatCurrency(dbData.totalExpenses * currencyRate) : formatCurrency(74000 * currencyRate)}
+                        {dbData ? formatCurrency(dbData.totalExpenses * currencyRate) : formatCurrency(0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-zinc-300 font-semibold">Operating Profit</span>
                       <span className="font-mono text-emerald-400 font-bold">
-                        {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(124000 * currencyRate)}
+                        {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(0)}
                       </span>
                     </div>
                   </div>
@@ -592,11 +830,11 @@ export default function DashboardPage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Net Profit (Amount)</CardTitle>
-                <DollarSign className="h-4 w-4 text-emerald-450" />
+                <span className="font-bold text-emerald-450 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
-                  {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(124000 * currencyRate)}
+                  {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
                   <ArrowUpRight className="h-3.5 w-3.5" />
@@ -604,7 +842,7 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </ExpandableCard>
-
+ 
             <ExpandableCard className="min-h-[164px] flex flex-col justify-between">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Active Projects</CardTitle>
@@ -612,15 +850,15 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                  {dbData ? dbData.activeProjectsCount : '20'}
+                  {dbData ? dbData.activeProjectsCount : 0}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-amber-400 font-semibold">
                   <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>{dbData?.projectRisks?.length ?? 3} project risks flagged</span>
+                  <span>{dbData?.projectRisks?.length ?? 0} project risks flagged</span>
                 </div>
               </CardContent>
             </ExpandableCard>
-
+ 
             <ExpandableCard 
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
@@ -634,11 +872,11 @@ export default function DashboardPage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Receivables</CardTitle>
-                <DollarSign className="h-4 w-4 text-amber-500" />
+                <span className="font-bold text-amber-500 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-amber-400">
-                  {dbData ? formatCurrency(dbData.outstandingAmount * currencyRate) : formatCurrency(45000 * currencyRate)}
+                  {dbData ? formatCurrency(dbData.outstandingAmount * currencyRate) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
                   <span>Unpaid client invoices</span>
@@ -860,13 +1098,13 @@ export default function DashboardPage() {
               description="Aggregated gross billings vs time"
               className="h-full min-h-[560px] w-full"
               contentClassName="h-[430px] md:h-[452px]"
-              data={[
-                { label: 'Jan', value: 150000 },
-                { label: 'Feb', value: 162000 },
-                { label: 'Mar', value: 175000 },
-                { label: 'Apr', value: 168000 },
-                { label: 'May', value: 185000 },
-                { label: 'Jun', value: 198000 },
+              data={dbData?.revenueHistory ?? [
+                { label: 'Jan', value: 0 },
+                { label: 'Feb', value: 0 },
+                { label: 'Mar', value: 0 },
+                { label: 'Apr', value: 0 },
+                { label: 'May', value: 0 },
+                { label: 'Jun', value: 0 },
               ]}
               currencyRate={currencyRate}
             />
@@ -974,14 +1212,18 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="pt-2 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
-                    {priorityTasks.slice(0, 3).map((t: any) => (
-                      <div key={t.id} className="flex items-center justify-between text-[11px] py-1 border-b border-zinc-900/40">
-                        <span className="text-zinc-300 truncate pr-2 font-medium">{t.title}</span>
-                        <Badge className="scale-90 text-[9px] uppercase font-mono font-bold shrink-0" variant={t.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'}>
-                          {t.status === 'IN_PROGRESS' ? 'Active' : 'Todo'}
-                        </Badge>
-                      </div>
-                    ))}
+                    {priorityTasks.length > 0 ? (
+                      priorityTasks.slice(0, 3).map((t: any) => (
+                        <div key={t.id} className="flex items-center justify-between text-[11px] py-1 border-b border-zinc-900/40">
+                          <span className="text-zinc-300 truncate pr-2 font-medium">{t.title}</span>
+                          <Badge className="scale-90 text-[9px] uppercase font-mono font-bold shrink-0" variant={t.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'}>
+                            {t.status === 'IN_PROGRESS' ? 'Active' : 'Todo'}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-[11px] text-zinc-500 py-2">No active tasks</div>
+                    )}
                   </div>
                 </CardContent>
               </ExpandableCard>

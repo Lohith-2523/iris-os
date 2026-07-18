@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
-import { formatCurrency, formatUserMessage } from '@/lib/utils';
+import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
@@ -41,6 +41,7 @@ const PAYPAL_CHARGES = [
 ];
 
 export default function FinancePage() {
+  const isSkippedAll = typeof window !== 'undefined' && localStorage.getItem('skipped_all_steps') === 'true';
   const [activeTab, setActiveTab] = React.useState<'overview' | 'stripe' | 'paypal' | 'razorpay'>('overview');
   const [integrations, setIntegrations] = React.useState<any[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = React.useState(true);
@@ -551,6 +552,15 @@ export default function FinancePage() {
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {
+    if (isSkippedAll) {
+      return {
+        grossBillings: 0,
+        outstandingAmount: 0,
+        totalExpenses: 0,
+        netProfitMargin: 0,
+        aiSubscriptionCosts: 0
+      };
+    }
     let scale = 1;
     if (timeFrame === 'Monthly') scale = 1/12;
     if (timeFrame === 'Quarterly') scale = 3/12;
@@ -657,6 +667,7 @@ export default function FinancePage() {
 
 
   const combinedTransactions = React.useMemo(() => {
+    if (isSkippedAll) return [];
     const list: any[] = [];
 
     // Add manual transactions
@@ -770,6 +781,7 @@ export default function FinancePage() {
   }, [combinedTransactions, timeFrame]);
 
   const expensesByCategory = React.useMemo(() => {
+    if (isSkippedAll) return [];
     let scale = 1;
     if (timeFrame === 'Monthly') scale = 1/12;
     if (timeFrame === 'Quarterly') scale = 3/12;
@@ -847,9 +859,10 @@ export default function FinancePage() {
     }));
 
     return list.sort((a, b) => b.amount - a.amount);
-  }, [dbData, manualTransactions, subscriptionTransactions, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, isInTimeFrame, timeFrame]);
+  }, [dbData, manualTransactions, subscriptionTransactions, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, isInTimeFrame, timeFrame, isSkippedAll]);
 
   const clientProfitability = React.useMemo(() => {
+    if (isSkippedAll) return [];
     const revenueMap = new Map<string, number>();
     combinedTransactions.forEach((tx: any) => {
       if (tx.amountUSD > 0 && (tx.status === 'succeeded' || tx.status === 'captured')) {
@@ -876,7 +889,7 @@ export default function FinancePage() {
     });
 
     return list;
-  }, [combinedTransactions]);
+  }, [combinedTransactions, isSkippedAll]);
 
   const topClientsByProfit = React.useMemo(() => {
     return [...clientProfitability].sort((a, b) => b.profit - a.profit);
@@ -1066,7 +1079,7 @@ export default function FinancePage() {
             <Card className="min-h-[164px] flex flex-col justify-between bg-zinc-900/90 border border-zinc-800/80 rounded-xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-zinc-505" />
+                <span className="font-bold text-zinc-505 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
@@ -1144,7 +1157,7 @@ export default function FinancePage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Expenses</CardTitle>
-                <DollarSign className="h-4 w-4 text-zinc-550" />
+                <span className="font-bold text-zinc-550 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
@@ -1197,7 +1210,7 @@ export default function FinancePage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">AI Subscriptions</CardTitle>
-                <DollarSign className="h-4 w-4 text-zinc-550" />
+                <span className="font-bold text-zinc-550 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
@@ -1297,7 +1310,7 @@ export default function FinancePage() {
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Net Profit (Amount)</CardTitle>
-                  <DollarSign className="h-4 w-4 text-zinc-500" />
+                  <span className="font-bold text-zinc-500 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">

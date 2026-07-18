@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, Phone, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { User, Phone, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
 import { createClient } from '@/lib/client';
 import { obfuscateEmail } from '@/lib/utils';
 
 export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
+  const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -21,13 +22,14 @@ export default function SignupPage() {
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !phone || !password) {
+    if (!name || !email || !phone || !password) {
       setErrorMsg('Please fill in all fields.');
       return;
     }
     setIsLoading(true);
     
     // Save info in localStorage to carry into the onboarding flow
+    localStorage.setItem('signup_name', name);
     localStorage.setItem('signup_email', email);
     localStorage.setItem('signup_phone', phone);
     
@@ -82,13 +84,31 @@ export default function SignupPage() {
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="font-semibold text-zinc-400 block">Workspace Email</label>
+              <label className="font-semibold text-zinc-400 block">Full Name</label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                   <User className="h-3.5 w-3.5 text-zinc-500" />
                 </div>
                 <input
+                  type="text"
+                  required
+                  placeholder="e.g. John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-semibold text-zinc-400 block">Workspace Email</label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Mail className="h-3.5 w-3.5 text-zinc-500" />
+                </div>
+                <input
                   type="email"
+                  required
                   placeholder="name@agency.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

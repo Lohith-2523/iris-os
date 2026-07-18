@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatUserMessage, obfuscateEmail } from '@/lib/utils';
+import { formatUserMessage, obfuscateEmail, getCurrencySymbol } from '@/lib/utils';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -40,6 +40,7 @@ const AGENCY_TYPES = [
 
 export default function ClientOnboardPage() {
   const router = useRouter();
+  const currencyState = typeof window !== 'undefined' ? localStorage.getItem('currencyState') || 'USD' : 'USD';
 
   // Onboarding Wizard Steps
   // 1: Business Details, 2: Primary Contact, 3: Agency Type, 4: Service Specifics, 5: Goals & Budget, 6: Review
@@ -942,7 +943,7 @@ export default function ClientOnboardPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Avg Customer Value ($/yr)</label>
+                      <label className="font-semibold text-zinc-400 block">Avg Customer Value ({getCurrencySymbol(currencyState)}/yr)</label>
                       <input
                         type="text"
                         name="avgCustomerValue"
@@ -1091,7 +1092,7 @@ export default function ClientOnboardPage() {
 
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Monthly Retainer ($ / month)</label>
+                      <label className="font-semibold text-zinc-400 block">Monthly Retainer ({getCurrencySymbol(currencyState)} / month)</label>
                       <input
                         type="number"
                         name="monthlyRetainer"
@@ -1301,7 +1302,7 @@ export default function ClientOnboardPage() {
 
                       <div className="grid gap-4 sm:grid-cols-4">
                         <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Project Budget Allocation ($)</label>
+                          <label className="font-semibold text-zinc-400 block">Project Budget Allocation ({getCurrencySymbol(currencyState)})</label>
                           <input
                             type="number"
                             name="projectBudget"

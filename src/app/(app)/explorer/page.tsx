@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatUserMessage, renderFormattedText } from '@/lib/utils';
+import { formatUserMessage, renderFormattedText, formatCurrency, getCurrencySymbol } from '@/lib/utils';
 import {
   BarChart3,
   ChevronDown,
@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 // --- DATASETS DEFINITION ---
-const DATASETS = {
+const EMPTY_DATASETS = {
   capacity: {
     title: 'Operational Capacity & Monthly Billings',
     description: 'Correlation between resource utilization and monthly billable revenue.',
@@ -35,29 +35,29 @@ const DATASETS = {
       { id: 'yield', label: 'Resource Yield', format: (v: number) => `${v}x`, unit: 'x' }
     ],
     months: [
-      { label: 'Jan', revenue: 150000, capacity: 62, overhead: 90000, yield: 1.66, index: 0 },
-      { label: 'Feb', revenue: 162000, capacity: 70, overhead: 95000, yield: 1.70, index: 1 },
-      { label: 'Mar', revenue: 175000, capacity: 78, overhead: 100000, yield: 1.75, index: 2 },
-      { label: 'Apr', revenue: 168000, capacity: 74, overhead: 98000, yield: 1.71, index: 3 },
-      { label: 'May', revenue: 185000, capacity: 82, overhead: 105000, yield: 1.76, index: 4 },
-      { label: 'Jun', revenue: 198000, capacity: 88, overhead: 110000, yield: 1.80, index: 5 },
-      { label: 'Jul', revenue: 205000, capacity: 85, overhead: 112000, yield: 1.83, index: 6 },
-      { label: 'Aug', revenue: 210000, capacity: 87, overhead: 115000, yield: 1.82, index: 7 },
-      { label: 'Sep', revenue: 200000, capacity: 80, overhead: 110000, yield: 1.81, index: 8 },
-      { label: 'Oct', revenue: 220000, capacity: 89, overhead: 118000, yield: 1.86, index: 9 },
-      { label: 'Nov', revenue: 225000, capacity: 90, overhead: 120000, yield: 1.87, index: 10 },
-      { label: 'Dec', revenue: 240000, capacity: 95, overhead: 125000, yield: 1.92, index: 11 },
+      { label: 'Jan', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 0 },
+      { label: 'Feb', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 1 },
+      { label: 'Mar', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 2 },
+      { label: 'Apr', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 3 },
+      { label: 'May', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 4 },
+      { label: 'Jun', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 5 },
+      { label: 'Jul', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 6 },
+      { label: 'Aug', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 7 },
+      { label: 'Sep', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 8 },
+      { label: 'Oct', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 9 },
+      { label: 'Nov', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 10 },
+      { label: 'Dec', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 11 },
     ],
     quarters: [
-      { label: 'Q1', revenue: 487000, capacity: 70, overhead: 285000, yield: 1.71, index: 0 },
-      { label: 'Q2', revenue: 551000, capacity: 81, overhead: 313000, yield: 1.76, index: 1 },
-      { label: 'Q3', revenue: 615000, capacity: 84, overhead: 337000, yield: 1.82, index: 2 },
-      { label: 'Q4', revenue: 685000, capacity: 91, overhead: 363000, yield: 1.89, index: 3 },
+      { label: 'Q1', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 0 },
+      { label: 'Q2', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 1 },
+      { label: 'Q3', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 2 },
+      { label: 'Q4', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 3 },
     ],
     years: [
-      { label: '2024', revenue: 1850000, capacity: 68, overhead: 1150000, yield: 1.61, index: 0 },
-      { label: '2025', revenue: 2340000, capacity: 82, overhead: 1300000, yield: 1.80, index: 1 },
-      { label: '2026', revenue: 2750000, capacity: 89, overhead: 1450000, yield: 1.90, index: 2 },
+      { label: '2024', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 0 },
+      { label: '2025', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 1 },
+      { label: '2026', revenue: 0, capacity: 0, overhead: 0, yield: 0, index: 2 },
     ]
   },
   billing: {
@@ -69,29 +69,29 @@ const DATASETS = {
       { id: 'margin', label: 'Net profit Margin', format: (v: number) => `${v}%`, unit: '%' }
     ],
     months: [
-      { label: 'Jan', revenue: 190000, expenses: 128000, margin: 32.6, index: 0 },
-      { label: 'Feb', revenue: 195000, expenses: 130000, margin: 33.3, index: 1 },
-      { label: 'Mar', revenue: 200000, expenses: 132000, margin: 34.0, index: 2 },
-      { label: 'Apr', revenue: 198000, expenses: 131000, margin: 33.8, index: 3 },
-      { label: 'May', revenue: 205000, expenses: 133000, margin: 35.1, index: 4 },
-      { label: 'Jun', revenue: 210000, expenses: 135000, margin: 35.7, index: 5 },
-      { label: 'Jul', revenue: 205000, expenses: 132000, margin: 35.6, index: 6 },
-      { label: 'Aug', revenue: 210000, expenses: 134000, margin: 36.2, index: 7 },
-      { label: 'Sep', revenue: 215000, expenses: 136000, margin: 36.7, index: 8 },
-      { label: 'Oct', revenue: 220000, expenses: 138000, margin: 37.3, index: 9 },
-      { label: 'Nov', revenue: 225000, expenses: 140000, margin: 37.8, index: 10 },
-      { label: 'Dec', revenue: 230000, expenses: 142000, margin: 38.3, index: 11 },
+      { label: 'Jan', revenue: 0, expenses: 0, margin: 0, index: 0 },
+      { label: 'Feb', revenue: 0, expenses: 0, margin: 0, index: 1 },
+      { label: 'Mar', revenue: 0, expenses: 0, margin: 0, index: 2 },
+      { label: 'Apr', revenue: 0, expenses: 0, margin: 0, index: 3 },
+      { label: 'May', revenue: 0, expenses: 0, margin: 0, index: 4 },
+      { label: 'Jun', revenue: 0, expenses: 0, margin: 0, index: 5 },
+      { label: 'Jul', revenue: 0, expenses: 0, margin: 0, index: 6 },
+      { label: 'Aug', revenue: 0, expenses: 0, margin: 0, index: 7 },
+      { label: 'Sep', revenue: 0, expenses: 0, margin: 0, index: 8 },
+      { label: 'Oct', revenue: 0, expenses: 0, margin: 0, index: 9 },
+      { label: 'Nov', revenue: 0, expenses: 0, margin: 0, index: 10 },
+      { label: 'Dec', revenue: 0, expenses: 0, margin: 0, index: 11 },
     ],
     quarters: [
-      { label: 'Q1', revenue: 585000, expenses: 390000, margin: 33.3, index: 0 },
-      { label: 'Q2', revenue: 613000, expenses: 399000, margin: 34.9, index: 1 },
-      { label: 'Q3', revenue: 630000, expenses: 402000, margin: 36.2, index: 2 },
-      { label: 'Q4', revenue: 675000, expenses: 420000, margin: 37.8, index: 3 },
+      { label: 'Q1', revenue: 0, expenses: 0, margin: 0, index: 0 },
+      { label: 'Q2', revenue: 0, expenses: 0, margin: 0, index: 1 },
+      { label: 'Q3', revenue: 0, expenses: 0, margin: 0, index: 2 },
+      { label: 'Q4', revenue: 0, expenses: 0, margin: 0, index: 3 },
     ],
     years: [
-      { label: '2024', revenue: 2100000, expenses: 1420000, margin: 32.4, index: 0 },
-      { label: '2025', revenue: 2500000, expenses: 1600000, margin: 36.0, index: 1 },
-      { label: '2026', revenue: 2900000, expenses: 1800000, margin: 37.9, index: 2 },
+      { label: '2024', revenue: 0, expenses: 0, margin: 0, index: 0 },
+      { label: '2025', revenue: 0, expenses: 0, margin: 0, index: 1 },
+      { label: '2026', revenue: 0, expenses: 0, margin: 0, index: 2 },
     ]
   },
   roi: {
@@ -103,29 +103,29 @@ const DATASETS = {
       { id: 'revenueGenerated', label: 'Attributed Revenue', format: (v: number) => `$${v.toLocaleString()}`, unit: '$' }
     ],
     months: [
-      { label: 'Jan', roi: 2.8, spend: 40000, revenueGenerated: 112000, index: 0 },
-      { label: 'Feb', roi: 3.0, spend: 42000, revenueGenerated: 126000, index: 1 },
-      { label: 'Mar', roi: 3.2, spend: 45000, revenueGenerated: 144000, index: 2 },
-      { label: 'Apr', roi: 2.9, spend: 43000, revenueGenerated: 124700, index: 3 },
-      { label: 'May', roi: 3.3, spend: 48000, revenueGenerated: 158400, index: 4 },
-      { label: 'Jun', roi: 3.5, spend: 50000, revenueGenerated: 175000, index: 5 },
-      { label: 'Jul', roi: 3.4, spend: 52000, revenueGenerated: 176800, index: 6 },
-      { label: 'Aug', roi: 3.6, spend: 55000, revenueGenerated: 198000, index: 7 },
-      { label: 'Sep', roi: 3.2, spend: 53000, revenueGenerated: 169600, index: 8 },
-      { label: 'Oct', roi: 3.8, spend: 58000, revenueGenerated: 220400, index: 9 },
-      { label: 'Nov', roi: 3.9, spend: 60000, revenueGenerated: 234000, index: 10 },
-      { label: 'Dec', roi: 4.1, spend: 65000, revenueGenerated: 266500, index: 11 },
+      { label: 'Jan', roi: 0, spend: 0, revenueGenerated: 0, index: 0 },
+      { label: 'Feb', roi: 0, spend: 0, revenueGenerated: 0, index: 1 },
+      { label: 'Mar', roi: 0, spend: 0, revenueGenerated: 0, index: 2 },
+      { label: 'Apr', roi: 0, spend: 0, revenueGenerated: 0, index: 3 },
+      { label: 'May', roi: 0, spend: 0, revenueGenerated: 0, index: 4 },
+      { label: 'Jun', roi: 0, spend: 0, revenueGenerated: 0, index: 5 },
+      { label: 'Jul', roi: 0, spend: 0, revenueGenerated: 0, index: 6 },
+      { label: 'Aug', roi: 0, spend: 0, revenueGenerated: 0, index: 7 },
+      { label: 'Sep', roi: 0, spend: 0, revenueGenerated: 0, index: 8 },
+      { label: 'Oct', roi: 0, spend: 0, revenueGenerated: 0, index: 9 },
+      { label: 'Nov', roi: 0, spend: 0, revenueGenerated: 0, index: 10 },
+      { label: 'Dec', roi: 0, spend: 0, revenueGenerated: 0, index: 11 },
     ],
     quarters: [
-      { label: 'Q1', roi: 3.00, spend: 127000, revenueGenerated: 381000, index: 0 },
-      { label: 'Q2', roi: 3.24, spend: 138000, revenueGenerated: 447000, index: 1 },
-      { label: 'Q3', roi: 3.40, spend: 160000, revenueGenerated: 544000, index: 2 },
-      { label: 'Q4', roi: 3.93, spend: 183000, revenueGenerated: 720900, index: 3 },
+      { label: 'Q1', roi: 0, spend: 0, revenueGenerated: 0, index: 0 },
+      { label: 'Q2', roi: 0, spend: 0, revenueGenerated: 0, index: 1 },
+      { label: 'Q3', roi: 0, spend: 0, revenueGenerated: 0, index: 2 },
+      { label: 'Q4', roi: 0, spend: 0, revenueGenerated: 0, index: 3 },
     ],
     years: [
-      { label: '2024', roi: 2.90, spend: 480000, revenueGenerated: 1392000, index: 0 },
-      { label: '2025', roi: 3.40, spend: 550000, revenueGenerated: 1870000, index: 1 },
-      { label: '2026', roi: 3.80, spend: 620000, revenueGenerated: 2356000, index: 2 },
+      { label: '2024', roi: 0, spend: 0, revenueGenerated: 0, index: 0 },
+      { label: '2025', roi: 0, spend: 0, revenueGenerated: 0, index: 1 },
+      { label: '2026', roi: 0, spend: 0, revenueGenerated: 0, index: 2 },
     ]
   }
 };
@@ -150,6 +150,246 @@ function generateAiInsight(report: string, frequency: string, primaryY: string) 
 function ExplorerContent() {
   const searchParams = useSearchParams();
   const chartType = searchParams.get('chart');
+
+  const [datasets, setDatasets] = React.useState<any>(EMPTY_DATASETS);
+
+  React.useEffect(() => {
+    async function loadExplorerData() {
+      try {
+        const financeRes = await fetch('/api/data?domain=finance');
+        const teamRes = await fetch('/api/data?domain=team');
+        const marketingRes = await fetch('/api/data?domain=client-dashboard');
+
+        let invoices: any[] = [];
+        let expenses: any[] = [];
+        let teamMembers: any[] = [];
+        let campaigns: any[] = [];
+
+        if (financeRes.ok) {
+          const finData = await financeRes.json();
+          invoices = finData.recentInvoices || [];
+          expenses = finData.expenses || [];
+        }
+        if (teamRes.ok) {
+          teamMembers = await teamRes.json() || [];
+        }
+        if (marketingRes.ok) {
+          const markData = await marketingRes.json() || {};
+          campaigns = markData.campaigns || [];
+        }
+
+        const avgCapacity = teamMembers.length > 0
+          ? Math.round(teamMembers.reduce((sum, m) => sum + (m.utilization || 0), 0) / teamMembers.length)
+          : 0;
+
+        const getMonthIndex = (dStr: string) => {
+          const d = new Date(dStr);
+          return isNaN(d.getTime()) ? 0 : d.getMonth();
+        };
+        const getQuarterIndex = (dStr: string) => {
+          const d = new Date(dStr);
+          return isNaN(d.getTime()) ? 0 : Math.floor(d.getMonth() / 3);
+        };
+        const getYearIndex = (dStr: string) => {
+          const d = new Date(dStr);
+          if (isNaN(d.getTime())) return 2;
+          const y = d.getFullYear();
+          if (y === 2024) return 0;
+          if (y === 2025) return 1;
+          return 2;
+        };
+
+        const monthlyRev = Array(12).fill(0);
+        const monthlyExp = Array(12).fill(0);
+        const monthlySpend = Array(12).fill(0);
+        const monthlyAttributed = Array(12).fill(0);
+
+        invoices.forEach(inv => {
+          if (inv.status === 'PAID') {
+            const m = getMonthIndex(inv.date);
+            monthlyRev[m] += inv.amount;
+          }
+        });
+        expenses.forEach(exp => {
+          const m = getMonthIndex(exp.date);
+          monthlyExp[m] += exp.amount;
+        });
+        campaigns.forEach(c => {
+          const spend = c.budget || 0;
+          const clicks = (c.ads || []).reduce((sum: number, ad: any) => sum + (ad.clicks || 0), 0);
+          const rev = clicks * 0.15 * 1200;
+          const m = getMonthIndex(c.startDate || new Date());
+          monthlySpend[m] += spend;
+          monthlyAttributed[m] += rev;
+        });
+
+        const newMonthsCapacity = EMPTY_DATASETS.capacity.months.map((m, idx) => {
+          const rev = monthlyRev[idx];
+          const overhead = monthlyExp[idx];
+          const yld = overhead > 0 ? Number((rev / overhead).toFixed(2)) : 0;
+          return { ...m, revenue: rev, capacity: rev > 0 ? avgCapacity : 0, overhead, yield: yld };
+        });
+
+        const newMonthsBilling = EMPTY_DATASETS.billing.months.map((m, idx) => {
+          const rev = monthlyRev[idx];
+          const exp = monthlyExp[idx];
+          const margin = rev > 0 ? Number((((rev - exp) / rev) * 100).toFixed(1)) : 0;
+          return { ...m, revenue: rev, expenses: exp, margin };
+        });
+
+        const newMonthsRoi = EMPTY_DATASETS.roi.months.map((m, idx) => {
+          const spend = monthlySpend[idx];
+          const rev = monthlyAttributed[idx];
+          const roi = spend > 0 ? Number((rev / spend).toFixed(1)) : 0;
+          return { ...m, spend, revenueGenerated: rev, roi };
+        });
+
+        const quarterlyRev = Array(4).fill(0);
+        const quarterlyExp = Array(4).fill(0);
+        const quarterlySpend = Array(4).fill(0);
+        const quarterlyAttributed = Array(4).fill(0);
+
+        invoices.forEach(inv => {
+          if (inv.status === 'PAID') {
+            const q = getQuarterIndex(inv.date);
+            quarterlyRev[q] += inv.amount;
+          }
+        });
+        expenses.forEach(exp => {
+          const q = getQuarterIndex(exp.date);
+          quarterlyExp[q] += exp.amount;
+        });
+        campaigns.forEach(c => {
+          const spend = c.budget || 0;
+          const clicks = (c.ads || []).reduce((sum: number, ad: any) => sum + (ad.clicks || 0), 0);
+          const rev = clicks * 0.15 * 1200;
+          const q = getQuarterIndex(c.startDate || new Date());
+          quarterlySpend[q] += spend;
+          quarterlyAttributed[q] += rev;
+        });
+
+        const newQuartersCapacity = EMPTY_DATASETS.capacity.quarters.map((q, idx) => {
+          const rev = quarterlyRev[idx];
+          const overhead = quarterlyExp[idx];
+          const yld = overhead > 0 ? Number((rev / overhead).toFixed(2)) : 0;
+          return { ...q, revenue: rev, capacity: rev > 0 ? avgCapacity : 0, overhead, yield: yld };
+        });
+
+        const newQuartersBilling = EMPTY_DATASETS.billing.quarters.map((q, idx) => {
+          const rev = quarterlyRev[idx];
+          const exp = quarterlyExp[idx];
+          const margin = rev > 0 ? Number((((rev - exp) / rev) * 100).toFixed(1)) : 0;
+          return { ...q, revenue: rev, expenses: exp, margin };
+        });
+
+        const newQuartersRoi = EMPTY_DATASETS.roi.quarters.map((q, idx) => {
+          const spend = quarterlySpend[idx];
+          const rev = quarterlyAttributed[idx];
+          const roi = spend > 0 ? Number((rev / spend).toFixed(1)) : 0;
+          return { ...q, spend, revenueGenerated: rev, roi };
+        });
+
+        const yearlyRev = Array(3).fill(0);
+        const yearlyExp = Array(3).fill(0);
+        const yearlySpend = Array(3).fill(0);
+        const yearlyAttributed = Array(3).fill(0);
+
+        invoices.forEach(inv => {
+          if (inv.status === 'PAID') {
+            const y = getYearIndex(inv.date);
+            yearlyRev[y] += inv.amount;
+          }
+        });
+        expenses.forEach(exp => {
+          const y = getYearIndex(exp.date);
+          yearlyExp[y] += exp.amount;
+        });
+        campaigns.forEach(c => {
+          const spend = c.budget || 0;
+          const clicks = (c.ads || []).reduce((sum: number, ad: any) => sum + (ad.clicks || 0), 0);
+          const rev = clicks * 0.15 * 1200;
+          const y = getYearIndex(c.startDate || new Date());
+          yearlySpend[y] += spend;
+          yearlyAttributed[y] += rev;
+        });
+
+        const newYearsCapacity = EMPTY_DATASETS.capacity.years.map((y, idx) => {
+          const rev = yearlyRev[idx];
+          const overhead = yearlyExp[idx];
+          const yld = overhead > 0 ? Number((rev / overhead).toFixed(2)) : 0;
+          return { ...y, revenue: rev, capacity: rev > 0 ? avgCapacity : 0, overhead, yield: yld };
+        });
+
+        const newYearsBilling = EMPTY_DATASETS.billing.years.map((y, idx) => {
+          const rev = yearlyRev[idx];
+          const exp = yearlyExp[idx];
+          const margin = rev > 0 ? Number((((rev - exp) / rev) * 100).toFixed(1)) : 0;
+          return { ...y, revenue: rev, expenses: exp, margin };
+        });
+
+        const newYearsRoi = EMPTY_DATASETS.roi.years.map((y, idx) => {
+          const spend = yearlySpend[idx];
+          const rev = yearlyAttributed[idx];
+          const roi = spend > 0 ? Number((rev / spend).toFixed(1)) : 0;
+          return { ...y, spend, revenueGenerated: rev, roi };
+        });
+
+        setDatasets({
+          capacity: {
+            ...EMPTY_DATASETS.capacity,
+            months: newMonthsCapacity,
+            quarters: newQuartersCapacity,
+            years: newYearsCapacity
+          },
+          billing: {
+            ...EMPTY_DATASETS.billing,
+            months: newMonthsBilling,
+            quarters: newQuartersBilling,
+            years: newYearsBilling
+          },
+          roi: {
+            ...EMPTY_DATASETS.roi,
+            months: newMonthsRoi,
+            quarters: newQuartersRoi,
+            years: newYearsRoi
+          }
+        });
+      } catch (err) {
+        console.error('Error loading explorer data:', err);
+      }
+    }
+    loadExplorerData();
+  }, []);
+
+  // Currency States
+  const [currencyState, setCurrencyState] = React.useState('USD');
+  const [currencyRate, setCurrencyRate] = React.useState(1.0);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('dashboardCurrency') || 'USD';
+      setCurrencyState(stored);
+      
+      const updateRates = (curr: string) => {
+        if (curr === 'EUR') setCurrencyRate(0.92);
+        else if (curr === 'GBP') setCurrencyRate(0.78);
+        else if (curr === 'INR') setCurrencyRate(83.5);
+        else if (curr === 'CAD') setCurrencyRate(1.37);
+        else setCurrencyRate(1.0);
+      };
+      updateRates(stored);
+
+      const handleCurrencyChange = () => {
+        const newCurr = localStorage.getItem('dashboardCurrency') || 'USD';
+        setCurrencyState(newCurr);
+        updateRates(newCurr);
+      };
+      window.addEventListener('currency-updated', handleCurrencyChange);
+      return () => {
+        window.removeEventListener('currency-updated', handleCurrencyChange);
+      };
+    }
+  }, []);
 
   // Page States
   const [activeReport, setActiveReport] = React.useState<'capacity' | 'billing' | 'roi'>('capacity');
@@ -196,27 +436,39 @@ function ExplorerContent() {
     setHoveredBarIndex(null);
   }, [activeReport]);
 
-  const currentDataset = DATASETS[activeReport];
-  const activeYOptions = currentDataset.yOptions;
+  const currentDataset = datasets[activeReport];
+  const activeYOptions = React.useMemo(() => {
+    return currentDataset.yOptions.map((option: any) => {
+      if (option.unit === '$') {
+        const symbol = getCurrencySymbol(currencyState);
+        return {
+          ...option,
+          unit: symbol,
+          format: (v: number) => formatCurrency(v * currencyRate)
+        };
+      }
+      return option;
+    });
+  }, [currentDataset, currencyState, currencyRate]);
   const rawData: any[] = currentDataset[frequency];
 
   // Primary formatting definitions
-  const primaryOption = activeYOptions.find(o => o.id === primaryY) || activeYOptions[0];
-  const secondaryOption = activeYOptions.find(o => o.id === secondaryY);
+  const primaryOption = activeYOptions.find((o: any) => o.id === primaryY) || activeYOptions[0];
+  const secondaryOption = activeYOptions.find((o: any) => o.id === secondaryY);
 
   // Compute maximum values to scale the height of the bars
-  const maxPrimaryVal = Math.max(...rawData.map(d => d[primaryY] || 0)) * 1.1;
+  const maxPrimaryVal = Math.max(...rawData.map((d: any) => d[primaryY] || 0)) * 1.1;
   const maxSecondaryVal = secondaryY !== 'none' 
-    ? Math.max(...rawData.map(d => d[secondaryY] || 0)) * 1.1 
+    ? Math.max(...rawData.map((d: any) => d[secondaryY] || 0)) * 1.1 
     : 1;
 
   // Process X-axis sorting/ordering
   const processedData = React.useMemo(() => {
     const list = [...rawData];
     if (xAxisOrder === 'asc') {
-      list.sort((a, b) => (a[primaryY] || 0) - (b[primaryY] || 0));
+      list.sort((a: any, b: any) => (a[primaryY] || 0) - (b[primaryY] || 0));
     } else if (xAxisOrder === 'desc') {
-      list.sort((a, b) => (b[primaryY] || 0) - (a[primaryY] || 0));
+      list.sort((a: any, b: any) => (b[primaryY] || 0) - (a[primaryY] || 0));
     }
     return list;
   }, [rawData, primaryY, xAxisOrder]);
@@ -227,8 +479,8 @@ function ExplorerContent() {
 
   // Calculate summary stats
   const stats = React.useMemo(() => {
-    const vals = rawData.map(d => d[primaryY] || 0);
-    const total = vals.reduce((sum, v) => sum + v, 0);
+    const vals = rawData.map((d: any) => d[primaryY] || 0);
+    const total = vals.reduce((sum: number, v: number) => sum + v, 0);
     const avg = total / vals.length;
     const max = Math.max(...vals);
     const min = Math.min(...vals);
@@ -346,7 +598,7 @@ function ExplorerContent() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Primary Y-Axis</label>
                 <div className="grid grid-cols-1 gap-1">
-                  {activeYOptions.map((opt) => (
+                  {activeYOptions.map((opt: any) => (
                     <button
                       key={opt.id}
                       onClick={() => setPrimaryY(opt.id)}
@@ -378,8 +630,8 @@ function ExplorerContent() {
                     None (Single Metric)
                   </button>
                   {activeYOptions
-                    .filter(opt => opt.id !== primaryY)
-                    .map((opt) => (
+                    .filter((opt: any) => opt.id !== primaryY)
+                    .map((opt: any) => (
                       <button
                         key={opt.id}
                         onClick={() => setSecondaryY(opt.id)}
@@ -444,7 +696,7 @@ function ExplorerContent() {
                   <div className="border-t border-dashed border-white w-full" />
                 </div>
 
-                {processedData.map((item, idx) => {
+                {processedData.map((item: any, idx: number) => {
                   const val = item[primaryY] || 0;
                   const chronIndex = item.index;
 

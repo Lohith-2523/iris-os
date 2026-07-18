@@ -5,9 +5,17 @@ import { getOrganization } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
+    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
+    if (isSkippedAll) {
+      return NextResponse.json({ campaigns: [], leads: [], orphanedAds: [] });
+    }
+
     const { searchParams } = new URL(request.url);
     const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    const email = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
+    if (!rawEmail) {
+      return NextResponse.json({ campaigns: [], leads: [], orphanedAds: [] });
+    }
+    const email = deobfuscateEmail(rawEmail);
 
     // 1. Fetch user to check role and ad account authorization
     const user = await prisma.user.findUnique({
@@ -15,9 +23,12 @@ export async function GET(request: NextRequest) {
       include: { client: true }
     });
 
-    const isClient = user?.role === 'client';
+    if (!user) {
+      return NextResponse.json({ campaigns: [], leads: [], orphanedAds: [] });
+    }
+
+    const isClient = user.role === 'client';
     const clientAdAccountId = user?.client?.adAccountId || '';
-    const clientBusinessId = user?.clientId || '';
 
     let campaigns;
     let leads;
@@ -26,16 +37,18 @@ export async function GET(request: NextRequest) {
       // Client view: filter campaigns and ads by the client's adAccountId
       campaigns = await prisma.metaCampaign.findMany({
         where: clientAdAccountId ? {
+          orgId: user.orgId,
           campaignId: {
             startsWith: clientAdAccountId
           }
-        } : { id: 'none' }, // Return nothing if no ad account is associated
+        } : { id: 'none' },
         include: { ads: true },
         orderBy: { createdAt: 'desc' },
       });
 
       leads = await prisma.metaLead.findMany({
         where: clientAdAccountId ? {
+          orgId: user.orgId,
           adId: {
             startsWith: clientAdAccountId
           }
@@ -45,11 +58,13 @@ export async function GET(request: NextRequest) {
     } else {
       // Admin view: see everything
       campaigns = await prisma.metaCampaign.findMany({
+        where: { orgId: user.orgId },
         include: { ads: true },
         orderBy: { createdAt: 'desc' },
       });
 
       leads = await prisma.metaLead.findMany({
+        where: { orgId: user.orgId },
         orderBy: { createdTime: 'desc' },
       });
     }
@@ -57,9 +72,10 @@ export async function GET(request: NextRequest) {
     // Fetch any ads that don't have campaigns
     const orphanedAds = await prisma.metaAd.findMany({
       where: isClient && clientAdAccountId ? {
+        orgId: user.orgId,
         campaignId: null,
         adId: { startsWith: clientAdAccountId }
-      } : { campaignId: null },
+      } : { orgId: user.orgId, campaignId: null },
       orderBy: { spend: 'desc' },
     });
 
@@ -67,7 +83,7 @@ export async function GET(request: NextRequest) {
       campaigns,
       leads,
       orphanedAds,
-      role: user?.role || 'admin',
+      role: user.role,
       clientName: user?.client?.name || null
     });
   } catch (error: unknown) {
@@ -93,7 +109,7 @@ export async function POST(request: NextRequest) {
     // 1. Check if this is the legacy update lead status action
     if (!action && body.leadId && body.status) {
       const updatedLead = await prisma.metaLead.update({
-        where: { leadId: body.leadId },
+        where: { leadId: body.leadId, orgId: org.id },
         data: { status: body.status },
       });
       return NextResponse.json({ success: true, lead: updatedLead });
@@ -128,6 +144,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing required parameters: name, status, platform, campaignId' }, { status: 400 });
       }
 
+      const campaign = await prisma.metaCampaign.findFirst({
+        where: { id: campaignId, orgId: org.id },
+      });
+      if (!campaign) {
+        return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+      }
+
       const ad = await prisma.metaAd.create({
         data: {
           adId: `act_109283741_ad_${Date.now().toString().slice(-6)}`,
@@ -156,7 +179,7 @@ export async function POST(request: NextRequest) {
       }
 
       const updatedCampaign = await prisma.metaCampaign.update({
-        where: { id },
+        where: { id, orgId: org.id },
         data: {
           name,
           status,
@@ -175,7 +198,7 @@ export async function POST(request: NextRequest) {
       }
 
       const updatedAd = await prisma.metaAd.update({
-        where: { id },
+        where: { id, orgId: org.id },
         data: {
           name,
           status,

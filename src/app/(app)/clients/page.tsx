@@ -46,17 +46,15 @@ export default function ClientsPage() {
     load();
   }, []);
 
-  const clients = dbClients.length > 0 ? dbClients : [
-    { id: '1', name: 'Aether Technologies', domain: 'aethertech.com', healthScore: 92, healthStatus: 'EXCELLENT', churnRiskScore: 5, upsellOpportunityValue: 50000, metadata: { assignedTeamMemberId: '3' } },
-    { id: '2', name: 'Vertex Retail', domain: 'vertexretail.com', healthScore: 88, healthStatus: 'EXCELLENT', churnRiskScore: 12, upsellOpportunityValue: 38500, metadata: { assignedTeamMemberId: '2' } },
-    { id: '3', name: 'Nova BioLabs', domain: 'novabiolabs.org', healthScore: 74, healthStatus: 'GOOD', churnRiskScore: 24, upsellOpportunityValue: 24000, metadata: { assignedTeamMemberId: '1' } },
-    { id: '4', name: 'Quantum Capital', domain: 'quantumcap.io', healthScore: 61, healthStatus: 'FAIR', churnRiskScore: 35, upsellOpportunityValue: 45000, metadata: { assignedTeamMemberId: '1' } },
-    { id: '5', name: 'Solaria Energy', domain: 'solaria.energy', healthScore: 42, healthStatus: 'RISK', churnRiskScore: 68, upsellOpportunityValue: 18000, metadata: { assignedTeamMemberId: '2' } },
-    { id: '6', name: 'Pulse Media', domain: 'pulsemedia.agency', healthScore: 95, healthStatus: 'EXCELLENT', churnRiskScore: 3, upsellOpportunityValue: 64000, metadata: { assignedTeamMemberId: '5' } },
-    { id: '7', name: 'Onyx Logistics', domain: 'onyxlogistics.com', healthScore: 55, healthStatus: 'FAIR', churnRiskScore: 48, upsellOpportunityValue: 22000, metadata: { assignedTeamMemberId: '5' } },
-    { id: '8', name: 'Pinnacle Health', domain: 'pinnaclehealth.co', healthScore: 35, healthStatus: 'RISK', churnRiskScore: 78, upsellOpportunityValue: 15000, metadata: { assignedTeamMemberId: '6' } },
-  ];
+  const clients = dbClients;
 
+  const totalRevenue = clients.reduce((sum, c) => sum + (c.revenue || 0), 0);
+  const chartClients = clients.map(c => ({
+    id: c.id,
+    name: c.name,
+    revenue: c.revenue || 0,
+    percentage: totalRevenue > 0 ? Math.round(((c.revenue || 0) / totalRevenue) * 100) : 0
+  })).sort((a, b) => b.revenue - a.revenue);
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
@@ -64,14 +62,7 @@ export default function ClientsPage() {
     return (
       <ClientDetailDashboard
         client={selectedClient}
-        teamMembers={team.length > 0 ? team : [
-          { id: '1', name: 'Lohith Sundar', role: 'Executive CEO', email: 'lohith@apex.co' },
-          { id: '2', name: 'Sarah Chen', role: 'Operations Lead', email: 'sarah@apex.co' },
-          { id: '3', name: 'Marcus Aurelius', role: 'Creative Director', email: 'marcus.a@apex.co' },
-          { id: '4', name: 'Elena Rostova', role: 'Financial Analyst', email: 'elena@apex.co' },
-          { id: '5', name: 'David Kim', role: 'Senior Designer', email: 'david@apex.co' },
-          { id: '6', name: 'Sophie Dubois', role: 'Lead Copywriter', email: 'sophie.d@client.co' },
-        ]}
+        teamMembers={team}
         onBack={() => setSelectedClientId(null)}
       />
     );
@@ -107,10 +98,10 @@ export default function ClientsPage() {
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {dbClients.length > 0
                 ? `${(dbClients.reduce((sum, c) => sum + c.healthScore, 0) / dbClients.length).toFixed(1)}/100`
-                : '77.8/100'}
+                : '—/100'}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
-              <span>Stable based on recent CSAT audits</span>
+              <span>{dbClients.length > 0 ? 'Stable based on recent CSAT audits' : 'No CSAT audits'}</span>
             </div>
           </CardContent>
         </Card>
@@ -122,10 +113,14 @@ export default function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono tracking-tight text-rose-400">
-              {dbClients.length > 0 ? dbClients.filter(c => c.healthScore < 50).length : 2} Accounts
+              {dbClients.length > 0 ? dbClients.filter(c => c.healthScore < 50).length : 0} Accounts
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400/80 font-medium">
-              <span>Solaria Energy & Pinnacle Health</span>
+              <span>
+                {dbClients.length > 0
+                  ? dbClients.filter(c => c.healthScore < 50).map(c => c.name).join(' & ') || 'All accounts performing well'
+                  : 'No client risks'}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -139,10 +134,10 @@ export default function ClientsPage() {
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {dbClients.length > 0
                 ? `$${dbClients.reduce((sum, c) => sum + (c.status === 'ACTIVE' ? c.upsellOpportunityValue + 20000 : 0), 0).toLocaleString()}/yr`
-                : '$276,500/yr'}
+                : '$0/yr'}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
-              <span>+14.2% YoY contract additions</span>
+              <span>{dbClients.length > 0 ? '+14.2% YoY contract additions' : '0% growth'}</span>
             </div>
           </CardContent>
         </Card>
@@ -156,7 +151,7 @@ export default function ClientsPage() {
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {dbClients.length > 0
                 ? `$${dbClients.reduce((sum, c) => sum + c.upsellOpportunityValue, 0).toLocaleString()}`
-                : '$45,000'}
+                : '$0'}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
               <span>Upgrade proposals pending review</span>
@@ -170,7 +165,7 @@ export default function ClientsPage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Table of clients */}
         <div className="md:col-span-2 space-y-6">
-          <ClientRevenueChart />
+          <ClientRevenueChart clients={chartClients} />
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Active Accounts List</CardTitle>
@@ -189,50 +184,50 @@ export default function ClientsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((c: any) => {
-                    const activeTeam = team.length > 0 ? team : [
-                      { id: '1', name: 'Lohith Sundar' },
-                      { id: '2', name: 'Sarah Chen' },
-                      { id: '3', name: 'Marcus Aurelius' },
-                      { id: '4', name: 'Elena Rostova' },
-                      { id: '5', name: 'David Kim' },
-                      { id: '6', name: 'Sophie Dubois' },
-                    ];
-                    const specialist = activeTeam.find((t: any) => t.id === c.metadata?.assignedTeamMemberId);
-                    return (
-                      <TableRow 
-                        key={c.id} 
-                        className="cursor-pointer hover:bg-zinc-900/30 transition-colors" 
-                        onClick={() => setSelectedClientId(c.id)}
-                      >
-                        <TableCell className="font-semibold text-white">{c.name}</TableCell>
-                        <TableCell className="font-mono text-xs text-zinc-500">{c.domain}</TableCell>
-                        <TableCell className="text-zinc-300">
-                          {specialist ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <span>{specialist.name}</span>
-                            </span>
-                          ) : (
-                            <span className="text-zinc-600 italic">Unassigned</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={
-                              c.healthScore >= 80 ? 'risk-low' : c.healthScore >= 50 ? 'risk-medium' : 'risk-high'
-                            }
-                          >
-                            {c.healthScore}/100 ({c.healthStatus})
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="font-mono text-xs text-zinc-300 font-semibold">{c.churnRiskScore}%</span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">${(c.upsellOpportunityValue || 20000).toLocaleString()}</TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {clients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-zinc-500">
+                        No clients registered.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    clients.map((c: any) => {
+                      const specialist = team.find((t: any) => t.id === c.metadata?.assignedTeamMemberId);
+                      return (
+                        <TableRow 
+                          key={c.id} 
+                          className="cursor-pointer hover:bg-zinc-900/30 transition-colors" 
+                          onClick={() => setSelectedClientId(c.id)}
+                        >
+                          <TableCell className="font-semibold text-white">{c.name}</TableCell>
+                          <TableCell className="font-mono text-xs text-zinc-500">{c.domain}</TableCell>
+                          <TableCell className="text-zinc-300">
+                            {specialist ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span>{specialist.name}</span>
+                              </span>
+                            ) : (
+                              <span className="text-zinc-600 italic">Unassigned</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={
+                                c.healthScore >= 80 ? 'risk-low' : c.healthScore >= 50 ? 'risk-medium' : 'risk-high'
+                              }
+                            >
+                              {c.healthScore}/100 ({c.healthStatus})
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="font-mono text-xs text-zinc-300 font-semibold">{c.churnRiskScore}%</span>
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold">${(c.upsellOpportunityValue || 0).toLocaleString()}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -258,15 +253,21 @@ export default function ClientsPage() {
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400">Excellent Status (80-100)</span>
-                <span className="font-semibold text-white">3 Accounts</span>
+                <span className="font-semibold text-white">
+                  {dbClients.filter(c => c.healthScore >= 80).length} Accounts
+                </span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400">Good / Fair Status (50-79)</span>
-                <span className="font-semibold text-white">3 Accounts</span>
+                <span className="font-semibold text-white">
+                  {dbClients.filter(c => c.healthScore >= 50 && c.healthScore < 80).length} Accounts
+                </span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400">High Risk Status (0-49)</span>
-                <span className="font-semibold text-white">2 Accounts</span>
+                <span className="font-semibold text-white">
+                  {dbClients.filter(c => c.healthScore < 50).length} Accounts
+                </span>
               </div>
             </CardContent>
           </Card>

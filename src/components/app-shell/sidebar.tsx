@@ -91,11 +91,14 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
         const data = await res.json();
         setUser(data);
       } else {
-        setUser({ name: 'Lohith Sundar', email: email, role: 'ADMIN' });
+        const defaultName = email === 'lohith@apex.co' ? 'Lohith Sundar' : (localStorage.getItem('signup_name') || 'Executive User');
+        setUser({ name: defaultName, email: email, role: 'ADMIN' });
       }
     } catch (e) {
       console.error('Error loading user in sidebar:', e);
-      setUser({ name: 'Lohith Sundar', email: emailParam || 'lohith@apex.co', role: 'ADMIN' });
+      const targetEmail = emailParam || 'lohith@apex.co';
+      const defaultName = targetEmail === 'lohith@apex.co' ? 'Lohith Sundar' : (localStorage.getItem('signup_name') || 'Executive User');
+      setUser({ name: defaultName, email: targetEmail, role: 'ADMIN' });
     }
   }, []);
 
@@ -320,7 +323,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
               {!isCollapsed && (
                 <div className="truncate">
                   <span className="block text-xs font-semibold text-white leading-none">
-                    {user?.name || 'Lohith Sundar'}
+                    {user?.name || (typeof window !== 'undefined' && (localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail')) === 'lohith@apex.co' ? 'Lohith Sundar' : (typeof window !== 'undefined' ? localStorage.getItem('signup_name') || 'Executive User' : 'Executive User'))}
                   </span>
                   <span className="text-[10px] text-zinc-500 mt-1 block truncate">
                     {user?.email || 'lohith@apex.co'} {plan ? `(${plan})` : ''}

@@ -88,7 +88,11 @@ export default function TeamsDashboardPage() {
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'david.k@apex.co';
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+      if (!email) {
+        setLoading(false);
+        return;
+      }
       
       // 1. Fetch user profile
       const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);

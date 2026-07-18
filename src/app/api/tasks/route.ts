@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { deobfuscateEmail } from '@/lib/utils';
+import { getRequestUser } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
+    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
+    if (isSkippedAll) {
+      return NextResponse.json([]);
+    }
+
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json([]);
+    }
+
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
     const assignedToId = searchParams.get('assignedToId');
     const projectId = searchParams.get('projectId');
-
-    let tasks;
 
     const defaultInclude = {
       assignedTo: true,
@@ -29,30 +38,26 @@ export async function GET(request: NextRequest) {
       nextTasks: true,
     };
 
-    if (projectId) {
-      tasks = await prisma.clientTask.findMany({
-        where: { projectId },
-        include: defaultInclude,
-        orderBy: { createdAt: 'desc' },
-      });
-    } else if (clientId) {
-      tasks = await prisma.clientTask.findMany({
-        where: { clientId },
-        include: defaultInclude,
-        orderBy: { createdAt: 'desc' },
-      });
-    } else if (assignedToId) {
-      tasks = await prisma.clientTask.findMany({
-        where: { assignedToId },
-        include: defaultInclude,
-        orderBy: { createdAt: 'desc' },
-      });
-    } else {
-      tasks = await prisma.clientTask.findMany({
-        include: defaultInclude,
-        orderBy: { createdAt: 'desc' },
-      });
-    }
+    const role = user.role.toLowerCase();
+    const visibilityWhere: any = {
+      client: { orgId: user.orgId },
+      ...(role === 'client' && user.clientId ? { clientId: user.clientId } : {}),
+      ...(role === 'member' ? { assignedToId: user.id } : {}),
+    };
+    const requestedWhere: any = {
+      ...(projectId ? { projectId } : {}),
+      ...(clientId ? { clientId } : {}),
+      ...(assignedToId ? { assignedToId } : {}),
+    };
+
+    const tasks = await prisma.clientTask.findMany({
+      where: {
+        ...visibilityWhere,
+        ...requestedWhere,
+      },
+      include: defaultInclude,
+      orderBy: { createdAt: 'desc' },
+    });
 
     return NextResponse.json(tasks);
   } catch (error: any) {
@@ -63,6 +68,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const requestUser = await getRequestUser(request);
+    if (!requestUser) {
+      return NextResponse.json({ error: 'User context required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { action } = body;
 
@@ -85,6 +95,11 @@ export async function POST(request: NextRequest) {
 
       if (!title || !clientId) {
         return NextResponse.json({ error: 'Missing title or clientId' }, { status: 400 });
+      }
+
+      const client = await prisma.client.findUnique({ where: { id: clientId } });
+      if (!client || client.orgId !== requestUser.orgId) {
+        return NextResponse.json({ error: 'Unauthorized client scope' }, { status: 403 });
       }
 
       const newTask = await prisma.clientTask.create({
@@ -111,6 +126,15 @@ export async function POST(request: NextRequest) {
 
       if (!id) {
         return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
+      }
+
+      const existingTask = await prisma.clientTask.findUnique({
+        where: { id },
+        include: { client: true },
+      });
+
+      if (!existingTask || existingTask.client.orgId !== requestUser.orgId) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
       }
 
       // If they provided a raw update string, we also add it to TaskUpdate
@@ -151,6 +175,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
       }
 
+      const task = await prisma.clientTask.findUnique({
+        where: { id },
+        include: { client: true },
+      });
+      if (!task || task.client.orgId !== requestUser.orgId) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      }
+
       await prisma.clientTask.delete({
         where: { id },
       });
@@ -163,6 +195,14 @@ export async function POST(request: NextRequest) {
 
       if (!taskId || !content) {
         return NextResponse.json({ error: 'Missing taskId or content' }, { status: 400 });
+      }
+
+      const task = await prisma.clientTask.findUnique({
+        where: { id: taskId },
+        include: { client: true },
+      });
+      if (!task || task.client.orgId !== requestUser.orgId) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
       }
 
       const newUpdate = await prisma.taskUpdate.create({
@@ -193,6 +233,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
+      const task = await prisma.clientTask.findUnique({
+        where: { id: taskId },
+        include: { client: true },
+      });
+      if (!task || task.client.orgId !== requestUser.orgId || user.orgId !== requestUser.orgId) {
+        return NextResponse.json({ error: 'Unauthorized task scope' }, { status: 403 });
+      }
+
       const comment = await prisma.taskComment.create({
         data: {
           content,
@@ -209,7 +257,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'carry_over') {
       const rawEmail = request.cookies.get('currentUserEmail')?.value;
-      const email = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
+      const email = rawEmail ? deobfuscateEmail(rawEmail) : '';
       const user = await prisma.user.findUnique({
         where: { email }
       });
@@ -225,11 +273,17 @@ export async function POST(request: NextRequest) {
       }
 
       const oldTask = await prisma.clientTask.findUnique({
-        where: { id: taskId }
+        where: { id: taskId },
+        include: { client: true },
       });
 
-      if (!oldTask) {
+      if (!oldTask || oldTask.client.orgId !== requestUser.orgId) {
         return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      }
+
+      const newAssignee = await prisma.user.findUnique({ where: { id: newAssigneeId } });
+      if (!newAssignee || newAssignee.orgId !== requestUser.orgId) {
+        return NextResponse.json({ error: 'Unauthorized assignee scope' }, { status: 403 });
       }
 
       // 1. Mark old task as COMPLETED and 100% progress, store output

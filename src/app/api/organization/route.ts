@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization } from '@/lib/org';
+import { deobfuscateEmail } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,60 +29,102 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, plan, hasAddon, agencyTypes, bankNames, currency, aiSharingConsent } = body;
+    const { name, plan, hasAddon, agencyTypes, bankNames, currency, aiSharingConsent, username, email } = body;
 
-    const org = await getOrganization(request);
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    const cookieEmail = request.cookies.get('currentUserEmail')?.value;
+    const userEmail = deobfuscateEmail(cookieEmail || '') || email || '';
+
+    if (!userEmail) {
+      return NextResponse.json({ error: 'User email context is required' }, { status: 400 });
     }
 
-    // Currency restriction check
-    if (currency !== undefined && currency !== org.currency) {
-      const txCount = await prisma.transaction.count();
-      const invCount = await prisma.invoice.count();
-      const expCount = await prisma.expense.count();
-      const hasFinancialData = (txCount + invCount + expCount) > 0;
-      if (hasFinancialData) {
-        return NextResponse.json({
-          error: "Billing currency cannot be changed once financial data (invoices, expenses, or transactions) has been entered into the workspace."
-        }, { status: 400 });
-      }
-    }
-
-    // Limit check
-    let maxAllowed = 0;
-    const planToCheck = plan !== undefined ? plan : org.plan;
-    const hasAddonToCheck = hasAddon !== undefined ? hasAddon : org.hasAddon;
-    if (planToCheck === 'BASIC') {
-      maxAllowed = hasAddonToCheck ? 2 : 1;
-    } else if (planToCheck === 'PRO') {
-      maxAllowed = 5;
-    } else if (planToCheck === 'ADVANCED') {
-      maxAllowed = 1000; // unlimited
-    } else {
-      return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
-    }
-
-    if (agencyTypes && agencyTypes.length > maxAllowed) {
-      return NextResponse.json({
-        error: `Selected agency types exceed the limit for the ${planToCheck} plan${planToCheck === 'BASIC' && hasAddonToCheck ? ' with add-on' : ''}. Allowed max: ${maxAllowed}.`
-      }, { status: 400 });
-    }
-
-    const updatedOrg = await prisma.organization.update({
-      where: { id: org.id },
-      data: {
-        name: name !== undefined ? name : org.name,
-        plan: plan !== undefined ? plan : org.plan,
-        hasAddon: hasAddon !== undefined ? hasAddon : org.hasAddon,
-        agencyTypes: agencyTypes !== undefined ? agencyTypes : org.agencyTypes,
-        bankNames: bankNames !== undefined ? bankNames : org.bankNames,
-        currency: currency !== undefined ? currency : org.currency,
-        aiSharingConsent: aiSharingConsent !== undefined ? aiSharingConsent : org.aiSharingConsent,
-      },
+    let user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: { organization: true }
     });
 
-    return NextResponse.json(updatedOrg);
+    let org = user?.organization || null;
+
+    if (!org) {
+      // Create a brand new organization (agency) for the user
+      org = await prisma.organization.create({
+        data: {
+          name: name || 'New Agency',
+          plan: plan || 'BASIC',
+          hasAddon: hasAddon || false,
+          agencyTypes: agencyTypes || [],
+          bankNames: bankNames || [],
+          currency: currency || 'USD',
+          aiSharingConsent: aiSharingConsent || false,
+        }
+      });
+
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            email: userEmail,
+            name: username || userEmail.split('@')[0],
+            role: 'ADMIN',
+            orgId: org.id,
+          },
+          include: { organization: true }
+        });
+      } else {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { orgId: org.id },
+          include: { organization: true }
+        });
+      }
+    } else {
+      // Currency restriction check
+      if (currency !== undefined && currency !== org.currency) {
+        const txCount = await prisma.transaction.count();
+        const invCount = await prisma.invoice.count();
+        const expCount = await prisma.expense.count();
+        const hasFinancialData = (txCount + invCount + expCount) > 0;
+        if (hasFinancialData) {
+          return NextResponse.json({
+            error: "Billing currency cannot be changed once financial data (invoices, expenses, or transactions) has been entered into the workspace."
+          }, { status: 400 });
+        }
+      }
+
+      // Limit check
+      let maxAllowed = 0;
+      const planToCheck = plan !== undefined ? plan : org.plan;
+      const hasAddonToCheck = hasAddon !== undefined ? hasAddon : org.hasAddon;
+      if (planToCheck === 'BASIC') {
+        maxAllowed = hasAddonToCheck ? 2 : 1;
+      } else if (planToCheck === 'PRO') {
+        maxAllowed = 5;
+      } else if (planToCheck === 'ADVANCED') {
+        maxAllowed = 1000; // unlimited
+      } else {
+        return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
+      }
+
+      if (agencyTypes && agencyTypes.length > maxAllowed) {
+        return NextResponse.json({
+          error: `Selected agency types exceed the limit for the ${planToCheck} plan${planToCheck === 'BASIC' && hasAddonToCheck ? ' with add-on' : ''}. Allowed max: ${maxAllowed}.`
+        }, { status: 400 });
+      }
+
+      org = await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          name: name !== undefined ? name : org.name,
+          plan: plan !== undefined ? plan : org.plan,
+          hasAddon: hasAddon !== undefined ? hasAddon : org.hasAddon,
+          agencyTypes: agencyTypes !== undefined ? agencyTypes : org.agencyTypes,
+          bankNames: bankNames !== undefined ? bankNames : org.bankNames,
+          currency: currency !== undefined ? currency : org.currency,
+          aiSharingConsent: aiSharingConsent !== undefined ? aiSharingConsent : org.aiSharingConsent,
+        },
+      });
+    }
+
+    return NextResponse.json(org);
   } catch (error: any) {
     console.error('Error updating organization:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

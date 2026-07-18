@@ -65,8 +65,8 @@ interface CalendarEvent {
 export default function CalendarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [currentUserEmail, setCurrentUserEmail] = React.useState('lohith@apex.co');
-  const [userRole, setUserRole] = React.useState('admin');
+  const [currentUserEmail, setCurrentUserEmail] = React.useState('');
+  const [userRole, setUserRole] = React.useState('');
   
   // App States
   const [events, setEvents] = React.useState<CalendarEvent[]>([]);
@@ -114,7 +114,11 @@ export default function CalendarPage() {
   // Load user session
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+      if (!email) {
+        setLoading(false);
+        return;
+      }
       setCurrentUserEmail(email);
       const isGoogleConn = localStorage.getItem('conn_google_calendar') === 'true';
       setGoogleConnected(isGoogleConn);
@@ -133,6 +137,7 @@ export default function CalendarPage() {
 
   // Fetch events
   const loadEvents = React.useCallback(async () => {
+    if (!currentUserEmail) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/calendar?email=${encodeURIComponent(obfuscateEmail(currentUserEmail))}`);

@@ -175,6 +175,17 @@ export default function SettingsPage() {
           setHasFinancialData(!!data.hasFinancialData);
           setAiSharingConsent(data.aiSharingConsent || false);
         }
+
+        const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+        if (email) {
+          const { obfuscateEmail } = await import('@/lib/utils');
+          const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            const storedBillingEmail = localStorage.getItem('custom_billing_email');
+            setBillingEmail(storedBillingEmail || userData.email);
+          }
+        }
       } catch (e) {
         console.error('Error loading organization:', e);
       } finally {
@@ -236,6 +247,8 @@ export default function SettingsPage() {
       if (res.ok) {
         setSaveStatus('success');
         setTimeout(() => setSaveStatus('idle'), 3000);
+        // Save billing email to local storage
+        localStorage.setItem('custom_billing_email', billingEmail);
         // Save currency to localStorage and dispatch event
         localStorage.setItem('dashboardCurrency', currency);
         window.dispatchEvent(new Event('currency-updated'));

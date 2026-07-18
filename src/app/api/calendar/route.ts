@@ -4,9 +4,17 @@ import { deobfuscateEmail } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
+    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
+    if (isSkippedAll) {
+      return NextResponse.json({ events: [] });
+    }
+
     const { searchParams } = new URL(request.url);
     const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    const email = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
+    if (!rawEmail) {
+      return NextResponse.json({ events: [] });
+    }
+    const email = deobfuscateEmail(rawEmail);
 
     // 1. Fetch user to verify organization and role
     const user = await prisma.user.findUnique({
@@ -20,7 +28,12 @@ export async function GET(request: NextRequest) {
     // 2. Fetch events. If client: only see created events or if in attendees list.
     // If admin: see all events in organization.
     let events;
-    if (user.role.toLowerCase() === 'client') {
+    if (user.role.toLowerCase() === 'admin') {
+      events = await prisma.calendarEvent.findMany({
+        where: { orgId: user.orgId },
+        orderBy: { startTime: 'asc' },
+      });
+    } else {
       events = await prisma.calendarEvent.findMany({
         where: {
           orgId: user.orgId,
@@ -29,11 +42,6 @@ export async function GET(request: NextRequest) {
             { attendees: { has: email } }
           ]
         },
-        orderBy: { startTime: 'asc' },
-      });
-    } else {
-      events = await prisma.calendarEvent.findMany({
-        where: { orgId: user.orgId },
         orderBy: { startTime: 'asc' },
       });
     }
@@ -65,7 +73,10 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const rawEmail = email || request.cookies.get('currentUserEmail')?.value;
-    const userEmail = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
+    if (!rawEmail) {
+      return NextResponse.json({ error: 'User context required' }, { status: 401 });
+    }
+    const userEmail = deobfuscateEmail(rawEmail);
     const user = await prisma.user.findUnique({
       where: { email: userEmail },
     });
@@ -76,83 +87,7 @@ export async function POST(request: NextRequest) {
 
     // Handle Google Calendar Sync Simulation actions
     if (action === 'sync') {
-      // Clean out any existing google events for this user/org to prevent duplicates
-      await prisma.calendarEvent.deleteMany({
-        where: {
-          orgId: user.orgId,
-          isGoogleEvent: true,
-        },
-      });
-
-      const today = new Date();
-      const formatOffsetDate = (days: number, hour: number, minutes = 0) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() + days);
-        d.setHours(hour, minutes, 0, 0);
-        return d;
-      };
-
-      // Create standard mock google events
-      const mockGoogleEvents = [
-        {
-          title: 'Google Calendar Sync: Project Handoff',
-          description: 'Syncing with design team on final deliverables and client expectations.',
-          location: 'Google Meet',
-          meetLink: 'https://meet.google.com/abc-defg-hij',
-          startTime: formatOffsetDate(1, 10, 0), // Tomorrow 10 AM
-          endTime: formatOffsetDate(1, 11, 0),
-          color: '#0f9d58', // Green
-          isGoogleEvent: true,
-          orgId: user.orgId,
-          creatorId: user.id,
-          attendees: [user.email, 'sarah.chen@apex.co', 'sophie.d@client.co'],
-          attendeeStatus: {
-            [user.email]: 'ACCEPTED',
-            'sarah.chen@apex.co': 'ACCEPTED',
-            'sophie.d@client.co': 'PENDING'
-          },
-        },
-        {
-          title: 'Google Calendar Sync: Operational Q&A',
-          description: 'Open floor questions on agency operational bottlenecks and billing updates.',
-          location: 'Zoom Meeting',
-          meetLink: 'https://zoom.us/j/987654321',
-          startTime: formatOffsetDate(2, 14, 0), // Day after tomorrow 2 PM
-          endTime: formatOffsetDate(2, 15, 0),
-          color: '#4285f4', // Blue
-          isGoogleEvent: true,
-          orgId: user.orgId,
-          creatorId: user.id,
-          attendees: [user.email, 'david.k@apex.co'],
-          attendeeStatus: {
-            [user.email]: 'ACCEPTED',
-            'david.k@apex.co': 'ACCEPTED'
-          },
-        },
-        {
-          title: 'Google Calendar Sync: Client Sync (Nova BioLabs)',
-          description: 'Monthly alignment on SEO content strategy and deliverables approval.',
-          location: 'Google Meet',
-          meetLink: 'https://meet.google.com/xyz-qprs-tuv',
-          startTime: formatOffsetDate(-1, 11, 0), // Yesterday 11 AM
-          endTime: formatOffsetDate(-1, 12, 0),
-          color: '#db4437', // Red
-          isGoogleEvent: true,
-          orgId: user.orgId,
-          creatorId: user.id,
-          attendees: [user.email, 'client_new@client.co'],
-          attendeeStatus: {
-            [user.email]: 'ACCEPTED',
-            'client_new@client.co': 'ACCEPTED'
-          },
-        }
-      ];
-
-      for (const ev of mockGoogleEvents) {
-        await prisma.calendarEvent.create({ data: ev });
-      }
-
-      return NextResponse.json({ success: true, message: 'Google Calendar events synced.' });
+      return NextResponse.json({ success: true, message: 'No calendar data was imported because no live calendar provider is connected.', events: [] });
     }
 
     if (action === 'disconnect') {
@@ -250,7 +185,10 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     const rawEmail = email || request.cookies.get('currentUserEmail')?.value;
-    const userEmail = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
+    if (!rawEmail) {
+      return NextResponse.json({ error: 'User context required' }, { status: 401 });
+    }
+    const userEmail = deobfuscateEmail(rawEmail);
     const user = await prisma.user.findUnique({
       where: { email: userEmail },
     });
@@ -358,7 +296,10 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    const email = rawEmail ? deobfuscateEmail(rawEmail) : 'lohith@apex.co';
+    if (!rawEmail) {
+      return NextResponse.json({ error: 'User context required' }, { status: 401 });
+    }
+    const email = deobfuscateEmail(rawEmail);
 
     if (!id) {
       return NextResponse.json({ error: 'Missing event ID' }, { status: 400 });

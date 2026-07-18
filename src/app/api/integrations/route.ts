@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization } from '@/lib/org';
 
-const PROVIDERS = ['RAZORPAY', 'META'];
+const PROVIDERS = ['RAZORPAY', 'META', 'GOOGLE'];
 
 const DEFAULT_LOGS: Record<string, string> = {
   RAZORPAY: 'Not connected. Connect your Razorpay Key ID and Secret.',

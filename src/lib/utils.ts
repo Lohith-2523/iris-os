@@ -9,8 +9,10 @@ export function cn(...inputs: ClassValue[]) {
 export function formatUserMessage(message: string): string {
   if (typeof window === 'undefined') return message;
   
-  const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-  let name = 'Lohith';
+  const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+  if (!email) return message;
+
+  let name = '';
   
   if (email.includes('sarah')) {
     name = 'Sarah';
@@ -24,7 +26,7 @@ export function formatUserMessage(message: string): string {
     }
   }
 
-  return message.replace(/Lohith/g, name);
+  return name ? message.replace(/Lohith/g, name) : message;
 }
 
 export function formatCurrency(amount: number, decimals: number = 0): string {
@@ -101,20 +103,22 @@ export function renderFormattedText(text: string): React.ReactNode {
   // Format user name if "Lohith" is present
   let processed = text;
   if (typeof window !== 'undefined') {
-    const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-    let name = 'Lohith';
-    if (email.includes('sarah')) {
-      name = 'Sarah';
-    } else if (email.includes('lohith')) {
-      name = 'Lohith';
-    } else {
-      const prefix = email.split('@')[0];
-      const parts = prefix.split(/[._-]/);
-      if (parts.length > 0) {
-        name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+    const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+    let name = '';
+    if (email) {
+      if (email.includes('sarah')) {
+        name = 'Sarah';
+      } else if (email.includes('lohith')) {
+        name = 'Lohith';
+      } else {
+        const prefix = email.split('@')[0];
+        const parts = prefix.split(/[._-]/);
+        if (parts.length > 0) {
+          name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+        }
       }
+      processed = name ? text.replace(/Lohith/g, name) : text;
     }
-    processed = text.replace(/Lohith/g, name);
   }
 
   // Parse markdown: **bold**, *italic*, `code`
@@ -133,3 +137,12 @@ export function renderFormattedText(text: string): React.ReactNode {
   });
 }
 
+export function getCurrencySymbol(currency: string): string {
+  switch (currency) {
+    case 'EUR': return '€';
+    case 'GBP': return '£';
+    case 'INR': return '₹';
+    case 'CAD': return 'C$';
+    default: return '$';
+  }
+}

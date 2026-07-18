@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { formatCurrency, formatPercent, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import {
   ArrowLeft,
   Plus,
@@ -334,12 +334,20 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Account Details</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400 flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-zinc-500" /> Retainer Value</span>
-                <span className="font-bold text-white font-mono">
-                  {client.upsellOpportunityValue ? `${formatCurrency(client.upsellOpportunityValue)}/yr` : `${formatCurrency(20000)}/yr`}
-                </span>
-              </div>
+              {(() => {
+                const currencyState = typeof window !== 'undefined' ? localStorage.getItem('currencyState') || 'USD' : 'USD';
+                return (
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-400 flex items-center gap-1.5">
+                      <span className="font-bold text-zinc-500 w-3.5 text-center text-xs select-none">{getCurrencySymbol(currencyState)}</span>
+                      <span>Retainer Value</span>
+                    </span>
+                    <span className="font-bold text-white font-mono">
+                      {client.upsellOpportunityValue ? `${formatCurrency(client.upsellOpportunityValue)}/yr` : `${formatCurrency(20000)}/yr`}
+                    </span>
+                  </div>
+                );
+              })()}
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400 flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-zinc-500" /> Agency Service</span>
                 <span className="font-semibold text-zinc-300">{client.agencyType || 'Digital Marketing'}</span>

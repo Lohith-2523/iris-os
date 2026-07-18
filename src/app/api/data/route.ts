@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getRequestUser } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,14 +11,110 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing domain parameter' }, { status: 400 });
     }
 
+    const user = await getRequestUser(request);
+    if (!user) {
+      switch (domain) {
+        case 'dashboard':
+          return NextResponse.json({
+            activeClientsCount: 0,
+            totalClientsCount: 0,
+            activeProjectsCount: 0,
+            currentMonthRevenue: 0,
+            projectRisks: [],
+            grossBillings: 0,
+            totalExpenses: 0,
+            outstandingAmount: 0,
+          });
+        case 'finance':
+          return NextResponse.json({
+            grossBillings: 0,
+            outstandingAmount: 0,
+            totalExpenses: 0,
+            recentInvoices: [],
+            expenses: [],
+          });
+        case 'clients':
+        case 'projects':
+        case 'team':
+        case 'reporting':
+          return NextResponse.json([]);
+        case 'operations':
+          return NextResponse.json({
+            automationsCount: 0,
+            runsCount: 0,
+          });
+        default:
+          return NextResponse.json({ error: 'Invalid domain specified' }, { status: 400 });
+      }
+    }
+
+    const orgId = user.orgId;
+    const clientScope = user.role.toLowerCase() === 'client' && user.clientId
+      ? { id: user.clientId }
+      : {};
+    const projectScope = user.role.toLowerCase() === 'client' && user.clientId
+      ? { clientId: user.clientId }
+      : {};
+    const memberScope = user.role.toLowerCase() === 'member'
+      ? { members: { some: { userId: user.id } } }
+      : {};
+
+    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
+    if (isSkippedAll) {
+      switch (domain) {
+        case 'dashboard':
+          return NextResponse.json({
+            activeClientsCount: 0,
+            totalClientsCount: 0,
+            activeProjectsCount: 0,
+            currentMonthRevenue: 0,
+            projectRisks: [],
+            grossBillings: 0,
+            totalExpenses: 0,
+            outstandingAmount: 0,
+            revenueHistory: [
+              { label: 'Jan', value: 0 },
+              { label: 'Feb', value: 0 },
+              { label: 'Mar', value: 0 },
+              { label: 'Apr', value: 0 },
+              { label: 'May', value: 0 },
+              { label: 'Jun', value: 0 },
+            ],
+          });
+        case 'finance':
+          return NextResponse.json({
+            grossBillings: 0,
+            outstandingAmount: 0,
+            totalExpenses: 0,
+            recentInvoices: [],
+            expenses: [],
+          });
+        case 'clients':
+          return NextResponse.json([]);
+        case 'projects':
+          return NextResponse.json([]);
+        case 'team':
+          return NextResponse.json([]);
+        case 'reporting':
+          return NextResponse.json([]);
+        case 'operations':
+          return NextResponse.json({
+            automationsCount: 0,
+            runsCount: 0,
+          });
+        default:
+          return NextResponse.json({ error: 'Invalid domain specified' }, { status: 400 });
+      }
+    }
+
     switch (domain) {
       case 'dashboard': {
         // Compute dashboard executive metrics
-        const clients = await prisma.client.findMany({ where: { status: 'ACTIVE' } });
-        const allClients = await prisma.client.findMany();
-        const projects = await prisma.project.findMany();
-        const invoices = await prisma.invoice.findMany();
-        const expenses = await prisma.expense.findMany();
+        const clients = await prisma.client.findMany({ where: { orgId, status: 'ACTIVE', ...clientScope } });
+        const allClients = await prisma.client.findMany({ where: { orgId, ...clientScope } });
+        const projects = await prisma.project.findMany({ where: { orgId, ...projectScope } });
+        const invoices = await prisma.invoice.findMany({ where: { orgId, ...(user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {}) } });
+        const expenses = user.role.toLowerCase() === 'client' ? [] : await prisma.expense.findMany({ where: { orgId } });
 
         const activeClientsCount = clients.length;
         const totalClientsCount = allClients.length;
@@ -40,8 +137,23 @@ export async function GET(request: NextRequest) {
             id: p.id,
             name: p.name,
             riskLevel: p.riskLevel,
-            riskDescription: p.riskDescription || 'Timeline delay flagged by system',
+            riskDescription: p.riskDescription || '',
           }));
+
+        // Compute revenue history (past 6 months) dynamically
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthlyRevenue = Array(12).fill(0);
+        invoices.forEach(inv => {
+          if (inv.status === 'PAID') {
+            const date = new Date(inv.issuedDate);
+            const monthIdx = date.getMonth();
+            monthlyRevenue[monthIdx] += inv.amount;
+          }
+        });
+        const revenueHistory = months.map((label, index) => ({
+          label,
+          value: monthlyRevenue[index]
+        })).slice(0, 6); // standard 6 months Jan-Jun display
 
         return NextResponse.json({
           activeClientsCount,
@@ -52,17 +164,22 @@ export async function GET(request: NextRequest) {
           grossBillings,
           totalExpenses,
           outstandingAmount,
+          revenueHistory,
         });
       }
 
       case 'finance': {
         const invoices = await prisma.invoice.findMany({
+          where: { orgId, ...(user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {}) },
           orderBy: { issuedDate: 'desc' },
           include: { client: true }
         });
-        const expenses = await prisma.expense.findMany({
-          orderBy: { date: 'desc' }
-        });
+        const expenses = user.role.toLowerCase() === 'client'
+          ? []
+          : await prisma.expense.findMany({
+              where: { orgId },
+              orderBy: { date: 'desc' }
+            });
 
         const grossBillings = invoices.reduce((sum, inv) => sum + inv.amount, 0);
         const outstandingAmount = invoices
@@ -96,6 +213,13 @@ export async function GET(request: NextRequest) {
 
       case 'clients': {
         const clients = await prisma.client.findMany({
+          where: {
+            orgId,
+            ...clientScope,
+            ...(user.role.toLowerCase() === 'member'
+              ? { projects: { some: { members: { some: { userId: user.id } } } } }
+              : {})
+          },
           include: { invoices: true },
           orderBy: { name: 'asc' }
         });
@@ -126,6 +250,7 @@ export async function GET(request: NextRequest) {
 
       case 'projects': {
         const projects = await prisma.project.findMany({
+          where: { orgId, ...projectScope, ...memberScope },
           include: { client: true },
           orderBy: { startDate: 'desc' }
         });
@@ -138,7 +263,7 @@ export async function GET(request: NextRequest) {
           progress: p.progress,
           risk: p.riskLevel,
           riskDescription: p.riskDescription || '',
-          endDate: p.endDate ? p.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible',
+          endDate: p.endDate ? p.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
         }));
 
         return NextResponse.json(formattedProjects);
@@ -146,64 +271,19 @@ export async function GET(request: NextRequest) {
 
       case 'team': {
         const users = await prisma.user.findMany({
+          where: { orgId },
           orderBy: { name: 'asc' }
         });
-        
-        const roleMapping: Record<string, string> = {
-          'lohith@apex.co': 'Executive CEO',
-          'sarah.chen@apex.co': 'Operations Lead',
-          'marcus.a@apex.co': 'Creative Director',
-          'elena.r@apex.co': 'Financial Analyst',
-          'david.k@apex.co': 'Senior Designer',
-          'sophie.d@client.co': 'Lead Copywriter',
-          'shardsmedia.ai@gmail.com': 'Solutions Architect',
-        };
-
-        const phoneMapping: Record<string, string> = {
-          'lohith@apex.co': '+123456789',
-          'sarah.chen@apex.co': '+123456780',
-          'marcus.a@apex.co': '+123456781',
-          'elena.r@apex.co': '+123456782',
-          'david.k@apex.co': '+123456783',
-          'sophie.d@client.co': '+123456784',
-        };
-
-        const projectsMapping: Record<string, string> = {
-          'lohith@apex.co': 'All Accounts',
-          'sarah.chen@apex.co': 'Vortex Retail, Solaria',
-          'marcus.a@apex.co': 'Aether Technologies',
-          'elena.r@apex.co': 'Financial Ledger Auditing',
-          'david.k@apex.co': 'Pulse Media, Onyx',
-          'sophie.d@client.co': 'Pinnacle Health, Vortex',
-        };
-
-        const utilizationMapping: Record<string, number> = {
-          'lohith@apex.co': 90,
-          'sarah.chen@apex.co': 85,
-          'marcus.a@apex.co': 78,
-          'elena.r@apex.co': 60,
-          'david.k@apex.co': 92,
-          'sophie.d@client.co': 95,
-        };
-
-        const statusMapping: Record<string, string> = {
-          'lohith@apex.co': 'EXCELLENT',
-          'sarah.chen@apex.co': 'EXCELLENT',
-          'marcus.a@apex.co': 'GOOD',
-          'elena.r@apex.co': 'GOOD',
-          'david.k@apex.co': 'EXCELLENT',
-          'sophie.d@client.co': 'EXCELLENT',
-        };
 
         const team = users.map(u => ({
           id: u.id,
           name: u.name,
           email: u.email,
-          role: roleMapping[u.email] || u.role,
-          phone: phoneMapping[u.email] || 'N/A',
-          projects: projectsMapping[u.email] || 'None',
-          utilization: utilizationMapping[u.email] || 80,
-          status: statusMapping[u.email] || 'GOOD',
+          role: u.role,
+          phone: u.phone || null,
+          projects: '',
+          utilization: 0,
+          status: '',
         }));
 
         return NextResponse.json(team);
@@ -211,6 +291,11 @@ export async function GET(request: NextRequest) {
 
       case 'reporting': {
         const reports = await prisma.report.findMany({
+          where: {
+            createdBy: {
+              orgId,
+            },
+          },
           orderBy: { createdAt: 'desc' },
           include: { createdBy: true }
         });
@@ -229,8 +314,14 @@ export async function GET(request: NextRequest) {
 
       case 'operations': {
         // Return compliance data & approvals queue
-        const automations = await prisma.automation.findMany();
-        const runs = await prisma.automationRun.findMany();
+        const automations = await prisma.automation.findMany({ where: { orgId } });
+        const runs = await prisma.automationRun.findMany({
+          where: {
+            automation: {
+              orgId,
+            },
+          },
+        });
 
         return NextResponse.json({
           automationsCount: automations.length,

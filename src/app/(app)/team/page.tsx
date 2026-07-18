@@ -28,22 +28,12 @@ import {
 import * as XLSX from 'xlsx';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
-const MOCK_EXISTING_SPECIALISTS = [
-  { id: 'ext-1', name: 'Vikram Patel', email: 'vikram@apex.co', phone: '+91 98765 43210', role: 'Solutions Architect', utilization: 80, projects: 'Integrations Phase 2' },
-  { id: 'ext-2', name: 'Aditi Sharma', email: 'aditi@apex.co', phone: '+91 99887 76655', role: 'UI/UX Specialist', utilization: 75, projects: 'Canva Design Hub' },
-  { id: 'ext-3', name: 'Aravind Nair', email: 'aravind@apex.co', phone: '+91 99887 76633', role: 'Systems Engineer', utilization: 70, projects: 'Automations Infra' }
-];
+const MOCK_EXISTING_SPECIALISTS: any[] = [];
 
 export default function TeamPage() {
+  const isSkippedAll = typeof window !== 'undefined' && localStorage.getItem('skipped_all_steps') === 'true';
   // Main stateful active team list
-  const [teamList, setTeamList] = React.useState([
-    { id: '1', name: 'Lohith Sundar', role: 'Executive CEO', projects: 'All Accounts', utilization: 90, status: 'EXCELLENT', email: 'lohith@apex.co', phone: '+123456789' },
-    { id: '2', name: 'Sarah Chen', role: 'Operations Lead', projects: 'Vortex Retail, Solaria', utilization: 85, status: 'EXCELLENT', email: 'sarah@apex.co', phone: '+123456780' },
-    { id: '3', name: 'Marcus Aurelius', role: 'Creative Director', projects: 'Aether Technologies', utilization: 78, status: 'GOOD', email: 'marcus@apex.co', phone: '+123456781' },
-    { id: '4', name: 'Elena Rostova', role: 'Financial Analyst', projects: 'Financial Ledger Auditing', utilization: 60, status: 'GOOD', email: 'elena@apex.co', phone: '+123456782' },
-    { id: '5', name: 'David Kim', role: 'Senior Designer', projects: 'Pulse Media, Onyx', utilization: 92, status: 'EXCELLENT', email: 'david@apex.co', phone: '+123456783' },
-    { id: '6', name: 'Sophie Dubois', role: 'Lead Copywriter', projects: 'Pinnacle Health, Vortex', utilization: 95, status: 'EXCELLENT', email: 'sophie@apex.co', phone: '+123456784' },
-  ]);
+  const [teamList, setTeamList] = React.useState<any[]>([]);
 
   // Selected Member Task Panel Drawer States
   const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
@@ -161,6 +151,7 @@ export default function TeamPage() {
 
   // Dynamic calculations based on teamList
   const averageUtilization = React.useMemo(() => {
+    if (teamList.length === 0) return '0.0';
     const total = teamList.reduce((sum, t) => sum + t.utilization, 0);
     return (total / teamList.length).toFixed(1);
   }, [teamList]);
@@ -698,9 +689,16 @@ export default function TeamPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTeamList.map((t) => (
-                    <TableRow 
-                      key={t.id} 
+                  {filteredTeamList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-zinc-500">
+                        No team members registered.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTeamList.map((t) => (
+                      <TableRow 
+                        key={t.id} 
                       className="cursor-pointer hover:bg-zinc-900/30 transition-colors"
                       onClick={() => {
                         setSelectedMember(t);
@@ -736,7 +734,7 @@ export default function TeamPage() {
                         </Badge>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </CardContent>

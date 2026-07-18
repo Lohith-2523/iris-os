@@ -95,7 +95,11 @@ export default function AgencyLeadsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+      if (!email) {
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`/api/agency-leads?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const data = await res.json();

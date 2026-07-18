@@ -136,7 +136,11 @@ export default function ClientDashboardPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'sophie.d@client.co';
+      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
+      if (!email) {
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`/api/meta-portal?email=${encodeURIComponent(obfuscateEmail(email))}`);
       if (res.ok) {
         const data = await res.json();
@@ -147,7 +151,7 @@ export default function ClientDashboardPage() {
         setTasks(data.clientTasks || []);
         const role = data.role || 'client';
         setUserRole(role);
-        setClientName(data.clientName || 'Aether Technologies');
+        setClientName(data.clientName || '');
         if (role === 'client') {
           setActiveTab('calendar');
         }
@@ -590,81 +594,88 @@ export default function ClientDashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {campaigns.map((camp) => {
-                    const isExpanded = !!expandedCampaigns[camp.id];
-                    const campSpend = (camp.ads || []).reduce((sum, a) => sum + a.spend, 0);
-                    const campReach = (camp.ads || []).reduce((sum, a) => sum + a.reach, 0);
-                    const campClicks = (camp.ads || []).reduce((sum, a) => sum + a.clicks, 0);
-                    const campLeads = (camp.ads || []).reduce((sum, a) => sum + a.leadsCount, 0);
-                    return (
-                      <React.Fragment key={camp.id}>
-                        <TableRow className="hover:bg-zinc-900/30 border-b border-zinc-900">
-                          <TableCell className="text-center p-0">
-                            <button
-                              onClick={() => toggleCampaignExpand(camp.id)}
-                              className="text-zinc-500 hover:text-white cursor-pointer h-8 w-8 flex items-center justify-center"
-                            >
-                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </button>
-                          </TableCell>
-                          <TableCell className="font-bold text-white tracking-wider flex items-center gap-2">
-                            <Megaphone className="h-3.5 w-3.5 text-zinc-400" />
-                            <span>{camp.name}</span>
-                            <Badge variant="outline" className="text-[8px] tracking-wider uppercase">
-                              {camp.objective?.replace('OUTCOME_', '')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={camp.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="uppercase text-[9px]">
-                              {camp.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-zinc-450 uppercase text-[10px] font-mono">{camp.objective || 'N/A'}</TableCell>
-                          <TableCell className="text-right font-mono text-white">{formatCurrency(campSpend)}</TableCell>
-                          <TableCell className="text-right font-mono text-zinc-400">{campReach.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-mono text-zinc-400">{campClicks.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-mono text-white">{campLeads}</TableCell>
-                        </TableRow>
-
-                        {isExpanded && (camp.ads || []).map((ad) => {
-                          const adCpl = ad.spend / (ad.leadsCount || 1);
-                          return (
-                            <TableRow key={ad.id} className="bg-zinc-900/10 hover:bg-zinc-900/30 border-b border-zinc-900/60">
-                              <TableCell></TableCell>
-                              <TableCell className="pl-8 font-semibold text-zinc-200">
-                                <div className="flex items-center gap-3">
-                                  {ad.imageUrl ? (
-                                    <div className="h-8 w-12 border border-zinc-800 bg-zinc-950 overflow-hidden shrink-0">
-                                      <img src={ad.imageUrl} alt={ad.name} className="h-full w-full object-cover" />
+                  {campaigns.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-zinc-500">
+                        No campaigns or active ad accounts found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    campaigns.map((camp) => {
+                      const isExpanded = !!expandedCampaigns[camp.id];
+                      const campSpend = (camp.ads || []).reduce((sum, a) => sum + a.spend, 0);
+                      const campReach = (camp.ads || []).reduce((sum, a) => sum + a.reach, 0);
+                      const campClicks = (camp.ads || []).reduce((sum, a) => sum + a.clicks, 0);
+                      const campLeads = (camp.ads || []).reduce((sum, a) => sum + a.leadsCount, 0);
+                      return (
+                        <React.Fragment key={camp.id}>
+                          <TableRow className="hover:bg-zinc-900/30 border-b border-zinc-900">
+                            <TableCell className="text-center p-0">
+                              <button
+                                onClick={() => toggleCampaignExpand(camp.id)}
+                                className="text-zinc-550 hover:text-white cursor-pointer h-8 w-8 flex items-center justify-center"
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                            </TableCell>
+                            <TableCell className="font-bold text-white tracking-wider flex items-center gap-2">
+                              <Megaphone className="h-3.5 w-3.5 text-zinc-450" />
+                              <span>{camp.name}</span>
+                              <Badge variant="outline" className="text-[8px] tracking-wider uppercase">
+                                {camp.objective?.replace('OUTCOME_', '')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={camp.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="uppercase text-[9px]">
+                                {camp.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-zinc-450 uppercase text-[10px] font-mono">{camp.objective || 'N/A'}</TableCell>
+                            <TableCell className="text-right font-mono text-white">{formatCurrency(campSpend)}</TableCell>
+                            <TableCell className="text-right font-mono text-zinc-450">{campReach.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono text-zinc-450">{campClicks.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono text-white">{campLeads}</TableCell>
+                          </TableRow>
+ 
+                          {isExpanded && (camp.ads || []).map((ad) => {
+                            return (
+                              <TableRow key={ad.id} className="bg-zinc-900/10 hover:bg-zinc-900/30 border-b border-zinc-900/60">
+                                <TableCell></TableCell>
+                                <TableCell className="pl-8 font-semibold text-zinc-200">
+                                  <div className="flex items-center gap-3">
+                                    {ad.imageUrl ? (
+                                      <div className="h-8 w-12 border border-zinc-800 bg-zinc-955 overflow-hidden shrink-0">
+                                        <img src={ad.imageUrl} alt={ad.name} className="h-full w-full object-cover" />
+                                      </div>
+                                    ) : (
+                                      <div className="h-8 w-12 border border-dashed border-zinc-800 bg-zinc-955/20 flex items-center justify-center shrink-0">
+                                        <ImageIcon className="h-4 w-4 text-zinc-650" />
+                                      </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-semibold text-white">{ad.name}</span>
+                                      <span className="text-[9px] font-mono text-zinc-550">ID: {ad.adId}</span>
                                     </div>
-                                  ) : (
-                                    <div className="h-8 w-12 border border-dashed border-zinc-800 bg-zinc-950/20 flex items-center justify-center shrink-0">
-                                      <ImageIcon className="h-4 w-4 text-zinc-650" />
-                                    </div>
-                                  )}
-                                  <div className="flex flex-col">
-                                    <span className="text-xs font-semibold text-white">{ad.name}</span>
-                                    <span className="text-[9px] font-mono text-zinc-500">ID: {ad.adId}</span>
                                   </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={ad.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[9px] uppercase">
-                                  {ad.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-[10px] text-zinc-400 capitalize">{ad.platform.toLowerCase()}</TableCell>
-                              <TableCell className="text-right font-mono text-white">{formatCurrency(ad.spend)}</TableCell>
-                              <TableCell className="text-right font-mono text-zinc-400">{ad.reach.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-mono text-zinc-400">{ad.clicks.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-mono text-white">{ad.leadsCount}</TableCell>
-                              <TableCell className="text-right font-mono text-white">—</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </React.Fragment>
-                    );
-                  })}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={ad.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[9px] uppercase">
+                                    {ad.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-[10px] text-zinc-450 capitalize">{ad.platform.toLowerCase()}</TableCell>
+                                <TableCell className="text-right font-mono text-white">{formatCurrency(ad.spend)}</TableCell>
+                                <TableCell className="text-right font-mono text-zinc-450">{ad.reach.toLocaleString()}</TableCell>
+                                <TableCell className="text-right font-mono text-zinc-450">{ad.clicks.toLocaleString()}</TableCell>
+                                <TableCell className="text-right font-mono text-white">{ad.leadsCount}</TableCell>
+                                <TableCell className="text-right font-mono text-white">—</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -717,8 +728,15 @@ export default function ClientDashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeads.map(lead => (
-                      <TableRow key={lead.id}>
+                    {filteredLeads.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
+                          No qualified leads found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredLeads.map(lead => (
+                        <TableRow key={lead.id}>
                         <TableCell className="font-semibold text-white">{lead.fullName}</TableCell>
                         <TableCell className="font-mono text-xs">{lead.email}</TableCell>
                         <TableCell className="text-xs font-mono">{lead.phone || 'N/A'}</TableCell>
@@ -738,7 +756,7 @@ export default function ClientDashboardPage() {
                           </select>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )))}
                   </TableBody>
                 </Table>
               </div>
