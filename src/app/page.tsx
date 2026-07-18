@@ -76,16 +76,15 @@ function Header() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 px-3 py-3 md:px-6 md:py-4 transition-all duration-300 ease-in-out"
+      className="fixed top-0 left-0 right-0 z-50 px-3 py-3 sm:px-5 md:px-6 md:py-5 transition-all duration-300 ease-in-out flex justify-center"
     >
       <div
-        className="mx-auto flex items-center justify-between px-3 py-2 md:px-5 md:py-3 transition-all duration-300 ease-in-out"
+        className="mx-auto flex items-center justify-between px-3 py-2 sm:px-5 sm:py-3 md:px-7 md:py-4 transition-all duration-300 ease-in-out w-[350px] max-w-[calc(100vw-24px)] sm:w-[min(92vw,760px)] md:w-[min(92vw,1080px)] lg:w-[min(90vw,1240px)] xl:w-[1240px]"
         style={{
-          maxWidth: '1200px',
           background: scrolled ? '#111111' : 'rgba(17,17,17,0.6)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: '60px',
+          borderRadius: '999px',
           boxShadow: scrolled
             ? '8px 8px 18px #040404, -8px -8px 18px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.05)'
             : '0 0 0 1px rgba(255,255,255,0.05)',
@@ -96,12 +95,12 @@ function Header() {
           <img
             src={irisLogo}
             alt="Iris OS"
-            className="h-7 md:h-9 w-auto object-contain block"
+            className="h-7 sm:h-8 md:h-10 w-auto object-contain block"
           />
         </a>
 
         {/* Nav */}
-        <nav className="hidden md:flex" style={{ gap: '4px' }}>
+        <nav className="hidden md:flex" style={{ gap: '8px' }}>
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -109,10 +108,10 @@ function Header() {
               style={{
                 fontFamily: BODY,
                 fontWeight: 500,
-                fontSize: '14px',
+                fontSize: '15px',
                 color: 'rgba(232,232,232,0.6)',
                 textDecoration: 'none',
-                padding: '8px 18px',
+                padding: '10px 22px',
                 borderRadius: '50px',
                 transition: 'color 0.2s ease, background 0.2s ease',
               }}
@@ -137,8 +136,8 @@ function Header() {
           style={{
             fontFamily: BODY,
             fontWeight: 600,
-            fontSize: '13px',
-            padding: '10px 22px',
+            fontSize: '14px',
+            padding: '12px 26px',
             border: 'none',
             cursor: 'pointer',
             letterSpacing: '0.01em',
@@ -152,7 +151,7 @@ function Header() {
         {/* Mobile Menu Hamburger Button */}
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="flex md:hidden text-zinc-300 hover:text-white p-1.5 rounded-full hover:bg-white/5 cursor-pointer"
+          className="flex md:hidden text-zinc-300 hover:text-white p-2 rounded-full hover:bg-white/5 cursor-pointer"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -227,9 +226,10 @@ function Hero() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '120px 24px 80px',
+        padding: 'clamp(112px, 14vw, 168px) clamp(16px, 5vw, 32px) clamp(72px, 10vw, 112px)',
         position: 'relative',
         textAlign: 'center',
+        overflow: 'hidden',
       }}
     >
       {/* Ambient glow orbs */}
@@ -294,6 +294,9 @@ function Hero() {
           boxShadow: '4px 4px 10px #040404, -4px -4px 10px #1e1e1e',
           borderRadius: '50px',
           marginBottom: '32px',
+          maxWidth: 'min(100%, 720px)',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
         }}
       >
         <div
@@ -313,6 +316,8 @@ function Hero() {
             color: 'rgba(232,232,232,0.55)',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
+            lineHeight: 1.45,
+            textAlign: 'center',
           }}
         >
           Introducing Iris OS — The Unified Agency Workspace
@@ -331,9 +336,8 @@ function Hero() {
           style={{
             fontFamily: DISPLAY,
             fontWeight: 700,
-            fontSize: 'clamp(52px, 8vw, 108px)',
+            fontSize: 'clamp(42px, 10vw, 108px)',
             lineHeight: 1.0,
-            letterSpacing: '-0.04em',
             margin: 0,
           }}
         >
@@ -368,7 +372,7 @@ function Hero() {
       {/* CTAs */}
       <ScrollReveal
         delay="0.6s"
-        style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}
+        style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}
       >
         <Link
           href="/waitlist"
@@ -381,6 +385,8 @@ function Hero() {
             textDecoration: 'none',
             color: '#0a0a0a',
             display: 'inline-block',
+            maxWidth: '100%',
+            textAlign: 'center',
           }}
         >
           Request Early Access
@@ -397,7 +403,9 @@ function Hero() {
             textDecoration: 'none',
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '8px',
+            maxWidth: '100%',
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -434,7 +442,7 @@ function VideoSection() {
   const [playing, setPlaying] = useState(false)
 
   return (
-    <section id="video" style={{ padding: '100px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+    <section id="video" style={{ padding: 'clamp(72px, 10vw, 112px) clamp(16px, 5vw, 32px)', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '64px' }}>
         <div className="section-divider" style={{ margin: '0 auto 24px' }} />
         <h2
@@ -560,12 +568,12 @@ function About() {
   ]
 
   return (
-    <section id="about" style={{ padding: '100px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+    <section id="about" style={{ padding: 'clamp(72px, 10vw, 112px) clamp(16px, 5vw, 32px)', maxWidth: '1200px', margin: '0 auto' }}>
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '48px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+          gap: 'clamp(28px, 6vw, 48px)',
           alignItems: 'center',
         }}
       >
@@ -603,7 +611,7 @@ function About() {
             We created Iris OS because agency owners are tired of navigating a fragmented stack of disconnected applications. Creative firms lose margin and time juggling client communications, financial tracking, and campaign execution across isolated tools.
           </p>
           <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8 }}>
-            Iris OS acts as the operational iris of your firm — regulating the flow of information, aligning client expectations, and focusing contractor utilization. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency's growth.
+            Iris OS acts as the operational iris of your firm — regulating the flow of information, aligning client expectations, and focusing contractor utilization. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
           </p>
         </div>
 
@@ -1064,7 +1072,7 @@ function Features() {
   };
 
   return (
-    <section id="features" style={{ padding: '100px 24px', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
+    <section id="features" style={{ padding: 'clamp(72px, 10vw, 112px) clamp(16px, 5vw, 32px)', maxWidth: '1400px', margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
       <ScrollReveal style={{ textAlign: 'center', marginBottom: '72px' }}>
         <div className="section-divider" style={{ margin: '0 auto 24px' }} />
         <span
@@ -1085,7 +1093,7 @@ function Features() {
           style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-0.03em', marginBottom: '16px' }}
           className="gradient-text"
         >
-          Consolidating your agency's entire<br />operation into a single, high-fidelity lens.
+          Consolidating your agency&apos;s entire operation into a single, high-fidelity lens.
         </h2>
         <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
           Hover and click on the sectors of the Iris console below to expand detailed specifications.
@@ -1100,7 +1108,7 @@ function Features() {
           position: 'relative',
           maxWidth: '1300px',
           margin: '0 auto',
-          minHeight: '600px',
+          minHeight: 'clamp(420px, 58vw, 600px)',
           width: '100%',
         }}
       >
@@ -1131,8 +1139,8 @@ function Features() {
           <div
             ref={irisRef}
             style={{
-              width: '580px',
-              maxWidth: '90vw',
+              width: 'clamp(300px, 82vw, 580px)',
+              maxWidth: '100%',
               aspectRatio: '1/1',
               borderRadius: '50%',
               boxShadow: '0 20px 50px rgba(0,0,0,0.8), inset 0 0 40px rgba(255,255,255,0.02)',
@@ -1363,7 +1371,7 @@ function Features() {
 // ─── Waitlist Section ──────────────────────────────────────────────────────────
 function Waitlist() {
   return (
-    <section id="waitlist" style={{ padding: '120px 24px 160px', maxWidth: '1200px', margin: '0 auto' }}>
+    <section id="waitlist" style={{ padding: 'clamp(88px, 10vw, 120px) clamp(16px, 5vw, 32px) clamp(112px, 14vw, 160px)', maxWidth: '1200px', margin: '0 auto' }}>
       <div className="animate-fade-in-up" style={{ maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
         <div className="section-divider" style={{ margin: '0 auto 24px' }} />
         <span
@@ -1391,13 +1399,13 @@ function Waitlist() {
           }}
           className="gradient-text"
         >
-          Ready to clarify your agency's vision?
+          Ready to clarify your agency&apos;s vision?
         </h2>
         <p style={{ fontFamily: BODY, fontSize: '17px', color: 'rgba(232,232,232,0.45)', lineHeight: 1.7, marginBottom: '56px' }}>
           Consolidate your tools and focus your operations. Join the waitlist for the definitive all-in-one agency workspace.
         </p>
 
-        <div className="neo-raised" style={{ padding: '48px 40px', display: 'flex', justifyContent: 'center' }}>
+        <div className="neo-raised" style={{ padding: 'clamp(28px, 6vw, 48px) clamp(20px, 6vw, 40px)', display: 'flex', justifyContent: 'center' }}>
           <Link
             href="/waitlist"
             className="neo-button-accent"
@@ -1409,6 +1417,8 @@ function Waitlist() {
               textDecoration: 'none',
               color: '#0a0a0a',
               display: 'inline-block',
+              maxWidth: '100%',
+              textAlign: 'center',
             }}
           >
             Join the Waitlist
