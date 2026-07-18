@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { deobfuscateEmail } from '@/lib/utils';
+import { getOrganization } from '@/lib/org';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access Denied: Administrative clearance required.' }, { status: 403 });
     }
 
-    const org = await prisma.organization.findFirst();
+    const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }

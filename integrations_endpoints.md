@@ -4,23 +4,7 @@ This document contains a compiled list of all authorization redirects, API callb
 
 ---
 
-## 1. Canva Connect Integration
-Used for syncing project design catalogs, template autofills, uploader, and publishing workflows.
 
-*   **OAuth Authorization URL**: `https://www.canva.com/api/oauth/authorize`
-*   **Redirect URI (Callback)**: 
-    *   `http://localhost:3000/api/canva/callback`
-    *   `http://127.0.0.1:3000/api/canva/callback`
-    *   `https://irisos.app/api/canva/callback`
-*   **Token Exchange Endpoint**: `https://api.canva.com/rest/v1/oauth/token`
-*   **Webhook Listener URL (Realtime Sync)**: 
-    *   `http://localhost:3000/api/canva/webhook`
-    *   `http://127.0.0.1:3000/api/canva/webhook`
-    *   `https://irisos.app/api/canva/webhook`
-*   **Scopes Used**: 
-    `design:read design:meta:read design:content:read design:content:write asset:read asset:write profile:read brand-kit:read brandtemplate:meta:read brandtemplate:content:read folder:read folder:write export:read export:write`
-
----
 
 ## 2. Meta Ads & Leads Manager
 Used to sync campaigns, track ad performance metrics, automate lead capture workflows, and support Canva asset synchronization.
@@ -33,6 +17,14 @@ Used to sync campaigns, track ad performance metrics, automate lead capture work
     *   `http://localhost:3000/api/webhooks/meta`
     *   `http://127.0.0.1:3000/api/webhooks/meta`
     *   `https://irisos.app/api/webhooks/meta`
+*   **User Deauthorization Callback / Redirect URI**:
+    *   `http://localhost:3000/api/meta-ads/deauthorize`
+    *   `http://127.0.0.1:3000/api/meta-ads/deauthorize`
+    *   `https://irisos.app/api/meta-ads/deauthorize`
+*   **User Data Deletion Callback / Redirect URI**:
+    *   `http://localhost:3000/api/meta-ads/delete-data`
+    *   `http://127.0.0.1:3000/api/meta-ads/delete-data`
+    *   `https://irisos.app/api/meta-ads/delete-data`
 *   **Webhook Verify Token**: Configured via environment variable `META_VERIFY_TOKEN` (defaults to `irisos_meta_verify_token`)
 *   **Graph API Scopes**:
     `catalog_management`, `pages_show_list`, `ads_management`, `ads_read`, `business_management`, `leads_retrieval`, `pages_read_engagement`, `pages_manage_metadata`, `pages_manage_ads`
@@ -65,22 +57,12 @@ Used for lead contacts synchronizations and client pipeline indexing.
 
 ---
 
-## 4. Payment Gateways (Mock Webhooks & API Verification)
-
-### Stripe
-*   **Stripe Webhook Listener URL**: 
-    *   `http://localhost:3000/api/stripe/webhook`
-    *   `http://127.0.0.1:3000/api/stripe/webhook`
-    *   `https://irisos.app/api/stripe/webhook`
-
-### PayPal
-*   **PayPal IPN / Webhook Listener URL**: 
-    *   `http://localhost:3000/api/paypal/webhook`
-    *   `http://127.0.0.1:3000/api/paypal/webhook`
-    *   `https://irisos.app/api/paypal/webhook`
+## 4. Payment Gateways (Live API Verification & Webhooks)
 
 ### Razorpay
 *   **Razorpay Webhook Listener URL**: 
     *   `http://localhost:3000/api/razorpay/webhook`
     *   `http://127.0.0.1:3000/api/razorpay/webhook`
     *   `https://irisos.app/api/razorpay/webhook`
+
+

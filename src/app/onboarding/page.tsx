@@ -51,8 +51,8 @@ const PLANS = [
 export default function OnboardingPage() {
   const router = useRouter();
   
-  // Wizard state: 'agency' | 'pricing' | 'payment'
-  const [step, setStep] = React.useState<'agency' | 'pricing' | 'payment'>('agency');
+  // Wizard state: 'agency' | 'pricing' | 'consent' | 'payment'
+  const [step, setStep] = React.useState<'agency' | 'pricing' | 'consent' | 'payment'>('agency');
   
   // Form values
   const [agencyName, setAgencyName] = React.useState('');
@@ -63,6 +63,10 @@ export default function OnboardingPage() {
   // Pricing state
   const [selectedPlanId, setSelectedPlanId] = React.useState<'basic' | 'pro' | 'advanced'>('pro');
   
+  // Consent state
+  const [termsAgreed, setTermsAgreed] = React.useState(false);
+  const [aiSharingConsent, setAiSharingConsent] = React.useState(false);
+
   // Payment state
   const [cardNumber, setCardNumber] = React.useState('');
   const [cardName, setCardName] = React.useState('');
@@ -82,7 +86,7 @@ export default function OnboardingPage() {
       
       const params = new URLSearchParams(window.location.search);
       const stepParam = params.get('step');
-      if (stepParam === 'pricing' || stepParam === 'payment') {
+      if (stepParam === 'pricing' || stepParam === 'consent' || stepParam === 'payment') {
         setStep(stepParam as any);
       }
     }
@@ -98,6 +102,15 @@ export default function OnboardingPage() {
   };
 
   const handlePricingNext = () => {
+    setStep('consent');
+  };
+
+  const handleConsentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!termsAgreed) {
+      alert('You must read and agree to the Privacy Policy and Terms of Service to continue.');
+      return;
+    }
     setStep('payment');
   };
 
@@ -141,6 +154,8 @@ export default function OnboardingPage() {
             name: agencyName,
             plan: selectedPlanId.toUpperCase(),
             hasAddon: selectedPlanId === 'basic' ? false : undefined,
+            currency: currency,
+            aiSharingConsent: aiSharingConsent,
           })
         }).then(() => {
           setTimeout(() => {
@@ -191,7 +206,7 @@ export default function OnboardingPage() {
         {step === 'agency' && (
           <Card className="w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
             <CardHeader className="text-center pt-6 pb-4 border-b border-zinc-800">
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 1 of 3</span>
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 1 of 4</span>
               <CardTitle className="text-lg font-bold uppercase tracking-tight mt-1 text-white">Agency Registration</CardTitle>
               <CardDescription className="text-xs text-zinc-500">
                 Setup your command profile parameters (no integrations required)
@@ -256,6 +271,8 @@ export default function OnboardingPage() {
                       <option value="USD">USD ($)</option>
                       <option value="EUR">EUR (€)</option>
                       <option value="GBP">GBP (£)</option>
+                      <option value="INR">INR (₹)</option>
+                      <option value="CAD">CAD (CA$)</option>
                     </select>
                   </div>
                 </div>
@@ -272,7 +289,7 @@ export default function OnboardingPage() {
         {step === 'pricing' && (
           <div className="w-full space-y-8 flex flex-col items-center">
             <div className="text-center space-y-1">
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 2 of 3</span>
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 2 of 4</span>
               <h2 className="text-2xl font-extrabold uppercase tracking-tight text-white">Choose Your Workspace Level</h2>
               <p className="text-zinc-500 text-xs max-w-md mx-auto">
                 The selected option is highlighted in the center. Click the side plans to change selection.
@@ -362,10 +379,83 @@ export default function OnboardingPage() {
           </div>
         )}
 
+        {step === 'consent' && (
+          <Card className="w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
+            <CardHeader className="text-center pt-6 pb-4 border-b border-zinc-800">
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 3 of 4</span>
+              <CardTitle className="text-lg font-bold uppercase tracking-tight mt-1 text-white">Privacy & AI Data Consent</CardTitle>
+              <CardDescription className="text-xs text-zinc-500">
+                Review policy terms and configure your workspace data privacy options
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 py-6 space-y-4">
+              <div className="space-y-1.5">
+                <span className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Legal Agreement Preview</span>
+                <div className="w-full h-32 rounded border border-zinc-850 bg-zinc-900/40 p-3 overflow-y-auto text-[9px] text-zinc-500 space-y-2 leading-relaxed font-mono">
+                  <p className="font-bold text-zinc-400">1. Data Storage and Control</p>
+                  <p>All business profiles, financial ledgers, and leads uploaded manually to Iris OS are securely isolated within your PostgreSQL workspace. You retain complete ownership and deletion rights over your uploaded data.</p>
+                  <p className="font-bold text-zinc-400">2. Prism AI Processing Consent</p>
+                  <p>With your optional consent, Iris OS connects your local data to LLM models (Google Gemini, OpenAI ChatGPT, and Claude) to analyze cost margins, identify profit leaks, and generate strategy tips. You can decline or revoke this access at any time.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleConsentSubmit} className="space-y-4">
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="termsCheckbox"
+                    checked={termsAgreed}
+                    onChange={(e) => setTermsAgreed(e.target.checked)}
+                    className="mt-0.5 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-600 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                  />
+                  <label htmlFor="termsCheckbox" className="text-[10.5px] text-zinc-450 leading-relaxed cursor-pointer select-none">
+                    I agree to the <Link href="/terms" target="_blank" className="text-red-500 hover:underline">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="text-red-500 hover:underline">Privacy Policy</Link>. <span className="text-red-650">*</span>
+                  </label>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded border border-zinc-850 bg-zinc-900/10">
+                  <input
+                    type="checkbox"
+                    id="aiConsentCheckbox"
+                    checked={aiSharingConsent}
+                    onChange={(e) => setAiSharingConsent(e.target.checked)}
+                    className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-650 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                  />
+                  <div className="cursor-pointer select-none">
+                    <label htmlFor="aiConsentCheckbox" className="block text-[11px] font-bold text-zinc-300">
+                      Enable Prism AI Analysis (Recommended)
+                    </label>
+                    <span className="block text-[9.5px] text-zinc-500 mt-1 leading-normal">
+                      Allow the AI models to read your transaction records and lead pipeline data to automatically identify leaks and calculate campaign performance metrics. You can revoke this in settings at any time.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => setStep('pricing')}
+                    className="flex-1 h-10 font-bold text-xs bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-850 cursor-pointer"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-10 font-bold text-xs bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Continue</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
         {step === 'payment' && (
           <Card className="w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl relative overflow-hidden">
             <CardHeader className="text-center pt-6 pb-4 border-b border-zinc-800">
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 3 of 3</span>
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 4 of 4</span>
               <CardTitle className="text-lg font-bold uppercase tracking-tight mt-1 text-white">Billing Details</CardTitle>
               <CardDescription className="text-xs text-zinc-500">
                 Process recurring workspace fee for your selected plan

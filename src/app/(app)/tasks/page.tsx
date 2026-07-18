@@ -25,7 +25,7 @@ import {
   Send,
   Layers
 } from 'lucide-react';
-import { obfuscateEmail } from '@/lib/utils';
+import { obfuscateEmail, formatCurrency } from '@/lib/utils';
 
 export default function TasksPage() {
   const searchParams = useSearchParams();
@@ -33,7 +33,7 @@ export default function TasksPage() {
   const urlProjectId = searchParams.get('projectId');
 
   const [projects, setProjects] = React.useState<any[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = React.useState<string>('all');
+  const [selectedProjectId, setSelectedProjectId] = React.useState<string>(urlProjectId || 'all');
   const [currentUser, setCurrentUser] = React.useState<any>(null);
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
@@ -124,9 +124,7 @@ export default function TasksPage() {
   }, [loadInitialData]);
 
   React.useEffect(() => {
-    if (urlProjectId) {
-      setSelectedProjectId(urlProjectId);
-    }
+    setSelectedProjectId(urlProjectId || 'all');
   }, [urlProjectId]);
 
   React.useEffect(() => {
@@ -247,22 +245,22 @@ export default function TasksPage() {
   }, [tasks]);
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-80px)] overflow-hidden font-sans text-xs">
-      {/* Left Sidebar project select list */}
-      <div className="w-56 border-r border-zinc-900 pr-4 flex flex-col justify-between h-full py-2 shrink-0">
-        <div className="space-y-4">
+    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden font-sans text-xs">
+      {/* Top Header Control Panel */}
+      <div className="w-full border-b border-zinc-800/50 pb-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-6">
           <div>
             <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono">Control Desk</span>
             <h2 className="text-sm font-bold text-white uppercase mt-0.5">Tasks Workspace</h2>
           </div>
 
           {/* Project dropdown selection */}
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 block">Select Active Project</label>
+          <div className="flex items-center gap-2">
+            <label className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 shrink-0">Project:</label>
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="w-full text-[11px] bg-zinc-900 border border-zinc-800 p-2 text-white outline-none rounded-none font-medium focus:border-zinc-700"
+              className="w-48 text-[11px] bg-zinc-900/60 border border-zinc-800 p-2 text-white outline-none rounded-md font-medium focus:border-zinc-750 cursor-pointer transition-all"
             >
               <option value="all">-- All Agency Projects --</option>
               {projects.map(p => (
@@ -274,44 +272,39 @@ export default function TasksPage() {
           </div>
 
           {/* Project Details quick view */}
-          {selectedProjectId !== 'all' && (
-            <div className="border border-zinc-900 p-3 bg-zinc-950/20 space-y-2">
-              <span className="block text-[8px] text-zinc-650 uppercase font-bold">Project Details</span>
-              {(() => {
-                const currentProj = projects.find(p => p.id === selectedProjectId);
-                if (!currentProj) return null;
-                return (
-                  <div className="space-y-2 text-[10px]">
-                    <div>
-                      <span className="text-zinc-555 block">Client:</span>
-                      <span className="font-semibold text-zinc-300">{currentProj.client?.name}</span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-555 block">Budget:</span>
-                      <span className="font-mono text-zinc-300 font-semibold">${(currentProj.budget || 0).toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-zinc-555 block">Timeline:</span>
-                      <span className="font-semibold text-zinc-400">{currentProj.timeline || 'N/A'}</span>
-                    </div>
-                  </div>
-                );
-              })()}
+          {selectedProjectId !== 'all' && activeProjectObj && (
+            <div className="flex items-center gap-4 border border-zinc-800/80 rounded-xl px-3 py-1.5 bg-zinc-900/20 text-[10px] animate-fadeIn">
+              <div>
+                <span className="text-zinc-500 font-semibold mr-1">Client:</span>
+                <span className="text-zinc-300 font-medium">{activeProjectObj.client?.name}</span>
+              </div>
+              <div className="h-3 w-px bg-zinc-800" />
+              <div>
+                <span className="text-zinc-500 font-semibold mr-1">Budget:</span>
+                <span className="text-zinc-300 font-mono font-medium">{formatCurrency(activeProjectObj.budget || 0)}</span>
+              </div>
+              <div className="h-3 w-px bg-zinc-800" />
+              <div>
+                <span className="text-zinc-500 font-semibold mr-1">Timeline:</span>
+                <span className="text-zinc-400 font-medium">{activeProjectObj.timeline || 'N/A'}</span>
+              </div>
             </div>
           )}
+        </div>
 
+        <div className="flex items-center gap-4">
           {/* View Toggles */}
-          <div className="flex border border-zinc-900 rounded-none overflow-hidden text-[9px] uppercase font-bold shrink-0">
+          <div className="flex border border-zinc-800 rounded-md overflow-hidden text-[9px] uppercase font-bold shrink-0 w-44">
             <button
               onClick={() => setViewMode('kanban')}
-              className={`flex-1 py-1.5 flex items-center justify-center gap-1 ${viewMode === 'kanban' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`flex-1 py-1.5 flex items-center justify-center gap-1 transition-all ${viewMode === 'kanban' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300 bg-zinc-900/10'}`}
             >
               <Kanban className="h-3.5 w-3.5" />
               <span>Kanban</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`flex-1 py-1.5 flex items-center justify-center gap-1 ${viewMode === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`flex-1 py-1.5 flex items-center justify-center gap-1 transition-all ${viewMode === 'list' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300 bg-zinc-900/10'}`}
             >
               <List className="h-3.5 w-3.5" />
               <span>List View</span>
@@ -320,15 +313,15 @@ export default function TasksPage() {
 
           {/* Kanban grouping toggle */}
           {viewMode === 'kanban' && (
-            <div className="space-y-1.5 pt-2">
-              <label className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 block">Kanban Grouping Mode</label>
-              <div className="flex border border-zinc-900 rounded-none overflow-hidden text-[9px] uppercase font-bold shrink-0">
+            <div className="flex items-center gap-2">
+              <label className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 shrink-0">Grouping:</label>
+              <div className="flex border border-zinc-800 rounded-md overflow-hidden text-[9px] uppercase font-bold shrink-0 w-36">
                 <button
                   type="button"
                   onClick={() => setKanbanGrouping('status')}
-                  className={`flex-1 py-1.5 flex items-center justify-center gap-1 ${kanbanGrouping === 'status' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-1 transition-all ${kanbanGrouping === 'status' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-550 hover:text-zinc-350 bg-zinc-900/10'}`}
                 >
-                  <span>By Status</span>
+                  <span>Status</span>
                 </button>
                 <button
                   type="button"
@@ -340,29 +333,28 @@ export default function TasksPage() {
                     setKanbanGrouping('stage');
                   }}
                   disabled={selectedProjectId === 'all'}
-                  className={`flex-1 py-1.5 flex items-center justify-center gap-1 disabled:opacity-30 ${kanbanGrouping === 'stage' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-1 disabled:opacity-30 transition-all ${kanbanGrouping === 'stage' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-550 hover:text-zinc-350 bg-zinc-900/10'}`}
                 >
-                  <Layers className="h-3 w-3" />
-                  <span>By Stage</span>
+                  <span>Stage</span>
                 </button>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Task Desk Buttons */}
-        <div className="pt-4 border-t border-zinc-900/60">
-          <Button
-            disabled={selectedProjectId === 'all'}
-            onClick={() => setIsCreateOpen(true)}
-            className="w-full h-8 bg-white text-zinc-950 hover:bg-zinc-200 rounded-none font-semibold text-xs flex items-center justify-center gap-1.5 animate-fadeIn"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Create Task</span>
-          </Button>
-          {selectedProjectId === 'all' && (
-            <span className="block text-[8px] text-zinc-600 text-center mt-1.5">Select a project to add tasks.</span>
-          )}
+          {/* Create Task Button */}
+          <div className="shrink-0 flex items-center gap-2">
+            <Button
+              disabled={selectedProjectId === 'all'}
+              onClick={() => setIsCreateOpen(true)}
+              className="h-8 bg-white text-zinc-950 hover:bg-zinc-200 rounded-md font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer px-4"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Create Task</span>
+            </Button>
+            {selectedProjectId === 'all' && (
+              <span className="text-[8px] text-zinc-650">Select a project to add tasks.</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -375,93 +367,109 @@ export default function TasksPage() {
           </div>
         ) : viewMode === 'kanban' ? (
           /* KANBAN BOARD WITH CLASS-WISE COLUMNS OR STAGE-WISE COLUMNS */
-          <div className="flex-1 flex gap-4 overflow-x-auto pb-4 scrollbar-none">
+          <div className="flex-1 flex gap-4 overflow-x-auto pb-4 pr-6 scrollbar-none h-full max-h-[calc(100vh-140px)]">
             {kanbanGrouping === 'status' ? (
               <>
-                {/* Column 1: Yet to Start */}
-                <KanbanColumn
-                  title="Yet to Start"
-                  count={classifiedTasks.yetToStart.length}
-                  tasks={classifiedTasks.yetToStart}
-                  onSelect={setSelectedTask}
-                />
+                {/* Column 1: Unassigned */}
+                {classifiedTasks.unassigned.length > 0 && (
+                  <KanbanColumn
+                    title="Unassigned"
+                    count={classifiedTasks.unassigned.length}
+                    tasks={classifiedTasks.unassigned}
+                    onSelect={setSelectedTask}
+                    highlightColor="border-t-zinc-650"
+                  />
+                )}
 
-                {/* Column 2: Pending/Active */}
-                <KanbanColumn
-                  title="Active / Pending"
-                  count={classifiedTasks.pendingActive.length}
-                  tasks={classifiedTasks.pendingActive}
-                  onSelect={setSelectedTask}
-                />
+                {/* Column 2: Yet to Start */}
+                {classifiedTasks.yetToStart.length > 0 && (
+                  <KanbanColumn
+                    title="Yet to Start"
+                    count={classifiedTasks.yetToStart.length}
+                    tasks={classifiedTasks.yetToStart}
+                    onSelect={setSelectedTask}
+                  />
+                )}
 
-                {/* Column 3: Blocked */}
-                <KanbanColumn
-                  title="Blocked / Delayed"
-                  count={classifiedTasks.blocked.length}
-                  tasks={classifiedTasks.blocked}
-                  onSelect={setSelectedTask}
-                  highlightColor="border-t-rose-500"
-                />
+                {/* Column 3: Pending/Active */}
+                {classifiedTasks.pendingActive.length > 0 && (
+                  <KanbanColumn
+                    title="Active / Pending"
+                    count={classifiedTasks.pendingActive.length}
+                    tasks={classifiedTasks.pendingActive}
+                    onSelect={setSelectedTask}
+                  />
+                )}
 
-                {/* Column 4: Client Intervention */}
-                <KanbanColumn
-                  title="Needs Intervention"
-                  count={classifiedTasks.intervention.length}
-                  tasks={classifiedTasks.intervention}
-                  onSelect={setSelectedTask}
-                  highlightColor="border-t-amber-500"
-                />
+                {/* Column 4: Blocked */}
+                {classifiedTasks.blocked.length > 0 && (
+                  <KanbanColumn
+                    title="Blocked / Delayed"
+                    count={classifiedTasks.blocked.length}
+                    tasks={classifiedTasks.blocked}
+                    onSelect={setSelectedTask}
+                    highlightColor="border-t-rose-500"
+                  />
+                )}
 
-                {/* Column 5: Completed */}
-                <KanbanColumn
-                  title="Completed"
-                  count={classifiedTasks.completed.length}
-                  tasks={classifiedTasks.completed}
-                  onSelect={setSelectedTask}
-                  highlightColor="border-t-emerald-500"
-                />
+                {/* Column 5: Client Intervention */}
+                {classifiedTasks.intervention.length > 0 && (
+                  <KanbanColumn
+                    title="Needs Intervention"
+                    count={classifiedTasks.intervention.length}
+                    tasks={classifiedTasks.intervention}
+                    onSelect={setSelectedTask}
+                    highlightColor="border-t-amber-500"
+                  />
+                )}
 
-                {/* Column 6: Unassigned */}
-                <KanbanColumn
-                  title="Unassigned"
-                  count={classifiedTasks.unassigned.length}
-                  tasks={classifiedTasks.unassigned}
-                  onSelect={setSelectedTask}
-                  highlightColor="border-t-zinc-650"
-                />
+                {/* Column 6: Completed */}
+                {classifiedTasks.completed.length > 0 && (
+                  <KanbanColumn
+                    title="Completed"
+                    count={classifiedTasks.completed.length}
+                    tasks={classifiedTasks.completed}
+                    onSelect={setSelectedTask}
+                    highlightColor="border-t-emerald-500"
+                  />
+                )}
               </>
             ) : (
               /* STAGE-WISE GROUPING */
               <>
                 {/* Unassigned / Backlog Column */}
-                <KanbanColumn
-                  title="Project Backlog / Unassigned"
-                  count={tasks.filter(t => !t.stageId).length}
-                  tasks={tasks.filter(t => !t.stageId)}
-                  onSelect={setSelectedTask}
-                  highlightColor="border-t-zinc-650"
-                />
+                {tasks.filter(t => !t.stageId).length > 0 && (
+                  <KanbanColumn
+                    title="Project Backlog / Unassigned"
+                    count={tasks.filter(t => !t.stageId).length}
+                    tasks={tasks.filter(t => !t.stageId)}
+                    onSelect={setSelectedTask}
+                    highlightColor="border-t-zinc-650"
+                  />
+                )}
 
                 {/* Columns for each stage in position order */}
-                {activeProjectStages.map((stage: any, idx: number) => {
-                  const stageTasks = tasks.filter(t => t.stageId === stage.id);
-                  return (
-                    <KanbanColumn
-                      key={stage.id}
-                      title={`${idx + 1}. ${stage.name}`}
-                      count={stageTasks.length}
-                      tasks={stageTasks}
-                      onSelect={setSelectedTask}
-                      highlightColor="border-t-zinc-300"
-                    />
-                  );
-                })}
+                {activeProjectStages
+                  .filter((stage: any) => tasks.filter(t => t.stageId === stage.id).length > 0)
+                  .map((stage: any, idx: number) => {
+                    const stageTasks = tasks.filter(t => t.stageId === stage.id);
+                    return (
+                      <KanbanColumn
+                        key={stage.id}
+                        title={`${idx + 1}. ${stage.name}`}
+                        count={stageTasks.length}
+                        tasks={stageTasks}
+                        onSelect={setSelectedTask}
+                        highlightColor="border-t-zinc-300"
+                      />
+                    );
+                  })}
               </>
             )}
           </div>
         ) : (
           /* REGULAR LIST VIEW TABLE */
-          <div className="flex-1 overflow-y-auto border border-zinc-900 bg-zinc-950/10">
+          <div className="flex-1 overflow-y-auto border border-zinc-800 bg-zinc-900/10 rounded-2xl shadow-xl overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -515,7 +523,7 @@ export default function TasksPage() {
       {/* --- CREATE TASK MODAL --- */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-850 w-full max-w-md p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-zinc-950 border border-zinc-850 w-full max-w-md p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto rounded-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">Create Client Task</h3>
               <button onClick={() => setIsCreateOpen(false)} className="text-zinc-550 hover:text-white">
@@ -532,7 +540,7 @@ export default function TasksPage() {
                   placeholder="e.g. Design Creative Banner Assets"
                   value={createForm.title}
                   onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                  className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750"
+                  className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750"
                 />
               </div>
 
@@ -543,7 +551,7 @@ export default function TasksPage() {
                   placeholder="Provide deliverables detail..."
                   value={createForm.description}
                   onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  className="w-full text-xs bg-zinc-900 border border-zinc-800 p-2.5 text-white outline-none rounded-none focus:border-zinc-750"
+                  className="w-full text-xs bg-zinc-900 border border-zinc-800 p-2.5 text-white outline-none rounded-md focus:border-zinc-750"
                 />
               </div>
 
@@ -553,7 +561,7 @@ export default function TasksPage() {
                   <select
                     value={createForm.stageId}
                     onChange={(e) => setCreateForm({ ...createForm, stageId: e.target.value })}
-                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750"
+                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 cursor-pointer"
                   >
                     <option value="">-- No Stage Assigned (Backlog) --</option>
                     {activeProjectStages.map((stage: any) => (
@@ -571,7 +579,7 @@ export default function TasksPage() {
                   <select
                     value={createForm.assignedToId}
                     onChange={(e) => setCreateForm({ ...createForm, assignedToId: e.target.value })}
-                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750"
+                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 cursor-pointer"
                   >
                     <option value="">-- Unassigned --</option>
                     {teamMembers.map(m => (
@@ -586,7 +594,7 @@ export default function TasksPage() {
                   <select
                     value={createForm.status}
                     onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
-                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750"
+                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 cursor-pointer"
                   >
                     <option value="TODO">To Do</option>
                     <option value="IN_PROGRESS">In Progress</option>
@@ -604,7 +612,7 @@ export default function TasksPage() {
                     placeholder="e.g. 3 days, 1 week"
                     value={createForm.timeline}
                     onChange={(e) => setCreateForm({ ...createForm, timeline: e.target.value })}
-                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750"
+                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -613,7 +621,7 @@ export default function TasksPage() {
                     type="date"
                     value={createForm.deadline}
                     onChange={(e) => setCreateForm({ ...createForm, deadline: e.target.value })}
-                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-750 font-mono"
+                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 font-mono"
                   />
                 </div>
               </div>
@@ -623,13 +631,13 @@ export default function TasksPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setIsCreateOpen(false)}
-                  className="rounded-none text-xs text-zinc-500 hover:text-white"
+                  className="rounded-md text-xs text-zinc-500 hover:text-white"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-none text-xs font-semibold px-6"
+                  className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-md text-xs font-semibold px-6"
                 >
                   Create Task
                 </Button>
@@ -653,7 +661,7 @@ export default function TasksPage() {
               </div>
               <button
                 onClick={() => setSelectedTask(null)}
-                className="text-zinc-500 hover:text-white border border-zinc-900 hover:border-zinc-800 p-1.5 transition-colors cursor-pointer"
+                className="text-zinc-500 hover:text-white border border-zinc-800 hover:border-zinc-750 p-1.5 transition-colors cursor-pointer rounded-md"
               >
                 <X className="h-4.5 w-4.5" />
               </button>
@@ -661,20 +669,20 @@ export default function TasksPage() {
 
             <div className="space-y-5 flex-1 pb-6">
               {/* Task Meta details */}
-              <div className="grid grid-cols-2 gap-3 p-3 bg-zinc-950/20 border border-zinc-900 text-[10px]">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-zinc-900/20 border border-zinc-800/80 text-[10px] rounded-xl">
                 <div>
-                  <span className="text-zinc-550 block font-semibold">Specialist:</span>
+                  <span className="text-zinc-500 block font-semibold">Specialist:</span>
                   <span className="text-white font-medium">{selectedTask.assignedTo?.name || 'Unassigned'}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-550 block font-semibold">Timeline & Deadline:</span>
+                  <span className="text-zinc-500 block font-semibold">Timeline & Deadline:</span>
                   <span className="text-white font-medium">{selectedTask.timeline || 'N/A'} {selectedTask.deadline && `(Due: ${new Date(selectedTask.deadline).toLocaleDateString()})`}</span>
                 </div>
-                <div className="col-span-2 pt-2 border-t border-zinc-900 flex justify-between items-center">
-                  <span className="text-zinc-555 font-semibold">Task Progress:</span>
+                <div className="col-span-2 pt-2 border-t border-zinc-800/60 flex justify-between items-center">
+                  <span className="text-zinc-500 font-semibold">Task Progress:</span>
                   <div className="flex items-center gap-1.5 font-mono text-white font-bold">
                     <span>{selectedTask.progress}%</span>
-                    <Badge variant={selectedTask.status === 'COMPLETED' ? 'risk-low' : selectedTask.status === 'BLOCKED' ? 'risk-high' : 'outline'} className="rounded-none text-[8px] uppercase">
+                    <Badge variant={selectedTask.status === 'COMPLETED' ? 'risk-low' : selectedTask.status === 'BLOCKED' ? 'risk-high' : 'outline'} className="rounded-md text-[8px] uppercase">
                       {selectedTask.status}
                     </Badge>
                   </div>
@@ -683,8 +691,8 @@ export default function TasksPage() {
 
               {/* Task Stage Mapping (Manual Stage Move Selector) */}
               {selectedTask.projectId && (
-                <div className="space-y-1.5 border border-zinc-900 p-3 bg-zinc-950/20">
-                  <span className="text-[8px] text-zinc-600 uppercase font-bold block">Assigned Project Stage Gate</span>
+                <div className="space-y-1.5 border border-zinc-800/80 p-3 bg-zinc-900/20 rounded-xl">
+                  <span className="text-[8px] text-zinc-500 uppercase font-bold block">Assigned Project Stage Gate</span>
                   <select
                     value={selectedTask.stageId || ''}
                     onChange={async (e) => {
@@ -706,7 +714,7 @@ export default function TasksPage() {
                         console.error('Error shifting stage:', err);
                       }
                     }}
-                    className="w-full text-[11px] bg-zinc-900 border border-zinc-850 p-2 text-white outline-none rounded-none focus:border-zinc-750 font-semibold cursor-pointer"
+                    className="w-full text-[11px] bg-zinc-900/60 border border-zinc-800 p-2 text-white outline-none rounded-md focus:border-zinc-700 font-semibold cursor-pointer"
                   >
                     <option value="">-- No Stage Assigned (Backlog) --</option>
                     {projects.find(p => p.id === selectedTask.projectId)?.stages?.map((stage: any) => (
@@ -720,42 +728,42 @@ export default function TasksPage() {
 
               {selectedTask.description && (
                 <div className="space-y-1">
-                  <span className="text-[8px] text-zinc-650 uppercase font-bold block">Deliverables description</span>
-                  <p className="text-zinc-400 leading-relaxed bg-zinc-950 p-2.5 border border-zinc-900">{selectedTask.description}</p>
+                  <span className="text-[8px] text-zinc-500 uppercase font-bold block">Deliverables description</span>
+                  <p className="text-zinc-400 leading-relaxed bg-zinc-900/10 p-2.5 border border-zinc-800/80 rounded-xl">{selectedTask.description}</p>
                 </div>
               )}
 
               {/* Task chain explorer */}
               {(selectedTask.parentTask || (selectedTask.nextTasks && selectedTask.nextTasks.length > 0) || selectedTask.outputUrl) && (
-                <div className="space-y-2 border border-zinc-900 p-3 bg-zinc-950/25">
+                <div className="space-y-2 border border-zinc-800/80 p-3 bg-zinc-900/20 rounded-xl">
                   <span className="text-[8px] text-red-500 font-bold uppercase tracking-wider block font-mono">Stage Handover Chain</span>
                   
                   {/* Task Chain Map */}
-                  <div className="flex flex-col gap-2 pt-1 font-mono text-[9px] text-zinc-450">
+                  <div className="flex flex-col gap-2 pt-1 font-mono text-[9px] text-zinc-500">
                     {selectedTask.parentTask && (
-                      <div className="flex items-center gap-1.5 text-zinc-550">
+                      <div className="flex items-center gap-1.5 text-zinc-600">
                         <span>Parent:</span>
                         <span className="underline cursor-pointer" onClick={() => setSelectedTask(selectedTask.parentTask)}>{selectedTask.parentTask.title}</span>
                         <CheckCircle className="h-3 w-3 text-emerald-500" />
                       </div>
                     )}
                     <div className="flex items-center gap-1.5 font-bold text-white">
-                      <span className="text-zinc-500">Current:</span>
+                      <span className="text-zinc-550">Current:</span>
                       <span>{selectedTask.title}</span>
                     </div>
                     {selectedTask.nextTasks?.map((nt: any) => (
-                      <div key={nt.id} className="flex items-center gap-1.5 text-zinc-450">
+                      <div key={nt.id} className="flex items-center gap-1.5 text-zinc-500">
                         <span>Next Stage:</span>
                         <span className="underline cursor-pointer text-zinc-400 hover:text-white" onClick={() => setSelectedTask(nt)}>{nt.title}</span>
-                        <Badge className="text-[8px] p-0 px-1 border-zinc-700 bg-transparent text-zinc-450 rounded-none uppercase">{nt.status}</Badge>
+                        <Badge className="text-[8px] p-0 px-1 border-zinc-700 bg-transparent text-zinc-450 rounded-md uppercase">{nt.status}</Badge>
                       </div>
                     ))}
                   </div>
 
                   {/* Output Deliverables URL */}
                   {selectedTask.outputUrl && (
-                    <div className="pt-2 border-t border-zinc-900 mt-2 space-y-1.5">
-                      <span className="block text-[8px] text-zinc-650 uppercase font-bold">Outputs / Deliverables</span>
+                    <div className="pt-2 border-t border-zinc-800/60 mt-2 space-y-1.5">
+                      <span className="block text-[8px] text-zinc-500 uppercase font-bold">Outputs / Deliverables</span>
                       <a
                         href={selectedTask.outputUrl}
                         target="_blank"
@@ -766,7 +774,7 @@ export default function TasksPage() {
                         <span>{selectedTask.outputUrl}</span>
                       </a>
                       {selectedTask.carryOverComment && (
-                        <p className="text-[10px] text-zinc-500 italic mt-1 bg-zinc-950 p-2 border border-zinc-900">
+                        <p className="text-[10px] text-zinc-500 italic mt-1 bg-zinc-900/10 p-2 border border-zinc-800/80 rounded-lg">
                           &ldquo;{selectedTask.carryOverComment}&rdquo;
                         </p>
                       )}
@@ -776,11 +784,11 @@ export default function TasksPage() {
               )}
 
               {/* Quick Status / Progress Adjuster */}
-              <div className="border border-zinc-900 p-3 bg-zinc-950/20 space-y-3">
-                <span className="text-[8px] text-zinc-650 uppercase font-bold block">Status & Progress updates</span>
+              <div className="border border-zinc-800/80 p-3 bg-zinc-900/20 space-y-3 rounded-xl">
+                <span className="text-[8px] text-zinc-500 uppercase font-bold block">Status & Progress updates</span>
                 <div className="grid gap-3 grid-cols-2">
                   <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-555">Work Status</label>
+                    <label className="text-[9px] text-zinc-500">Work Status</label>
                     <select
                       value={selectedTask.status}
                       onChange={async (e) => {
@@ -802,7 +810,7 @@ export default function TasksPage() {
                           console.error(err);
                         }
                       }}
-                      className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-white outline-none rounded-none"
+                      className="w-full bg-zinc-900/60 border border-zinc-800 p-1.5 text-white outline-none rounded-md cursor-pointer focus:border-zinc-70"
                     >
                       <option value="TODO">To Do</option>
                       <option value="IN_PROGRESS">In Progress</option>
@@ -844,8 +852,8 @@ export default function TasksPage() {
                 </div>
 
                 {/* Blockers handler */}
-                <div className="space-y-1.5 pt-2 border-t border-zinc-900">
-                  <label className="text-[9px] text-zinc-555 block font-semibold">Active Blocker / Intervention notes</label>
+                <div className="space-y-1.5 pt-2 border-t border-zinc-800/60">
+                  <label className="text-[9px] text-zinc-500 block font-semibold">Active Blocker / Intervention notes</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -870,7 +878,7 @@ export default function TasksPage() {
                           console.error(err);
                         }
                       }}
-                      className="flex-1 bg-zinc-900 border border-zinc-800 px-2 py-1 text-white placeholder-zinc-700 outline-none text-[11px]"
+                      className="flex-1 bg-zinc-900 border border-zinc-800 px-2 py-1 text-white placeholder-zinc-700 outline-none text-[11px] rounded-md focus:border-zinc-700"
                     />
                   </div>
                 </div>
@@ -879,8 +887,8 @@ export default function TasksPage() {
 
 
               {/* Task Update Logs */}
-              <div className="space-y-2 pt-2 border-t border-zinc-900">
-                <span className="text-[8px] text-zinc-650 uppercase font-bold block">Specialist Activity Logs</span>
+              <div className="space-y-2 pt-2 border-t border-zinc-800/60">
+                <span className="text-[8px] text-zinc-550 uppercase font-bold block">Specialist Activity Logs</span>
                 <form onSubmit={handleAddUpdate} className="flex gap-2">
                   <input
                     type="text"
@@ -888,9 +896,9 @@ export default function TasksPage() {
                     placeholder="Log a progress updates note..."
                     value={newUpdateContent}
                     onChange={(e) => setNewUpdateContent(e.target.value)}
-                    className="flex-1 bg-zinc-900 border border-zinc-800 px-2 py-1 text-white placeholder-zinc-700 outline-none text-[11px]"
+                    className="flex-1 bg-zinc-900 border border-zinc-800 px-2 py-1 text-white placeholder-zinc-750 outline-none text-[11px] rounded-md focus:border-zinc-700"
                   />
-                  <Button type="submit" size="sm" className="bg-zinc-100 text-zinc-950 hover:bg-white h-7 rounded-none px-3 font-semibold text-[10px]">
+                  <Button type="submit" size="sm" className="bg-zinc-100 text-zinc-950 hover:bg-white h-7 rounded-md px-3 font-semibold text-[10px]">
                     Log
                   </Button>
                 </form>
@@ -909,8 +917,8 @@ export default function TasksPage() {
               </div>
 
               {/* Internal Collaboration Comments */}
-              <div className="space-y-2 pt-2 border-t border-zinc-900">
-                <span className="text-[8px] text-zinc-650 uppercase font-bold block">Internal Discussion / Comments</span>
+              <div className="space-y-2 pt-2 border-t border-zinc-800/60">
+                <span className="text-[8px] text-zinc-550 uppercase font-bold block">Internal Discussion / Comments</span>
                 <form onSubmit={handleAddComment} className="flex gap-2">
                   <input
                     type="text"
@@ -918,9 +926,9 @@ export default function TasksPage() {
                     placeholder="Type comments to assignees..."
                     value={newCommentContent}
                     onChange={(e) => setNewCommentContent(e.target.value)}
-                    className="flex-1 bg-zinc-900 border border-zinc-800 px-2 py-1 text-white placeholder-zinc-700 outline-none text-[11px]"
+                    className="flex-1 bg-zinc-900 border border-zinc-800 px-2 py-1 text-white placeholder-zinc-750 outline-none text-[11px] rounded-md focus:border-zinc-700"
                   />
-                  <Button type="submit" size="sm" className="bg-zinc-100 text-zinc-950 hover:bg-white h-7 rounded-none px-3 font-semibold text-[10px] flex items-center gap-1">
+                  <Button type="submit" size="sm" className="bg-zinc-100 text-zinc-950 hover:bg-white h-7 rounded-md px-3 font-semibold text-[10px] flex items-center gap-1">
                     <Send className="h-2.5 w-2.5" />
                     <span>Send</span>
                   </Button>
@@ -961,22 +969,22 @@ interface KanbanColumnProps {
   highlightColor?: string;
 }
 
-function KanbanColumn({ title, count, tasks, onSelect, highlightColor = 'border-t-zinc-850' }: KanbanColumnProps) {
+function KanbanColumn({ title, count, tasks, onSelect, highlightColor = 'border-t-zinc-800' }: KanbanColumnProps) {
   return (
-    <div className={`w-72 shrink-0 border border-zinc-900 bg-zinc-950/5 flex flex-col max-h-full border-t-2 ${highlightColor}`}>
-      <div className="p-3 border-b border-zinc-900/60 bg-zinc-950/30 flex justify-between items-center">
-        <span className="font-semibold text-zinc-300 uppercase text-[9px] tracking-wider truncate mr-2" title={title}>{title}</span>
-        <Badge variant="outline" className="rounded-none text-[8.5px] px-1.5 font-mono">
+    <div className={`w-72 shrink-0 border border-zinc-800/80 bg-zinc-900/10 rounded-2xl flex flex-col h-full border-t-4 shadow-xl backdrop-blur-sm overflow-hidden ${highlightColor}`}>
+      <div className="p-3.5 border-b border-zinc-800/60 bg-zinc-900/20 flex justify-between items-center rounded-t-2xl">
+        <span className="font-bold text-zinc-300 uppercase text-[9.5px] tracking-wider truncate mr-2" title={title}>{title}</span>
+        <Badge variant="outline" className="rounded-full bg-zinc-950 border-zinc-800 text-[8.5px] px-2 py-0.5 font-mono text-zinc-400">
           {count}
         </Badge>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+      <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 scrollbar-none">
         {tasks.map((task) => (
           <div
             key={task.id}
             onClick={() => onSelect(task)}
-            className="border border-zinc-900 bg-zinc-950/50 hover:bg-zinc-900/10 hover:border-zinc-800 p-3 space-y-3 cursor-pointer transition-colors"
+            className="border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/70 hover:border-zinc-700/80 rounded-xl p-3.5 space-y-3.5 cursor-pointer hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/5"
           >
             <div>
               <div className="flex justify-between items-start gap-1">
@@ -997,26 +1005,26 @@ function KanbanColumn({ title, count, tasks, onSelect, highlightColor = 'border-
                 <span>Progress</span>
                 <span>{task.progress}%</span>
               </div>
-              <div className="h-0.5 bg-zinc-900 overflow-hidden w-full">
+              <div className="h-1 bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-900">
                 <div
                   style={{ width: `${task.progress}%` }}
-                  className={`h-full ${
+                  className={`h-full rounded-full transition-all duration-300 ${
                     task.status === 'COMPLETED'
                       ? 'bg-emerald-500'
                       : task.status === 'BLOCKED'
                       ? 'bg-rose-500'
-                      : 'bg-white'
+                      : 'bg-indigo-500'
                   }`}
                 />
               </div>
             </div>
 
             {/* Specialist & Timeline */}
-            <div className="flex justify-between items-center text-[9px] text-zinc-650 pt-1 border-t border-zinc-900/50">
-              <span className="truncate max-w-[120px]" title={task.assignedTo?.name || 'Unassigned'}>
+            <div className="flex justify-between items-center text-[9px] text-zinc-500 pt-2.5 border-t border-zinc-800/60">
+              <span className="truncate max-w-[120px] font-medium text-zinc-400" title={task.assignedTo?.name || 'Unassigned'}>
                 {task.assignedTo?.name || 'Unassigned'}
               </span>
-              <span className="font-mono text-[8px]">{task.timeline || 'N/A'}</span>
+              <span className="font-mono text-[8px] bg-zinc-950/60 px-1.5 py-0.5 rounded border border-zinc-900 text-zinc-550">{task.timeline || 'N/A'}</span>
             </div>
           </div>
         ))}

@@ -180,15 +180,16 @@ export const PrismAIService = {
   /**
    * Delegates query execution.
    */
-  async askPrism(query: string, context?: any): Promise<{ result: string; model: string }> {
+  async askPrism(query: string, context?: any, sessionId?: string): Promise<{ result: string; model: string; sessionId?: string }> {
     if (typeof window === 'undefined') {
       return { result: MOCK_ASK_REPLY(query), model: 'Mock Heuristics' };
     }
     try {
-      const data = await fetchPrismAI('ask-prism', { query, context });
+      const data = await fetchPrismAI('ask-prism', { query, context, sessionId });
       return {
         result: data.result,
-        model: data.model || 'Prism AI'
+        model: data.model || 'Prism AI',
+        sessionId: data.sessionId,
       };
     } catch {
       return { result: MOCK_ASK_REPLY(query), model: 'Mock Heuristics' };
@@ -209,6 +210,26 @@ export const PrismAIService = {
       return MOCK_CREATIVE_RECOMMENDATIONS;
     }
   },
+
+  async getSessions() {
+    if (typeof window === 'undefined') return [];
+    const res = await fetch('/api/prism-ai/sessions');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.sessions || [];
+  },
+
+  async getSessionMessages(id: string) {
+    if (typeof window === 'undefined') return null;
+    const res = await fetch(`/api/prism-ai/sessions/${id}`);
+    if (!res.ok) return null;
+    return await res.json();
+  },
+
+  async deleteSession(id: string) {
+    if (typeof window === 'undefined') return;
+    await fetch(`/api/prism-ai/sessions/${id}`, { method: 'DELETE' });
+  }
 };
 
 const MOCK_CREATIVE_RECOMMENDATIONS = [

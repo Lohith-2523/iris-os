@@ -70,6 +70,13 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
         const data = await res.json();
         setOrgName(data.name || 'Apex Creative');
         setPlan(data.plan || '');
+        if (data.currency) {
+          const currentLocal = localStorage.getItem('dashboardCurrency');
+          if (currentLocal !== data.currency) {
+            localStorage.setItem('dashboardCurrency', data.currency);
+            window.dispatchEvent(new Event('currency-updated'));
+          }
+        }
       }
     } catch (e) {
       console.error('Error loading org in sidebar:', e);
@@ -157,7 +164,6 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     { name: 'Team', href: '/team', icon: UserCheck },
     { name: 'Reporting', href: '/reporting', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Meta Portal', href: '/meta-portal', icon: Megaphone },
     { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
     { name: 'Prism AI', href: '/prism', icon: PrismIcon, highlight: true },
     { name: 'Settings', href: '/settings', icon: Settings },

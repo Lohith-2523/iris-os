@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import Script from "next/script";
+import { AuthSync } from "@/components/app-shell/auth-sync";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -48,9 +50,33 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", "dark", spaceGrotesk.variable, geistSans.variable, geistMono.variable, "font-mono", jetbrainsMono.variable)}
     >
       <body className="min-h-full flex flex-col">
+        <AuthSync />
         {children}
+        <Script id="facebook-jssdk" strategy="afterInteractive">
+          {`
+            window.fbAsyncInit = function() {
+              FB.init({
+                appId      : '${process.env.NEXT_PUBLIC_META_APP_ID || "1576428810499716"}',
+                cookie     : true,
+                xfbml      : true,
+                version    : '${process.env.NEXT_PUBLIC_META_API_VERSION || "v20.0"}'
+              });
+              
+              FB.AppEvents.logPageView();   
+            };
+
+            (function(d, s, id){
+               var js, fjs = d.getElementsByTagName(s)[0];
+               if (d.getElementById(id)) {return;}
+               js = d.createElement(s); js.id = id;
+               js.src = "https://connect.facebook.net/en_US/sdk.js";
+               fjs.parentNode.insertBefore(js, fjs);
+             }(document, 'script', 'facebook-jssdk'));
+          `}
+        </Script>
       </body>
     </html>
   );
 }
+
 

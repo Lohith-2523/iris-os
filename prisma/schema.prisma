@@ -7,102 +7,106 @@ generator client {
 }
 
 model Organization {
-  id          String    @id @default(uuid())
-  name        String
-  plan        String    @default("BASIC")
-  hasAddon    Boolean   @default(false)
-  agencyTypes String[]  @default([])
-  bankNames   String[]  @default([])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  brands    Brand[]
-  users     User[]
-  clients   Client[]
-  projects  Project[]
-  invoices  Invoice[]
-  expenses  Expense[]
-  automations Automation[]
-  integrations IntegrationConnection[]
-  metaAds   MetaAd[]
-  metaLeads MetaLead[]
-  metaCampaigns MetaCampaign[]
-  agencyLeads   AgencyLead[]
-  transactions Transaction[]
-  calendarEvents CalendarEvent[]
+  id               String   @id @default(uuid())
+  name             String
+  plan             String   @default("BASIC")
+  hasAddon         Boolean  @default(false)
+  agencyTypes      String[] @default([])
+  bankNames        String[] @default([])
+  currency         String   @default("USD")
+  aiSharingConsent Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  brands                 Brand[]
+  users                  User[]
+  clients                Client[]
+  projects               Project[]
+  invoices               Invoice[]
+  expenses               Expense[]
+  automations            Automation[]
+  integrations           IntegrationConnection[]
+  metaAds                MetaAd[]
+  metaLeads              MetaLead[]
+  metaCampaigns          MetaCampaign[]
+  agencyLeads            AgencyLead[]
+  transactions           Transaction[]
+  calendarEvents         CalendarEvent[]
+  recurringSubscriptions RecurringSubscription[]
 }
 
 model Brand {
-  id             String        @id @default(uuid())
+  id             String       @id @default(uuid())
   name           String
   logoUrl        String?
   primaryColor   String?
   secondaryColor String?
   orgId          String
-  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  
-  designAssets   DesignAsset[]
-  campaigns      Campaign[]
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  designAssets DesignAsset[]
+  campaigns    Campaign[]
 
   @@index([orgId])
 }
 
 model User {
-  id             String        @id @default(uuid())
-  email          String        @unique
-  name           String
-  role           String        // admin, client, member
-  phone          String?
-  agencyTypes    String[]      @default([])
-  avatarUrl      String?
-  orgId          String
-  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  clientId       String?
-  client         Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  
-  projectMembers ProjectMember[]
-  reports        Report[]
-  automations    Automation[]
-  askPrismMessages AskPrismMessage[]
-  clientTasks    ClientTask[]
-  taskComments   TaskComment[]
-  createdEvents  CalendarEvent[] @relation("CreatedEvents")
+  id           String       @id @default(uuid())
+  email        String       @unique
+  name         String
+  role         String // admin, client, member
+  phone        String?
+  agencyTypes  String[]     @default([])
+  avatarUrl    String?
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clientId     String?
+  client       Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  projectMembers    ProjectMember[]
+  reports           Report[]
+  automations       Automation[]
+  askPrismMessages  AskPrismMessage[]
+  clientTasks       ClientTask[]
+  taskComments      TaskComment[]
+  createdEvents     CalendarEvent[]    @relation("CreatedEvents")
+  prismChatSessions PrismChatSession[]
 
   @@index([orgId])
   @@index([clientId])
 }
 
 model Client {
-  id                     String        @id @default(uuid())
+  id                     String       @id @default(uuid())
   name                   String
   domain                 String?
-  status                 String        // ACTIVE, CHURNED, LEAD
-  healthScore            Int           // 0-100
-  healthStatus           String        // EXCELLENT, GOOD, FAIR, RISK
-  churnRiskScore         Int           // Churn prediction score 0-100
-  roiMetric              Float         // ROI generated for client
+  status                 String // ACTIVE, CHURNED, LEAD
+  healthScore            Int // 0-100
+  healthStatus           String // EXCELLENT, GOOD, FAIR, RISK
+  churnRiskScore         Int // Churn prediction score 0-100
+  roiMetric              Float // ROI generated for client
   renewalDate            DateTime?
-  upsellOpportunityValue Float         @default(0.0)
+  upsellOpportunityValue Float        @default(0.0)
   agencyType             String?
   businessModel          String?
   metadata               Json?
   orgId                  String
-  organization           Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   adAccountId            String?
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  
-  contacts               Contact[]
-  projects               Project[]
-  invoices               Invoice[]
-  users                  User[]
-  invites                ClientInvite[]
-  scheduledPosts         ScheduledPost[]
-  tasks                  ClientTask[]
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  contacts       Contact[]
+  projects       Project[]
+  invoices       Invoice[]
+  users          User[]
+  invites        ClientInvite[]
+  scheduledPosts ScheduledPost[]
+  tasks          ClientTask[]
 
   @@index([orgId])
 }
@@ -122,29 +126,29 @@ model Contact {
 }
 
 model Project {
-  id              String          @id @default(uuid())
+  id              String       @id @default(uuid())
   name            String
-  status          String          // NOT_STARTED, IN_PROGRESS, COMPLETED, ON_HOLD, OVERDUE
+  status          String // NOT_STARTED, IN_PROGRESS, COMPLETED, ON_HOLD, OVERDUE
   startDate       DateTime
   endDate         DateTime?
-  progress        Int             @default(0) // 0-100
-  riskLevel       String          // LOW, MEDIUM, HIGH
+  progress        Int          @default(0) // 0-100
+  riskLevel       String // LOW, MEDIUM, HIGH
   riskDescription String?
   timeline        String?
   serviceLine     String?
   budget          Float?
   orgId           String
-  organization    Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   clientId        String
-  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
-  milestones      Milestone[]
-  allocations     ResourceAllocation[]
-  members         ProjectMember[]
-  tasks           ClientTask[]
-  stages          ProjectStage[]
+  client          Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  milestones  Milestone[]
+  allocations ResourceAllocation[]
+  members     ProjectMember[]
+  tasks       ClientTask[]
+  stages      ProjectStage[]
 
   @@index([orgId])
   @@index([clientId])
@@ -164,138 +168,138 @@ model ProjectMember {
 }
 
 model Milestone {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
   dueDate     DateTime
-  status      String    // PENDING, COMPLETED
+  status      String // PENDING, COMPLETED
   projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([projectId])
 }
 
 model ResourceAllocation {
-  id           String   @id @default(uuid())
-  role         String
-  hoursAlloc   Float
-  utilization  Float    // Percentage
-  projectId    String
-  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  role        String
+  hoursAlloc  Float
+  utilization Float // Percentage
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([projectId])
 }
 
 model Invoice {
-  id             String       @id @default(uuid())
-  invoiceNumber  String       @unique
-  amount         Float
-  dueDate        DateTime
-  status         String       // PAID, UNPAID, OVERDUE, DRAFT
-  orgId          String
-  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  clientId       String
-  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  issuedDate     DateTime     @default(now())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id            String       @id @default(uuid())
+  invoiceNumber String       @unique
+  amount        Float
+  dueDate       DateTime
+  status        String // PAID, UNPAID, OVERDUE, DRAFT
+  orgId         String
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  issuedDate    DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([orgId])
   @@index([clientId])
 }
 
 model Expense {
-  id          String       @id @default(uuid())
-  category    String
-  amount      Float
-  date        DateTime
-  merchant    String
-  status      String       // APPROVED, PENDING, REJECTED
-  orgId       String
+  id           String       @id @default(uuid())
+  category     String
+  amount       Float
+  date         DateTime
+  merchant     String
+  status       String // APPROVED, PENDING, REJECTED
+  orgId        String
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([orgId])
 }
 
 model FinancialForecast {
-  id             String   @id @default(uuid())
-  month          DateTime
-  projectedRev   Float
-  projectedExp   Float
-  confidence     Float    // 0-100 percentage
-  narrative      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String   @id @default(uuid())
+  month        DateTime
+  projectedRev Float
+  projectedExp Float
+  confidence   Float // 0-100 percentage
+  narrative    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Report {
-  id             String       @id @default(uuid())
-  title          String
-  type           String       // FINANCE, CLIENT, OPERATIONS, CREATIVE
-  status         String       // READY, ARCHIVED
-  filePath       String?
-  summary        String?
-  createdById    String
-  createdBy      User         @relation(fields: [createdById], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id          String   @id @default(uuid())
+  title       String
+  type        String // FINANCE, CLIENT, OPERATIONS, CREATIVE
+  status      String // READY, ARCHIVED
+  filePath    String?
+  summary     String?
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([createdById])
 }
 
 model DesignAsset {
-  id             String       @id @default(uuid())
+  id             String    @id @default(uuid())
   name           String
   imageUrl       String?
-  status         String       // DRAFT, IN_REVIEW, APPROVED, PUBLISHED
-  canvaProjectId String?      // Mock reference
+  status         String // DRAFT, IN_REVIEW, APPROVED, PUBLISHED
+  canvaProjectId String? // Mock reference
   brandId        String
-  brand          Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand          Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
   campaignId     String?
-  campaign       Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  campaign       Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([brandId])
   @@index([campaignId])
 }
 
 model Campaign {
-  id          String        @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
-  status      String        // ACTIVE, SCHEDULED, COMPLETED
+  status      String // ACTIVE, SCHEDULED, COMPLETED
   brandId     String
-  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   designAssets DesignAsset[]
 
   @@index([brandId])
 }
 
 model Automation {
-  id          String          @id @default(uuid())
-  name        String
-  description String?
-  trigger     String
-  action      String
-  status      String          // ACTIVE, INACTIVE
-  createdById String
-  createdBy   User            @relation(fields: [createdById], references: [id])
-  orgId       String
-  organization Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  
-  runs        AutomationRun[]
+  id           String       @id @default(uuid())
+  name         String
+  description  String?
+  trigger      String
+  action       String
+  status       String // ACTIVE, INACTIVE
+  createdById  String
+  createdBy    User         @relation(fields: [createdById], references: [id])
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  runs AutomationRun[]
 
   @@index([createdById])
   @@index([orgId])
@@ -303,7 +307,7 @@ model Automation {
 
 model AutomationRun {
   id           String     @id @default(uuid())
-  status       String     // SUCCESS, FAILED, RUNNING
+  status       String // SUCCESS, FAILED, RUNNING
   triggeredBy  String
   startedAt    DateTime   @default(now())
   finishedAt   DateTime?
@@ -315,99 +319,115 @@ model AutomationRun {
 }
 
 model IntegrationConnection {
-  id             String   @id @default(uuid())
-  provider       String   // CANVA, QUICKBOOKS, STRIPE, HUBSPOT, SLACK
-  status         String   // CONNECTED, DISCONNECTED, ERROR, SYNCING
-  lastSync       DateTime?
-  syncLogs       String?
-  orgId          String
-  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String       @id @default(uuid())
+  provider     String // CANVA, QUICKBOOKS, STRIPE, HUBSPOT, SLACK
+  status       String // CONNECTED, DISCONNECTED, ERROR, SYNCING
+  lastSync     DateTime?
+  syncLogs     String?
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([orgId])
 }
 
 model PrismInsight {
   id             String   @id @default(uuid())
-  type           String   // HEALTH_SCORE, PROFIT_LEAK, CHURN_PREDICTION, GENERAL
+  type           String // HEALTH_SCORE, PROFIT_LEAK, CHURN_PREDICTION, GENERAL
   title          String
   description    String
   score          Int?
   metric         String?
-  riskLevel      String   // LOW, MEDIUM, HIGH
+  riskLevel      String // LOW, MEDIUM, HIGH
   actionableStep String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
 
-model AskPrismMessage {
+model PrismChatSession {
   id        String   @id @default(uuid())
-  role      String   // USER, ASSISTANT
-  content   String
+  title     String
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages AskPrismMessage[]
 
   @@index([userId])
 }
 
+model AskPrismMessage {
+  id        String            @id @default(uuid())
+  role      String // USER, ASSISTANT
+  content   String
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String?
+  session   PrismChatSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
 model MetaCampaign {
-  id             String       @id @default(uuid())
-  campaignId     String       @unique
-  name           String
-  status         String       // ACTIVE, PAUSED, ARCHIVED
-  objective      String?      // OUTCOME_LEADS, etc.
-  dailyBudget    Float?
-  orgId          String
-  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  ads            MetaAd[]
+  id           String       @id @default(uuid())
+  campaignId   String       @unique
+  name         String
+  status       String // ACTIVE, PAUSED, ARCHIVED
+  objective    String? // OUTCOME_LEADS, etc.
+  dailyBudget  Float?
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  ads          MetaAd[]
 
   @@index([orgId])
 }
 
 model MetaAd {
-  id             String        @id @default(uuid())
-  adId           String        @unique
-  name           String
-  status         String        // ACTIVE, PAUSED, ARCHIVED
-  spend          Float
-  leadsCount     Int           @default(0)
-  reach          Int           @default(0)
-  impressions    Int           @default(0)
-  clicks         Int           @default(0)
-  platform       String        // FACEBOOK, INSTAGRAM, MESSENGER, AUDIENCE_NETWORK
-  imageUrl       String?       // Link to design asset image from Canva
-  campaignId     String?
-  campaign       MetaCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  orgId          String
-  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id           String        @id @default(uuid())
+  adId         String        @unique
+  name         String
+  status       String // ACTIVE, PAUSED, ARCHIVED
+  spend        Float
+  leadsCount   Int           @default(0)
+  reach        Int           @default(0)
+  impressions  Int           @default(0)
+  clicks       Int           @default(0)
+  platform     String // FACEBOOK, INSTAGRAM, MESSENGER, AUDIENCE_NETWORK
+  imageUrl     String? // Link to design asset image from Canva
+  campaignId   String?
+  campaign     MetaCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  orgId        String
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([orgId])
   @@index([campaignId])
 }
 
 model MetaLead {
-  id           String     @id @default(uuid())
-  leadId       String     @unique
-  adId         String?
-  adName       String?
-  fullName     String
-  email        String
-  phone        String?
-  status       String     // new, cold-call in progress, call back required, closed, unqualified
-  createdTime  DateTime   @default(now())
+  id               String       @id @default(uuid())
+  leadId           String       @unique
+  adId             String?
+  adName           String?
+  fullName         String
+  email            String
+  phone            String?
+  status           String // new, cold-call in progress, call back required, closed, unqualified
+  createdTime      DateTime     @default(now())
   collectionMethod String?
   approachMethod   String?
   funnelName       String?
-  orgId        String
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  orgId            String
+  organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   @@index([orgId])
 }
@@ -418,8 +438,8 @@ model AgencyLead {
   fullName         String
   email            String
   phone            String?
-  status           String       // procured, warm, cold, lost, closed
-  collectionMethod String?      // "Bulk Import", "Manual Entry"
+  status           String // procured, warm, cold, lost, closed
+  collectionMethod String? // "Bulk Import", "Manual Entry"
   approachMethod   String?
   funnelName       String?
   createdTime      DateTime     @default(now())
@@ -430,7 +450,6 @@ model AgencyLead {
 
   @@index([orgId])
 }
-
 
 model ClientInvite {
   id          String   @id @default(uuid())
@@ -448,10 +467,10 @@ model ClientInvite {
 model ScheduledPost {
   id             String   @id @default(uuid())
   platform       String[] // e.g. ["instagram", "facebook"]
-  postType       String   // e.g. "photo", "reel", "story", "carousel"
+  postType       String // e.g. "photo", "reel", "story", "carousel"
   caption        String
   mediaUrl       String
-  status         String   // "SCHEDULED", "PUBLISHED", "APPROVED", "CHANGES_PROPOSED"
+  status         String // "SCHEDULED", "PUBLISHED", "APPROVED", "CHANGES_PROPOSED"
   scheduledAt    DateTime
   clientFeedback String?
   clientId       String?
@@ -463,51 +482,51 @@ model ScheduledPost {
 }
 
 model Transaction {
-  id                String   @id @default(uuid())
+  id                String       @id @default(uuid())
   date              DateTime
   details           String
-  category          String   @default("Expense") // Revenue, Expense, AI Subscription
-  type              String   // UPI, IMPS, NEFT, Cash, Others
-  transactorAccount String   // UPI ID / Account No. of transactor
-  yourAccount       String   // Your Account (Bank Name or custom text)
+  category          String       @default("Expense") // Revenue, Expense, AI Subscription
+  type              String // UPI, IMPS, NEFT, Cash, Others
+  transactorAccount String // UPI ID / Account No. of transactor
+  yourAccount       String // Your Account (Bank Name or custom text)
   amount            Float
   referenceNumber   String?
   comments          String?
   orgId             String
   organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   @@index([orgId])
 }
 
 model ClientTask {
-  id           String   @id @default(uuid())
-  title        String
-  description  String?
-  status       String   // TODO, IN_PROGRESS, COMPLETED, BLOCKED
-  progress     Int      @default(0) // 0-100
-  blocker      String?  // Description of blocker if blocked
-  update       String?  // Recent progress update
-  timeline     String?
-  deadline     DateTime?
-  outputUrl    String?
+  id               String        @id @default(uuid())
+  title            String
+  description      String?
+  status           String // TODO, IN_PROGRESS, COMPLETED, BLOCKED
+  progress         Int           @default(0) // 0-100
+  blocker          String? // Description of blocker if blocked
+  update           String? // Recent progress update
+  timeline         String?
+  deadline         DateTime?
+  outputUrl        String?
   carryOverComment String?
-  projectId    String?
-  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stageId      String?
-  stage        ProjectStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
-  clientId     String
-  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  assignedToId String?
-  assignedTo   User?    @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
-  parentTaskId String?
-  parentTask   ClientTask?  @relation("TaskChain", fields: [parentTaskId], references: [id], onDelete: SetNull)
-  nextTasks    ClientTask[] @relation("TaskChain")
-  updates      TaskUpdate[]
-  comments     TaskComment[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  projectId        String?
+  project          Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stageId          String?
+  stage            ProjectStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  clientId         String
+  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedToId     String?
+  assignedTo       User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  parentTaskId     String?
+  parentTask       ClientTask?   @relation("TaskChain", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  nextTasks        ClientTask[]  @relation("TaskChain")
+  updates          TaskUpdate[]
+  comments         TaskComment[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   @@index([clientId])
   @@index([assignedToId])
@@ -517,73 +536,73 @@ model ClientTask {
 }
 
 model TaskUpdate {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   content   String
   taskId    String
   task      ClientTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
 
   @@index([taskId])
 }
 
 model TaskComment {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   content   String
   taskId    String
   task      ClientTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
 
   @@index([taskId])
   @@index([userId])
 }
 
 model ProjectStage {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   name      String
-  position  Int      // 0-based order index
+  position  Int // 0-based order index
   startDate DateTime
   endDate   DateTime
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks     ClientTask[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   @@index([projectId])
 }
 
 model CalendarEvent {
-  id             String        @id @default(uuid())
-  title          String
-  description    String?
-  location       String?
-  meetLink       String?       // Google Meet link if enabled
-  startTime      DateTime
-  endTime        DateTime
-  isRecurring    Boolean       @default(false)
-  recurrence     String?       // NONE, DAILY, WEEKLY
-  color          String        @default("#3b82f6") // Event color code
-  
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  location    String?
+  meetLink    String? // Google Meet link if enabled
+  startTime   DateTime
+  endTime     DateTime
+  isRecurring Boolean  @default(false)
+  recurrence  String? // NONE, DAILY, WEEKLY
+  color       String   @default("#3b82f6") // Event color code
+
   // Organization link
-  orgId          String
-  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
   // Creator link
-  creatorId      String
-  creator        User          @relation("CreatedEvents", fields: [creatorId], references: [id], onDelete: Cascade)
-  
+  creatorId String
+  creator   User   @relation("CreatedEvents", fields: [creatorId], references: [id], onDelete: Cascade)
+
   // Attendees
-  attendees      String[]      // Array of emails (guests)
-  attendeeStatus Json?         // Map of attendee email -> RSVP status (ACCEPTED, DECLINED, PENDING)
-  
+  attendees      String[] // Array of emails (guests)
+  attendeeStatus Json? // Map of attendee email -> RSVP status (ACCEPTED, DECLINED, PENDING)
+
   // Google sync details
-  googleEventId  String?       // ID if synced to google calendar
-  isGoogleEvent  Boolean       @default(false)
-  
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  googleEventId String? // ID if synced to google calendar
+  isGoogleEvent Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([orgId])
   @@index([creatorId])
@@ -602,3 +621,17 @@ model MemberInvite {
   createdAt   DateTime @default(now())
 }
 
+model RecurringSubscription {
+  id           String       @id @default(uuid())
+  name         String
+  amount       Float
+  category     String // "AI subscriptions", "Software subscriptions", "Other subscriptions", "Expense"
+  frequency    String // "monthly", "quarterly", "yearly"
+  startDate    DateTime
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([orgId])
+}

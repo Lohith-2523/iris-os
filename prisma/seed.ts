@@ -1243,6 +1243,163 @@ async function main() {
     });
   }
 
+  if (org) {
+    console.log('Seeding Transactions...');
+    await prisma.transaction.createMany({
+      data: [
+        {
+          date: new Date('2026-06-15'),
+          details: 'Retainer Payment - Aether Technologies',
+          category: 'Revenue',
+          type: 'NEFT',
+          transactorAccount: 'aether@upi',
+          yourAccount: 'ICICI Bank',
+          amount: 25000,
+          referenceNumber: 'TXN100001',
+          comments: 'Monthly marketing retainer payment',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-12'),
+          details: 'Retainer Payment - Vertex Retail',
+          category: 'Revenue',
+          type: 'NEFT',
+          transactorAccount: 'vertex@upi',
+          yourAccount: 'ICICI Bank',
+          amount: 18500,
+          referenceNumber: 'TXN100002',
+          comments: 'Monthly marketing retainer payment',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-10'),
+          details: 'SEO Retainer - Pulse Media',
+          category: 'Revenue',
+          type: 'IMPS',
+          transactorAccount: 'pulse@upi',
+          yourAccount: 'HDFC Bank',
+          amount: 32000,
+          referenceNumber: 'TXN100003',
+          comments: 'SEO & Content marketing monthly retainer',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-05-28'),
+          details: 'Social Media Setup - Solaria Energy',
+          category: 'Revenue',
+          type: 'NEFT',
+          transactorAccount: 'solaria@upi',
+          yourAccount: 'HDFC Bank',
+          amount: 12000,
+          referenceNumber: 'TXN100004',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-01'),
+          details: 'Website Design - Nova BioLabs',
+          category: 'Revenue',
+          type: 'NEFT',
+          transactorAccount: 'nova@upi',
+          yourAccount: 'ICICI Bank',
+          amount: 15000,
+          referenceNumber: 'TXN100005',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-04'),
+          details: 'Brand Strategy - Quantum Capital',
+          category: 'Revenue',
+          type: 'NEFT',
+          transactorAccount: 'quantum@upi',
+          yourAccount: 'ICICI Bank',
+          amount: 22000,
+          referenceNumber: 'TXN100006',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-01'),
+          details: 'Office Rent',
+          category: 'Expense',
+          type: 'NEFT',
+          transactorAccount: 'realty@upi',
+          yourAccount: 'HDFC Bank',
+          amount: -15000,
+          referenceNumber: 'TXN900001',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-05'),
+          details: 'AWS Cloud Hosting',
+          category: 'Expense',
+          type: 'Others',
+          transactorAccount: 'aws-billing@amazon.com',
+          yourAccount: 'HDFC Bank',
+          amount: -10000,
+          referenceNumber: 'TXN900002',
+          comments: 'Production server infrastructure hosting charges',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-15'),
+          details: 'Contractor Retainer (David Kim)',
+          category: 'Expense',
+          type: 'IMPS',
+          transactorAccount: 'davidk@upi',
+          yourAccount: 'ICICI Bank',
+          amount: -7000,
+          referenceNumber: 'TXN900003',
+          comments: 'Senior design deliverables retainer',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-20'),
+          details: 'Travel & Meals',
+          category: 'Expense',
+          type: 'Cash',
+          transactorAccount: 'N/A',
+          yourAccount: 'Cash Ledger',
+          amount: -2300,
+          referenceNumber: 'TXN900004',
+          comments: 'Client meetings travel expenses',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-15'),
+          details: 'Midjourney API License',
+          category: 'AI Subscription',
+          type: 'Others',
+          transactorAccount: 'midjourney-billing@discord',
+          yourAccount: 'ICICI Bank',
+          amount: -360,
+          referenceNumber: 'TXN950001',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-18'),
+          details: 'Anthropic Claude Team Seat',
+          category: 'AI Subscription',
+          type: 'Others',
+          transactorAccount: 'anthropic-billing@anthropic.com',
+          yourAccount: 'ICICI Bank',
+          amount: -120,
+          referenceNumber: 'TXN950002',
+          orgId: org.id
+        },
+        {
+          date: new Date('2026-06-22'),
+          details: 'OpenAI API Platform',
+          category: 'AI Subscription',
+          type: 'Others',
+          transactorAccount: 'openai-billing@openai.com',
+          yourAccount: 'ICICI Bank',
+          amount: -15,
+          referenceNumber: 'TXN950003',
+          orgId: org.id
+        }
+      ]
+    });
+  }
+
   console.log('Seed completed successfully!');
 }
 

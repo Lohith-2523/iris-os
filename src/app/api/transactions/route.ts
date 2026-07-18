@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getOrganization } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
-    const org = await prisma.organization.findFirst();
+    const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const org = await prisma.organization.findFirst();
+    const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
@@ -36,15 +37,24 @@ export async function POST(request: NextRequest) {
         const amount = parseFloat(t.amount);
         if (isNaN(amount)) continue;
 
+        // Handle category from file upload (which will now have category)
+        const category = t.category || (amount >= 0 ? 'Revenue' : 'Expense');
+        let finalAmount = amount;
+        if (category === 'Expense' || category === 'AI Subscription') {
+          finalAmount = -Math.abs(amount);
+        } else if (category === 'Revenue') {
+          finalAmount = Math.abs(amount);
+        }
+
         const created = await prisma.transaction.create({
           data: {
             date: new Date(t.date || new Date()),
             details: t.details || 'Imported Transaction',
-            category: t.category || (amount >= 0 ? 'Revenue' : 'Expense'),
+            category: category,
             type: t.type || 'Others',
             transactorAccount: t.transactorAccount || '',
             yourAccount: t.yourAccount || '',
-            amount: amount,
+            amount: finalAmount,
             referenceNumber: t.referenceNumber || null,
             comments: t.comments || null,
             orgId: org.id,
@@ -62,15 +72,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid amount value' }, { status: 400 });
       }
 
+      const targetCategory = category || (parsedAmount >= 0 ? 'Revenue' : 'Expense');
+      let finalAmount = parsedAmount;
+      if (targetCategory === 'Expense' || targetCategory === 'AI Subscription') {
+        finalAmount = -Math.abs(parsedAmount);
+      } else if (targetCategory === 'Revenue') {
+        finalAmount = Math.abs(parsedAmount);
+      }
+
       const newTx = await prisma.transaction.create({
         data: {
           date: new Date(date || new Date()),
           details: details || 'Manual Entry',
-          category: category || (parsedAmount >= 0 ? 'Revenue' : 'Expense'),
+          category: targetCategory,
           type: type || 'Others',
           transactorAccount: transactorAccount || '',
           yourAccount: yourAccount || '',
-          amount: parsedAmount,
+          amount: finalAmount,
           referenceNumber: referenceNumber || null,
           comments: comments || null,
           orgId: org.id,

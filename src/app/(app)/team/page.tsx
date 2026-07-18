@@ -165,9 +165,41 @@ export default function TeamPage() {
     return (total / teamList.length).toFixed(1);
   }, [teamList]);
 
-  const optimalCount = teamList.filter(t => t.utilization >= 70 && t.utilization <= 85).length;
-  const underallocatedCount = teamList.filter(t => t.utilization < 70).length;
-  const overallocatedCount = teamList.filter(t => t.utilization > 90).length;
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [workloadFilter, setWorkloadFilter] = React.useState<string>('ALL');
+  const [roleFilter, setRoleFilter] = React.useState<string>('ALL');
+
+  const roles = React.useMemo(() => {
+    const allRoles = teamList.map(t => t.role);
+    return Array.from(new Set(allRoles));
+  }, [teamList]);
+
+  const filteredTeamList = React.useMemo(() => {
+    return teamList.filter((t) => {
+      if (roleFilter !== 'ALL' && t.role !== roleFilter) {
+        return false;
+      }
+      if (workloadFilter !== 'ALL') {
+        const u = t.utilization;
+        if (workloadFilter === 'UNDER' && u >= 70) return false;
+        if (workloadFilter === 'OPTIMAL' && (u < 70 || u > 89)) return false;
+        if (workloadFilter === 'OVER' && u < 90) return false;
+      }
+      return true;
+    });
+  }, [teamList, roleFilter, workloadFilter]);
+
+  const optimalCount = React.useMemo(() => {
+    return teamList.filter(t => t.utilization >= 70 && t.utilization <= 85).length;
+  }, [teamList]);
+
+  const underallocatedCount = React.useMemo(() => {
+    return teamList.filter(t => t.utilization < 70).length;
+  }, [teamList]);
+
+  const overallocatedCount = React.useMemo(() => {
+    return teamList.filter(t => t.utilization > 90).length;
+  }, [teamList]);
 
   // Reset modal state variables on close
   const closeModal = () => {
@@ -515,7 +547,15 @@ export default function TeamPage() {
           <p className="text-xs text-zinc-500">Monitor team member utilization, capacities, billable hours, and hiring recommendations.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="h-8 border-zinc-800 text-zinc-300 gap-1.5 rounded-md">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowFilters(!showFilters)}
+            className={cn(
+              "h-8 border-zinc-800 text-zinc-300 gap-1.5 rounded-md cursor-pointer",
+              showFilters && "bg-zinc-800 text-white border-zinc-700"
+            )}
+          >
             <Filter className="h-3.5 w-3.5" />
             <span>Filter Team</span>
           </Button>
@@ -590,6 +630,52 @@ export default function TeamPage() {
         </Card>
       </div>
 
+      {/* Filters Control Panel */}
+      {showFilters && (
+        <div className="flex flex-wrap gap-4 p-4 border border-zinc-850 bg-zinc-950/40 rounded-md text-xs font-sans">
+          <div className="space-y-1.5">
+            <label className="font-semibold text-zinc-400 block uppercase tracking-wider text-[9px]">Workload Status</label>
+            <select 
+              value={workloadFilter} 
+              onChange={(e) => setWorkloadFilter(e.target.value)}
+              className="rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white focus:outline-none cursor-pointer text-xs"
+            >
+              <option value="ALL">All Workloads</option>
+              <option value="OVER">Peak Workload (&gt;= 90%)</option>
+              <option value="OPTIMAL">Optimal Workload (70% - 89%)</option>
+              <option value="UNDER">Under-allocated (&lt; 70%)</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="font-semibold text-zinc-400 block uppercase tracking-wider text-[9px]">Role / Title</label>
+            <select 
+              value={roleFilter} 
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white focus:outline-none cursor-pointer text-xs"
+            >
+              <option value="ALL">All Roles</option>
+              {roles.map(role => (
+                <option key={role} value={role}>{role}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            {(workloadFilter !== 'ALL' || roleFilter !== 'ALL') && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => { setWorkloadFilter('ALL'); setRoleFilter('ALL'); }}
+                className="text-zinc-400 hover:text-white h-[32px] font-medium"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Grid Split */}
       <div className="grid gap-6 md:grid-cols-3">
         {/* Team Table */}
@@ -612,7 +698,7 @@ export default function TeamPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teamList.map((t) => (
+                  {filteredTeamList.map((t) => (
                     <TableRow 
                       key={t.id} 
                       className="cursor-pointer hover:bg-zinc-900/30 transition-colors"

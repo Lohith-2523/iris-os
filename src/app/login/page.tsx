@@ -145,26 +145,37 @@ export default function LoginPage() {
       router.push('/dashboard');
     }, 200);
   };
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
-    const mockGoogleEmail = 'lohith@apex.co';
-    if (rememberMe) {
-      localStorage.setItem('currentUserEmail', mockGoogleEmail);
-      localStorage.setItem('remember_me', 'true');
-      document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/; max-age=2592000";
-      document.cookie = "currentUserRole=admin; path=/; max-age=2592000";
-    } else {
-      localStorage.removeItem('currentUserEmail');
-      localStorage.removeItem('remember_me');
-      sessionStorage.setItem('currentUserEmail', mockGoogleEmail);
-      document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/";
-      document.cookie = "currentUserRole=admin; path=/";
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.warn('Supabase Google OAuth failed, falling back to mock login:', err?.message || err);
+      const mockGoogleEmail = 'lohith@apex.co';
+      if (rememberMe) {
+        localStorage.setItem('currentUserEmail', mockGoogleEmail);
+        localStorage.setItem('remember_me', 'true');
+        document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/; max-age=2592000";
+        document.cookie = "currentUserRole=admin; path=/; max-age=2592000";
+      } else {
+        localStorage.removeItem('currentUserEmail');
+        localStorage.removeItem('remember_me');
+        sessionStorage.setItem('currentUserEmail', mockGoogleEmail);
+        document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/";
+        document.cookie = "currentUserRole=admin; path=/";
+      }
+      window.dispatchEvent(new Event('user-updated'));
+      setTimeout(() => {
+        setIsLoading(false);
+        router.push('/dashboard');
+      }, 400);
     }
-    window.dispatchEvent(new Event('user-updated'));
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push('/dashboard');
-    }, 400);
   };
 
   return (

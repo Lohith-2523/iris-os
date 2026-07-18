@@ -1,134 +1,301 @@
 import * as React from 'react';
 
-function renderInline(text: string) {
-  // 1. Split by inline code: `code`
-  const codeParts = text.split(/(`[^`]+`)/g);
+interface Block {
+  type: 'p' | 'h1' | 'h2' | 'h3' | 'code' | 'blockquote' | 'hr' | 'li' | 'table';
+  text?: string;
+  code?: string;
+  language?: string;
+  listType?: 'ul' | 'ol';
+  indent?: number;
+  index?: number;
+  headers?: string[];
+  rows?: string[][];
+}
+
+function renderInline(text: string): React.ReactNode[] {
+  if (!text) return [];
   
-  return codeParts.flatMap((part, index) => {
+  // Match inline code: `code`
+  // Match bold-italic: ***text***
+  // Match bold: **text** or __text__
+  // Match italic: *text* or _text_
+  const regex = /(`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^*]+__|_[^_]+_|\*[^*]+\*)/g;
+  const parts = text.split(regex);
+  
+  return parts.map((part, index) => {
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
         <code 
-          key={`code-${index}`} 
-          className="px-1.5 py-0.5 bg-zinc-800 text-zinc-200 font-mono text-[10px] border border-zinc-700/60 rounded-md inline-block align-middle"
+          key={index} 
+          className="px-1.5 py-0.5 bg-zinc-950 text-zinc-300 font-mono text-[10px] border border-zinc-800 rounded mx-0.5 inline-block align-middle"
         >
           {part.slice(1, -1)}
         </code>
       );
     }
-    
-    // 2. Split by bold: **bold**
-    const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
-    return boldParts.map((subPart, subIndex) => {
-      if (subPart.startsWith('**') && subPart.endsWith('**')) {
-        return (
-          <strong key={`bold-${index}-${subIndex}`} className="font-bold text-white">
-            {subPart.slice(2, -2)}
-          </strong>
-        );
-      }
-      
-      // 3. Split by italics: *italic* or _italic_
-      const italicParts = subPart.split(/(\*[^*]+\*)/g);
-      return italicParts.map((italPart, italIndex) => {
-        if (italPart.startsWith('*') && italPart.endsWith('*')) {
-          return (
-            <em key={`italic-${index}-${subIndex}-${italIndex}`} className="italic text-zinc-250">
-              {italPart.slice(1, -1)}
-            </em>
-          );
-        }
-        return italPart;
-      });
-    });
+    if (part.startsWith('***') && part.endsWith('***')) {
+      return (
+        <strong key={index} className="font-bold italic text-white">
+          {part.slice(3, -3)}
+        </strong>
+      );
+    }
+    if ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('__') && part.endsWith('__'))) {
+      return (
+        <strong key={index} className="font-bold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if ((part.startsWith('*') && part.endsWith('*')) || (part.startsWith('_') && part.endsWith('_'))) {
+      return (
+        <em key={index} className="italic text-zinc-350">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return part;
   });
+}
+
+function parseAndPushTable(lines: string[], blocks: Block[]) {
+  if (lines.length === 0) return;
+
+  const parseRow = (rowStr: string) => {
+    const rawCells = rowStr.split('|');
+    return rawCells
+      .slice(1, rawCells.length - 1)
+      .map(cell => cell.trim());
+  };
+
+  const firstRow = parseRow(lines[0]);
+  
+  let hasSeparator = false;
+  if (lines.length > 1) {
+    const secondRow = parseRow(lines[1]);
+    hasSeparator = secondRow.every(cell => /^:?-+:?$/.test(cell));
+  }
+
+  if (hasSeparator) {
+    const headers = firstRow;
+    const rows = lines.slice(2).map(parseRow);
+    blocks.push({ type: 'table', headers, rows });
+  } else {
+    const headers = firstRow;
+    const rows = lines.slice(1).map(parseRow);
+    blocks.push({ type: 'table', headers, rows });
+  }
 }
 
 export function FormattedMarkdown({ text }: { text: string }) {
   if (!text) return null;
 
-  // Split by code blocks first
-  const blocks = text.split(/(```[\s\S]*?```)/g);
+  const lines = text.split('\n');
+  const blocks: Block[] = [];
+  
+  let inCodeBlock = false;
+  let codeContent: string[] = [];
+  let codeLanguage = '';
+
+  let inTable = false;
+  let tableLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // 1. Code Block Handling
+    if (trimmed.startsWith('```')) {
+      if (inCodeBlock) {
+        blocks.push({
+          type: 'code',
+          code: codeContent.join('\n'),
+          language: codeLanguage
+        });
+        codeContent = [];
+        codeLanguage = '';
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+        codeLanguage = trimmed.slice(3).trim();
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeContent.push(line);
+      continue;
+    }
+
+    // 2. Table Handling
+    if (trimmed.startsWith('|')) {
+      inTable = true;
+      tableLines.push(line);
+      continue;
+    } else if (inTable) {
+      parseAndPushTable(tableLines, blocks);
+      tableLines = [];
+      inTable = false;
+    }
+
+    // 3. Horizontal Rule
+    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+      blocks.push({ type: 'hr' });
+      continue;
+    }
+
+    // 4. Headers (H1-H6)
+    const headerMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (headerMatch) {
+      const level = headerMatch[1].length;
+      const headerText = headerMatch[2];
+      if (level === 1) {
+        blocks.push({ type: 'h1', text: headerText });
+      } else if (level === 2) {
+        blocks.push({ type: 'h2', text: headerText });
+      } else {
+        blocks.push({ type: 'h3', text: headerText });
+      }
+      continue;
+    }
+
+    // 5. Blockquotes
+    if (trimmed.startsWith('>')) {
+      blocks.push({ type: 'blockquote', text: trimmed.slice(1).trim() });
+      continue;
+    }
+
+    // 6. List Items
+    const bulletMatch = line.match(/^(\s*)([*+-]|\xb7|•)\s+(.*)$/);
+    if (bulletMatch) {
+      const indentSpaces = bulletMatch[1].length;
+      const content = bulletMatch[3];
+      blocks.push({
+        type: 'li',
+        listType: 'ul',
+        text: content,
+        indent: Math.floor(indentSpaces / 2)
+      });
+      continue;
+    }
+
+    const numberMatch = line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+    if (numberMatch) {
+      const indentSpaces = numberMatch[1].length;
+      const index = parseInt(numberMatch[2]);
+      const content = numberMatch[3];
+      blocks.push({
+        type: 'li',
+        listType: 'ol',
+        text: content,
+        indent: Math.floor(indentSpaces / 2),
+        index
+      });
+      continue;
+    }
+
+    // 7. Empty Lines
+    if (!trimmed) {
+      continue;
+    }
+
+    // 8. Standard Paragraph
+    blocks.push({ type: 'p', text: line });
+  }
+
+  if (inTable && tableLines.length > 0) {
+    parseAndPushTable(tableLines, blocks);
+  }
 
   return (
-    <div className="space-y-1.5 font-sans leading-relaxed">
-      {blocks.map((block, blockIdx) => {
-        if (block.startsWith('```') && block.endsWith('```')) {
-          // It is a code block
-          const lines = block.split('\n');
-          const codeLines = lines.slice(1, -1).join('\n');
-          return (
-            <pre 
-              key={`block-${blockIdx}`} 
-              className="p-3 bg-zinc-950 border border-zinc-850 text-zinc-300 font-mono text-[10px] rounded-md overflow-x-auto my-2"
-            >
-              <code>{codeLines}</code>
-            </pre>
-          );
-        }
-
-        // It is standard text blocks. Split by newlines.
-        const lines = block.split('\n');
-        return lines.map((line, lineIdx) => {
-          const trimmed = line.trim();
-
-          // Headers
-          if (trimmed.startsWith('### ')) {
+    <div className="space-y-3.5 font-sans leading-relaxed text-[12px] text-zinc-300">
+      {blocks.map((block, idx) => {
+        switch (block.type) {
+          case 'h1':
             return (
-              <h4 key={`h3-${blockIdx}-${lineIdx}`} className="text-xs font-bold text-white mt-3 mb-1 uppercase tracking-wider">
-                {renderInline(trimmed.slice(4))}
-              </h4>
-            );
-          }
-          if (trimmed.startsWith('## ')) {
-            return (
-              <h3 key={`h2-${blockIdx}-${lineIdx}`} className="text-sm font-bold text-white mt-4 mb-2">
-                {renderInline(trimmed.slice(3))}
-              </h3>
-            );
-          }
-          if (trimmed.startsWith('# ')) {
-            return (
-              <h2 key={`h1-${blockIdx}-${lineIdx}`} className="text-base font-bold text-white mt-5 mb-2">
-                {renderInline(trimmed.slice(2))}
+              <h2 key={idx} className="text-base font-bold text-white mt-4 mb-2">
+                {renderInline(block.text || '')}
               </h2>
             );
-          }
-
-          // Bullet point lists
-          if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+          case 'h2':
             return (
-              <div key={`bullet-${blockIdx}-${lineIdx}`} className="flex gap-2 pl-3 py-0.5">
-                <span className="text-zinc-500">•</span>
-                <span className="flex-1 text-zinc-300">{renderInline(trimmed.slice(2))}</span>
+              <h3 key={idx} className="text-sm font-bold text-white mt-3 mb-1.5">
+                {renderInline(block.text || '')}
+              </h3>
+            );
+          case 'h3':
+            return (
+              <h4 key={idx} className="text-xs font-bold text-zinc-200 uppercase tracking-wider mt-2.5 mb-1">
+                {renderInline(block.text || '')}
+              </h4>
+            );
+          case 'hr':
+            return <hr key={idx} className="border-t border-zinc-850 my-4" />;
+          case 'p':
+            return (
+              <p key={idx} className="text-zinc-300 leading-relaxed">
+                {renderInline(block.text || '')}
+              </p>
+            );
+          case 'blockquote':
+            return (
+              <blockquote key={idx} className="border-l-2 border-zinc-700 pl-3 italic text-zinc-400 bg-zinc-950/20 py-1.5 my-2.5 rounded-r">
+                {renderInline(block.text || '')}
+              </blockquote>
+            );
+          case 'code':
+            return (
+              <pre 
+                key={idx} 
+                className="p-3.5 bg-zinc-950 border border-zinc-855 text-zinc-350 font-mono text-[10px] rounded-md overflow-x-auto my-3 shadow-inner"
+              >
+                <code>{block.code}</code>
+              </pre>
+            );
+          case 'li': {
+            const indentStyle = { paddingLeft: `${(block.indent || 0) * 1.25 + 0.75}rem` };
+            return (
+              <div key={idx} className="flex gap-2 py-0.5" style={indentStyle}>
+                <span className="text-zinc-500 font-semibold select-none">
+                  {block.listType === 'ol' ? `${block.index || 1}.` : '•'}
+                </span>
+                <span className="flex-1 text-zinc-300">{renderInline(block.text || '')}</span>
               </div>
             );
           }
-
-          // Numbered lists
-          const matchNumbered = trimmed.match(/^(\d+)\.\s+(.*)$/);
-          if (matchNumbered) {
-            const num = matchNumbered[1];
-            const content = matchNumbered[2];
+          case 'table':
             return (
-              <div key={`number-${blockIdx}-${lineIdx}`} className="flex gap-2 pl-3 py-0.5">
-                <span className="text-zinc-500 font-mono">{num}.</span>
-                <span className="flex-1 text-zinc-300">{renderInline(content)}</span>
+              <div key={idx} className="my-4 overflow-x-auto border border-zinc-850 rounded-md">
+                <table className="w-full text-left border-collapse text-[11px] font-sans">
+                  <thead>
+                    <tr className="bg-zinc-900/60 border-b border-zinc-850 text-white font-semibold">
+                      {(block.headers || []).map((h, hIdx) => (
+                        <th key={hIdx} className="px-3.5 py-2.5">
+                          {renderInline(h)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(block.rows || []).map((row, rIdx) => (
+                      <tr 
+                        key={rIdx} 
+                        className="border-b border-zinc-850/60 last:border-0 hover:bg-zinc-950/30 text-zinc-300 transition-colors"
+                      >
+                        {row.map((cell, cIdx) => (
+                          <td key={cIdx} className="px-3.5 py-2">
+                            {renderInline(cell)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             );
-          }
-
-          // Render empty lines as micro-separators
-          if (!trimmed) {
-            return <div key={`empty-${blockIdx}-${lineIdx}`} className="h-1" />;
-          }
-
-          // Paragraph
-          return (
-            <p key={`p-${blockIdx}-${lineIdx}`} className="text-zinc-300">
-              {renderInline(line)}
-            </p>
-          );
-        });
+          default:
+            return null;
+        }
       })}
     </div>
   );

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deobfuscateEmail } from '@/lib/utils';
+import { prisma } from '@/lib/db';
+import { getOrganization } from '@/lib/org';
 
 // Rate limiter states
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
@@ -298,7 +300,7 @@ Currently, senior specialist utilization stands at **88%**, presenting a bottlen
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, query, context } = await request.json();
+    const { action, query, context, sessionId } = await request.json();
 
     // 1. Rate Limiting Check
     const ip = request.headers.get('x-forwarded-for') || 'anonymous';
@@ -316,15 +318,63 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const org = await getOrganization(request);
+    if (!org) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    }
+
+    let user = null;
+    if (cookieEmail) {
+      user = await prisma.user.findUnique({
+        where: { email: deobfuscateEmail(cookieEmail) }
+      });
+    }
+
+    let dbContextText = '';
+    if (org.aiSharingConsent) {
+      const [transactions, agencyLeads, invoices, expenses] = await Promise.all([
+        prisma.transaction.findMany({ where: { orgId: org.id }, take: 20 }),
+        prisma.agencyLead.findMany({ where: { orgId: org.id }, take: 20 }),
+        prisma.invoice.findMany({ where: { orgId: org.id }, take: 10 }),
+        prisma.expense.findMany({ where: { orgId: org.id }, take: 10 })
+      ]);
+      
+      dbContextText = `
+Here is the live workspace data retrieved from the PostgreSQL database (AI data sharing is explicitly enabled by the user):
+
+--- FINANCIAL DATA ---
+Transactions:
+${transactions.map(t => `- [${t.date.toISOString().split('T')[0]}] ${t.details}: ${org.currency} ${t.amount} (${t.type})`).join('\n') || 'No transactions recorded.'}
+
+Invoices:
+${invoices.map(i => `- Invoice ${i.invoiceNumber}: ${org.currency} ${i.amount} (${i.status})`).join('\n') || 'No invoices recorded.'}
+
+Expenses:
+${expenses.map(e => `- ${e.category} (${e.merchant}): ${org.currency} ${e.amount} (${e.status})`).join('\n') || 'No expenses recorded.'}
+
+--- AGENCY LEADS DATA ---
+Leads:
+${agencyLeads.map(l => `- ${l.fullName}: Status: ${l.status}, Email: ${l.email}`).join('\n') || 'No leads recorded.'}
+`;
+    } else {
+      dbContextText = `
+IMPORTANT RULE: The user has disabled AI data-sharing consent. You must NOT access, simulate, or output their actual business transaction lists, lead names, or other personal financial stats.
+Please reply in general terms. Advise them politely that they have disabled "Prism AI Analysis" in Settings > AI Settings & Data Privacy, and must enable it to get analysis of their live dashboard data.
+`;
+    }
+
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-    // Helper functions for API calls
-    const callGemini = async (prompt: string) => {
-      if (!geminiKey) return MOCK_REPLIES.dashboard;
+    // Helper functions 
+    const callGemini = async (prompt: string, customFallback?: string) => {
+      const fallback = customFallback !== undefined ? customFallback : (!org.aiSharingConsent
+        ? "Prism AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Prism AI Analysis' in Settings > AI Settings & Data Privacy."
+        : MOCK_REPLIES.dashboard);
+      if (!geminiKey) return fallback;
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -332,13 +382,13 @@ export async function POST(request: NextRequest) {
         });
         if (!res.ok) {
           console.warn(`Gemini API failed with status ${res.status}. Falling back to mock replies.`);
-          return MOCK_REPLIES.dashboard;
+          return fallback;
         }
         const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || MOCK_REPLIES.dashboard;
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || fallback;
       } catch (error) {
         console.error('Gemini API call exception. Falling back to mock replies:', error);
-        return MOCK_REPLIES.dashboard;
+        return fallback;
       }
     };
 
@@ -351,14 +401,18 @@ export async function POST(request: NextRequest) {
           const emailMatch = line.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
           if (emailMatch) {
             const email = emailMatch[0];
-            const namePart = line.split(email)[0].replace(/[,;"'\s\d\+]+$/, '').replace(/^[,;"'\s]+/, '').trim();
-            const phoneMatch = line.match(/[\+]?[0-9]{1,4}[-\s\./0-9]{7,15}/);
-            const phone = phoneMatch ? phoneMatch[0] : '';
+            const nameMatch = line.match(/^([a-zA-Z\s]+)\b/);
+            const name = nameMatch ? nameMatch[0].trim() : '';
+            const phoneMatch = line.match(/[\d-]{7,15}/);
+            const phone = phoneMatch ? phoneMatch[0] : null;
+            const roleMatch = line.match(/(Designer|Developer|Specialist|Lead|Manager|Architect|Consultant)/i);
+            const role = roleMatch ? roleMatch[0] : 'Member';
+            
             extracted.push({
-              name: namePart || 'Extracted Member',
-              email: email,
-              phone: phone || '+123456789',
-              role: 'Consultant',
+              name,
+              email,
+              phone,
+              role,
               utilization: 80,
               projects: 'None'
             });
@@ -372,9 +426,19 @@ export async function POST(request: NextRequest) {
             { name: 'Aditi Sharma', email: 'aditi@apex.co', phone: '+919988776644', role: 'UI/UX Specialist', utilization: 75, projects: 'Canva Design Hub' }
           ]);
         }
+      } else if (!org.aiSharingConsent) {
+        fallback = "Prism AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Prism AI Analysis' in Settings > AI Settings & Data Privacy.";
       }
 
-      if (!openaiKey) return fallback;
+      const executeGeminiFallback = async () => {
+        console.warn('ChatGPT API failed. Rerouting to Gemini...');
+        const combinedPrompt = `System instructions: ${systemPrompt}\n\nUser request: ${userPrompt}`;
+        return await callGemini(combinedPrompt, fallback);
+      };
+
+      if (!openaiKey) {
+        return await executeGeminiFallback();
+      }
       try {
         const url = 'https://api.openai.com/v1/chat/completions';
         const res = await fetch(url, {
@@ -384,7 +448,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'gpt-5.2',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
@@ -393,19 +457,22 @@ export async function POST(request: NextRequest) {
           })
         });
         if (!res.ok) {
-          console.warn(`ChatGPT API failed with status ${res.status}. Falling back to mock replies.`);
-          return fallback;
+          console.warn(`ChatGPT API failed with status ${res.status}.`);
+          return await executeGeminiFallback();
         }
         const data = await res.json();
-        return data.choices?.[0]?.message?.content || fallback;
+        return data.choices?.[0]?.message?.content || await executeGeminiFallback();
       } catch (error) {
-        console.error('ChatGPT API call exception. Falling back to mock replies:', error);
-        return fallback;
+        console.error('ChatGPT API call exception:', error);
+        return await executeGeminiFallback();
       }
     };
 
     const callClaude = async (systemPrompt: string, userPrompt: string) => {
-      if (!anthropicKey) return MOCK_REPLIES.askGeneral(userPrompt);
+      const fallback = !org.aiSharingConsent
+        ? "Prism AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Prism AI Analysis' in Settings > AI Settings & Data Privacy."
+        : MOCK_REPLIES.askGeneral(userPrompt);
+      if (!anthropicKey) return fallback;
       try {
         const url = 'https://api.anthropic.com/v1/messages';
         const res = await fetch(url, {
@@ -416,7 +483,7 @@ export async function POST(request: NextRequest) {
             'content-type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-opus-4-6',
             max_tokens: 1024,
             messages: [{ role: 'user', content: userPrompt }],
             system: systemPrompt
@@ -424,13 +491,13 @@ export async function POST(request: NextRequest) {
         });
         if (!res.ok) {
           console.warn(`Claude API failed with status ${res.status}. Falling back to mock replies.`);
-          return MOCK_REPLIES.askGeneral(userPrompt);
+          return fallback;
         }
         const data = await res.json();
-        return data.content?.[0]?.text || MOCK_REPLIES.askGeneral(userPrompt);
+        return data.content?.[0]?.text || fallback;
       } catch (error) {
         console.error('Claude API call exception. Falling back to mock replies:', error);
-        return MOCK_REPLIES.askGeneral(userPrompt);
+        return fallback;
       }
     };
 
@@ -440,34 +507,41 @@ export async function POST(request: NextRequest) {
       case 'dashboard-summary': {
         const prompt = `You are Prism AI inside Iris OS, a premium executive command center.
         Review this operational status and write a short, executive brief (max 3 sentences) summarizing organization performance.
-        Rule: Address the user as "Lohith" first. Do not use markdown format tags except bolding.
-        Context: ${JSON.stringify(context || {})}`;
+        Rule: Do not use markdown format tags except bolding.
+        Context: ${JSON.stringify(context || {})}
+        
+        ${dbContextText}`;
         const output = await callGemini(prompt);
         return NextResponse.json({ result: output, model: 'Prism AI' });
       }
       
       case 'reporting-brief': {
-        const prompt = `You are Prism AI. Write an executive performance report brief (max 4 sentences) for Lohith.
+        const prompt = `You are Prism AI. Write an executive performance report brief (max 4 sentences).
         Summarize client delivery ratings, financial progress, and automated compliance schedule checks.
-        Rule: Always call out "Lohith" at the start.
-        Context: ${JSON.stringify(context || {})}`;
+        Context: ${JSON.stringify(context || {})}
+        
+        ${dbContextText}`;
         const output = await callGemini(prompt);
         return NextResponse.json({ result: output, model: 'Prism AI' });
       }
 
       // 2. Mid-Level AI: ChatGPT (financial analysis, forecasting, profit leaks)
       case 'finance-analysis': {
-        const systemPrompt = 'You are Prism AI inside Iris OS. You are an expert financial consultant for agencies. Always start your response addressing the user as "Lohith".';
+        const systemPrompt = 'You are Prism AI inside Iris OS. You are an expert financial consultant for agencies.';
         const userPrompt = `Audit these ledger billing details and contractor allocations to highlight profit leaks:
-        Context: ${JSON.stringify(context || {})}`;
+        Context: ${JSON.stringify(context || {})}
+        
+        ${dbContextText}`;
         const output = await callChatGPT(systemPrompt, userPrompt);
         return NextResponse.json({ result: output, model: 'Prism AI' });
       }
 
       case 'forecasting': {
-        const systemPrompt = 'You are Prism AI inside Iris OS. You run rolling projections and predictive models. Always start your response addressing the user as "Lohith".';
+        const systemPrompt = 'You are Prism AI inside Iris OS. You run rolling projections and predictive models.';
         const userPrompt = `Calculate Q3 gross billings projections and cash flow capacity from this financial data:
-        Context: ${JSON.stringify(context || {})}`;
+        Context: ${JSON.stringify(context || {})}
+        
+        ${dbContextText}`;
         const output = await callChatGPT(systemPrompt, userPrompt);
         return NextResponse.json({ result: output, model: 'Prism AI' });
       }
@@ -511,17 +585,19 @@ export async function POST(request: NextRequest) {
         let output = '';
         if (delegatedModel === 'Gemini') {
           const prompt = `You are Prism AI, the data retrieval and dashboards overview engine for Iris OS.
-          Start your response addressing the user as "Lohith". Focus on quick metrics overview, database records, and reasoning-free summaries.
+          Focus on quick metrics overview, database records, and reasoning-free summaries.
           Query: ${query}
-          Context: ${JSON.stringify(context || {})}`;
+          Context: ${JSON.stringify(context || {})}
+          
+          ${dbContextText}`;
           output = await callGemini(prompt);
         } else if (delegatedModel === 'ChatGPT') {
-          const systemPrompt = 'You are Prism AI, the financial and data forecasting intelligence for Iris OS. Always start your response addressing the user as "Lohith". Focus on contractor rate analysis, SaaS cost leak audits, numerical calculations, and cash flow projections.';
-          const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}`;
+          const systemPrompt = 'You are Prism AI, the financial and data forecasting intelligence for Iris OS. Focus on contractor rate analysis, SaaS cost leak audits, numerical calculations, and cash flow projections.';
+          const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}\n\n${dbContextText}`;
           output = await callChatGPT(systemPrompt, userPrompt);
         } else {
-          const systemPrompt = 'You are Prism AI, the senior strategies counselor and cognitive planning assistant for Iris OS. Always start your response addressing the user as "Lohith". Focus on campaign optimizations, team structure risk mitigations, planning checklists, and deep logical reasoning.';
-          const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}`;
+          const systemPrompt = 'You are Prism AI, the senior strategies counselor and cognitive planning assistant for Iris OS. Focus on campaign optimizations, team structure risk mitigations, planning checklists, and deep logical reasoning.';
+          const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}\n\n${dbContextText}`;
           output = await callClaude(systemPrompt, userPrompt);
         }
 
@@ -536,29 +612,69 @@ export async function POST(request: NextRequest) {
         );
 
         if (isMockResponse) {
-          output = generateDynamicFallback(delegatedModel, query, context);
+          if (!org.aiSharingConsent) {
+            output = "Prism AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Prism AI Analysis' in Settings > AI Settings & Data Privacy.";
+          } else {
+            output = generateDynamicFallback(delegatedModel, query, context);
+          }
         }
 
-        return NextResponse.json({ result: output, model: 'Prism AI' });
+        let currentSessionId = sessionId;
+        if (user && action === 'ask-prism') {
+          if (!currentSessionId) {
+            const title = query.length > 30 ? query.substring(0, 30) + '...' : query || 'New Chat';
+            const newSession = await prisma.prismChatSession.create({
+              data: {
+                title,
+                userId: user.id
+              }
+            });
+            currentSessionId = newSession.id;
+          }
+          
+          await prisma.askPrismMessage.create({
+            data: {
+              role: 'user',
+              content: query || '',
+              userId: user.id,
+              sessionId: currentSessionId
+            }
+          });
+          
+          await prisma.askPrismMessage.create({
+            data: {
+              role: 'assistant',
+              content: output || '',
+              userId: user.id,
+              sessionId: currentSessionId
+            }
+          });
+        }
+
+        return NextResponse.json({ result: output, model: 'Prism AI', sessionId: currentSessionId });
       }
 
       case 'operations-advice': {
-        const systemPrompt = 'You are Prism AI, the senior strategy counselor for Iris OS. You deliver precise operations advise. Always address "Lohith" at the start of your message.';
+        const systemPrompt = 'You are Prism AI, the senior strategy counselor for Iris OS. You deliver precise operations advice.';
         const userPrompt = `Give strategic project capacity advice or risk mitigation tips based on this team workload data:
-        Context: ${JSON.stringify(context || {})}`;
+        Context: ${JSON.stringify(context || {})}
+        
+        ${dbContextText}`;
         const output = await callClaude(systemPrompt, userPrompt);
         return NextResponse.json({ result: output, model: 'Prism AI' });
       }
 
       case 'meta-strategy': {
-        const systemPrompt = 'You are Prism AI, the senior strategies counselor for Meta campaigns. Always start your response addressing the user as "Lohith". Focus on optimizing Meta Ad performance, improving cost-per-lead, and maximizing ad reach and lead conversion rates.';
-        const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}`;
+        const systemPrompt = 'You are Prism AI, the senior strategies counselor for Meta campaigns. Focus on optimizing Meta Ad performance, improving cost-per-lead, and maximizing ad reach and lead conversion rates.';
+        const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}\n\n${dbContextText}`;
         
         let output = '';
         if (anthropicKey) {
           output = await callClaude(systemPrompt, userPrompt);
         } else {
-          output = MOCK_REPLIES.metaStrategy(context);
+          output = !org.aiSharingConsent
+            ? "Prism AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Prism AI Analysis' in Settings > AI Settings & Data Privacy."
+            : MOCK_REPLIES.metaStrategy(context);
         }
         return NextResponse.json({ result: output, model: 'Prism AI' });
       }

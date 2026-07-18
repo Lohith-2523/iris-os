@@ -60,6 +60,7 @@ function ScrollReveal({ children, delay = '0s', className = '', id = '', style =
 // ─── Header ───────────────────────────────────────────────────────────────────
 function Header() {
   const [scrolled, setScrolled] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20)
@@ -75,24 +76,12 @@ function Header() {
 
   return (
     <header
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        padding: '16px 24px',
-        transition: 'all 0.3s ease',
-      }}
+      className="fixed top-0 left-0 right-0 z-50 px-3 py-3 md:px-6 md:py-4 transition-all duration-300 ease-in-out"
     >
       <div
+        className="mx-auto flex items-center justify-between px-3 py-2 md:px-5 md:py-3 transition-all duration-300 ease-in-out"
         style={{
           maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 20px 12px 16px',
           background: scrolled ? '#111111' : 'rgba(17,17,17,0.6)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -100,25 +89,19 @@ function Header() {
           boxShadow: scrolled
             ? '8px 8px 18px #040404, -8px -8px 18px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.05)'
             : '0 0 0 1px rgba(255,255,255,0.05)',
-          transition: 'all 0.3s ease',
         }}
       >
         {/* Logo — imported PNG wordmark */}
-        <a href="#" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+        <a href="#" className="flex items-center no-underline">
           <img
             src={irisLogo}
             alt="Iris OS"
-            style={{
-              height: '36px',
-              width: 'auto',
-              objectFit: 'contain',
-              display: 'block',
-            }}
+            className="h-7 md:h-9 w-auto object-contain block"
           />
         </a>
 
         {/* Nav */}
-        <nav style={{ display: 'flex', gap: '4px' }}>
+        <nav className="hidden md:flex" style={{ gap: '4px' }}>
           {navLinks.map((link) => (
             <a
               key={link.label}
@@ -150,7 +133,7 @@ function Header() {
         {/* CTA */}
         <Link
           href="/waitlist"
-          className="neo-button-accent"
+          className="neo-button-accent hidden md:inline-block"
           style={{
             fontFamily: BODY,
             fontWeight: 600,
@@ -160,12 +143,75 @@ function Header() {
             cursor: 'pointer',
             letterSpacing: '0.01em',
             textDecoration: 'none',
-            display: 'inline-block',
             color: '#0a0a0a',
           }}
         >
           Join the Waitlist
         </Link>
+
+        {/* Mobile Menu Hamburger Button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="flex md:hidden text-zinc-300 hover:text-white p-1.5 rounded-full hover:bg-white/5 cursor-pointer"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden cursor-pointer"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Drawer Panel */}
+      <div
+        className={`fixed top-0 right-0 bottom-0 z-50 w-64 bg-[#111] p-6 border-l border-zinc-800 transition-transform duration-300 ease-in-out md:hidden flex flex-col justify-between ${
+          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div>
+          <div className="flex justify-between items-center mb-8 pb-4 border-b border-zinc-900">
+            <img src={irisLogo} alt="Iris OS" className="h-8 w-auto object-contain" />
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/5 cursor-pointer"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <nav className="flex flex-col gap-2">
+            {navLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-zinc-300 hover:text-white hover:bg-white/5 px-4 py-2.5 rounded-lg text-base font-semibold transition-colors"
+                style={{ fontFamily: BODY }}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+
+        <div className="pt-6 border-t border-zinc-900">
+          <Link
+            href="/waitlist"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="neo-button-accent w-full text-center py-3.5 block font-semibold text-sm cursor-pointer"
+            style={{ fontFamily: BODY, textDecoration: 'none', color: '#0a0a0a' }}
+          >
+            Join the Waitlist
+          </Link>
+        </div>
       </div>
     </header>
   )
@@ -562,7 +608,7 @@ function About() {
         </div>
 
         {/* Stat grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {stats.map((s) => (
             <div key={s.value} className="neo-raised" style={{ padding: '32px 24px' }}>
               <div
@@ -732,7 +778,7 @@ function DetailCard({
 }: {
   wedge: typeof WEDGES[0] | null;
   visible: boolean;
-  side: 'left' | 'right';
+  side: 'left' | 'right' | 'bottom';
   targetId: string;
 }) {
   const [displayWedge, setDisplayWedge] = useState<typeof WEDGES[0] | null>(wedge);
@@ -762,27 +808,33 @@ function DetailCard({
         position: 'relative',
         opacity: visible ? 1 : 0,
         transform: visible
-          ? 'translateX(0)'
-          : side === 'left' ? 'translateX(-30px)' : 'translateX(30px)',
+          ? 'none'
+          : side === 'left'
+          ? 'translateX(-30px)'
+          : side === 'right'
+          ? 'translateX(30px)'
+          : 'translateY(20px)',
         transition: 'opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         pointerEvents: visible ? 'auto' : 'none',
       }}
     >
       {/* Target anchor point for the line */}
-      <div
-        id={targetId}
-        style={{
-          position: 'absolute',
-          top: '50%',
-          [targetId === 'left-card-target' ? 'right' : 'left']: '-6px',
-          transform: 'translateY(-50%)',
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          background: '#ffffff',
-          boxShadow: '0 0 8px #ffffff',
-        }}
-      />
+      {side !== 'bottom' && (
+        <div
+          id={targetId}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            [targetId === 'left-card-target' ? 'right' : 'left']: '-6px',
+            transform: 'translateY(-50%)',
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            background: '#ffffff',
+            boxShadow: '0 0 8px #ffffff',
+          }}
+        />
+      )}
 
       <div
         style={{
@@ -1043,12 +1095,8 @@ function Features() {
       <ScrollReveal
         id="iris-section-container"
         delay="0.2s"
+        className="flex flex-col lg:flex-row items-center justify-center gap-10"
         style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '40px',
           position: 'relative',
           maxWidth: '1300px',
           margin: '0 auto',
@@ -1059,6 +1107,7 @@ function Features() {
         
         {/* Left Side — displays active detail card if left wedge is clicked */}
         <div
+          className="hidden lg:block"
           style={{
             width: activeWedge !== null && activeWedge >= 3 ? '360px' : '0px',
             flexShrink: 0,
@@ -1231,8 +1280,21 @@ function Features() {
         </div>
       </div>
 
+      {/* Mobile-only Detail Card Container (Visible on mobile/tablet below the eye) */}
+      {activeWedge !== null && (
+        <div className="block lg:hidden w-full max-w-[90vw] sm:max-w-md mx-auto mt-6 z-10">
+          <DetailCard
+            wedge={WEDGES[activeWedge]}
+            visible={true}
+            side="bottom"
+            targetId="mobile-card-target"
+          />
+        </div>
+      )}
+
         {/* Right Side — displays active detail card if right wedge is clicked */}
         <div
+          className="hidden lg:block"
           style={{
             width: activeWedge !== null && activeWedge < 3 ? '360px' : '0px',
             flexShrink: 0,

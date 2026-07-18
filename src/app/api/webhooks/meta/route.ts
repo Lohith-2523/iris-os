@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import crypto from 'crypto';
+import { getOrganization } from '@/lib/org';
 
 // Verify Meta Hub signature
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     const { object: webhookObject, entry: entries = [] } = body;
 
-    const org = await prisma.organization.findFirst();
+    const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }

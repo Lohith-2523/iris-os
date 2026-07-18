@@ -19,6 +19,8 @@ import {
   ArrowDown,
   Edit2
 } from 'lucide-react';
+import { ExpandableCard } from '@/components/ui/expandable-card';
+import { formatCurrency, cn } from '@/lib/utils';
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -26,6 +28,8 @@ export default function ProjectsPage() {
   const [clients, setClients] = React.useState<any[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [expandedClientId, setExpandedClientId] = React.useState<string | null>(null);
+  const gridRef = React.useRef<HTMLDivElement>(null);
 
   // Detail Drawer State
   const [selectedProject, setSelectedProject] = React.useState<any | null>(null);
@@ -357,6 +361,54 @@ export default function ProjectsPage() {
     return { total, active, hold, budgetSum, highRisk };
   }, [projects]);
 
+  const getAccentColorStyle = React.useCallback((clientId: string) => {
+    const palette = [
+      "hsl(270, 95%, 60%)", // Extreme Violet
+      "hsl(245, 95%, 58%)", // Violet-Blue / Indigo
+      "hsl(220, 95%, 58%)", // Royal Blue
+      "hsl(195, 95%, 55%)", // Cyan / Sky Blue
+      "hsl(170, 95%, 52%)", // Teal / Turquoise
+      "hsl(145, 95%, 50%)", // Spring Green
+      "hsl(120, 95%, 48%)", // Emerald Green
+      "hsl(95, 95%, 50%)",  // Lime Green
+      "hsl(70, 95%, 52%)",  // Yellow-Green / Yellow
+      "hsl(45, 95%, 55%)",  // Amber / Orange
+      "hsl(20, 95%, 58%)",  // Coral / Red-Orange
+      "hsl(0, 95%, 60%)"     // Extreme Red
+    ];
+    let hash = 0;
+    for (let i = 0; i < clientId.length; i++) {
+      hash = clientId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % palette.length;
+    return palette[index];
+  }, []);
+
+  const sortedClients = React.useMemo(() => {
+    if (!expandedClientId) return clients;
+    const expanded = clients.find(c => c.id === expandedClientId);
+    if (!expanded) return clients;
+    const rest = clients.filter(c => c.id !== expandedClientId);
+    return [expanded, ...rest];
+  }, [clients, expandedClientId]);
+
+  React.useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (expandedClientId && gridRef.current && !gridRef.current.contains(e.target as Node)) {
+        const target = e.target as HTMLElement;
+        if (target.closest('[role="dialog"]') || target.closest('.fixed')) {
+          return;
+        }
+        setExpandedClientId(null);
+      }
+    };
+
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [expandedClientId]);
+
   return (
     <div className="space-y-6 font-sans text-xs">
       {/* Top Banner Row */}
@@ -426,109 +478,203 @@ export default function ProjectsPage() {
         </Card>
       </div>
 
-      {/* Project Grid */}
+      {/* Client Portfolio Cards */}
       {loading ? (
         <div className="p-12 text-center text-zinc-500 flex items-center justify-center gap-2">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Synchronizing program desk...</span>
         </div>
-      ) : projects.length === 0 ? (
-        <div className="p-12 border border-dashed border-zinc-850 text-center text-zinc-650 italic">
-          No projects initialized. Click "New Project" to onboard your first campaign.
+      ) : clients.length === 0 ? (
+        <div className="p-12 border border-dashed border-zinc-850 text-center text-zinc-650 italic rounded-xl">
+          No clients onboarded. Click "New Project" or onboard clients first.
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
-          {projects.map((proj) => {
-            const completedTasks = proj.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0;
-            const totalTasks = proj.tasks?.length || 0;
-            const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
+        <div ref={gridRef} className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          {sortedClients.map((client) => {
+            const isExpanded = expandedClientId === client.id;
+            const clientProjects = projects.filter(p => p.clientId === client.id);
+            
             return (
-              <Card key={proj.id} className="hover:border-zinc-800 transition-colors flex flex-col justify-between">
-                <CardHeader className="pb-3 border-b border-zinc-900 flex flex-row justify-between items-start">
-                  <div>
-                    <CardTitle className="text-xs font-bold text-white tracking-wide">{proj.name}</CardTitle>
-                    <CardDescription className="text-[9px] text-zinc-500 mt-1 font-semibold uppercase">{proj.client?.name}</CardDescription>
-                  </div>
-                  <div className="flex flex-col gap-1.5 items-end">
-                    <Badge variant={proj.status === 'COMPLETED' ? 'risk-low' : proj.status === 'OVERDUE' || proj.status === 'ON_HOLD' ? 'risk-high' : 'outline'} className="text-[8px] uppercase font-bold rounded-none">
-                      {proj.status}
-                    </Badge>
-                    <Badge variant={proj.riskLevel === 'HIGH' ? 'risk-high' : proj.riskLevel === 'MEDIUM' ? 'risk-medium' : 'risk-low'} className="text-[8px] uppercase font-bold rounded-none">
-                      {proj.riskLevel} Risk
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-4 flex-1">
-                  <div className="grid grid-cols-2 gap-2 text-[10px] text-zinc-400">
-                    <div>
-                      <span className="block text-[8px] text-zinc-600 uppercase font-bold">Service focus</span>
-                      <span className="font-semibold text-zinc-300">{proj.serviceLine || 'Paid Ads'}</span>
-                    </div>
-                    <div>
-                      <span className="block text-[8px] text-zinc-600 uppercase font-bold">Budget Allocated</span>
-                      <span className="font-mono text-zinc-350">${(proj.budget || 0).toLocaleString()}</span>
-                    </div>
-                    <div className="col-span-2 pt-1">
-                      <span className="block text-[8px] text-zinc-600 uppercase font-bold">Timeline range</span>
-                      <span className="font-semibold text-zinc-350">{proj.timeline || 'N/A'}</span>
-                    </div>
-                  </div>
+              <Card 
+                key={client.id} 
+                onClick={() => {
+                  if (!isExpanded) {
+                    setExpandedClientId(client.id);
+                  }
+                }}
+                style={{ borderLeftColor: getAccentColorStyle(client.id) }}
+                className={cn(
+                  "transition-all duration-300 flex flex-col justify-between border border-zinc-800/80 border-l-8 overflow-hidden relative shadow-lg",
+                  isExpanded 
+                    ? "col-span-1 md:col-span-2 row-span-2 h-[440px] bg-zinc-900/50" 
+                    : "col-span-1 h-[212px] bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer hover:border-zinc-750/80 hover:scale-[1.01] hover:shadow-indigo-500/5"
+                )}
+              >
+                {isExpanded ? (
+                  /* EXPANDED VIEW */
+                  <div className="p-6 flex flex-col h-full relative" onClick={(e) => e.stopPropagation()}>
+                    {/* Close button */}
+                    <button
+                      onClick={() => setExpandedClientId(null)}
+                      className="absolute top-4 right-4 z-10 p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
 
-                  {/* Task Progress */}
-                  <div className="space-y-1.5 pt-1 border-t border-zinc-900/60">
-                    <div className="flex justify-between text-[9px] text-zinc-500">
-                      <span>Tasks Complete</span>
-                      <span className="font-mono font-semibold">{completedTasks} / {totalTasks} ({progressPercent}%)</span>
+                    <div className="pb-3 border-b border-zinc-800 flex justify-between items-start pr-8">
+                      <div>
+                        <h2 className="text-xl font-black text-white tracking-tighter leading-tight">{client.name}</h2>
+                        <p className="text-[9px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{client.domain || 'No Domain Listed'}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[8px] uppercase font-bold rounded-md">
+                          {client.status}
+                        </Badge>
+                        <Badge variant={client.healthStatus === 'EXCELLENT' || client.healthStatus === 'GOOD' ? 'risk-low' : 'risk-high'} className="text-[8px] uppercase font-bold rounded-md">
+                          Health: {client.healthStatus} ({client.healthScore}%)
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="h-1 bg-zinc-900 overflow-hidden w-full">
-                      <div
-                        style={{ width: `${progressPercent}%` }}
-                        className={`h-full ${proj.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-white'}`}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Allocated Specialists avatars */}
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-[8px] text-zinc-600 uppercase font-bold">Staff allocated</span>
-                    <div className="flex -space-x-1.5 overflow-hidden">
-                      {proj.members?.map((m: any) => (
-                        <div
-                          key={m.id}
-                          title={`${m.user?.name} (${m.user?.role})`}
-                          className="h-5.5 w-5.5 rounded-full border border-zinc-950 bg-zinc-900 flex items-center justify-center text-[8px] font-bold text-zinc-300 uppercase shrink-0"
-                        >
-                          {m.user?.name[0]}
+                    <div className="space-y-3.5 flex-1 overflow-y-auto pr-2 mt-4 scrollbar-none">
+                      {clientProjects.length === 0 ? (
+                        <div className="py-12 border border-dashed border-zinc-850 text-center text-zinc-650 italic rounded-xl bg-zinc-900/10">
+                          No campaigns/projects initiated yet. Click "New Project" to create one.
                         </div>
-                      ))}
-                      {(!proj.members || proj.members.length === 0) && (
-                        <span className="text-[9px] text-zinc-650 italic">None</span>
+                      ) : (
+                        clientProjects.map((proj) => {
+                          const completedTasks = proj.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0;
+                          const totalTasks = proj.tasks?.length || 0;
+                          const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                          return (
+                            <div 
+                              key={proj.id} 
+                              className="border border-zinc-800/80 bg-zinc-900/40 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-zinc-900/60 transition-all duration-200"
+                            >
+                              <div className="space-y-1.5 flex-1 min-w-[200px]">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs font-bold text-white tracking-wide">{proj.name}</h4>
+                                  <Badge variant={proj.status === 'COMPLETED' ? 'risk-low' : proj.status === 'OVERDUE' || proj.status === 'ON_HOLD' ? 'risk-high' : 'outline'} className="text-[8px] uppercase font-bold rounded-md">
+                                    {proj.status}
+                                  </Badge>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 text-[9.5px] text-zinc-400">
+                                  <div>
+                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">Service Focus</span>
+                                    <span className="font-semibold text-zinc-300">{proj.serviceLine || 'Paid Ads'}</span>
+                                  </div>
+                                  <div>
+                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">Retainer Info</span>
+                                    <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(proj.budget || 0)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">Timeline</span>
+                                    <span className="font-semibold text-zinc-300">{proj.timeline || 'N/A'}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="w-full md:w-48 space-y-1">
+                                <div className="flex justify-between text-[8.5px] text-zinc-500">
+                                  <span>Tasks Complete</span>
+                                  <span className="font-mono font-semibold">{completedTasks} / {totalTasks} ({progressPercent}%)</span>
+                                </div>
+                                <div className="h-1 bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-900">
+                                  <div
+                                    style={{ width: `${progressPercent}%` }}
+                                    className={`h-full rounded-full transition-all duration-300 ${proj.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0">
+                                <Button
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedProject(proj);
+                                  }}
+                                  className="flex-1 md:flex-initial h-7 px-3 border-zinc-800 text-zinc-300 text-[10px] rounded-md hover:text-white"
+                                >
+                                  View Details
+                                </Button>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/tasks?projectId=${proj.id}`);
+                                  }}
+                                  className="flex-1 md:flex-initial h-7 px-3 bg-white text-zinc-950 hover:bg-zinc-200 text-[10px] rounded-md font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                                >
+                                  <span>Manage Tasks</span>
+                                  <ArrowRight className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
-                </CardContent>
+                ) : (
+                  /* COLLAPSED VIEW */
+                  <div className="p-5 flex flex-col justify-between h-full space-y-4">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2 pt-2">
+                      <h3 className="text-xl font-black text-white tracking-tighter leading-tight select-none px-2 max-w-full truncate" title={client.name}>
+                        {client.name}
+                      </h3>
+                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block truncate max-w-full">
+                        {client.domain || 'No Domain'}
+                      </span>
+                      <div className="flex gap-1.5 justify-center mt-1 select-none">
+                        <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[7.5px] uppercase font-bold rounded-md">
+                          {client.status}
+                        </Badge>
+                        <Badge variant={client.healthStatus === 'EXCELLENT' || client.healthStatus === 'GOOD' ? 'risk-low' : 'risk-high'} className="text-[7.5px] uppercase font-bold rounded-md">
+                          {client.healthStatus}
+                        </Badge>
+                      </div>
+                    </div>
 
-                {/* Card Actions */}
-                <div className="border-t border-zinc-900 p-3 bg-zinc-950/20 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedProject(proj)}
-                    className="flex-1 h-7 border-zinc-800 text-zinc-300 text-[10px] rounded-none hover:text-white"
-                  >
-                    View Details
-                  </Button>
-                  <Button
-                    onClick={() => router.push(`/tasks?projectId=${proj.id}`)}
-                    className="flex-1 h-7 bg-white text-zinc-950 hover:bg-zinc-200 text-[10px] rounded-none font-semibold flex items-center justify-center gap-1"
-                  >
-                    <span>Manage Tasks</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </div>
+                    <div className="space-y-1.5">
+                      <div className="pt-2 border-t border-zinc-900/60 flex justify-between text-[9.5px] text-zinc-400">
+                        <span>Active Campaigns:</span>
+                        <span className="font-semibold text-white font-mono">{clientProjects.length}</span>
+                      </div>
+                      {clientProjects.length > 0 && (
+                        <div className="flex justify-between items-center text-[9.5px] text-zinc-455">
+                          <span>Focus:</span>
+                          <span className="bg-zinc-955 border border-zinc-850 px-1.5 py-0.5 rounded text-[7.5px] text-zinc-300 font-mono uppercase truncate max-w-[140px]">
+                            {clientProjects[0].serviceLine || 'Paid Ads'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9px] text-zinc-550 pt-2 border-t border-zinc-900/40 select-none">
+                      <span>Click to expand campaigns</span>
+                      <ArrowRight className="h-3.5 w-3.5 text-zinc-400 animate-pulse" />
+                    </div>
+                  </div>
+                )}
               </Card>
             );
           })}
+
+          {/* Render placeholder cards to fill grid slots when expanded */}
+          {expandedClientId && sortedClients.length < 3 && (
+            Array.from({ length: 3 - sortedClients.length }).map((_, idx) => (
+              <Card 
+                key={`placeholder-${idx}`}
+                onClick={() => router.push('/clients/onboard')}
+                className="col-span-1 h-[212px] border border-dashed border-zinc-800/80 bg-zinc-900/5 hover:bg-zinc-900/10 flex flex-col items-center justify-center text-center p-6 rounded-2xl cursor-pointer hover:border-zinc-700 transition-all duration-300"
+              >
+                <Plus className="h-5 w-5 text-zinc-500 mb-2" />
+                <h4 className="text-[10px] font-bold text-white uppercase tracking-wider">Onboard New Client</h4>
+                <p className="text-[9px] text-zinc-500 mt-1 max-w-[180px]">Add another client account to manage campaigns.</p>
+              </Card>
+            ))
+          )}
         </div>
       )}
 

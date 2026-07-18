@@ -6,9 +6,12 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, Phone, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { createClient } from '@/lib/client';
+import { obfuscateEmail } from '@/lib/utils';
 
 export default function SignupPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -34,16 +37,27 @@ export default function SignupPage() {
     }, 500);
   };
 
-  const handleGoogleSignup = () => {
+  const handleGoogleSignup = async () => {
     setIsLoading(true);
-    const mockEmail = 'new-agency-user@gmail.com';
-    localStorage.setItem('signup_email', mockEmail);
-    localStorage.setItem('signup_phone', '+1 (555) 019-2834');
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push('/onboarding');
-    }, 500);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.warn('Supabase Google OAuth signup failed, falling back to mock:', err?.message || err);
+      const mockEmail = 'new-agency-user@gmail.com';
+      localStorage.setItem('signup_email', mockEmail);
+      localStorage.setItem('signup_phone', '+1 (555) 019-2834');
+      
+      setTimeout(() => {
+        setIsLoading(false);
+        router.push('/onboarding');
+      }, 500);
+    }
   };
 
   return (

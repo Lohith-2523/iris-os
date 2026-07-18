@@ -561,7 +561,8 @@ export default function TermsOfServicePage() {
               {[
                 'You warrant that you hold sufficient administrative permissions to connect these data endpoints.',
                 'You authorize Iris OS to retrieve and store connection tokens required to sync files and performance metrics.',
-                'You acknowledge that company connections are governed by third-party developer policies, and Shards Media is not responsible for API outages or service termination on external platforms.'
+                'You acknowledge that company connections are governed by third-party developer policies, and Shards Media is not responsible for API outages or service termination on external platforms.',
+                'You retain the right to terminate third-party API connections at any time. For Meta integrations, you can deauthorize the application or initiate user data deletion request flows to purge all campaign, ad, and lead records from active databases.'
               ].map((item, idx) => (
                 <li
                   key={idx}
@@ -579,6 +580,63 @@ export default function TermsOfServicePage() {
           </section>
 
           {/* Section 5 */}
+          <section
+            id="prism-ai"
+            className="neo-raised"
+            style={{
+              padding: '32px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: '#e8e8e8',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                paddingBottom: '12px',
+                margin: 0,
+              }}
+            >
+              5. Prism AI Processing & Optional Data-Sharing
+            </h2>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              Iris OS contains AI-powered analysis features (&quot;Prism AI&quot;) that utilize external language models (including Google Gemini, OpenAI ChatGPT, and Claude) to analyze your manual cost ledgers and agency leads.
+            </p>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                'Opt-In Consent: By default, database records are not shared with AI models. You must explicitly opt-in to enable Prism AI analysis of your financial transactions and leads database.',
+                'Control & Revocation: You can decline this sharing or instantly revoke/decline access at any time via Settings > AI Settings & Data Privacy.',
+                'Fallback Mode: If consent is disabled or revoked, Prism AI automatically shifts to a general reasoning mode without accessing your live transaction tables or lead databases.'
+              ].map((item, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* Section 6 */}
           <section
             id="acceptable-use"
             className="neo-raised"
@@ -601,7 +659,7 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              5. Platform Acceptable Use & Intellectual Property
+              6. Platform Acceptable Use & Intellectual Property
             </h2>
             <p
               style={{
@@ -619,7 +677,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
-          {/* Section 6 */}
+          {/* Section 7 */}
           <section
             id="liability"
             className="neo-raised"
@@ -642,7 +700,7 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              6. Limitation of Liability
+              7. Limitation of Liability
             </h2>
             <p
               style={{
@@ -659,7 +717,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
-          {/* Section 7 */}
+          {/* Section 8 */}
           <section
             id="governing-law"
             className="neo-raised"
@@ -682,7 +740,7 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              7. Governing Law & Dispute Resolution
+              8. Governing Law & Dispute Resolution
             </h2>
             <p
               style={{
@@ -699,7 +757,7 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
-          {/* Section 8 */}
+          {/* Section 9 */}
           <section
             id="contact"
             className="neo-raised"
@@ -722,7 +780,7 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              8. Legal Contact Information
+              9. Legal Contact Information
             </h2>
             <p
               style={{

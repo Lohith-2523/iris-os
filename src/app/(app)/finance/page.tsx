@@ -75,6 +75,159 @@ export default function FinancePage() {
   const [formCategory, setFormCategory] = React.useState('Expense');
   const [timeFrame, setTimeFrame] = React.useState('All Time');
 
+  // Recurring Subscription States
+  const [subscriptions, setSubscriptions] = React.useState<any[]>([]);
+  const [loadingSubs, setLoadingSubs] = React.useState(false);
+  const [subName, setSubName] = React.useState('');
+  const [subAmount, setSubAmount] = React.useState('');
+  const [subCategory, setSubCategory] = React.useState('AI subscriptions');
+  const [subFrequency, setSubFrequency] = React.useState('monthly');
+  const [subStartDate, setSubStartDate] = React.useState('');
+  const [editingSub, setEditingSub] = React.useState<any | null>(null);
+  const [editAmount, setEditAmount] = React.useState('');
+  const [editFrequency, setEditFrequency] = React.useState('monthly');
+
+  const fetchSubscriptions = React.useCallback(async () => {
+    setLoadingSubs(true);
+    try {
+      const res = await fetch('/api/subscriptions');
+      if (res.ok) {
+        const data = await res.json();
+        setSubscriptions(data);
+      }
+    } catch (e) {
+      console.error('Error loading subscriptions:', e);
+    } finally {
+      setLoadingSubs(false);
+    }
+  }, []);
+
+  const handleSubSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subName || !subAmount || !subCategory || !subFrequency || !subStartDate) {
+      alert('Please fill out all subscription fields.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: subName,
+          amount: parseFloat(subAmount),
+          category: subCategory,
+          frequency: subFrequency,
+          startDate: subStartDate,
+        }),
+      });
+      if (res.ok) {
+        setSubName('');
+        setSubAmount('');
+        setSubCategory('AI subscriptions');
+        setSubFrequency('monthly');
+        setSubStartDate('');
+        fetchSubscriptions();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to save subscription.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred while saving subscription.');
+    }
+  };
+
+  const handleSubEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSub || !editAmount || !editFrequency) return;
+    try {
+      const res = await fetch('/api/subscriptions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingSub.id,
+          amount: parseFloat(editAmount),
+          frequency: editFrequency,
+        }),
+      });
+      if (res.ok) {
+        setEditingSub(null);
+        setEditAmount('');
+        setEditFrequency('monthly');
+        fetchSubscriptions();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to update subscription.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred while updating subscription.');
+    }
+  };
+
+  const handleSubDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this recurring subscription?')) return;
+    try {
+      const res = await fetch(`/api/subscriptions?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchSubscriptions();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to delete subscription.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred while deleting subscription.');
+    }
+  };
+
+  const generateOccurrences = React.useCallback((sub: any) => {
+    const list: any[] = [];
+    const start = new Date(sub.startDate);
+    const end = new Date();
+    
+    if (isNaN(start.getTime())) return [];
+    
+    let current = new Date(start);
+    
+    while (current <= end) {
+      const occDate = new Date(current);
+      const idStr = `${sub.id}-${occDate.toISOString().slice(0, 10)}`;
+      
+      list.push({
+        id: idStr.slice(0, 12),
+        source: 'Recurring Ledger',
+        customer: 'N/A',
+        date: occDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        amountUSD: -sub.amount,
+        status: 'failed',
+        rawStatus: 'EXPENSE',
+        details: `${sub.name} (${sub.category})`,
+      });
+      
+      if (sub.frequency === 'monthly') {
+        current.setMonth(current.getMonth() + 1);
+      } else if (sub.frequency === 'quarterly') {
+        current.setMonth(current.getMonth() + 3);
+      } else if (sub.frequency === 'yearly') {
+        current.setFullYear(current.getFullYear() + 1);
+      } else {
+        break;
+      }
+    }
+    return list;
+  }, []);
+
+  const subscriptionTransactions = React.useMemo(() => {
+    const list: any[] = [];
+    subscriptions.forEach((sub) => {
+      list.push(...generateOccurrences(sub));
+    });
+    return list;
+  }, [subscriptions, generateOccurrences]);
+
   // Custom report states
   const [reportXAxis, setReportXAxis] = React.useState('Client');
   const [reportYAxis, setReportYAxis] = React.useState('Revenue');
@@ -176,8 +329,8 @@ export default function FinancePage() {
   };
 
   const downloadTemplate = (format: 'csv' | 'xlsx') => {
-    const headers = ['Date', 'Transaction details', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
-    const sampleRow = ['2026-06-30', 'Ad Campaign Setup Fee', 'NEFT', 'transactor@upi', 'ICICI Bank', '25000', 'TXN776655', 'Initial setup charges'];
+    const headers = ['Date', 'Transaction details', 'Category', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
+    const sampleRow = ['2026-06-30', 'Ad Campaign Setup Fee', 'Expense', 'NEFT', 'transactor@upi', 'ICICI Bank', '25000', 'TXN776655', 'Initial setup charges'];
     const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -211,7 +364,7 @@ export default function FinancePage() {
       
       // Parse headers
       const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-      const expectedHeaders = ['Date', 'Transaction details', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
+      const expectedHeaders = ['Date', 'Transaction details', 'Category', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
       
       const headersMatch = expectedHeaders.every((h, i) => headers[i]?.toLowerCase() === h.toLowerCase());
       if (!headersMatch) {
@@ -229,12 +382,13 @@ export default function FinancePage() {
         txs.push({
           date: row[0],
           details: row[1],
-          type: row[2],
-          transactorAccount: row[3],
-          yourAccount: row[4],
-          amount: row[5],
-          referenceNumber: row[6],
-          comments: row[7]
+          category: row[2],
+          type: row[3],
+          transactorAccount: row[4],
+          yourAccount: row[5],
+          amount: row[6],
+          referenceNumber: row[7],
+          comments: row[8]
         });
       }
       
@@ -358,7 +512,8 @@ export default function FinancePage() {
     fetchIntegrations();
     fetchManualTransactions();
     fetchOrgBanks();
-  }, [fetchIntegrations, fetchManualTransactions, fetchOrgBanks]);
+    fetchSubscriptions();
+  }, [fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchSubscriptions]);
 
   const isStripeConnected = React.useMemo(() => {
     return integrations.some((i) => i.provider === 'STRIPE' && i.status === 'CONNECTED');
@@ -400,9 +555,9 @@ export default function FinancePage() {
     if (timeFrame === 'Monthly') scale = 1/12;
     if (timeFrame === 'Quarterly') scale = 3/12;
 
-    const baseGross = (dbData?.grossBillings ?? 124500) * scale;
-    const baseOutstanding = (dbData?.outstandingAmount ?? 27000) * scale;
-    const baseExpenses = (dbData?.totalExpenses ?? 42300) * scale;
+    const baseGross = (dbData?.grossBillings ?? 0) * scale;
+    const baseOutstanding = (dbData?.outstandingAmount ?? 0) * scale;
+    const baseExpenses = (dbData?.totalExpenses ?? 0) * scale;
 
     let stripeGross = 0;
     let stripeExpenses = 0;
@@ -452,6 +607,14 @@ export default function FinancePage() {
       }
     });
 
+    subscriptionTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach(tx => {
+      const amt = Math.abs(tx.amountUSD);
+      manualExpenses += amt;
+      if (tx.source === 'Recurring Ledger' && tx.details?.includes('(AI subscriptions)')) {
+        aiSubscriptionCosts += amt;
+      }
+    });
+
     const totalGross = baseGross + stripeGross + paypalGross + razorpayGross + manualGross;
     const totalExpenses = baseExpenses + stripeExpenses + paypalExpenses + razorpayExpenses + manualExpenses;
     const totalOutstanding = baseOutstanding + stripeOutstanding + paypalOutstanding + razorpayOutstanding;
@@ -464,7 +627,7 @@ export default function FinancePage() {
       netProfitMargin: profitMargin,
       aiSubscriptionCosts
     };
-  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, manualTransactions, isInTimeFrame, timeFrame]);
+  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, manualTransactions, subscriptionTransactions, isInTimeFrame, timeFrame]);
 
   const expenseBreakdownData = React.useMemo(() => {
     let aiCosts = combinedMetrics.aiSubscriptionCosts;
@@ -482,11 +645,15 @@ export default function FinancePage() {
       const name = tx.details || 'Unknown AI Tool';
       map.set(name, (map.get(name) || 0) + Math.abs(tx.amount));
     });
+    subscriptionTransactions.filter((tx: any) => isInTimeFrame(tx.date) && tx.details?.includes('(AI subscriptions)')).forEach(tx => {
+      const name = tx.details.split(' (')[0] || 'Unknown AI Tool';
+      map.set(name, (map.get(name) || 0) + Math.abs(tx.amountUSD));
+    });
     const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
     return Array.from(map.entries()).map(([name, value], i) => ({
       name, value, color: colors[i % colors.length]
     }));
-  }, [manualTransactions, isInTimeFrame]);
+  }, [manualTransactions, subscriptionTransactions, isInTimeFrame]);
 
 
   const combinedTransactions = React.useMemo(() => {
@@ -507,14 +674,7 @@ export default function FinancePage() {
     });
 
     // Add standard invoices
-    const baseInvoices = dbData?.recentInvoices ?? [
-      { id: '1', number: 'INV-2026-001', client: 'Aether Technologies', amount: 25000, date: 'June 15, 2026', status: 'PAID' },
-      { id: '2', number: 'INV-2026-002', client: 'Vertex Retail', amount: 18500, date: 'June 12, 2026', status: 'PAID' },
-      { id: '3', number: 'INV-2026-003', client: 'Pulse Media', amount: 32000, date: 'June 10, 2026', status: 'PAID' },
-      { id: '4', number: 'INV-2026-004', client: 'Solaria Energy', amount: 12000, date: 'May 28, 2026', status: 'OVERDUE' },
-      { id: '5', number: 'INV-2026-005', client: 'Nova BioLabs', amount: 15000, date: 'June 01, 2026', status: 'UNPAID' },
-      { id: '6', number: 'INV-2026-006', client: 'Quantum Capital', amount: 22000, date: 'June 04, 2026', status: 'PAID' },
-    ];
+    const baseInvoices = dbData?.recentInvoices ?? [];
 
     baseInvoices.forEach((inv: any) => {
       list.push({
@@ -573,13 +733,18 @@ export default function FinancePage() {
       });
     }
 
+    // Add subscription transactions
+    subscriptionTransactions.forEach(tx => {
+      list.push(tx);
+    });
+
     // Sort newest first
     return list.sort((a, b) => {
       const dateA = new Date(a.date).getTime() || 0;
       const dateB = new Date(b.date).getTime() || 0;
       return dateB - dateA;
     });
-  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData]);
+  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, subscriptionTransactions]);
 
   const revenueLineData = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -621,11 +786,6 @@ export default function FinancePage() {
       });
     } else {
       // Fallback/Mock base expenses if dbData is not loaded yet
-      map.set('Office Rent', 15000 * scale);
-      map.set('Infrastructure', 10000 * scale);
-      map.set('SaaS Tools', 8000 * scale);
-      map.set('Contractors', 7000 * scale);
-      map.set('Travel', 2300 * scale);
     }
 
     // 2. Gateway fees
@@ -669,6 +829,16 @@ export default function FinancePage() {
       map.set(category, (map.get(category) || 0) + amt);
     });
 
+    // 4. Recurring subscriptions
+    subscriptionTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach(tx => {
+      const amt = Math.abs(tx.amountUSD);
+      let category = 'Other Overhead';
+      if (tx.details?.includes('(')) {
+        category = tx.details.split('(')[1].split(')')[0];
+      }
+      map.set(category, (map.get(category) || 0) + amt);
+    });
+
     const totalExp = Array.from(map.values()).reduce((sum, val) => sum + val, 0) || 1;
     const list = Array.from(map.entries()).map(([name, value]) => ({
       name,
@@ -677,7 +847,7 @@ export default function FinancePage() {
     }));
 
     return list.sort((a, b) => b.amount - a.amount);
-  }, [dbData, manualTransactions, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, isInTimeFrame, timeFrame]);
+  }, [dbData, manualTransactions, subscriptionTransactions, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, isInTimeFrame, timeFrame]);
 
   const clientProfitability = React.useMemo(() => {
     const revenueMap = new Map<string, number>();
@@ -689,11 +859,6 @@ export default function FinancePage() {
     });
 
     if (revenueMap.size === 0) {
-      revenueMap.set('Aether Technologies', 65000);
-      revenueMap.set('Pulse Media', 42000);
-      revenueMap.set('Nova BioLabs', 28000);
-      revenueMap.set('Quantum Capital', 22000);
-      revenueMap.set('Vertex Retail', 16000);
     }
 
     const list = Array.from(revenueMap.entries()).map(([name, revenue]) => {
@@ -811,7 +976,7 @@ export default function FinancePage() {
   };
 
   const handleExportCSV = () => {
-    const headers = ['Transaction ID', 'Source / Ledger', 'Customer / Client', 'Date', 'Amount (USD)', 'Status'];
+    const headers = ['Transaction ID', 'Source / Ledger', 'Customer / Client', 'Date', `Amount (${currencyState})`, 'Status'];
     const rows = combinedTransactions.map((tx: any) => [
       tx.id,
       tx.source,
@@ -998,15 +1163,15 @@ export default function FinancePage() {
                 <div className="flex flex-col h-full space-y-4">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider text-center">AI Subscriptions Breakdown</h3>
                   {aiSpendSplitData.length > 0 ? (
-                    <div className="h-[220px] w-full">
+                    <div className="h-[320px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={aiSpendSplitData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={50}
-                            outerRadius={70}
+                            innerRadius={75}
+                            outerRadius={110}
                             paddingAngle={4}
                             dataKey="value"
                           >
@@ -1020,7 +1185,7 @@ export default function FinancePage() {
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-[220px] text-zinc-500 text-xs font-medium">
+                    <div className="flex items-center justify-center h-[320px] text-zinc-500 text-xs font-medium">
                       No AI Subscription expenses found in selected timeframe.
                     </div>
                   )}
@@ -1451,7 +1616,7 @@ export default function FinancePage() {
                         <TableHead>Channel Source</TableHead>
                         <TableHead>Account Client</TableHead>
                         <TableHead>Date Logged</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Amount ({currencyState})</TableHead>
                         <TableHead className="text-right">Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1486,6 +1651,148 @@ export default function FinancePage() {
                       ))}
                     </TableBody>
                   </Table>
+                </CardContent>
+              </Card>
+
+              {/* Recurring Subscriptions Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold text-white">Recurring Subscriptions & Expenses</CardTitle>
+                  <CardDescription>Configure recurring SaaS and operations commitments to dynamically generate transaction occurrences.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-2 space-y-4">
+                      {loadingSubs ? (
+                        <div className="text-center py-6 text-zinc-500 font-mono">Loading active subscriptions...</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Frequency</TableHead>
+                              <TableHead>Start Date</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {subscriptions.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} className="text-center py-6 text-zinc-500">
+                                  No active recurring subscriptions or expenses configured.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              subscriptions.map((sub: any) => (
+                                <TableRow key={sub.id}>
+                                  <TableCell className="font-semibold text-white">{sub.name}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-[9px] bg-zinc-950 font-bold text-zinc-400">
+                                      {sub.category}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="capitalize text-zinc-455">{sub.frequency}</TableCell>
+                                  <TableCell className="text-zinc-400">
+                                    {new Date(sub.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono font-semibold text-white">
+                                    {formatCurrency(sub.amount)}
+                                  </TableCell>
+                                  <TableCell className="text-right space-x-2 text-[10px]">
+                                    <button
+                                      onClick={() => {
+                                        setEditingSub(sub);
+                                        setEditAmount(sub.amount.toString());
+                                        setEditFrequency(sub.frequency);
+                                      }}
+                                      className="text-indigo-400 hover:text-indigo-300 font-semibold hover:underline"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => handleSubDelete(sub.id)}
+                                      className="text-red-400 hover:text-red-300 font-semibold hover:underline"
+                                    >
+                                      Remove
+                                    </button>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+
+                    <div className="space-y-4 bg-zinc-900/10 p-4 border border-zinc-900 rounded">
+                      <h4 className="font-bold text-white uppercase tracking-wider text-[10px]">Add Committed Expense</h4>
+                      <form onSubmit={handleSubSubmit} className="space-y-3 font-sans text-xs">
+                        <div className="space-y-1">
+                          <label className="font-semibold text-zinc-400 block text-[9px] uppercase tracking-wider">Name / Details</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. ChatGPT Plus"
+                            value={subName}
+                            onChange={(e) => setSubName(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-semibold text-zinc-400 block text-[9px] uppercase tracking-wider">Amount ({currencyState})</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            placeholder="0.00"
+                            value={subAmount}
+                            onChange={(e) => setSubAmount(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-semibold text-zinc-400 block text-[9px] uppercase tracking-wider">Category</label>
+                          <select
+                            value={subCategory}
+                            onChange={(e) => setSubCategory(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none transition-all"
+                          >
+                            <option value="AI subscriptions">AI subscriptions</option>
+                            <option value="Software subscriptions">Software subscriptions</option>
+                            <option value="Other subscriptions">Other subscriptions</option>
+                            <option value="Expense">Expense</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-semibold text-zinc-400 block text-[9px] uppercase tracking-wider">Frequency</label>
+                          <select
+                            value={subFrequency}
+                            onChange={(e) => setSubFrequency(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none transition-all"
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-semibold text-zinc-400 block text-[9px] uppercase tracking-wider">Start Date</label>
+                          <input
+                            type="date"
+                            required
+                            value={subStartDate}
+                            onChange={(e) => setSubStartDate(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                          />
+                        </div>
+                        <Button type="submit" className="w-full text-xs h-9 bg-white text-zinc-950 hover:bg-zinc-200 mt-2">
+                          Add Subscription
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -1609,7 +1916,7 @@ export default function FinancePage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Amount (USD)</label>
+                      <label className="font-semibold text-zinc-400 block">Amount ({currencyState})</label>
                       <input
                         type="number"
                         step="0.01"
@@ -1692,6 +1999,51 @@ export default function FinancePage() {
               </Card>
             </div>
           </div>
+        </div>
+      )}
+      {editingSub && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fadeIn text-xs">
+          <Card className="w-full max-w-sm border-zinc-800 bg-[#0d0e12] p-2 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-sm font-bold uppercase text-white">Edit Subscription</CardTitle>
+              <CardDescription>Modify cost parameters or recurrence bounds for {editingSub.name}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubEdit} className="space-y-4 font-sans">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Amount ({currencyState})</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white focus:outline-none focus:border-zinc-750"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Frequency</label>
+                  <select
+                    value={editFrequency}
+                    onChange={(e) => setEditFrequency(e.target.value)}
+                    className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white focus:outline-none focus:border-zinc-750"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button type="button" variant="ghost" onClick={() => setEditingSub(null)} className="text-xs h-9 text-zinc-400">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="text-xs h-9 bg-white text-zinc-950 hover:bg-zinc-200">
+                    Save Changes
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

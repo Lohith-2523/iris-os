@@ -70,6 +70,7 @@ export default function SettingsPage() {
   const [orgName, setOrgName] = React.useState('Apex Creative Group');
   const [billingEmail, setBillingEmail] = React.useState('billing@apex.co');
   const [currency, setCurrency] = React.useState('USD');
+  const [hasFinancialData, setHasFinancialData] = React.useState(false);
   const [plan, setPlan] = React.useState<'BASIC' | 'PRO' | 'ADVANCED'>('PRO');
   const [hasAddon, setHasAddon] = React.useState(false);
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
@@ -89,6 +90,19 @@ export default function SettingsPage() {
   const [verifyingKeys, setVerifyingKeys] = React.useState(false);
   const [integrationError, setIntegrationError] = React.useState('');
 
+  // Wipe Data Modal States
+  const [showWipeModal, setShowWipeModal] = React.useState(false);
+  const [wipeStep, setWipeStep] = React.useState<1 | 2 | 3>(1);
+  const [sliderValue, setSliderValue] = React.useState(100);
+  const [puzzle, setPuzzle] = React.useState({ q: '', a: 0 });
+  const [userAnswer, setUserAnswer] = React.useState('');
+  const [wipeStatus, setWipeStatus] = React.useState<'idle' | 'wiping' | 'success' | 'error'>('idle');
+  const [wipeError, setWipeError] = React.useState('');
+
+  // AI Consent State
+  const [aiSharingConsent, setAiSharingConsent] = React.useState(false);
+
+
   const fetchIntegrations = React.useCallback(async () => {
     setLoadingIntegrations(true);
     try {
@@ -104,13 +118,49 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const handleConnectMeta = () => {
+    if (typeof window !== 'undefined' && (window as any).FB) {
+      (window as any).FB.login((response: any) => {
+        if (response.status === 'connected' && response.authResponse) {
+          console.log('Connected to Meta successfully:', response);
+          
+          // Fetch additional profile fields (name, email) as suggested by reference
+          (window as any).FB.api('/me', { fields: 'name, email' }, (meResponse: any) => {
+            console.log('Meta user details:', meResponse);
+            localStorage.setItem('conn_meta', 'true');
+            
+            fetch('/api/integrations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                provider: 'META',
+                action: 'connect_sdk',
+                authResponse: response.authResponse,
+                profile: meResponse
+              })
+            }).then(async () => {
+              await fetchIntegrations();
+            }).catch(err => console.error(err));
+          });
+        } else {
+          alert('Meta login connection failed.');
+        }
+      }, {
+        config_id: process.env.NEXT_PUBLIC_META_LOGIN_CONFIG_ID || '2233768390705051'
+      });
+    } else {
+      alert('Facebook SDK is not fully loaded yet. Please try again.');
+    }
+  };
+
+
   React.useEffect(() => {
     if (activeTab === 'integrations') {
       fetchIntegrations();
     }
   }, [activeTab, fetchIntegrations]);
 
-  React.useEffect(() => {
+    React.useEffect(() => {
     async function loadOrg() {
       try {
         const res = await fetch('/api/organization');
@@ -121,6 +171,9 @@ export default function SettingsPage() {
           setHasAddon(data.hasAddon || false);
           setSelectedTypes(data.agencyTypes || []);
           setSelectedBanks(data.bankNames || []);
+          setCurrency(data.currency || 'USD');
+          setHasFinancialData(!!data.hasFinancialData);
+          setAiSharingConsent(data.aiSharingConsent || false);
         }
       } catch (e) {
         console.error('Error loading organization:', e);
@@ -129,9 +182,6 @@ export default function SettingsPage() {
       }
     }
     loadOrg();
-    if (typeof window !== 'undefined') {
-      setCurrency(localStorage.getItem('dashboardCurrency') || 'USD');
-    }
   }, []);
 
   const maxAllowed = React.useMemo(() => {
@@ -178,6 +228,8 @@ export default function SettingsPage() {
           hasAddon,
           agencyTypes: selectedTypes,
           bankNames: selectedBanks,
+          currency,
+          aiSharingConsent: aiSharingConsent,
         }),
       });
 
@@ -305,8 +357,11 @@ export default function SettingsPage() {
                       <label className="font-semibold text-zinc-400 block">Billing Currency</label>
                       <select
                         value={currency}
+                        disabled={hasFinancialData}
                         onChange={(e) => setCurrency(e.target.value)}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
+                        className={`w-full rounded border border-zinc-855 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all ${
+                          hasFinancialData ? 'opacity-50 cursor-not-allowed border-zinc-900 text-zinc-500' : 'cursor-pointer'
+                        }`}
                       >
                         <option value="USD">USD ($) United States Dollar</option>
                         <option value="EUR">EUR (€) Euro</option>
@@ -314,6 +369,11 @@ export default function SettingsPage() {
                         <option value="INR">INR (₹) Indian Rupee</option>
                         <option value="CAD">CAD (CA$) Canadian Dollar</option>
                       </select>
+                      {hasFinancialData && (
+                        <div className="text-[10px] text-amber-500/80 font-medium mt-1 leading-normal flex items-center gap-1">
+                          <span>⚠️ Currency is locked because financial data has been recorded in the workspace.</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -509,7 +569,35 @@ export default function SettingsPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-white">Security & Roles</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-white">AI Settings & Data Privacy</CardTitle>
+                  <CardDescription>Configure Prism AI access permissions for your workspace data.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 font-sans text-xs">
+                  <div className="flex items-start justify-between gap-3 p-3 rounded border border-zinc-850 bg-zinc-900/10">
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        id="settingsAiConsentCheckbox"
+                        checked={aiSharingConsent}
+                        onChange={(e) => setAiSharingConsent(e.target.checked)}
+                        className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-600 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                      />
+                      <div className="cursor-pointer select-none">
+                        <label htmlFor="settingsAiConsentCheckbox" className="block font-bold text-zinc-300">
+                          Enable Prism AI Analysis
+                        </label>
+                        <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
+                          Allow Prism AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold text-white font-sans">Security & Roles</CardTitle>
                   <CardDescription>Configure user access credentials and workspace authorization levels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 font-sans text-xs">
@@ -562,6 +650,36 @@ export default function SettingsPage() {
                       Error: Update failed.
                     </span>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Danger Zone */}
+              <Card className="border-rose-950 bg-rose-950/5">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold text-rose-400">Danger Zone</CardTitle>
+                  <CardDescription className="text-rose-550/80">Irreversible operations on workspace repository data.</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowWipeModal(true);
+                      setWipeStep(1);
+                      setSliderValue(100);
+                      setUserAnswer('');
+                      setWipeStatus('idle');
+                      setWipeError('');
+                      // Generate random math puzzle
+                      const num1 = Math.floor(Math.random() * 12) + 5;
+                      const num2 = Math.floor(Math.random() * 15) + 5;
+                      setPuzzle({ q: `What is ${num1} + ${num2}?`, a: num1 + num2 });
+                    }}
+                    className="w-full text-xs font-semibold h-9 flex items-center justify-center gap-1.5 border border-rose-900/40 text-rose-450 hover:bg-rose-950/20 hover:text-rose-350 cursor-pointer transition-all"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Wipe Agency Data</span>
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -724,15 +842,15 @@ export default function SettingsPage() {
             </Card>
           </div>
 
-          {connectingProvider === 'RAZORPAY' || connectingProvider === 'PAYPAL' || connectingProvider === 'STRIPE' ? (
+          {connectingProvider === 'RAZORPAY' ? (
             <Card className="max-w-xl border-zinc-800">
               <CardHeader>
                 <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                   <Key className="h-4.5 w-4.5 text-zinc-400" />
-                  <span>Link {connectingProvider === 'STRIPE' ? 'Stripe' : connectingProvider === 'RAZORPAY' ? 'Razorpay' : 'PayPal'} Gateway Credentials</span>
+                  <span>Link Razorpay Gateway Credentials</span>
                 </CardTitle>
                 <CardDescription>
-                  Provide your {connectingProvider === 'STRIPE' ? 'Restricted API Key (rk_...) or Secret Key (sk_...)' : connectingProvider === 'RAZORPAY' ? 'Key ID and Secret Key' : 'Client ID and Client Secret Key'} to connect. Your credentials are encrypted and used solely for ledger audits and financial transactions synchronization.
+                  Provide your Razorpay Key ID and Secret Key to connect. Your credentials are encrypted and used solely for ledger audits and financial transactions synchronization.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-xs font-sans">
@@ -745,47 +863,37 @@ export default function SettingsPage() {
 
                 <div className="space-y-1.5">
                   <label className="font-semibold text-zinc-400 block">
-                    {connectingProvider === 'STRIPE' ? 'Stripe Restricted API Key (Recommended)' : connectingProvider === 'RAZORPAY' ? 'Razorpay Key ID' : 'PayPal Client ID'}
+                    Razorpay Key ID
                   </label>
                   <input
-                    type={connectingProvider === 'STRIPE' ? 'password' : 'text'}
+                    type="text"
                     value={keyIdInput}
                     onChange={(e) => setKeyIdInput(e.target.value)}
-                    placeholder={connectingProvider === 'STRIPE' ? 'rk_live_... / sk_live_...' : connectingProvider === 'RAZORPAY' ? 'rzp_test_...' : 'Client ID...'}
+                    placeholder="rzp_test_..."
                     className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all font-mono"
                   />
                 </div>
 
-                {connectingProvider !== 'STRIPE' && (
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-400 block">
-                      {connectingProvider === 'RAZORPAY' ? 'Razorpay Key Secret' : 'PayPal Client Secret'}
-                    </label>
-                    <input
-                      type="password"
-                      value={keySecretInput}
-                      onChange={(e) => setKeySecretInput(e.target.value)}
-                      placeholder="••••••••••••••••"
-                      className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all font-mono"
-                    />
-                  </div>
-                )}
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-zinc-400 block">
+                    Razorpay Key Secret
+                  </label>
+                  <input
+                    type="password"
+                    value={keySecretInput}
+                    onChange={(e) => setKeySecretInput(e.target.value)}
+                    placeholder="••••••••••••••••"
+                    className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all font-mono"
+                  />
+                </div>
 
                 <div className="flex gap-3 pt-3 justify-between items-center">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      if (connectingProvider === 'RAZORPAY') {
-                        setKeyIdInput('rzp_test_T6wXv1phNxSL5Q');
-                        setKeySecretInput('f7Lc6zOMbDngZAmvtnY5AzOd');
-                      } else if (connectingProvider === 'STRIPE') {
-                        setKeyIdInput('rk_test_51P2u238947239847293847');
-                        setKeySecretInput('');
-                      } else {
-                        setKeyIdInput('paypal_client_id_test_99');
-                        setKeySecretInput('paypal_client_secret_test_23');
-                      }
+                      setKeyIdInput('rzp_test_T6wXv1phNxSL5Q');
+                      setKeySecretInput('f7Lc6zOMbDngZAmvtnY5AzOd');
                     }}
                     className="text-xs h-9 border-zinc-850 hover:bg-zinc-900 font-semibold"
                   >
@@ -817,7 +925,7 @@ export default function SettingsPage() {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              provider: connectingProvider,
+                              provider: 'RAZORPAY',
                               keyId: keyIdInput,
                               keySecret: keySecretInput,
                             }),
@@ -829,7 +937,7 @@ export default function SettingsPage() {
                             setKeyIdInput('');
                             setKeySecretInput('');
                           } else {
-                            setIntegrationError(data.error || `Failed to authenticate ${connectingProvider} keys.`);
+                            setIntegrationError(data.error || 'Failed to authenticate Razorpay keys.');
                           }
                         } catch (err) {
                           setIntegrationError('A connection error occurred. Check backend console.');
@@ -896,7 +1004,7 @@ export default function SettingsPage() {
                             </td>
                             <td className="p-4 text-[11px] leading-relaxed max-w-sm truncate">{item.logs}</td>
                             <td className="p-4 text-right">
-                              {item.provider === 'RAZORPAY' || item.provider === 'PAYPAL' || item.provider === 'STRIPE' ? (
+                              {item.provider === 'RAZORPAY' || item.provider === 'META' ? (
                                 item.status === 'CONNECTED' ? (
                                   <Button
                                     type="button"
@@ -909,6 +1017,9 @@ export default function SettingsPage() {
                                           headers: { 'Content-Type': 'application/json' },
                                           body: JSON.stringify({ provider: item.provider, action: 'disconnect' }),
                                         });
+                                        if (item.provider === 'META') {
+                                          localStorage.removeItem('conn_meta');
+                                        }
                                         await fetchIntegrations();
                                       } catch (e) {
                                         console.error(e);
@@ -923,48 +1034,18 @@ export default function SettingsPage() {
                                     type="button"
                                     size="sm"
                                     onClick={() => {
-                                      window.location.href = `/api/${item.provider.toLowerCase()}/connect`;
+                                      if (item.provider === 'META') {
+                                        handleConnectMeta();
+                                      } else {
+                                        setConnectingProvider('RAZORPAY');
+                                      }
                                     }}
                                     className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
                                   >
                                     Connect Account
                                   </Button>
                                 )
-                              ) : (
-                                <div className="flex gap-2 justify-end">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={async () => {
-                                      alert(formatUserMessage(`Lohith, triggering manual synchronization for: ${item.provider}`));
-                                    }}
-                                    className="h-8 border-transparent text-zinc-400 hover:text-white text-xs font-semibold"
-                                  >
-                                    Sync
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={async () => {
-                                      try {
-                                        await fetch('/api/integrations', {
-                                          method: 'POST',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ provider: item.provider, action: 'disconnect' }),
-                                        });
-                                        await fetchIntegrations();
-                                      } catch (e) {
-                                        console.error(e);
-                                      }
-                                    }}
-                                    className="h-8 text-rose-450 hover:text-rose-350 text-xs font-semibold"
-                                  >
-                                    Disconnect
-                                  </Button>
-                                </div>
-                              )}
+                              ) : null}
                             </td>
                           </tr>
                         ))
@@ -977,6 +1058,206 @@ export default function SettingsPage() {
           )}
         </div>
       )}
+
+      {/* 3-Step Wipe Data Confirmation Modal */}
+      {showWipeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="relative w-full max-w-md rounded-xl border border-zinc-800 bg-[#0d0e12] p-6 shadow-2xl font-sans text-xs text-zinc-300">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-zinc-850 pb-4 mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-rose-500 animate-pulse" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Wipe Agency Database</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWipeModal(false)}
+                className="text-zinc-500 hover:text-white transition-colors p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Step Indicators */}
+            <div className="flex justify-between items-center mb-6 px-2">
+              {[1, 2, 3].map((step) => (
+                <div key={step} className="flex items-center gap-1.5">
+                  <div
+                    className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                      wipeStep === step
+                        ? 'bg-rose-500 text-white shadow-lg'
+                        : wipeStep > step
+                        ? 'bg-zinc-800 text-zinc-450'
+                        : 'bg-zinc-900 text-zinc-650'
+                    }`}
+                  >
+                    {step}
+                  </div>
+                  <span
+                    className={`text-[9px] font-mono tracking-wider uppercase ${
+                      wipeStep === step ? 'text-white font-bold' : 'text-zinc-550'
+                    }`}
+                  >
+                    {step === 1 ? 'Verify Intent' : step === 2 ? 'Drag Decelerator' : 'Logic Puzzle'}
+                  </span>
+                  {step < 3 && <div className="h-[1px] w-4 bg-zinc-850" />}
+                </div>
+              ))}
+            </div>
+
+            {/* Step 1: Yes/No Question */}
+            {wipeStep === 1 && (
+              <div className="space-y-5">
+                <p className="leading-relaxed text-zinc-450">
+                  Are you absolutely certain you want to initiate a full database purge? 
+                  This will <span className="text-white font-semibold">permanently wipe</span> all campaign logs, invoices, metrics, reports, pipelines, and transactions associated with <span className="text-rose-450 font-bold uppercase">{orgName}</span>.
+                </p>
+                <div className="flex gap-3 justify-end pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setShowWipeModal(false)}
+                    className="text-xs h-9 text-zinc-405 hover:text-white"
+                  >
+                    No, Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setWipeStep(2)}
+                    className="text-xs h-9 bg-rose-600 text-white font-bold hover:bg-rose-700"
+                  >
+                    Yes, I am sure
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Drag slider from right to left */}
+            {wipeStep === 2 && (
+              <div className="space-y-5">
+                <p className="leading-relaxed text-zinc-450">
+                  To prevent automated purges, please drag the authorization decelerator slider <span className="text-white font-bold">from the RIGHT (100) all the way to the LEFT (0)</span>.
+                </p>
+                
+                <div className="bg-zinc-950/40 border border-zinc-850 p-4 rounded space-y-3">
+                  <div className="flex justify-between font-mono text-[9px] text-zinc-550">
+                    <span>LEFT (0)</span>
+                    <span className="text-white font-bold">{sliderValue}%</span>
+                    <span>RIGHT (100)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={sliderValue}
+                    onChange={(e) => setSliderValue(Number(e.target.value))}
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                  />
+                  {sliderValue > 0 ? (
+                    <span className="block text-center text-[10px] text-zinc-500 font-mono italic">
+                      Drag left to unlock next step...
+                    </span>
+                  ) : (
+                    <span className="block text-center text-[10px] text-emerald-450 font-mono font-bold animate-pulse">
+                      Decelerator deactivated! Next step unlocked.
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex gap-3 justify-between pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setWipeStep(1)}
+                    className="text-xs h-9 text-zinc-500 hover:text-zinc-300"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={sliderValue !== 0}
+                    onClick={() => setWipeStep(3)}
+                    className="text-xs h-9 bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-30"
+                  >
+                    Proceed to Step 3
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Puzzle verification */}
+            {wipeStep === 3 && (
+              <div className="space-y-5">
+                <p className="leading-relaxed text-zinc-455">
+                  Solve the final security arithmetic puzzle to authorize the deletion sequence.
+                </p>
+
+                <div className="bg-zinc-950/40 border border-zinc-850 p-4 rounded space-y-3">
+                  <span className="block text-center text-sm font-mono font-bold text-white tracking-wider">
+                    {puzzle.q}
+                  </span>
+                  <input
+                    type="text"
+                    value={userAnswer}
+                    onChange={(e) => setUserAnswer(e.target.value)}
+                    placeholder="Enter answer..."
+                    className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-center text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all font-mono"
+                  />
+                </div>
+
+                {wipeStatus === 'error' && (
+                  <div className="rounded border border-rose-900/30 bg-rose-950/10 p-3 text-rose-450 font-semibold text-[10px]">
+                    Error Purging Database: {wipeError}
+                  </div>
+                )}
+
+                <div className="flex gap-3 justify-between pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={wipeStatus === 'wiping'}
+                    onClick={() => setWipeStep(2)}
+                    className="text-xs h-9 text-zinc-500 hover:text-zinc-300"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={parseInt(userAnswer.trim()) !== puzzle.a || wipeStatus === 'wiping'}
+                    onClick={async () => {
+                      setWipeStatus('wiping');
+                      setWipeError('');
+                      try {
+                        const res = await fetch('/api/organization', {
+                          method: 'DELETE',
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                          setWipeStatus('success');
+                          setTimeout(() => {
+                            setShowWipeModal(false);
+                            window.location.reload();
+                          }, 2000);
+                        } else {
+                          setWipeStatus('error');
+                          setWipeError(data.error || 'Failed to wipe data.');
+                        }
+                      } catch (err) {
+                        setWipeStatus('error');
+                        setWipeError('Network connection error.');
+                      }
+                    }}
+                    className="text-xs h-9 bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-30"
+                  >
+                    {wipeStatus === 'wiping' ? 'Purging Database...' : wipeStatus === 'success' ? 'Database Purged!' : 'Permanently Wipe All Data'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

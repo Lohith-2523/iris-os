@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getOrganization } from '@/lib/org';
 
-const PROVIDERS = ['CANVA', 'PAYPAL', 'STRIPE', 'RAZORPAY'];
+const PROVIDERS = ['RAZORPAY', 'META'];
 
 const DEFAULT_LOGS: Record<string, string> = {
-  CANVA: 'Synced 12 assets from Canva workspace root.',
-  PAYPAL: 'Not connected. Connect your PayPal Client ID and Secret Key.',
-  STRIPE: 'Not connected. Connect your Stripe Restricted API Key.',
   RAZORPAY: 'Not connected. Connect your Razorpay Key ID and Secret.',
+  META: 'Not connected. Authorize your Meta Business Account via Facebook SDK.',
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const org = await prisma.organization.findFirst();
+    const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
@@ -26,31 +25,26 @@ export async function GET() {
     const integrations = PROVIDERS.map((provider) => {
       const dbConn = connectionsMap.get(provider);
       
-      // Stripe is seeded as CONNECTED with a default mock log, but lacks actual key configuration.
-      const isMockStripe = provider === 'STRIPE' && dbConn?.syncLogs === 'Synced subscription events, active webhooks verified';
-      
       let status = 'CONNECTED';
-      if (provider === 'RAZORPAY' || provider === 'PAYPAL') {
+      if (provider === 'RAZORPAY' || provider === 'META') {
         status = dbConn ? dbConn.status : 'DISCONNECTED';
-      } else if (provider === 'STRIPE') {
-        status = (dbConn && !isMockStripe) ? dbConn.status : 'DISCONNECTED';
       } else {
         status = dbConn ? dbConn.status : 'CONNECTED';
       }
 
       let logs = DEFAULT_LOGS[provider];
-      if (dbConn && !isMockStripe) {
-        logs = (provider === 'RAZORPAY' || provider === 'PAYPAL' || provider === 'STRIPE')
-          ? 'Active connection verified via secure API credentials.' 
+      if (dbConn) {
+        logs = (provider === 'RAZORPAY' || provider === 'META')
+          ? dbConn.syncLogs || 'Active connection verified.' 
           : dbConn.syncLogs || DEFAULT_LOGS[provider];
       }
 
       return {
         provider,
         status,
-        lastSync: (dbConn && !isMockStripe) ? dbConn.lastSync : null,
+        lastSync: dbConn ? dbConn.lastSync : null,
         logs,
-        hasConfig: dbConn ? (provider === 'STRIPE' ? !isMockStripe : !!dbConn.syncLogs) : false,
+        hasConfig: dbConn ? !!dbConn.syncLogs : false,
       };
     });
 
@@ -63,7 +57,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const org = await prisma.organization.findFirst();
+    const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
@@ -88,49 +82,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, status: 'DISCONNECTED' });
     }
 
-    if (provider === 'STRIPE') {
-      if (!keyId) {
-        return NextResponse.json({ error: 'Stripe API Secret or Restricted key is required.' }, { status: 400 });
-      }
-
-      // Validate key against Stripe API
-      try {
-        const testRes = await fetch('https://api.stripe.com/v1/balance', {
-          headers: { Authorization: `Bearer ${keyId}` },
-        });
-        if (!testRes.ok) {
-          const errMsg = await testRes.text();
-          console.error('Stripe key validation failed:', errMsg);
-          return NextResponse.json({ error: 'Invalid Stripe API key. Please check your Secret or Restricted Key.' }, { status: 400 });
-        }
-      } catch (err: any) {
-        console.error('Network error validating Stripe credentials:', err);
-        return NextResponse.json({ error: 'Failed to reach Stripe API. Check server connection.' }, { status: 500 });
-      }
-
-      const syncLogs = JSON.stringify({ apiKey: keyId });
-
+    if (provider === 'META' && action === 'connect_sdk') {
+      const profile = body.profile || {};
+      const syncLogs = `Connected via Facebook SDK. User ID: ${body.authResponse?.userID || 'unknown'}. Profile Name: ${profile.name || 'unknown'}. Profile Email: ${profile.email || 'unknown'}`;
       if (existingConnection) {
         await prisma.integrationConnection.update({
           where: { id: existingConnection.id },
           data: {
             status: 'CONNECTED',
             lastSync: new Date(),
-            syncLogs,
-          },
+            syncLogs
+          }
         });
       } else {
         await prisma.integrationConnection.create({
           data: {
             orgId: org.id,
-            provider: 'STRIPE',
+            provider: 'META',
             status: 'CONNECTED',
             lastSync: new Date(),
-            syncLogs,
-          },
+            syncLogs
+          }
         });
       }
-
       return NextResponse.json({ success: true, status: 'CONNECTED' });
     }
 
@@ -171,70 +145,6 @@ export async function POST(request: NextRequest) {
           data: {
             orgId: org.id,
             provider: 'RAZORPAY',
-            status: 'CONNECTED',
-            lastSync: new Date(),
-            syncLogs,
-          },
-        });
-      }
-
-      return NextResponse.json({ success: true, status: 'CONNECTED' });
-    }
-
-    if (provider === 'PAYPAL') {
-      if (!keyId || !keySecret) {
-        return NextResponse.json({ error: 'Client ID and Client Secret Key are required.' }, { status: 400 });
-      }
-
-      // Validate keys against PayPal OAuth2 Endpoint
-      try {
-        let tokenRes = await fetch('https://api-m.paypal.com/v1/oauth2/token', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64'),
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: 'grant_type=client_credentials'
-        });
-
-        if (!tokenRes.ok) {
-          // Try sandbox
-          tokenRes = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64'),
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'grant_type=client_credentials'
-          });
-        }
-
-        if (!tokenRes.ok) {
-          const errMsg = await tokenRes.text();
-          console.error('PayPal credential validation failed:', errMsg);
-          return NextResponse.json({ error: 'Invalid PayPal credentials. Please verify Client ID and Secret.' }, { status: 400 });
-        }
-      } catch (err: any) {
-        console.error('Network error validating PayPal credentials:', err);
-        return NextResponse.json({ error: 'Failed to reach PayPal API. Check server connection.' }, { status: 500 });
-      }
-
-      const syncLogs = JSON.stringify({ keyId, keySecret });
-
-      if (existingConnection) {
-        await prisma.integrationConnection.update({
-          where: { id: existingConnection.id },
-          data: {
-            status: 'CONNECTED',
-            lastSync: new Date(),
-            syncLogs,
-          },
-        });
-      } else {
-        await prisma.integrationConnection.create({
-          data: {
-            orgId: org.id,
-            provider: 'PAYPAL',
             status: 'CONNECTED',
             lastSync: new Date(),
             syncLogs,

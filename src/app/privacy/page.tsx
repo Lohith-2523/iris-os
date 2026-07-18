@@ -493,7 +493,7 @@ export default function PrivacyPolicyPage() {
             <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
               {[
                 { title: 'Contractual Performance (Art. 6.1.b)', desc: 'To deploy settings, calculate invoices, sync project milestones, and authorize client logins.' },
-                { title: 'Explicit Consent (Art. 6.1.a)', desc: 'To connect Canva, Google, Notion, and Meta APIs.' },
+                { title: 'Explicit Consent (Art. 6.1.a)', desc: 'To connect Canva, Google, Notion, and Meta APIs, and to securely analyze financial ledgers and lead pipeline data using Prism AI models (which is optional and can be declined or revoked in settings at any time).' },
                 { title: 'Legitimate Interests (Art. 6.1.f)', desc: 'To execute Prism AI heuristics, identify contractor profit leaks, and detect anomalous security activity.' }
               ].map((li, idx) => (
                 <li
@@ -646,7 +646,8 @@ export default function PrivacyPolicyPage() {
               {[
                 'All API tokens (Google, Notion, Meta) are immediately and permanently purged from active databases.',
                 'Your identity details are deleted or fully anonymized.',
-                'Historical operational logs used by Prism AI are fully scrubbed of identifiable references.'
+                'Historical operational logs used by Prism AI are fully scrubbed of identifiable references.',
+                'For Meta (Facebook/Instagram) integrations, you can deauthorize the application or request deletion of all retrieved campaigns, ads, and leads data at any time via the deauthorization endpoint (/api/meta-ads/deauthorize) and data deletion request endpoint (/api/meta-ads/delete-data). Following verification, the data is immediately and permanently wiped from the active database and a unique tracking code is generated to confirm completion.'
               ].map((item, idx) => (
                 <li
                   key={idx}

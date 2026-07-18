@@ -61,6 +61,44 @@ export default function DashboardPage() {
   }, []);
 
   React.useEffect(() => {
+    const statusChangeCallback = (response: any) => {
+      if (response.status === 'connected') {
+        console.log('Meta connected via FB SDK:', response);
+        localStorage.setItem('conn_meta', 'true');
+        setOnboardingState(prev => ({ ...prev, meta: true }));
+        fetch('/api/integrations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: 'META',
+            action: 'connect_sdk',
+            authResponse: response.authResponse
+          })
+        }).catch(err => console.error('Failed to sync FB connection to backend:', err));
+      } else {
+        console.log('Meta login status check failed or disconnected:', response.status);
+      }
+    };
+
+    const checkFbLogin = () => {
+      if (typeof window !== 'undefined' && (window as any).FB) {
+        (window as any).FB.getLoginStatus(function(response: any) {
+          statusChangeCallback(response);
+        });
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (typeof window !== 'undefined' && (window as any).FB) {
+        clearInterval(interval);
+        checkFbLogin();
+      }
+    }, 550);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('dashboardCurrency') || 'USD';
       setCurrencyState(stored);
@@ -952,7 +990,7 @@ export default function DashboardPage() {
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
                   <div className="flex flex-col h-full">
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Today's Schedule</h3>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Today&apos;s Schedule</h3>
                     <div className="divide-y divide-zinc-900 border-t border-zinc-900 overflow-y-auto max-h-[300px]">
                       {todayEvents.map((ev: any) => {
                         const timeStr = ev.startTime ? new Date(ev.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
@@ -980,7 +1018,7 @@ export default function DashboardPage() {
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Today's Meetings</CardTitle>
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Today&apos;s Meetings</CardTitle>
                   <Calendar className="h-4 w-4 text-emerald-450" />
                 </CardHeader>
                 <CardContent className="pt-2 flex-1 flex flex-col justify-between">

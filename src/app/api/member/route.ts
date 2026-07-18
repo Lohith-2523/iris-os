@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import * as crypto from 'crypto';
+import { getOrganization } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -121,7 +122,7 @@ The Iris OS Operations Team
       }
 
       // Get primary organization
-      const org = await prisma.organization.findFirst();
+      const org = await getOrganization(request);
       if (!org) {
         return NextResponse.json({ error: 'Organization not found' }, { status: 500 });
       }

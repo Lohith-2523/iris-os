@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { deobfuscateEmail } from '@/lib/utils';
+import { getOrganization } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action } = body;
 
-    const org = await prisma.organization.findFirst();
+    const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }

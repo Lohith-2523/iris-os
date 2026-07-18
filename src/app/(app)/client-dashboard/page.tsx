@@ -22,13 +22,7 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
-  AlertTriangle,
-  Users,
-  Eye,
-  TrendingUp,
-  Award,
-  X,
-  LayoutDashboard
+  AlertTriangle
 } from 'lucide-react';
 import { formatCurrency, formatPercent, formatUserMessage, obfuscateEmail } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -102,9 +96,6 @@ interface MetaLead {
   adName: string | null;
   status: string;
   createdTime: string;
-  collectionMethod?: string | null;
-  approachMethod?: string | null;
-  funnelName?: string | null;
 }
 
 interface ScheduledPost {
@@ -136,41 +127,11 @@ export default function ClientDashboardPage() {
 
   // Expanded campaigns map
   const [expandedCampaigns, setExpandedCampaigns] = React.useState<Record<string, boolean>>({});
-  const [selectedLead, setSelectedLead] = React.useState<MetaLead | null>(null);
 
   // Calendar States
   const [selectedDayPost, setSelectedDayPost] = React.useState<ScheduledPost | null>(null);
   const [feedbackText, setFeedbackText] = React.useState('');
   const [showFeedbackInput, setShowFeedbackInput] = React.useState(false);
-
-  const [currencyState, setCurrencyState] = React.useState('USD');
-  const [currencyRate, setCurrencyRate] = React.useState(1.0);
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dashboardCurrency') || 'USD';
-      setCurrencyState(stored);
-      
-      const updateRates = (curr: string) => {
-        if (curr === 'EUR') setCurrencyRate(0.92);
-        else if (curr === 'GBP') setCurrencyRate(0.78);
-        else if (curr === 'INR') setCurrencyRate(83.5);
-        else if (curr === 'CAD') setCurrencyRate(1.37);
-        else setCurrencyRate(1.0);
-      };
-      updateRates(stored);
-
-      const handleCurrencyChange = () => {
-        const newCurr = localStorage.getItem('dashboardCurrency') || 'USD';
-        setCurrencyState(newCurr);
-        updateRates(newCurr);
-      };
-      window.addEventListener('currency-updated', handleCurrencyChange);
-      return () => {
-        window.removeEventListener('currency-updated', handleCurrencyChange);
-      };
-    }
-  }, []);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -188,7 +149,7 @@ export default function ClientDashboardPage() {
         setUserRole(role);
         setClientName(data.clientName || 'Aether Technologies');
         if (role === 'client') {
-          setActiveTab('overview');
+          setActiveTab('calendar');
         }
       }
     } catch (e) {
@@ -231,32 +192,12 @@ export default function ClientDashboardPage() {
         setLeads((prev) =>
           prev.map((l) => (l.leadId === leadId ? { ...l, status: newStatus } : l))
         );
-        if (selectedLead && selectedLead.leadId === leadId) {
-          setSelectedLead((prev) => (prev ? { ...prev, status: newStatus } : null));
-        }
       }
     } catch (e) {
       console.error('Failed to update lead status:', e);
     } finally {
       setUpdatingLeadId(null);
     }
-  };
-
-  // Kanban Drag and Drop Handlers
-  const handleDragStart = (e: React.DragEvent, leadId: string) => {
-    e.dataTransfer.setData('text/plain', leadId);
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
-    e.preventDefault();
-    const leadId = e.dataTransfer.getData('text/plain');
-    if (leadId) {
-      await handleUpdateStatus(leadId, targetStatus);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
   };
 
   // Propose calendar changes or approve post
@@ -436,39 +377,6 @@ export default function ClientDashboardPage() {
         {userRole === 'client' ? (
           <>
             <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'overview' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              <LayoutDashboard className="h-3.5 w-3.5" />
-              <span>Workspace Overview</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('performance')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'performance' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span>Ads Performance Reports</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('leads')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'leads' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Users className="h-3.5 w-3.5" />
-              <span>Leads Pipeline</span>
-            </button>
-            <button
               onClick={() => setActiveTab('calendar')}
               className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'calendar' 
@@ -524,17 +432,6 @@ export default function ClientDashboardPage() {
               Engagement Insights
             </button>
             <button
-              onClick={() => setActiveTab('leads')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'leads' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Users className="h-3.5 w-3.5" />
-              <span>Leads Pipeline</span>
-            </button>
-            <button
               onClick={() => setActiveTab('calendar')}
               className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'calendar' 
@@ -562,342 +459,111 @@ export default function ClientDashboardPage() {
 
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
-        userRole === 'client' ? (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Start of page: Two side-by-side cards */}
-            <div className="grid gap-6 md:grid-cols-2">
-              
-              {/* Card 1: Meta Leads Pipeline Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Users className="h-4 w-4 text-zinc-400" />
-                    <span>Leads Pipeline Summary</span>
-                  </CardTitle>
-                  <CardDescription>Current status of customer acquisition campaigns</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Aggregated Total */}
-                  <div className="flex justify-between items-center bg-zinc-950/30 border border-zinc-900 p-3 rounded">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-zinc-500 block">Total Active Leads</span>
-                      <span className="text-2xl font-bold font-mono text-white">{leads.length}</span>
-                    </div>
-                    <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-950 font-mono">
-                      Active Campaign
-                    </Badge>
-                  </div>
-
-                  {/* Stage Distribution bars */}
-                  <div className="space-y-3">
-                    {(() => {
-                      const stagesList = [
-                        { id: 'procured', label: 'Procured', color: 'bg-zinc-500', text: 'text-zinc-450' },
-                        { id: 'warm', label: 'Warm', color: 'bg-amber-500', text: 'text-amber-405' },
-                        { id: 'cold', label: 'Cold', color: 'bg-sky-500', text: 'text-sky-400' },
-                        { id: 'lost', label: 'Lost', color: 'bg-rose-500', text: 'text-rose-455' },
-                        { id: 'closed', label: 'Closed / Won', color: 'bg-emerald-500', text: 'text-emerald-400' }
-                      ];
-
-                      return stagesList.map((st) => {
-                        const count = leads.filter(l => l.status?.toLowerCase() === st.id).length;
-                        const pct = leads.length > 0 ? Math.round((count / leads.length) * 100) : 0;
-                        return (
-                          <div key={st.id} className="space-y-1">
-                            <div className="flex justify-between text-[10px] font-medium">
-                              <span className="text-zinc-300 font-semibold">{st.label}</span>
-                              <span className={st.text + " font-mono font-bold"}>{count} ({pct}%)</span>
-                            </div>
-                            <div className="h-1.5 bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-900">
-                              <div className={`h-full ${st.color}`} style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Card 2: Broadcast Calendar Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-zinc-400" />
-                    <span>Upcoming Broadcasts</span>
-                  </CardTitle>
-                  <CardDescription>Next scheduled content and social releases</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {(() => {
-                    const upcomingPosts = [...scheduledPosts]
-                      .filter(p => p.status === 'SCHEDULED' || p.status === 'APPROVED')
-                      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
-                      .slice(0, 3);
-
-                    if (upcomingPosts.length === 0) {
-                      return (
-                        <div className="py-8 text-center text-zinc-500 text-xs italic border border-dashed border-zinc-900 rounded">
-                          No upcoming broadcasts scheduled.
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="space-y-3">
-                        {upcomingPosts.map((post) => {
-                          const dateStr = new Date(post.scheduledAt).toLocaleDateString([], {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          });
-                          return (
-                            <div key={post.id} className="p-3 border border-zinc-900 bg-zinc-950/20 rounded flex gap-3 items-center">
-                              {post.mediaUrl ? (
-                                <img src={post.mediaUrl} alt="" className="w-10 h-10 object-cover border border-zinc-800 shrink-0" />
-                              ) : (
-                                <div className="w-10 h-10 bg-zinc-900 border border-zinc-850 flex items-center justify-center shrink-0">
-                                  <ImageIcon className="h-4.5 w-4.5 text-zinc-600" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0 text-left">
-                                <div className="flex justify-between items-start gap-1">
-                                  <span className="text-[10px] font-bold text-white truncate max-w-[120px] capitalize">{post.postType}</span>
-                                  <Badge variant="outline" className="text-[8px] px-1 py-0 border-zinc-800 font-mono text-zinc-450 uppercase">
-                                    {post.platform.join(', ')}
-                                  </Badge>
-                                </div>
-                                <p className="text-[9.5px] text-zinc-550 truncate mt-0.5">{post.caption || 'No caption'}</p>
-                                <div className="flex items-center gap-1 text-[8.5px] text-zinc-650 font-mono mt-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{dateStr}</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-
-            </div>
-
-            {/* Section 2: Build / Implementation Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-zinc-400" />
-                  <span>Project Delivery Progress</span>
-                </CardTitle>
-                <CardDescription>Overall build completion based on active tasks</CardDescription>
+        <div className="space-y-6 animate-fadeIn">
+          {/* Ad Stats Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Ads Budget Spend</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {(() => {
-                  const total = tasks.length;
-                  if (total === 0) {
-                    return (
-                      <div className="py-8 text-center text-zinc-550 text-xs italic">
-                        No delivery tasks registered for this project.
-                      </div>
-                    );
-                  }
-
-                  const completed = tasks.filter(t => t.status === 'COMPLETED').length;
-                  const todo = tasks.filter(t => t.status === 'TODO').length;
-                  const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS').length;
-                  const blocked = tasks.filter(t => t.status === 'BLOCKED').length;
-                  const progress = Math.round((completed / total) * 100);
-
-                  const blockedTasks = tasks.filter(t => t.status === 'BLOCKED' || t.blocker);
-
-                  return (
-                    <div className="space-y-6">
-                      {/* Progress bar container */}
-                      <div className="p-4 bg-zinc-950/20 border border-zinc-900 rounded space-y-3">
-                        <div className="flex justify-between items-baseline">
-                          <div>
-                            <span className="text-2xl font-bold font-mono tracking-tight text-white">{progress}%</span>
-                            <span className="text-[10px] text-zinc-500 ml-1.5 uppercase font-bold tracking-wider">Completed</span>
-                          </div>
-                          <span className="text-[10px] font-mono text-zinc-400 font-semibold">{completed} of {total} Tasks Finished</span>
-                        </div>
-
-                        {/* Large Progress Bar */}
-                        <div className="h-3 bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-850">
-                          <div
-                            className="h-full bg-gradient-to-r from-zinc-700 to-white transition-all duration-500"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-
-                        {/* Status counts pills */}
-                        <div className="grid grid-cols-4 gap-2 text-center pt-2">
-                          <div className="p-2 bg-zinc-950/40 border border-zinc-900 rounded">
-                            <span className="block text-[8px] uppercase font-bold text-zinc-550">Pending</span>
-                            <span className="text-xs font-bold text-zinc-300 font-mono">{todo}</span>
-                          </div>
-                          <div className="p-2 bg-amber-950/10 border border-amber-900/10 rounded">
-                            <span className="block text-[8px] uppercase font-bold text-amber-500">Active</span>
-                            <span className="text-xs font-bold text-amber-400 font-mono">{inProgress}</span>
-                          </div>
-                          <div className="p-2 bg-rose-950/10 border border-rose-900/10 rounded">
-                            <span className="block text-[8px] uppercase font-bold text-rose-500">Blocked</span>
-                            <span className="text-xs font-bold text-rose-450 font-mono">{blocked}</span>
-                          </div>
-                          <div className="p-2 bg-emerald-950/10 border border-emerald-900/10 rounded">
-                            <span className="block text-[8px] uppercase font-bold text-emerald-500">Completed</span>
-                            <span className="text-xs font-bold text-emerald-400 font-mono">{completed}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Blockers list */}
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 block">Active Blockers / Intervention Required</span>
-                        {blockedTasks.length === 0 ? (
-                          <div className="p-3 border border-emerald-900/20 bg-emerald-950/5 text-emerald-400 text-[10.5px] font-medium rounded flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-550 shrink-0" />
-                            <span>All systems clear. No active project blockers detected.</span>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {blockedTasks.map((t) => (
-                              <div key={t.id} className="p-3 border border-rose-900/20 bg-rose-950/5 rounded flex gap-2.5 items-start">
-                                <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-                                <div className="text-left">
-                                  <span className="font-semibold text-zinc-200 block text-xs">{t.title}</span>
-                                  {t.blocker ? (
-                                    <p className="text-[10.5px] text-rose-300 font-sans mt-0.5 leading-relaxed font-semibold">Blocker: {t.blocker}</p>
-                                  ) : (
-                                    <p className="text-[10.5px] text-zinc-550 font-sans mt-0.5 leading-relaxed">Task state flagged as Blocked. Awaiting specialist resolution.</p>
-                                  )}
-                                  {t.assignedTo && (
-                                    <span className="text-[9px] text-zinc-500 block mt-1">Assigned Specialist: {t.assignedTo.name} ({t.assignedTo.role})</span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
+              <CardContent>
+                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                  {formatCurrency(totalCampaignSpend)}
+                </div>
+                <span className="text-[9px] text-zinc-550 mt-1 block">Dynamic Facebook & Instagram ads</span>
               </CardContent>
             </Card>
 
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Leads Generated</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                  {totalLeadsCount} Leads
+                </div>
+                <span className="text-[9px] text-emerald-450 mt-1 block font-semibold">+12% over organic benchmarks</span>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Average Cost Per Lead</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                  {formatCurrency(averageCpl, 2)}
+                </div>
+                <span className="text-[9px] text-zinc-500 mt-1 block">Within targeted $15 limit</span>
+              </CardContent>
+            </Card>
+
+            <Card hoverEffect>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Average CTR</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                  {averageCtr.toFixed(2)}%
+                </div>
+                <span className="text-[9px] text-emerald-400 mt-1 block font-semibold">+0.4% above benchmark</span>
+              </CardContent>
+            </Card>
           </div>
-        ) : (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Ad Stats Grid */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Total Ads Budget Spend</CardTitle>
+
+          {/* Quick Info & AI strategy block */}
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="md:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold text-white">Ad Campaign CTR Breakdown</CardTitle>
+                  <CardDescription>Live relative Click-Through-Rate comparison for your ads.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                    {formatCurrency(totalCampaignSpend)}
-                  </div>
-                  <span className="text-[9px] text-zinc-550 mt-1 block">Dynamic Facebook & Instagram ads</span>
-                </CardContent>
-              </Card>
-
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Leads Generated</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                    {totalLeadsCount} Leads
-                  </div>
-                  <span className="text-[9px] text-emerald-450 mt-1 block font-semibold">+12% over organic benchmarks</span>
-                </CardContent>
-              </Card>
-
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Average Cost Per Lead</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                    {formatCurrency(averageCpl, 2)}
-                  </div>
-                  <span className="text-[9px] text-zinc-500 mt-1 block">Within targeted $15 limit</span>
-                </CardContent>
-              </Card>
-
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Average CTR</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                    {averageCtr.toFixed(2)}%
-                  </div>
-                  <span className="text-[9px] text-emerald-450 mt-1 block font-semibold">+0.4% above benchmark</span>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Quick Info & AI strategy block */}
-            <div className="grid gap-6 md:grid-cols-3">
-              <div className="md:col-span-2 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm font-semibold text-white">Ad Campaign CTR Breakdown</CardTitle>
-                    <CardDescription>Live relative Click-Through-Rate comparison for your ads.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="h-[220px] flex items-end justify-between gap-6 pb-2">
-                    {campaigns.map((camp, idx) => {
-                      const cSpend = (camp.ads || []).reduce((sum, a) => sum + a.spend, 0);
-                      const cClicks = (camp.ads || []).reduce((sum, a) => sum + a.clicks, 0);
-                      const cImp = (camp.ads || []).reduce((sum, a) => sum + a.impressions, 0);
-                      const cCtr = cImp > 0 ? (cClicks / cImp) * 100 : 0;
-
-                      return (
-                        <div key={camp.id} className="flex-1 flex flex-col items-center gap-2">
-                          <div className="w-full flex justify-center items-end h-[170px]">
-                            <div
-                              style={{ height: `${Math.min(100, (cCtr / 5) * 100)}%` }}
-                              className="w-12 bg-white/10 hover:bg-white/20 border border-zinc-800 transition-all rounded-t-sm"
-                              title={`${camp.name}: ${cCtr.toFixed(2)}% CTR`}
-                            />
-                          </div>
-                          <span className="text-[9px] font-semibold text-zinc-500 truncate w-20 text-center font-sans">
-                            {camp.name}
-                          </span>
+                <CardContent className="h-[220px] flex items-end justify-between gap-6 pb-2">
+                  {campaigns.map((camp, idx) => {
+                    const cSpend = (camp.ads || []).reduce((sum, a) => sum + a.spend, 0);
+                    const cClicks = (camp.ads || []).reduce((sum, a) => sum + a.clicks, 0);
+                    const cImp = (camp.ads || []).reduce((sum, a) => sum + a.impressions, 0);
+                    const cCtr = cImp > 0 ? (cClicks / cImp) * 100 : 0;
+                    return (
+                      <div key={camp.id} className="flex-1 flex flex-col items-center gap-2">
+                        <div className="w-full flex justify-center items-end h-[170px]">
+                          <div
+                            style={{ height: `${Math.min(100, (cCtr / 5) * 100)}%` }}
+                            className="w-12 bg-white/10 hover:bg-white/20 border border-zinc-800 transition-all rounded-none"
+                            title={`${camp.name}: ${cCtr.toFixed(2)}% CTR`}
+                          />
                         </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              </div>
+                        <span className="text-[9px] font-semibold text-zinc-500 truncate w-20 text-center font-sans">
+                          {camp.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </div>
 
-              <div className="space-y-6">
-                <Card className="bg-[#0b0c10] border-zinc-800">
-                  <CardHeader>
-                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1.5">
-                      <PrismIcon className="h-4 w-4" />
-                      <span>Prism Strategy Insights</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 leading-relaxed text-zinc-400 text-[11px] font-sans">
-                    <p>
-                      Lohith, our AI engines suggest allocating 15% more budget towards Aether's retargeting carousel formats. Carousel click rates have increased by **0.6%** over single-image posts.
-                    </p>
-                    <p className="border-t border-zinc-900 pt-3">
-                      Content calendar scheduled slots for Tuesdays show the highest engagement index values. Focus media deliverables around those time windows.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+            <div className="space-y-6">
+              <Card className="bg-[#0b0c10] border-zinc-800">
+                <CardHeader>
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1.5">
+                    <PrismIcon className="h-4 w-4" />
+                    <span>Prism Strategy Insights</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 leading-relaxed text-zinc-400 text-[11px] font-sans">
+                  <p>
+                    Lohith, our AI engines suggest allocating 15% more budget towards Aether's retargeting carousel formats. Carousel click rates have increased by **0.6%** over single-image posts.
+                  </p>
+                  <p className="border-t border-zinc-900 pt-3">
+                    Content calendar scheduled slots for Tuesdays show the highest engagement index values. Focus media deliverables around those time windows.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
-        )
+        </div>
       )}
 
       {/* TAB 2: CAMPAIGNS & LEADS */}
@@ -1148,161 +814,6 @@ export default function ClientDashboardPage() {
                   <span className="font-semibold text-zinc-350">Wednesdays</span> 
                   <span className="font-mono font-bold text-zinc-100">1:00 PM – 3:00 PM</span>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB: PERFORMANCE */}
-      {activeTab === 'performance' && (
-        <div className="space-y-8 animate-fadeIn">
-          {/* Main Stats Grid */}
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Ad spends</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold font-mono tracking-tight text-white">{formatCurrency(totalCampaignSpend * currencyRate)}</div>
-                  <span className="text-[9px] text-zinc-550 block mt-1">Campaign Total Spend</span>
-                </CardContent>
-              </Card>
-
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Impressions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold font-mono tracking-tight text-white">{totalImpressions.toLocaleString()}</div>
-                  <span className="text-[9px] text-zinc-550 block mt-1">Total views generated</span>
-                </CardContent>
-              </Card>
-
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clicks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold font-mono tracking-tight text-white">{totalClicks.toLocaleString()}</div>
-                  <span className="text-[9px] text-zinc-550 block mt-1">Link clicks registered</span>
-                </CardContent>
-              </Card>
-
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Leads Generated</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold font-mono tracking-tight text-white">{totalLeadsCount}</div>
-                  <span className="text-[9px] text-zinc-555 block mt-1">Form completions</span>
-                </CardContent>
-              </Card>
-
-              <Card hoverEffect>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Spend per lead (CPL)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl font-bold font-mono tracking-tight text-white">{formatCurrency(averageCpl * currencyRate, 2)}</div>
-                  <span className="text-[9px] text-emerald-400 font-semibold block mt-1">Average lead cost</span>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Efficiency Analytics Grid */}
-          <div className="space-y-4 pt-4 border-t border-zinc-900">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-white" />
-              <span>Spend & Impression Efficiency Metrics</span>
-            </h2>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-1.5">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Conversion Rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-white">
-                    {totalLeadsCount > 0 ? ((leads.filter((l: any) => l.status?.toLowerCase() === 'closed').length / totalLeadsCount) * 100).toFixed(2) : '0.00'}%
-                  </div>
-                  <span className="text-[9px] text-emerald-400 font-semibold block mt-1">Closed Leads / Total Leads</span>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-1.5">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Return on Ad Spend (ROAS)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-white">
-                    {totalCampaignSpend > 0 ? (((totalLeadsCount - leads.filter((l: any) => l.status?.toLowerCase() === 'lost').length) * 150) / totalCampaignSpend).toFixed(2) : '0.00'}x
-                  </div>
-                  <span className="text-[9px] text-zinc-500 block mt-1">Lead Value / Total Spend</span>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-1.5">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Overall CAC</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-white">
-                    {formatCurrency(leads.filter((l: any) => l.status?.toLowerCase() === 'closed').length > 0 ? (totalCampaignSpend / leads.filter((l: any) => l.status?.toLowerCase() === 'closed').length) * currencyRate : 0, 2)}
-                  </div>
-                  <span className="text-[9px] text-emerald-400 font-semibold block mt-1">Spend per Closed Lead</span>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-1.5">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Views per {currencyState}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold font-mono text-white">
-                    {totalCampaignSpend > 0 ? (totalImpressions / (totalCampaignSpend * currencyRate)).toFixed(1) : '0.0'}
-                  </div>
-                  <span className="text-[9px] text-zinc-500 block mt-1">Impressions / local spend</span>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Lead Stages Tracked */}
-          <div className="p-4 border border-zinc-900 bg-zinc-950/20 rounded-md">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-3 font-sans">Lead Pipeline Stages Tracked</span>
-            <div className="grid grid-cols-5 text-center gap-1">
-              <div className="border-r border-zinc-900">
-                <span className="block font-mono text-md text-white font-bold">
-                  {leads.filter((l: any) => l.status?.toLowerCase() === 'procured' || l.status?.toLowerCase() === 'new').length}
-                </span>
-                <span className="text-[9px] text-zinc-500 block mt-1">Procured</span>
-              </div>
-              <div className="border-r border-zinc-900">
-                <span className="block font-mono text-md text-white font-bold">
-                  {leads.filter((l: any) => l.status?.toLowerCase() === 'warm' || l.status?.toLowerCase() === 'cold-call in progress').length}
-                </span>
-                <span className="text-[9px] text-zinc-500 block mt-1">Warm</span>
-              </div>
-              <div className="border-r border-zinc-900">
-                <span className="block font-mono text-md text-white font-bold">
-                  {leads.filter((l: any) => l.status?.toLowerCase() === 'cold' || l.status?.toLowerCase() === 'call back required').length}
-                </span>
-                <span className="text-[9px] text-zinc-500 block mt-1">Cold</span>
-              </div>
-              <div className="border-r border-zinc-900">
-                <span className="block font-mono text-md text-rose-400 font-bold">
-                  {leads.filter((l: any) => l.status?.toLowerCase() === 'lost').length}
-                </span>
-                <span className="text-[9px] text-zinc-500 block mt-1">Lost</span>
-              </div>
-              <div>
-                <span className="block font-mono text-md text-emerald-400 font-bold">
-                  {leads.filter((l: any) => l.status?.toLowerCase() === 'closed').length}
-                </span>
-                <span className="text-[9px] text-zinc-500 block mt-1">Closed</span>
               </div>
             </div>
           </div>
@@ -1631,14 +1142,14 @@ export default function ClientDashboardPage() {
 
                       {/* Updates & Blockers */}
                       {task.status === 'BLOCKED' && task.blocker && (
-                        <div className="bg-rose-950/15 border border-rose-950/40 p-2 text-[10px] text-rose-500 flex items-start gap-1.5">
+                        <div className="bg-rose-950/15 border border-rose-950/40 p-2 text-[10px] text-rose-455 flex items-start gap-1.5">
                           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                           <span><strong>Blocker:</strong> {task.blocker}</span>
                         </div>
                       )}
                       {task.update && (
-                        <div className="bg-zinc-900 p-2 text-[10px] text-zinc-400 border border-zinc-800 flex items-start gap-1.5">
-                          <Activity className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                        <div className="bg-zinc-955 p-2 text-[10px] text-zinc-450 border border-zinc-900 flex items-start gap-1.5">
+                          <Activity className="h-3.5 w-3.5 text-zinc-650 shrink-0" />
                           <span><strong>Latest Update:</strong> {task.update}</span>
                         </div>
                       )}
@@ -1651,239 +1162,6 @@ export default function ClientDashboardPage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* TAB: LEADS PIPELINE */}
-      {activeTab === 'leads' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Leads metrics header banner */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 bg-zinc-950/30 p-4 border border-zinc-900 rounded-lg">
-            <div className="border-r border-zinc-900/60 last:border-0 pr-4">
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Procured Leads</span>
-              <span className="text-lg font-bold font-mono text-white block mt-1">
-                {leads.filter((l) => l.status?.toLowerCase() === 'procured' || l.status?.toLowerCase() === 'new').length}
-              </span>
-            </div>
-            <div className="border-r border-zinc-900/60 last:border-0 pr-4 pl-0 lg:pl-4">
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Warm & Cold</span>
-              <span className="text-lg font-bold font-mono text-zinc-300 block mt-1">
-                {leads.filter((l) => l.status?.toLowerCase() === 'warm' || l.status?.toLowerCase() === 'cold-call in progress').length +
-                  leads.filter((l) => l.status?.toLowerCase() === 'cold' || l.status?.toLowerCase() === 'call back required').length}
-              </span>
-            </div>
-            <div className="border-r border-zinc-900/60 last:border-0 pr-4 pl-0 lg:pl-4">
-              <span className="text-[9px] font-bold text-rose-455 uppercase tracking-wider block">Lost Leads</span>
-              <span className="text-lg font-bold font-mono text-rose-400 block mt-1">
-                {leads.filter((l) => l.status?.toLowerCase() === 'lost' || l.status?.toLowerCase() === 'unqualified').length}
-              </span>
-            </div>
-            <div className="border-r border-zinc-900/60 last:border-0 pr-4 pl-0 lg:pl-4">
-              <span className="text-[9px] font-bold text-emerald-455 uppercase tracking-wider block">Closed Deals</span>
-              <span className="text-lg font-bold font-mono text-emerald-400 block mt-1">
-                {leads.filter((l) => l.status?.toLowerCase() === 'closed').length}
-              </span>
-            </div>
-            <div className="pl-0 lg:pl-4">
-              <span className="text-[9px] font-bold text-violet-400 uppercase tracking-wider block">Pipeline Total</span>
-              <span className="text-lg font-bold font-mono text-white block mt-1">{leads.length}</span>
-            </div>
-          </div>
-
-          {/* Search bar */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between pb-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-500" />
-              <input
-                type="text"
-                placeholder="Search leads by name, email, phone or ad..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900/40 py-1.5 pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none transition-all font-sans"
-              />
-            </div>
-            <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 font-mono">
-              <span>Drag & drop cards to update status</span>
-            </div>
-          </div>
-
-          {/* KANBAN BOARD */}
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-5 items-stretch overflow-x-auto min-h-[500px]">
-            {[
-              { id: 'procured', label: 'Procured', bg: 'border-zinc-800 bg-zinc-950/20' },
-              { id: 'warm', label: 'Warm', bg: 'border-amber-900/30 bg-amber-950/10' },
-              { id: 'cold', label: 'Cold', bg: 'border-blue-900/30 bg-blue-950/10' },
-              { id: 'lost', label: 'Lost', bg: 'border-rose-900/30 bg-rose-950/10' },
-              { id: 'closed', label: 'Closed', bg: 'border-emerald-900/30 bg-emerald-950/10' },
-            ].map((col) => {
-              const colLeads = leads
-                .filter((l) => {
-                  const query = searchQuery.toLowerCase();
-                  const matchesSearch =
-                    l.fullName.toLowerCase().includes(query) ||
-                    l.email.toLowerCase().includes(query) ||
-                    (l.phone && l.phone.includes(searchQuery)) ||
-                    (l.adName && l.adName.toLowerCase().includes(query));
-
-                  if (!matchesSearch) return false;
-
-                  return (
-                    l.status?.toLowerCase() === col.id ||
-                    (col.id === 'procured' && l.status?.toLowerCase() === 'new') ||
-                    (col.id === 'warm' && l.status?.toLowerCase() === 'cold-call in progress') ||
-                    (col.id === 'cold' && l.status?.toLowerCase() === 'call back required') ||
-                    (col.id === 'lost' && l.status?.toLowerCase() === 'unqualified')
-                  );
-                });
-
-              return (
-                <div
-                  key={col.id}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, col.id)}
-                  className={`flex flex-col rounded-lg border p-3 ${col.bg} transition-all duration-150 min-h-[450px]`}
-                >
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5 mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">
-                      {col.label}
-                    </span>
-                    <Badge variant="outline" className="text-[9px] font-mono border-zinc-800 text-zinc-400">
-                      {colLeads.length}
-                    </Badge>
-                  </div>
-
-                  {/* Column Cards */}
-                  <div className="flex-1 flex flex-col gap-2 overflow-y-auto max-h-[600px] scrollbar-none">
-                    {colLeads.length === 0 ? (
-                      <div className="h-full flex items-center justify-center border border-dashed border-zinc-900/50 p-6 text-center text-[10px] text-zinc-650 italic rounded-md">
-                        Drop leads here
-                      </div>
-                    ) : (
-                      colLeads.map((lead) => (
-                        <div
-                          key={lead.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, lead.leadId)}
-                          className="p-3 border border-zinc-900 bg-zinc-950/45 hover:bg-zinc-900/40 transition-all select-none text-[11px] relative group rounded-md cursor-grab active:cursor-grabbing text-left"
-                        >
-                          <div className="flex justify-between items-start">
-                            <span className="font-semibold text-white truncate max-w-[110px]">
-                              {lead.fullName}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedLead(lead)}
-                              className="text-zinc-500 hover:text-white cursor-pointer"
-                              title="Inspect Lead Details"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                          <span className="text-[10px] text-zinc-500 font-mono block mt-0.5 truncate">
-                            {lead.email}
-                          </span>
-                          {lead.adName && (
-                            <span className="text-[9px] text-zinc-650 font-sans block mt-2 border-t border-zinc-900/60 pt-1.5 truncate">
-                              Ad: {lead.adName}
-                            </span>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* LEAD DETAILS DIALOG MODAL */}
-      {selectedLead && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
-          <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 shadow-2xl p-2 font-sans text-xs text-left">
-            <CardHeader className="border-b border-zinc-900 pb-3 flex flex-row items-center justify-between">
-              <div>
-                <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest font-mono">Lead Identity Card</span>
-                <CardTitle className="text-sm font-bold text-white uppercase tracking-wider mt-0.5">
-                  {selectedLead.fullName}
-                </CardTitle>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedLead(null)}
-                className="h-6 w-6 p-0 text-zinc-500 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              {/* Contact parameters */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Email Address</span>
-                  <span className="text-white font-mono mt-0.5 block break-all">{selectedLead.email}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Phone Number</span>
-                  <span className="text-white font-mono mt-0.5 block">{selectedLead.phone || 'N/A'}</span>
-                </div>
-              </div>
-
-              {/* API and collection parameters */}
-              <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-zinc-900">
-                <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Meta Ad Campaign</span>
-                  <span className="text-zinc-300 mt-0.5 block font-semibold">{selectedLead.adName || 'Instant Lead Form'}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Collection Method</span>
-                  <span className="text-zinc-350 mt-0.5 block">{selectedLead.collectionMethod || 'Meta Ads API'}</span>
-                </div>
-              </div>
-
-              {/* Approach and funnel info */}
-              <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-zinc-900">
-                <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Funnel Source</span>
-                  <span className="text-zinc-350 mt-0.5 block">{selectedLead.funnelName || 'General Funnel Intake'}</span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Acquisition Date</span>
-                  <span className="text-zinc-400 font-mono mt-0.5 block">{selectedLead.createdTime ? new Date(selectedLead.createdTime).toLocaleString() : 'N/A'}</span>
-                </div>
-              </div>
-
-              {/* Status Select action (only client can change status) */}
-              <div className="pt-3 border-t border-zinc-900">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block mb-1.5">Lead Status Indicator</span>
-                <select
-                  value={selectedLead.status}
-                  onChange={(e) => handleUpdateStatus(selectedLead.leadId, e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-2.5 py-1.5 focus:outline-none focus:border-zinc-700 capitalize font-semibold text-xs cursor-pointer"
-                >
-                  <option value="new">Procured / New</option>
-                  <option value="warm">Warm</option>
-                  <option value="cold">Cold</option>
-                  <option value="lost">Lost</option>
-                  <option value="closed">Closed</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setSelectedLead(null)}
-                  className="h-8 px-4 font-semibold text-xs"
-                >
-                  Close Details
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>

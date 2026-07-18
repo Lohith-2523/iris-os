@@ -57,6 +57,7 @@ export default function ClientsPage() {
     { id: '8', name: 'Pinnacle Health', domain: 'pinnaclehealth.co', healthScore: 35, healthStatus: 'RISK', churnRiskScore: 78, upsellOpportunityValue: 15000, metadata: { assignedTeamMemberId: '6' } },
   ];
 
+
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
   if (selectedClient) {
@@ -85,10 +86,7 @@ export default function ClientsPage() {
           <p className="text-xs text-zinc-500">Manage account relationships, contract values, upsell opportunities, and customer retention metrics.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="h-8 border-zinc-800 text-zinc-300 gap-1.5">
-            <Filter className="h-3.5 w-3.5" />
-            <span>Filter List</span>
-          </Button>
+
           <Link href="/clients/onboard">
             <Button variant="default" size="sm" className="h-8 gap-1.5 font-semibold">
               <Plus className="h-3.5 w-3.5" />
@@ -166,6 +164,7 @@ export default function ClientsPage() {
           </CardContent>
         </Card>
       </div>
+
 
       {/* Main Split */}
       <div className="grid gap-6 md:grid-cols-3">
