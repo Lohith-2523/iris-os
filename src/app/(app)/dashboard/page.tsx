@@ -415,7 +415,8 @@ export default function DashboardPage() {
         setNeedsOnboarding(false);
         window.location.reload();
       } else {
-        alert('Failed to complete onboarding on server.');
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Failed to complete onboarding on server: ${errorData.error || res.statusText || 'Unknown error'}${errorData.details ? ` (${errorData.details})` : ''}`);
       }
     } catch (e) {
       console.error(e);
