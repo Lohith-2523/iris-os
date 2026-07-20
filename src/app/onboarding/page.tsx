@@ -160,19 +160,23 @@ export default function OnboardingPage() {
             username: username,
             email: email,
           })
-        }).then(() => {
-          setTimeout(() => {
+        }).then(async (res) => {
+          if (res.ok) {
+            setTimeout(() => {
+              setIsProcessing(false);
+              const params = new URLSearchParams(window.location.search);
+              const redirectUrl = params.get('redirect') || '/dashboard';
+              router.push(redirectUrl);
+            }, 800);
+          } else {
+            const errData = await res.json().catch(() => ({}));
             setIsProcessing(false);
-            const params = new URLSearchParams(window.location.search);
-            const redirectUrl = params.get('redirect') || '/dashboard';
-            router.push(redirectUrl);
-          }, 800);
+            alert(`Failed to register organization: ${errData.error || res.statusText || 'Unknown error'}${errData.details ? ` (${errData.details})` : ''}`);
+          }
         }).catch((err) => {
           console.error('Error updating organization plan on onboarding completion:', err);
-          setTimeout(() => {
-            setIsProcessing(false);
-            router.push('/dashboard');
-          }, 800);
+          setIsProcessing(false);
+          alert('Network error while registering organization.');
         });
       }
     }, 1000);
