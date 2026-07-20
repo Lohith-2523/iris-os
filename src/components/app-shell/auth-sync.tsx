@@ -2,12 +2,33 @@
 
 import * as React from 'react';
 import { createClient } from '@/lib/client';
-import { obfuscateEmail } from '@/lib/utils';
+import { obfuscateEmail, deobfuscateEmail } from '@/lib/utils';
 
 export function AuthSync() {
   const supabase = createClient();
 
   React.useEffect(() => {
+    // Sync cookie email to localStorage for custom OAuth flows
+    const getCookie = (name: string) => {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      if (match) return match[2];
+      return null;
+    };
+
+    const cookieEmailObfuscated = getCookie('currentUserEmail');
+    if (cookieEmailObfuscated) {
+      try {
+        const email = deobfuscateEmail(cookieEmailObfuscated);
+        if (email && localStorage.getItem('currentUserEmail') !== email) {
+          localStorage.setItem('currentUserEmail', email);
+          localStorage.setItem('remember_me', 'true');
+          window.dispatchEvent(new Event('user-updated'));
+        }
+      } catch (e) {
+        console.error('Error deobfuscating cookie email:', e);
+      }
+    }
+
     const syncAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.email) {

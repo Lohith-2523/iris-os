@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,7 @@ interface CalendarEvent {
 export default function CalendarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClient();
   const [currentUserEmail, setCurrentUserEmail] = React.useState('');
   const [userRole, setUserRole] = React.useState('');
   
@@ -120,8 +122,6 @@ export default function CalendarPage() {
         return;
       }
       setCurrentUserEmail(email);
-      const isGoogleConn = localStorage.getItem('conn_google_calendar') === 'true';
-      setGoogleConnected(isGoogleConn);
       
       // Load user details
       fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`)
@@ -132,6 +132,21 @@ export default function CalendarPage() {
           }
         })
         .catch(e => console.error('Error fetching user info:', e));
+
+      // Fetch integration status to check if Google is connected
+      fetch('/api/integrations')
+        .then(res => res.json())
+        .then(data => {
+          const googleConn = data.find((i: any) => i.provider === 'GOOGLE');
+          const isConnected = googleConn && googleConn.status === 'CONNECTED';
+          setGoogleConnected(isConnected);
+          if (isConnected) {
+            localStorage.setItem('conn_google_calendar', 'true');
+          } else {
+            localStorage.removeItem('conn_google_calendar');
+          }
+        })
+        .catch(e => console.error('Error fetching integrations status:', e));
     }
   }, []);
 
@@ -156,34 +171,23 @@ export default function CalendarPage() {
     loadEvents();
   }, [loadEvents]);
 
-  // Handle incoming OAuth consent callback
+  // Handle incoming OAuth redirects with google_connected parameter
   React.useEffect(() => {
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
-    if (code && state === 'google_cal_state') {
-      setSyncingGoogle(true);
-      // Trigger API sync
-      fetch('/api/calendar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentUserEmail, action: 'sync' })
-      })
-      .then(res => res.json())
-      .then(() => {
+    const googleConnectedParam = searchParams.get('google_connected');
+    if (googleConnectedParam) {
+      if (googleConnectedParam === 'true') {
         setGoogleConnected(true);
         localStorage.setItem('conn_google_calendar', 'true');
         loadEvents();
-        // Clear params to prevent double syncs
-        router.replace('/calendar');
-      })
-      .catch(err => {
-        console.error('Error syncing Google Calendar:', err);
-      })
-      .finally(() => {
-        setSyncingGoogle(false);
-      });
+        alert('Google Calendar successfully connected and synchronized!');
+      } else if (googleConnectedParam === 'denied') {
+        alert('Google Calendar access request was denied.');
+      } else {
+        alert('Failed to connect Google Calendar.');
+      }
+      router.replace('/calendar');
     }
-  }, [searchParams, currentUserEmail, loadEvents, router]);
+  }, [searchParams, loadEvents, router]);
 
   // Toggle connection to Google Calendar
   const handleGoogleConnect = () => {
@@ -204,8 +208,18 @@ export default function CalendarPage() {
       .catch(err => console.error('Error disconnecting google calendar:', err))
       .finally(() => setSyncingGoogle(false));
     } else {
-      // Redirect to consent page
-      router.push(`/oauth/consent?client_id=Google+Calendar&redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}&scope=https://www.googleapis.com/auth/calendar&state=google_cal_state`);
+      // Redirect to Google OAuth via Supabase
+      supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly',
+          redirectTo: `${window.location.origin}/auth/callback?next=/calendar&type=calendar`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
     }
   };
 
@@ -519,21 +533,58 @@ export default function CalendarPage() {
               </div>
             </div>
             
-            <Button
-              onClick={handleGoogleConnect}
-              disabled={syncingGoogle}
-              className={cn(
-                "h-7 text-[10px] font-semibold border px-3 cursor-pointer transition-all",
-                googleConnected 
-                  ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-rose-950/20 hover:border-rose-900/30 hover:text-rose-400"
-                  : "bg-white text-zinc-950 hover:bg-zinc-200 border-zinc-200"
+            <div className="flex gap-2">
+              {googleConnected && (
+                <Button
+                  onClick={async () => {
+                    setSyncingGoogle(true);
+                    try {
+                      const res = await fetch('/api/calendar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: currentUserEmail, action: 'sync' })
+                      });
+                      if (res.ok) {
+                        loadEvents();
+                        alert('Google Calendar events synced successfully.');
+                      } else {
+                        const data = await res.json();
+                        alert('Sync failed: ' + (data.message || 'Unknown error'));
+                      }
+                    } catch (e) {
+                      console.error('Error syncing calendar:', e);
+                      alert('Error syncing calendar.');
+                    } finally {
+                      setSyncingGoogle(false);
+                    }
+                  }}
+                  disabled={syncingGoogle}
+                  className="h-7 text-[10px] font-semibold border px-3 cursor-pointer transition-all bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500"
+                >
+                  {syncingGoogle ? (
+                    <RefreshCw className="h-3 w-3 animate-spin mr-1.5" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3 mr-1.5" />
+                  )}
+                  <span>Sync Now</span>
+                </Button>
               )}
-            >
-              {syncingGoogle ? (
-                <RefreshCw className="h-3 w-3 animate-spin mr-1.5" />
-              ) : null}
-              {googleConnected ? 'Disconnect' : 'Connect Calendar'}
-            </Button>
+              <Button
+                onClick={handleGoogleConnect}
+                disabled={syncingGoogle}
+                className={cn(
+                  "h-7 text-[10px] font-semibold border px-3 cursor-pointer transition-all",
+                  googleConnected 
+                    ? "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-rose-950/20 hover:border-rose-900/30 hover:text-rose-400"
+                    : "bg-white text-zinc-950 hover:bg-zinc-200 border-zinc-200"
+                )}
+              >
+                {syncingGoogle && !googleConnected ? (
+                  <RefreshCw className="h-3 w-3 animate-spin mr-1.5" />
+                ) : null}
+                {googleConnected ? 'Disconnect' : 'Connect Calendar'}
+              </Button>
+            </div>
           </Card>
         </div>
       </div>

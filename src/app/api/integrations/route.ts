@@ -7,6 +7,7 @@ const PROVIDERS = ['RAZORPAY', 'META', 'GOOGLE'];
 const DEFAULT_LOGS: Record<string, string> = {
   RAZORPAY: 'Not connected. Connect your Razorpay Key ID and Secret.',
   META: 'Not connected. Authorize your Meta Business Account via Facebook SDK.',
+  GOOGLE: 'Not connected. Connect your Google account to sync Google Calendar.',
 };
 
 export async function GET(request: NextRequest) {
@@ -25,18 +26,11 @@ export async function GET(request: NextRequest) {
     const integrations = PROVIDERS.map((provider) => {
       const dbConn = connectionsMap.get(provider);
       
-      let status = 'CONNECTED';
-      if (provider === 'RAZORPAY' || provider === 'META') {
-        status = dbConn ? dbConn.status : 'DISCONNECTED';
-      } else {
-        status = dbConn ? dbConn.status : 'CONNECTED';
-      }
+      const status = dbConn ? dbConn.status : 'DISCONNECTED';
 
       let logs = DEFAULT_LOGS[provider];
       if (dbConn) {
-        logs = (provider === 'RAZORPAY' || provider === 'META')
-          ? dbConn.syncLogs || 'Active connection verified.' 
-          : dbConn.syncLogs || DEFAULT_LOGS[provider];
+        logs = dbConn.syncLogs || 'Active connection verified.';
       }
 
       return {

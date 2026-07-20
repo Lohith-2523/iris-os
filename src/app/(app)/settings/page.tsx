@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { createClient } from '@/lib/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatUserMessage } from '@/lib/utils';
@@ -66,6 +67,7 @@ const AGENCY_INDUSTRIES = [
 ];
 
 export default function SettingsPage() {
+  const supabase = createClient();
   const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
   const [orgName, setOrgName] = React.useState('Apex Creative Group');
   const [billingEmail, setBillingEmail] = React.useState('billing@apex.co');
@@ -1017,31 +1019,65 @@ export default function SettingsPage() {
                             </td>
                             <td className="p-4 text-[11px] leading-relaxed max-w-sm truncate">{item.logs}</td>
                             <td className="p-4 text-right">
-                              {item.provider === 'RAZORPAY' || item.provider === 'META' ? (
+                              {item.provider === 'RAZORPAY' || item.provider === 'META' || item.provider === 'GOOGLE' ? (
                                 item.status === 'CONNECTED' ? (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={async () => {
-                                      try {
-                                        await fetch('/api/integrations', {
-                                          method: 'POST',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ provider: item.provider, action: 'disconnect' }),
-                                        });
-                                        if (item.provider === 'META') {
-                                          localStorage.removeItem('conn_meta');
+                                  <div className="flex gap-2 justify-end">
+                                    {item.provider === 'GOOGLE' && (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={async () => {
+                                          try {
+                                            setLoadingIntegrations(true);
+                                            const res = await fetch('/api/calendar', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ action: 'sync' }),
+                                            });
+                                            if (res.ok) {
+                                              alert('Google Calendar synced successfully.');
+                                            } else {
+                                              const data = await res.json();
+                                              alert('Sync failed: ' + (data.message || 'Unknown error'));
+                                            }
+                                            await fetchIntegrations();
+                                          } catch (e) {
+                                            console.error(e);
+                                          } finally {
+                                            setLoadingIntegrations(false);
+                                          }
+                                        }}
+                                        className="h-8 bg-zinc-800 text-white hover:bg-zinc-700 text-xs font-semibold"
+                                      >
+                                        Sync Now
+                                      </Button>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={async () => {
+                                        try {
+                                          await fetch('/api/integrations', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ provider: item.provider, action: 'disconnect' }),
+                                          });
+                                          if (item.provider === 'META') {
+                                            localStorage.removeItem('conn_meta');
+                                          } else if (item.provider === 'GOOGLE') {
+                                            localStorage.removeItem('conn_google_calendar');
+                                          }
+                                          await fetchIntegrations();
+                                        } catch (e) {
+                                          console.error(e);
                                         }
-                                        await fetchIntegrations();
-                                      } catch (e) {
-                                        console.error(e);
-                                      }
-                                    }}
-                                    className="h-8 text-rose-450 hover:text-rose-350 hover:bg-rose-950/10 text-xs font-semibold"
-                                  >
-                                    Disconnect
-                                  </Button>
+                                      }}
+                                      className="h-8 text-rose-450 hover:text-rose-350 hover:bg-rose-950/10 text-xs font-semibold"
+                                    >
+                                      Disconnect
+                                    </Button>
+                                  </div>
                                 ) : (
                                   <Button
                                     type="button"
@@ -1049,6 +1085,18 @@ export default function SettingsPage() {
                                     onClick={() => {
                                       if (item.provider === 'META') {
                                         handleConnectMeta();
+                                      } else if (item.provider === 'GOOGLE') {
+                                        supabase.auth.signInWithOAuth({
+                                          provider: 'google',
+                                          options: {
+                                            scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly',
+                                            redirectTo: `${window.location.origin}/auth/callback?next=/calendar&type=calendar`,
+                                            queryParams: {
+                                              access_type: 'offline',
+                                              prompt: 'consent',
+                                            },
+                                          },
+                                        });
                                       } else {
                                         setConnectingProvider('RAZORPAY');
                                       }

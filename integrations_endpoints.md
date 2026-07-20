@@ -4,7 +4,16 @@ This document contains a compiled list of all authorization redirects, API callb
 
 ---
 
+## 1. Google OAuth & Calendar Sync
+Used for single sign-on (SSO) login, new organization signup, and Google Calendar event synchronization.
 
+*   **OAuth Callback / Redirect URI**: 
+    *   `https://aifapsvsjfixwoplshuj.supabase.co/auth/v1/callback`
+*   **Scopes Required**:
+    *   Login / Signup: `openid`, `email`, `profile`
+    *   Calendar Integration: `https://www.googleapis.com/auth/calendar.readonly`, `https://www.googleapis.com/auth/calendar.events.readonly`
+
+---
 
 ## 2. Meta Ads & Leads Manager
 Used to sync campaigns, track ad performance metrics, automate lead capture workflows, and support Canva asset synchronization.
