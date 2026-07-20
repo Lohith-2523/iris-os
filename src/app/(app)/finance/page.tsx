@@ -552,15 +552,6 @@ export default function FinancePage() {
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {
-    if (isSkippedAll) {
-      return {
-        grossBillings: 0,
-        outstandingAmount: 0,
-        totalExpenses: 0,
-        netProfitMargin: 0,
-        aiSubscriptionCosts: 0
-      };
-    }
     let scale = 1;
     if (timeFrame === 'Monthly') scale = 1/12;
     if (timeFrame === 'Quarterly') scale = 3/12;
@@ -667,7 +658,6 @@ export default function FinancePage() {
 
 
   const combinedTransactions = React.useMemo(() => {
-    if (isSkippedAll) return [];
     const list: any[] = [];
 
     // Add manual transactions
@@ -684,78 +674,13 @@ export default function FinancePage() {
       });
     });
 
-    // Add standard invoices
-    const baseInvoices = dbData?.recentInvoices ?? [];
-
-    baseInvoices.forEach((inv: any) => {
-      list.push({
-        id: inv.number,
-        source: 'General Ledger',
-        customer: inv.client,
-        date: inv.date,
-        amountUSD: inv.amount,
-        status: inv.status === 'PAID' ? 'succeeded' : inv.status === 'UNPAID' ? 'pending' : 'failed',
-        rawStatus: inv.status
-      });
-    });
-
-    // Add Stripe charges
-    if (isStripeConnected && stripeData?.payments) {
-      stripeData.payments.forEach((ch: any) => {
-        list.push({
-          id: ch.id,
-          source: 'Stripe',
-          customer: ch.email,
-          date: ch.createdAt,
-          amountUSD: ch.amount,
-          status: ch.status,
-          rawStatus: ch.status.toUpperCase()
-        });
-      });
-    }
-
-    // Add Paypal charges
-    if (isPaypalConnected && paypalData?.payments) {
-      paypalData.payments.forEach((pp: any) => {
-        list.push({
-          id: pp.id,
-          source: 'PayPal',
-          customer: pp.email,
-          date: pp.createdAt,
-          amountUSD: pp.amount,
-          status: pp.status === 'completed' ? 'succeeded' : pp.status === 'refunded' ? 'refunded' : 'failed',
-          rawStatus: pp.status.toUpperCase()
-        });
-      });
-    }
-
-    // Add Razorpay payments
-    if (isRazorpayConnected && razorpayData?.payments) {
-      razorpayData.payments.forEach((p: any) => {
-        list.push({
-          id: p.id,
-          source: 'Razorpay',
-          customer: p.email,
-          date: p.createdAt,
-          amountUSD: p.amount / 83.5, // Convert base USD for uniform table formatting
-          status: p.status === 'captured' ? 'succeeded' : p.status === 'refunded' ? 'refunded' : 'failed',
-          rawStatus: p.status.toUpperCase()
-        });
-      });
-    }
-
-    // Add subscription transactions
-    subscriptionTransactions.forEach(tx => {
-      list.push(tx);
-    });
-
     // Sort newest first
     return list.sort((a, b) => {
       const dateA = new Date(a.date).getTime() || 0;
       const dateB = new Date(b.date).getTime() || 0;
       return dateB - dateA;
     });
-  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, subscriptionTransactions]);
+  }, [manualTransactions]);
 
   const revenueLineData = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -781,7 +706,6 @@ export default function FinancePage() {
   }, [combinedTransactions, timeFrame]);
 
   const expensesByCategory = React.useMemo(() => {
-    if (isSkippedAll) return [];
     let scale = 1;
     if (timeFrame === 'Monthly') scale = 1/12;
     if (timeFrame === 'Quarterly') scale = 3/12;
@@ -862,7 +786,6 @@ export default function FinancePage() {
   }, [dbData, manualTransactions, subscriptionTransactions, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, isInTimeFrame, timeFrame, isSkippedAll]);
 
   const clientProfitability = React.useMemo(() => {
-    if (isSkippedAll) return [];
     const revenueMap = new Map<string, number>();
     combinedTransactions.forEach((tx: any) => {
       if (tx.amountUSD > 0 && (tx.status === 'succeeded' || tx.status === 'captured')) {

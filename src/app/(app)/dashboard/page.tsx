@@ -487,12 +487,11 @@ export default function DashboardPage() {
   }, [metaData]);
 
   const agencyLeadsList = React.useMemo(() => {
-    if (isSkippedAll) return [];
     if (agencyLeadsData?.leads && agencyLeadsData.leads.length > 0) {
       return agencyLeadsData.leads;
     }
     return [];
-  }, [agencyLeadsData, isSkippedAll]);
+  }, [agencyLeadsData]);
 
   const warmAgencyLeads = React.useMemo(() => {
     return agencyLeadsList.filter((l: any) => l.status?.toLowerCase() === 'warm');
@@ -511,7 +510,6 @@ export default function DashboardPage() {
   }, [clientsList]);
 
   const priorityTasks = React.useMemo(() => {
-    if (isSkippedAll) return [];
     if (!tasksList || tasksList.length === 0) return [];
     return [...tasksList]
       .filter((t: any) => t.status !== 'DONE')
@@ -520,10 +518,9 @@ export default function DashboardPage() {
         if (!b.deadline) return -1;
         return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
       });
-  }, [tasksList, isSkippedAll]);
+  }, [tasksList]);
 
   const todayEvents = React.useMemo(() => {
-    if (isSkippedAll) return [];
     if (!calendarEvents || calendarEvents.length === 0) return [];
 
     const startOfToday = new Date();
@@ -537,7 +534,7 @@ export default function DashboardPage() {
         return d >= startOfToday && d <= endOfToday;
       })
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  }, [calendarEvents, isSkippedAll]);
+  }, [calendarEvents]);
 
   return (
     <div className="space-y-6">
