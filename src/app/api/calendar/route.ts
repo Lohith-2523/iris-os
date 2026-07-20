@@ -4,11 +4,6 @@ import { deobfuscateEmail } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
-    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
-    if (isSkippedAll) {
-      return NextResponse.json({ events: [] });
-    }
-
     const { searchParams } = new URL(request.url);
     const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
     if (!rawEmail) {

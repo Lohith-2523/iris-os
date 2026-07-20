@@ -4,11 +4,6 @@ import { getOrganization } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
-    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
-    if (isSkippedAll) {
-      return NextResponse.json([]);
-    }
-
     const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });

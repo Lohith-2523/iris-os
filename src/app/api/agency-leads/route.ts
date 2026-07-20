@@ -5,11 +5,6 @@ import { getOrganization } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
-    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
-    if (isSkippedAll) {
-      return NextResponse.json({ leads: [] });
-    }
-
     const { searchParams } = new URL(request.url);
     const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
     if (!rawEmail) {

@@ -5,11 +5,6 @@ import { getRequestUser } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
-    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
-    if (isSkippedAll) {
-      return NextResponse.json([]);
-    }
-
     const user = await getRequestUser(request);
     if (!user) {
       return NextResponse.json([]);

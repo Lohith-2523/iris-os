@@ -59,53 +59,6 @@ export async function GET(request: NextRequest) {
       ? { members: { some: { userId: user.id } } }
       : {};
 
-    const isSkippedAll = request.cookies.get('skipped_all_steps')?.value === 'true';
-    if (isSkippedAll) {
-      switch (domain) {
-        case 'dashboard':
-          return NextResponse.json({
-            activeClientsCount: 0,
-            totalClientsCount: 0,
-            activeProjectsCount: 0,
-            currentMonthRevenue: 0,
-            projectRisks: [],
-            grossBillings: 0,
-            totalExpenses: 0,
-            outstandingAmount: 0,
-            revenueHistory: [
-              { label: 'Jan', value: 0 },
-              { label: 'Feb', value: 0 },
-              { label: 'Mar', value: 0 },
-              { label: 'Apr', value: 0 },
-              { label: 'May', value: 0 },
-              { label: 'Jun', value: 0 },
-            ],
-          });
-        case 'finance':
-          return NextResponse.json({
-            grossBillings: 0,
-            outstandingAmount: 0,
-            totalExpenses: 0,
-            recentInvoices: [],
-            expenses: [],
-          });
-        case 'clients':
-          return NextResponse.json([]);
-        case 'projects':
-          return NextResponse.json([]);
-        case 'team':
-          return NextResponse.json([]);
-        case 'reporting':
-          return NextResponse.json([]);
-        case 'operations':
-          return NextResponse.json({
-            automationsCount: 0,
-            runsCount: 0,
-          });
-        default:
-          return NextResponse.json({ error: 'Invalid domain specified' }, { status: 400 });
-      }
-    }
 
     switch (domain) {
       case 'dashboard': {
