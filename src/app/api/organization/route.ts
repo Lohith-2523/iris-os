@@ -32,14 +32,19 @@ export async function POST(request: NextRequest) {
     const { name, plan, hasAddon, agencyTypes, bankNames, currency, aiSharingConsent, username, email } = body;
 
     const cookieEmail = request.cookies.get('currentUserEmail')?.value;
-    const userEmail = deobfuscateEmail(cookieEmail || '') || email || '';
+    const userEmail = (deobfuscateEmail(cookieEmail || '') || email || '').toLowerCase();
 
     if (!userEmail) {
       return NextResponse.json({ error: 'User email context is required' }, { status: 400 });
     }
 
-    let user = await prisma.user.findUnique({
-      where: { email: userEmail },
+    let user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: userEmail,
+          mode: 'insensitive',
+        },
+      },
       include: { organization: true }
     });
 

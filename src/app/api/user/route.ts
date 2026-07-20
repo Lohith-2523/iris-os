@@ -11,10 +11,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing email parameter' }, { status: 400 });
     }
 
-    const email = deobfuscateEmail(emailParam);
+    const email = deobfuscateEmail(emailParam).toLowerCase();
 
-    const user = await prisma.user.findUnique({
-      where: { email },
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+      },
     });
 
     if (!user) {

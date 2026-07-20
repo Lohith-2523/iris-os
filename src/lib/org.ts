@@ -9,8 +9,13 @@ export async function getRequestUser(request: NextRequest) {
   }
 
   const email = deobfuscateEmail(cookieEmail);
-  return prisma.user.findUnique({
-    where: { email },
+  return prisma.user.findFirst({
+    where: {
+      email: {
+        equals: email,
+        mode: 'insensitive',
+      },
+    },
     include: {
       organization: true,
       client: true,

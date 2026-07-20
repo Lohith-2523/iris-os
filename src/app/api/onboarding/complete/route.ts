@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (!rawEmail) {
       return NextResponse.json({ error: 'User context required' }, { status: 401 });
     }
-    const userEmail = deobfuscateEmail(rawEmail);
+    const userEmail = deobfuscateEmail(rawEmail).toLowerCase();
 
     const body = await request.json();
     const { google, meta, financial, leads, skippedAll } = body;
