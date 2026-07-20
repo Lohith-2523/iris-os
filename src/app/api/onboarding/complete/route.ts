@@ -37,13 +37,6 @@ export async function POST(request: NextRequest) {
       await prisma.integrationConnection.deleteMany({ where: { orgId: org.id } });
       await prisma.recurringSubscription.deleteMany({ where: { orgId: org.id } });
       
-      // Delete other users in org, keeping only the logged in user
-      await prisma.user.deleteMany({
-        where: {
-          orgId: org.id,
-          email: { not: userEmail },
-        },
-      });
     } else {
       if (google === 'skipped') {
         await prisma.calendarEvent.deleteMany({ where: { orgId: org.id, isGoogleEvent: true } });
