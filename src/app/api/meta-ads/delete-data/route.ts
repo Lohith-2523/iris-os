@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import crypto from 'crypto';
-import { getOrganization } from '@/lib/org';
 
 // Basic parser for Meta signed_request
 function parseSignedRequest(signedRequest: string): any {
@@ -12,16 +11,13 @@ function parseSignedRequest(signedRequest: string): any {
     const sig = Buffer.from(encodedSig.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('hex');
     const data = JSON.parse(Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
 
-    // Verify signature if secret is configured
     const appSecret = process.env.META_APP_SECRET;
-    if (appSecret) {
-      const hmac = crypto.createHmac('sha256', appSecret);
-      const expectedSig = hmac.update(payload).digest('hex');
-      if (sig !== expectedSig) {
-        console.warn('Data deletion request signature mismatch.');
-        return null;
-      }
-    }
+    if (!appSecret) return null;
+    const hmac = crypto.createHmac('sha256', appSecret);
+    const expectedSig = hmac.update(payload).digest('hex');
+    const actual = Buffer.from(sig, 'hex');
+    const expected = Buffer.from(expectedSig, 'hex');
+    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
 
     return data;
   } catch (e) {
@@ -44,33 +40,25 @@ export async function POST(request: NextRequest) {
       signedRequest = body.signed_request || '';
     }
 
-    console.log('Meta Data Deletion callback invoked. Signed Request:', signedRequest);
+    const decoded = signedRequest ? parseSignedRequest(signedRequest) : null;
+    const userId = decoded?.user_id;
+    if (!userId) return NextResponse.json({ error: 'Invalid signed request' }, { status: 401 });
 
-    let userId = 'simulated_user_id';
-    if (signedRequest) {
-      const decoded = parseSignedRequest(signedRequest);
-      if (decoded) {
-        userId = decoded.user_id || userId;
-        console.log('Decoded signed request:', decoded);
-      }
-    }
-
-    const org = await getOrganization(request);
-    if (org) {
+    const connection = await prisma.integrationConnection.findFirst({ where: { provider: 'META', externalAccountId: userId } });
+    if (connection) {
       // Delete Meta campaigns, ads, leads for the org in a transaction
       await prisma.$transaction([
-        prisma.metaLead.deleteMany({ where: { orgId: org.id } }),
-        prisma.metaAd.deleteMany({ where: { orgId: org.id } }),
-        prisma.metaCampaign.deleteMany({ where: { orgId: org.id } }),
+        prisma.metaLead.deleteMany({ where: { orgId: connection.orgId } }),
+        prisma.metaAd.deleteMany({ where: { orgId: connection.orgId } }),
+        prisma.metaCampaign.deleteMany({ where: { orgId: connection.orgId } }),
         prisma.integrationConnection.updateMany({
-          where: { orgId: org.id },
+          where: { orgId: connection.orgId, provider: 'META' },
           data: {
             status: 'DISCONNECTED',
             syncLogs: `Data wiped. User data deletion requested for Meta User ID: ${userId}`
           }
         })
       ]);
-      console.log(`Deleted all Meta campaigns, ads, and leads for organization ${org.id} due to Meta data deletion request.`);
     }
 
     const confirmationCode = `meta_del_confirm_${Date.now().toString()}`;

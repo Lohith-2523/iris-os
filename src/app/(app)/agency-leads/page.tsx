@@ -24,7 +24,7 @@ import {
   Loader2,
   Trash2
 } from 'lucide-react';
-import { formatCurrency, formatUserMessage, obfuscateEmail } from '@/lib/utils';
+import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
 interface AgencyLead {
@@ -71,36 +71,11 @@ export default function AgencyLeadsPage() {
   const [selectedLead, setSelectedLead] = React.useState<AgencyLead | null>(null);
 
   // Spend value for calculating CAC/ROAS on this page
-  const [totalSpend, setTotalSpend] = React.useState(2500.0);
-  const [currencyState, setCurrencyState] = React.useState('USD');
-  const [currencyRate, setCurrencyRate] = React.useState(1.0);
-
-  // Fetch currency settings
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dashboardCurrency') || 'USD';
-      setCurrencyState(stored);
-      
-      const updateRates = (curr: string) => {
-        if (curr === 'EUR') setCurrencyRate(0.92);
-        else if (curr === 'GBP') setCurrencyRate(0.78);
-        else if (curr === 'INR') setCurrencyRate(83.5);
-        else if (curr === 'CAD') setCurrencyRate(1.37);
-        else setCurrencyRate(1.0);
-      };
-      updateRates(stored);
-    }
-  }, []);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-      if (!email) {
-        setLoading(false);
-        return;
-      }
-      const res = await fetch(`/api/agency-leads?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const res = await fetch('/api/agency-leads');
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
@@ -438,14 +413,8 @@ export default function AgencyLeadsPage() {
   const warmLeads = leads.filter((l) => l.status?.toLowerCase() === 'warm' || l.status?.toLowerCase() === 'cold-call in progress').length;
   const coldLeads = leads.filter((l) => l.status?.toLowerCase() === 'cold' || l.status?.toLowerCase() === 'call back required').length;
 
-  // Efficiency indicators
+  // Efficiency indicators based solely on stored lead stages.
   const conversionRate = totalLeads > 0 ? (closedLeads / totalLeads) * 100 : 0;
-  const cac = closedLeads > 0 ? totalSpend / closedLeads : 0;
-
-  // ROAS uses total leads minus lost leads
-  const targetLeadValue = 150;
-  const activeLeadValue = (totalLeads - lostLeads) * targetLeadValue;
-  const roas = totalSpend > 0 ? activeLeadValue / totalSpend : 0;
 
   // Kanban Columns
   const columns = [
@@ -557,9 +526,9 @@ export default function AgencyLeadsPage() {
             <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
               <CardContent className="pt-4 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Estimated Value Yield</span>
-                  <span className="text-xl font-bold font-mono text-white block mt-1">{roas.toFixed(2)}x</span>
-                  <span className="text-[9px] text-zinc-550 block mt-0.5">{totalLeads - lostLeads} Non-Lost Leads / Spend</span>
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">ROAS</span>
+                  <span className="text-xl font-bold font-mono text-white block mt-1">—</span>
+                  <span className="text-[9px] text-zinc-550 block mt-0.5">Available after Meta revenue sync</span>
                 </div>
                 <TrendingUp className="h-8 w-8 text-zinc-700" />
               </CardContent>
@@ -569,8 +538,8 @@ export default function AgencyLeadsPage() {
               <CardContent className="pt-4 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Average CAC Bound</span>
-                  <span className="text-xl font-bold font-mono text-white block mt-1">{formatCurrency(cac * currencyRate, 2)}</span>
-                  <span className="text-[9px] text-zinc-555 block mt-0.5">Calculated per Closed Lead</span>
+                  <span className="text-xl font-bold font-mono text-white block mt-1">—</span>
+                  <span className="text-[9px] text-zinc-555 block mt-0.5">Available after Meta spend sync</span>
                 </div>
                 <Users className="h-8 w-8 text-zinc-700" />
               </CardContent>

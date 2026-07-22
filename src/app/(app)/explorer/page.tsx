@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatUserMessage, renderFormattedText, formatCurrency, getCurrencySymbol } from '@/lib/utils';
+import { formatUserMessage, renderFormattedText, formatCurrency } from '@/lib/utils';
+import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import {
   BarChart3,
   ChevronDown,
@@ -29,9 +30,9 @@ const EMPTY_DATASETS = {
     title: 'Operational Capacity & Monthly Billings',
     description: 'Correlation between resource utilization and monthly billable revenue.',
     yOptions: [
-      { id: 'revenue', label: 'Gross Revenue', format: (v: number) => `$${v.toLocaleString()}`, unit: '$' },
+      { id: 'revenue', label: 'Gross Revenue', format: (v: number) => formatCurrency(v), unit: 'currency' },
       { id: 'capacity', label: 'Resource Capacity', format: (v: number) => `${v}%`, unit: '%' },
-      { id: 'overhead', label: 'Overhead Budget', format: (v: number) => `$${v.toLocaleString()}`, unit: '$' },
+      { id: 'overhead', label: 'Overhead Budget', format: (v: number) => formatCurrency(v), unit: 'currency' },
       { id: 'yield', label: 'Resource Yield', format: (v: number) => `${v}x`, unit: 'x' }
     ],
     months: [
@@ -64,8 +65,8 @@ const EMPTY_DATASETS = {
     title: 'Billings & Overhead Projections',
     description: 'Forecasted gross billings compared with recurring operational expenditure packages.',
     yOptions: [
-      { id: 'revenue', label: 'Projected Billings', format: (v: number) => `$${v.toLocaleString()}`, unit: '$' },
-      { id: 'expenses', label: 'Overhead Expenses', format: (v: number) => `$${v.toLocaleString()}`, unit: '$' },
+      { id: 'revenue', label: 'Projected Billings', format: (v: number) => formatCurrency(v), unit: 'currency' },
+      { id: 'expenses', label: 'Overhead Expenses', format: (v: number) => formatCurrency(v), unit: 'currency' },
       { id: 'margin', label: 'Net profit Margin', format: (v: number) => `${v}%`, unit: '%' }
     ],
     months: [
@@ -99,8 +100,8 @@ const EMPTY_DATASETS = {
     description: 'Client campaign yield metrics tracking return multipliers against media spend.',
     yOptions: [
       { id: 'roi', label: 'ROI Multiplier', format: (v: number) => `${v}x`, unit: 'x' },
-      { id: 'spend', label: 'Media Spend', format: (v: number) => `$${v.toLocaleString()}`, unit: '$' },
-      { id: 'revenueGenerated', label: 'Attributed Revenue', format: (v: number) => `$${v.toLocaleString()}`, unit: '$' }
+      { id: 'spend', label: 'Media Spend', format: (v: number) => formatCurrency(v), unit: 'currency' },
+      { id: 'revenueGenerated', label: 'Attributed Revenue', format: (v: number) => formatCurrency(v), unit: 'currency' }
     ],
     months: [
       { label: 'Jan', roi: 0, spend: 0, revenueGenerated: 0, index: 0 },
@@ -362,33 +363,17 @@ function ExplorerContent() {
   }, []);
 
   // Currency States
-  const [currencyState, setCurrencyState] = React.useState('USD');
-  const [currencyRate, setCurrencyRate] = React.useState(1.0);
+  const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dashboardCurrency') || 'USD';
-      setCurrencyState(stored);
+    const loadCurrency = async () => {
+      const workspace = await fetch('/api/workspace').then((res) => res.ok ? res.json() : null);
+      if (workspace?.user?.id && workspace?.organization?.id) {
+        setUiScope({ userId: workspace.user.id, orgId: workspace.organization.id });
+      }
       
-      const updateRates = (curr: string) => {
-        if (curr === 'EUR') setCurrencyRate(0.92);
-        else if (curr === 'GBP') setCurrencyRate(0.78);
-        else if (curr === 'INR') setCurrencyRate(83.5);
-        else if (curr === 'CAD') setCurrencyRate(1.37);
-        else setCurrencyRate(1.0);
-      };
-      updateRates(stored);
-
-      const handleCurrencyChange = () => {
-        const newCurr = localStorage.getItem('dashboardCurrency') || 'USD';
-        setCurrencyState(newCurr);
-        updateRates(newCurr);
-      };
-      window.addEventListener('currency-updated', handleCurrencyChange);
-      return () => {
-        window.removeEventListener('currency-updated', handleCurrencyChange);
-      };
-    }
+    };
+    void loadCurrency();
   }, []);
 
   // Page States
@@ -403,6 +388,31 @@ function ExplorerContent() {
   // Interaction states
   const [hoveredBarIndex, setHoveredBarIndex] = React.useState<number | null>(null);
   const [reportDropdownOpen, setReportDropdownOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const saved = readWorkspaceUiPreference(
+      uiScope,
+      'explorer',
+      { activeReport: 'capacity' as const, frequency: 'months' as const, primaryY: 'revenue', secondaryY: 'none', xAxisOrder: 'chronological' as const },
+      (value): value is { activeReport: 'capacity' | 'billing' | 'roi'; frequency: 'months' | 'quarters' | 'years'; primaryY: string; secondaryY: string; xAxisOrder: 'chronological' | 'asc' | 'desc' } => {
+        if (!value || typeof value !== 'object') return false;
+        const stored = value as Record<string, unknown>;
+        return ['capacity', 'billing', 'roi'].includes(String(stored.activeReport)) &&
+          ['months', 'quarters', 'years'].includes(String(stored.frequency)) &&
+          typeof stored.primaryY === 'string' && typeof stored.secondaryY === 'string' &&
+          ['chronological', 'asc', 'desc'].includes(String(stored.xAxisOrder));
+      },
+    );
+    setActiveReport(saved.activeReport);
+    setFrequency(saved.frequency);
+    setPrimaryY(saved.primaryY);
+    setSecondaryY(saved.secondaryY);
+    setXAxisOrder(saved.xAxisOrder);
+  }, [uiScope]);
+
+  React.useEffect(() => {
+    writeWorkspaceUiPreference(uiScope, 'explorer', { activeReport, frequency, primaryY, secondaryY, xAxisOrder });
+  }, [uiScope, activeReport, frequency, primaryY, secondaryY, xAxisOrder]);
 
   // Sync with URL parameters on mount
   React.useEffect(() => {
@@ -439,17 +449,15 @@ function ExplorerContent() {
   const currentDataset = datasets[activeReport];
   const activeYOptions = React.useMemo(() => {
     return currentDataset.yOptions.map((option: any) => {
-      if (option.unit === '$') {
-        const symbol = getCurrencySymbol(currencyState);
+      if (option.unit === 'currency') {
         return {
           ...option,
-          unit: symbol,
-          format: (v: number) => formatCurrency(v * currencyRate)
+          format: (v: number) => formatCurrency(v)
         };
       }
       return option;
     });
-  }, [currentDataset, currencyState, currencyRate]);
+  }, [currentDataset]);
   const rawData: any[] = currentDataset[frequency];
 
   // Primary formatting definitions

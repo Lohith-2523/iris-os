@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrganization } from '@/lib/org';
+import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    const user = await getRequestUser(request);
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const transactions = await prisma.transaction.findMany({
       where: { orgId: org.id },
@@ -27,6 +29,8 @@ export async function POST(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    const user = await getRequestUser(request);
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
 

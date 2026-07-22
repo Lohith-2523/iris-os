@@ -25,7 +25,8 @@ import {
   ExternalLink,
   Info
 } from 'lucide-react';
-import { cn, obfuscateEmail } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 
 // Helper for formatting time (e.g., "10:00 AM")
 function formatTime(dateStr: string | Date) {
@@ -67,8 +68,9 @@ export default function CalendarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
-  const [currentUserEmail, setCurrentUserEmail] = React.useState('');
+  const [viewerEmail, setViewerEmail] = React.useState('');
   const [userRole, setUserRole] = React.useState('');
+  const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
   
   // App States
   const [events, setEvents] = React.useState<CalendarEvent[]>([]);
@@ -77,8 +79,7 @@ export default function CalendarPage() {
   const [googleConnected, setGoogleConnected] = React.useState(false);
   const [currentView, setCurrentView] = React.useState<'month' | 'week' | 'day' | 'agenda'>('month');
   
-  // Date State - Starting at July 2, 2026 based on system local time context
-  const [currentDate, setCurrentDate] = React.useState<Date>(new Date('2026-07-02T12:00:00'));
+  const [currentDate, setCurrentDate] = React.useState<Date>(() => new Date());
   const [searchQuery, setSearchQuery] = React.useState('');
   
   // Filters
@@ -100,9 +101,9 @@ export default function CalendarPage() {
   const [formLocation, setFormLocation] = React.useState('');
   const [formMeetLink, setFormMeetLink] = React.useState('');
   const [formAddMeet, setFormAddMeet] = React.useState(false);
-  const [formStartDate, setFormStartDate] = React.useState('2026-07-02');
+  const [formStartDate, setFormStartDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [formStartTime, setFormStartTime] = React.useState('10:00');
-  const [formEndDate, setFormEndDate] = React.useState('2026-07-02');
+  const [formEndDate, setFormEndDate] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [formEndTime, setFormEndTime] = React.useState('11:00');
   const [formColor, setFormColor] = React.useState('#3b82f6');
   const [formType, setFormType] = React.useState<'meetings' | 'calls'>('meetings');
@@ -116,19 +117,14 @@ export default function CalendarPage() {
   // Load user session
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-      if (!email) {
-        setLoading(false);
-        return;
-      }
-      setCurrentUserEmail(email);
-      
       // Load user details
-      fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`)
+      fetch('/api/user')
         .then(res => res.json())
         .then(data => {
           if (data && data.role) {
             setUserRole(data.role.toLowerCase());
+            setViewerEmail(data.email);
+            setUiScope({ userId: data.id, orgId: data.orgId });
           }
         })
         .catch(e => console.error('Error fetching user info:', e));
@@ -140,22 +136,39 @@ export default function CalendarPage() {
           const googleConn = data.find((i: any) => i.provider === 'GOOGLE');
           const isConnected = googleConn && googleConn.status === 'CONNECTED';
           setGoogleConnected(isConnected);
-          if (isConnected) {
-            localStorage.setItem('conn_google_calendar', 'true');
-          } else {
-            localStorage.removeItem('conn_google_calendar');
-          }
         })
         .catch(e => console.error('Error fetching integrations status:', e));
     }
   }, []);
 
+  React.useEffect(() => {
+    const saved = readWorkspaceUiPreference(
+      uiScope,
+      'calendar',
+      { view: 'month' as const, filters: { meetings: true, google: true, calls: true } },
+      (value): value is { view: 'month' | 'week' | 'day' | 'agenda'; filters: { meetings: boolean; google: boolean; calls: boolean } } => {
+        if (!value || typeof value !== 'object') return false;
+        const stored = value as { view?: unknown; filters?: Record<string, unknown> };
+        return ['month', 'week', 'day', 'agenda'].includes(String(stored.view)) &&
+          typeof stored.filters?.meetings === 'boolean' &&
+          typeof stored.filters?.google === 'boolean' &&
+          typeof stored.filters?.calls === 'boolean';
+      },
+    );
+    setCurrentView(saved.view);
+    setFilters(saved.filters);
+  }, [uiScope]);
+
+  React.useEffect(() => {
+    writeWorkspaceUiPreference(uiScope, 'calendar', { view: currentView, filters });
+  }, [uiScope, currentView, filters]);
+
   // Fetch events
   const loadEvents = React.useCallback(async () => {
-    if (!currentUserEmail) return;
+    if (!viewerEmail) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/calendar?email=${encodeURIComponent(obfuscateEmail(currentUserEmail))}`);
+      const res = await fetch('/api/calendar');
       if (res.ok) {
         const data = await res.json();
         setEvents(data.events || []);
@@ -165,7 +178,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentUserEmail]);
+  }, [viewerEmail]);
 
   React.useEffect(() => {
     loadEvents();
@@ -177,7 +190,6 @@ export default function CalendarPage() {
     if (googleConnectedParam) {
       if (googleConnectedParam === 'true') {
         setGoogleConnected(true);
-        localStorage.setItem('conn_google_calendar', 'true');
         loadEvents();
         alert('Google Calendar successfully connected and synchronized!');
       } else if (googleConnectedParam === 'denied') {
@@ -197,12 +209,11 @@ export default function CalendarPage() {
       fetch('/api/calendar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentUserEmail, action: 'disconnect' })
+        body: JSON.stringify({ action: 'disconnect' })
       })
       .then(res => res.json())
       .then(() => {
         setGoogleConnected(false);
-        localStorage.removeItem('conn_google_calendar');
         loadEvents();
       })
       .catch(err => console.error('Error disconnecting google calendar:', err))
@@ -323,12 +334,11 @@ export default function CalendarPage() {
     }
 
     const payload = {
-      email: obfuscateEmail(currentUserEmail),
       id: selectedEvent?.id,
       title: formTitle,
       description: formDescription,
       location: formLocation,
-      meetLink: formAddMeet ? (formMeetLink || `https://meet.google.com/${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`) : '',
+      meetLink: formAddMeet ? formMeetLink : '',
       startTime: start.toISOString(),
       endTime: end.toISOString(),
       isRecurring: formRecurring,
@@ -363,7 +373,7 @@ export default function CalendarPage() {
     if (!confirm('Are you sure you want to delete this event?')) return;
 
     try {
-      const res = await fetch(`/api/calendar?id=${id}&email=${encodeURIComponent(obfuscateEmail(currentUserEmail))}`, {
+      const res = await fetch(`/api/calendar?id=${id}`, {
         method: 'DELETE'
       });
 
@@ -385,9 +395,7 @@ export default function CalendarPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: currentUserEmail,
           id: eventId,
-          rsvpEmail: currentUserEmail,
           rsvpStatus
         })
       });
@@ -542,7 +550,7 @@ export default function CalendarPage() {
                       const res = await fetch('/api/calendar', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: currentUserEmail, action: 'sync' })
+                        body: JSON.stringify({ action: 'sync' })
                       });
                       if (res.ok) {
                         loadEvents();
@@ -701,7 +709,7 @@ export default function CalendarPage() {
                 <ChevronRight className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setCurrentDate(new Date('2026-07-02T12:00:00'))}
+                onClick={() => setCurrentDate(new Date())}
                 className="h-7 px-2.5 text-[10px] font-semibold rounded-md bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-zinc-300 hover:text-white cursor-pointer"
               >
                 Today
@@ -761,7 +769,7 @@ export default function CalendarPage() {
                 {/* Day boxes */}
                 {monthGridData.map((cell, idx) => {
                   const dayEvents = filteredEvents.filter(ev => isSameDay(new Date(ev.startTime), cell.date));
-                  const isToday = isSameDay(cell.date, new Date('2026-07-02'));
+                  const isToday = isSameDay(cell.date, new Date());
                   
                   return (
                     <div
@@ -820,7 +828,7 @@ export default function CalendarPage() {
                 <div className="grid grid-cols-8 border-b border-zinc-800 bg-zinc-950/60 shrink-0">
                   <div className="p-3 border-r border-zinc-850 text-zinc-500 text-center font-bold text-[9px] uppercase tracking-wider">Time</div>
                   {weekDaysData.map((day, idx) => {
-                    const isToday = isSameDay(day, new Date('2026-07-02'));
+                    const isToday = isSameDay(day, new Date());
                     return (
                       <div key={idx} className={cn(
                         "p-3 border-r border-zinc-850 text-center space-y-0.5",
@@ -853,7 +861,7 @@ export default function CalendarPage() {
 
                         {/* Columns */}
                         {weekDaysData.map((day, idx) => {
-                          const isToday = isSameDay(day, new Date('2026-07-02'));
+                          const isToday = isSameDay(day, new Date());
                           // Filter events overlapping this specific hour box
                           const cellEvents = filteredEvents.filter(ev => {
                             const evStart = new Date(ev.startTime);
@@ -1309,7 +1317,7 @@ export default function CalendarPage() {
                 </div>
 
                 {/* Edit / Delete (Only for admins, or creator client) */}
-                {(userRole === 'admin' || selectedEvent.attendees.includes(currentUserEmail)) && (
+                {(userRole === 'admin' || selectedEvent.attendees.includes(viewerEmail)) && (
                   <div className="flex gap-1 shrink-0">
                     <button
                       onClick={() => handleOpenEdit(selectedEvent)}
@@ -1408,7 +1416,7 @@ export default function CalendarPage() {
               </div>
 
               {/* Attendee RSVP Action buttons */}
-              {selectedEvent.attendees.includes(currentUserEmail) && (
+              {selectedEvent.attendees.includes(viewerEmail) && (
                 <div className="pt-2 border-t border-zinc-850 space-y-2">
                   <span className="block text-[10px] font-bold text-zinc-400">Are you attending this meeting?</span>
                   <div className="flex gap-2">
@@ -1416,7 +1424,7 @@ export default function CalendarPage() {
                       onClick={() => handleRSVP(selectedEvent.id, 'ACCEPTED')}
                       className={cn(
                         "flex-1 h-8 text-[10px] font-bold cursor-pointer transition-all border",
-                        selectedEvent.attendeeStatus?.[currentUserEmail] === 'ACCEPTED'
+                        selectedEvent.attendeeStatus?.[viewerEmail] === 'ACCEPTED'
                           ? "bg-emerald-500/10 border-emerald-800 text-emerald-400 hover:bg-emerald-500/20"
                           : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white"
                       )}
@@ -1428,7 +1436,7 @@ export default function CalendarPage() {
                       onClick={() => handleRSVP(selectedEvent.id, 'DECLINED')}
                       className={cn(
                         "flex-1 h-8 text-[10px] font-bold cursor-pointer transition-all border",
-                        selectedEvent.attendeeStatus?.[currentUserEmail] === 'DECLINED'
+                        selectedEvent.attendeeStatus?.[viewerEmail] === 'DECLINED'
                           ? "bg-rose-500/10 border-rose-800 text-rose-400 hover:bg-rose-500/20"
                           : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white"
                       )}

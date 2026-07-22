@@ -24,7 +24,7 @@ import {
   ArrowRight,
   AlertTriangle
 } from 'lucide-react';
-import { formatCurrency, formatPercent, formatUserMessage, obfuscateEmail } from '@/lib/utils';
+import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { PrismIcon } from '@/components/ui/prism-icon';
 
@@ -136,12 +136,7 @@ export default function ClientDashboardPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-      if (!email) {
-        setLoading(false);
-        return;
-      }
-      const res = await fetch(`/api/meta-portal?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const res = await fetch('/api/meta-portal');
       if (res.ok) {
         const data = await res.json();
         setCampaigns(data.campaigns || []);
@@ -498,7 +493,7 @@ export default function ClientDashboardPage() {
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
                   {formatCurrency(averageCpl, 2)}
                 </div>
-                <span className="text-[9px] text-zinc-500 mt-1 block">Within targeted $15 limit</span>
+                <span className="text-[9px] text-zinc-500 mt-1 block">Within targeted {formatCurrency(15)} limit</span>
               </CardContent>
             </Card>
 
@@ -558,7 +553,7 @@ export default function ClientDashboardPage() {
                 </CardHeader>
                 <CardContent className="space-y-3 leading-relaxed text-zinc-400 text-[11px] font-sans">
                   <p>
-                    Lohith, our AI engines suggest allocating 15% more budget towards Aether's retargeting carousel formats. Carousel click rates have increased by **0.6%** over single-image posts.
+                    Provider-backed strategy insights appear here after Meta campaign metrics have synchronized.
                   </p>
                   <p className="border-t border-zinc-900 pt-3">
                     Content calendar scheduled slots for Tuesdays show the highest engagement index values. Focus media deliverables around those time windows.

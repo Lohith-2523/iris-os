@@ -14,7 +14,6 @@ import {
   TrendingUp,
   Users,
   FolderKanban,
-  DollarSign,
   AlertTriangle,
   ArrowUpRight,
   Activity,
@@ -24,16 +23,15 @@ import {
   X,
   Calendar
 } from 'lucide-react';
-import { formatCurrency, obfuscateEmail, getCurrencySymbol } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isSkippedAll = typeof window !== 'undefined' && localStorage.getItem('skipped_all_steps') === 'true';
+  const [isSkippedAll, setIsSkippedAll] = React.useState(false);
   const [dbData, setDbData] = React.useState<any>(null);
   const [isRevenueModalOpen, setIsRevenueModalOpen] = React.useState(false);
-  const [currencyState, setCurrencyState] = React.useState('USD');
-  const [currencyRate, setCurrencyRate] = React.useState(1.0);
+  const [financeData, setFinanceData] = React.useState<any>(null);
   const [clientsList, setClientsList] = React.useState<any[]>([]);
   const [metaData, setMetaData] = React.useState<any>(null);
   const [tasksList, setTasksList] = React.useState<any[]>([]);
@@ -60,27 +58,43 @@ export default function DashboardPage() {
     if (typeof window !== 'undefined') {
       const googleConnectedParam = searchParams.get('google_connected');
       if (googleConnectedParam === 'true') {
-        localStorage.setItem('conn_google', 'connected');
         router.replace('/dashboard');
       }
-
-      const needs = localStorage.getItem('needsOnboarding') === 'true';
-      setNeedsOnboarding(needs);
-      
-      const google = (localStorage.getItem('conn_google') || 'not_started') as any;
-      const meta = (localStorage.getItem('conn_meta') || 'not_started') as any;
-      const financial = (localStorage.getItem('conn_financial') || 'not_started') as any;
-      const leads = (localStorage.getItem('conn_leads') || 'not_started') as any;
-      setOnboardingState({ google, meta, financial, leads });
     }
+    const googleConnectedParam = searchParams.get('google_connected');
+    fetch('/api/workspace').then(async (res) => res.ok ? res.json() : Promise.reject()).then((workspace) => {
+      const checklist = workspace.onboarding?.checklist || {};
+      const connected = new Set((workspace.integrations || []).filter((item: any) => item.status === 'CONNECTED').map((item: any) => item.provider));
+      const nextState = {
+        google: checklist.google || (connected.has('GOOGLE') ? 'connected' : 'not_started'),
+        meta: checklist.meta || (connected.has('META') ? 'connected' : 'not_started'),
+        financial: checklist.financial || 'not_started',
+        leads: checklist.leads || 'not_started',
+      } as typeof onboardingState;
+      if (googleConnectedParam === 'true') nextState.google = 'connected';
+      setNeedsOnboarding(workspace.onboarding?.needsOnboarding ?? false);
+      setIsSkippedAll(Boolean(checklist.skippedAll));
+      setOnboardingState(nextState);
+    }).catch(() => undefined);
   }, [searchParams, router]);
+
+  const persistChecklist = React.useCallback((next: typeof onboardingState) => {
+    return fetch('/api/workspace', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ onboarding: { checklist: next } }),
+    });
+  }, []);
 
   React.useEffect(() => {
     const statusChangeCallback = (response: any) => {
       if (response.status === 'connected') {
         console.log('Meta connected via FB SDK:', response);
-        localStorage.setItem('conn_meta', 'connected');
-        setOnboardingState(prev => ({ ...prev, meta: 'connected' }));
+        setOnboardingState(prev => {
+          const next = { ...prev, meta: 'connected' as const };
+          void persistChecklist(next);
+          return next;
+        });
         fetch('/api/integrations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -111,33 +125,7 @@ export default function DashboardPage() {
     }, 550);
 
     return () => clearInterval(interval);
-  }, []);
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('dashboardCurrency') || 'USD';
-      setCurrencyState(stored);
-      
-      const updateRates = (curr: string) => {
-        if (curr === 'EUR') setCurrencyRate(0.92);
-        else if (curr === 'GBP') setCurrencyRate(0.78);
-        else if (curr === 'INR') setCurrencyRate(83.5);
-        else if (curr === 'CAD') setCurrencyRate(1.37);
-        else setCurrencyRate(1.0);
-      };
-      updateRates(stored);
-
-      const handleCurrencyChange = () => {
-        const newCurr = localStorage.getItem('dashboardCurrency') || 'USD';
-        setCurrencyState(newCurr);
-        updateRates(newCurr);
-      };
-      window.addEventListener('currency-updated', handleCurrencyChange);
-      return () => {
-        window.removeEventListener('currency-updated', handleCurrencyChange);
-      };
-    }
-  }, []);
+  }, [persistChecklist]);
 
   React.useEffect(() => {
     async function load() {
@@ -147,6 +135,9 @@ export default function DashboardPage() {
           const json = await res.json();
           setDbData(json);
         }
+
+        const financeRes = await fetch('/api/data?domain=finance');
+        if (financeRes.ok) setFinanceData(await financeRes.json());
         
         const clientsRes = await fetch('/api/data?domain=clients');
         if (clientsRes.ok) {
@@ -161,26 +152,23 @@ export default function DashboardPage() {
         }
         
         // Fetch Meta ads data
-        const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-        if (email) {
-          const metaRes = await fetch(`/api/meta-portal?email=${encodeURIComponent(obfuscateEmail(email))}`);
+          const metaRes = await fetch('/api/meta-portal');
           if (metaRes.ok) {
             const metaJson = await metaRes.json();
             setMetaData(metaJson);
           }
 
-          const calendarRes = await fetch(`/api/calendar?email=${encodeURIComponent(obfuscateEmail(email))}`);
+          const calendarRes = await fetch('/api/calendar');
           if (calendarRes.ok) {
             const calendarJson = await calendarRes.json();
             setCalendarEvents(calendarJson.events || []);
           }
 
-          const agencyLeadsRes = await fetch(`/api/agency-leads?email=${encodeURIComponent(obfuscateEmail(email))}`);
+          const agencyLeadsRes = await fetch('/api/agency-leads');
           if (agencyLeadsRes.ok) {
             const agencyLeadsJson = await agencyLeadsRes.json();
             setAgencyLeadsData(agencyLeadsJson);
           }
-        }
       } catch (e) {
         console.error(e);
       }
@@ -194,33 +182,15 @@ export default function DashboardPage() {
       window.location.href = '/api/google/auth';
       return;
     }
+    // Meta is marked connected only after the provider SDK reports a successful login.
     setConnectingProvider(id);
-    setTimeout(() => {
-      setConnectingProvider(null);
-      setOnboardingState((prev) => {
-        const next = { ...prev, [id]: 'connected' as const };
-        localStorage.setItem(`conn_${id}`, 'connected');
-        return next;
-      });
-
-      setOnboardingState((currState) => {
-        const nextState = { ...currState, [id]: 'connected' as const };
-        const order = ['google', 'meta', 'financial', 'leads'];
-        const nextUncompletedIdx = order.findIndex(p => nextState[p as keyof typeof nextState] === 'not_started');
-        if (nextUncompletedIdx !== -1) {
-          setExpandedChecklistIdx(nextUncompletedIdx);
-        } else {
-          setExpandedChecklistIdx(null);
-        }
-        return currState;
-      });
-    }, 1500);
+    window.setTimeout(() => setConnectingProvider(null), 500);
   };
 
   const handleGoogleSkip = () => {
     setOnboardingState(prev => {
       const next = { ...prev, google: 'skipped' as const };
-      localStorage.setItem('conn_google', 'skipped');
+      void persistChecklist(next);
       return next;
     });
   };
@@ -228,7 +198,7 @@ export default function DashboardPage() {
   const handleMetaSkip = () => {
     setOnboardingState(prev => {
       const next = { ...prev, meta: 'skipped' as const };
-      localStorage.setItem('conn_meta', 'skipped');
+      void persistChecklist(next);
       return next;
     });
   };
@@ -236,7 +206,7 @@ export default function DashboardPage() {
   const handleFinancialSkip = () => {
     setOnboardingState(prev => {
       const next = { ...prev, financial: 'skipped' as const };
-      localStorage.setItem('conn_financial', 'skipped');
+      void persistChecklist(next);
       return next;
     });
   };
@@ -244,17 +214,13 @@ export default function DashboardPage() {
   const handleLeadsSkip = () => {
     setOnboardingState(prev => {
       const next = { ...prev, leads: 'skipped' as const };
-      localStorage.setItem('conn_leads', 'skipped');
+      void persistChecklist(next);
       return next;
     });
   };
 
   const downloadFinancialTemplate = () => {
-    const csvContent = "Type,Identifier,Name,Amount,Date,Status\n" +
-      "INVOICE,INV-001,Aether Technologies,65000,2026-07-15,PAID\n" +
-      "INVOICE,INV-002,Pulse Media,42000,2026-07-18,UNPAID\n" +
-      "EXPENSE,Software,Adobe Systems,350,2026-07-10,APPROVED\n" +
-      "EXPENSE,Office rent,WeWork,2500,2026-07-01,APPROVED";
+    const csvContent = "Type,Identifier,Name,Amount,Date,Status\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -266,11 +232,7 @@ export default function DashboardPage() {
   };
 
   const downloadLeadsTemplate = () => {
-    const csvContent = "Full Name,Email,Phone,Status,Funnel Name,Collection Method,Approach Method\n" +
-      "Aarav Mehta,aarav@mehta.co,+123456789,warm,Enterprise Outreach,Manual Entry,Email\n" +
-      "Priya Nair,priya@nairtech.com,+123456780,warm,Direct Inbound,Bulk Import,LinkedIn\n" +
-      "Rohan Deshmukh,rohan@deshmukh.org,+123456781,procured,Inbound Form,Manual Entry,Phone\n" +
-      "Ananya Goel,ananya@goelcorp.in,+123456782,closed,LinkedIn Campaign,Bulk Import,LinkedIn";
+    const csvContent = "Full Name,Email,Phone,Status,Funnel Name,Collection Method,Approach Method\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -317,7 +279,7 @@ export default function DashboardPage() {
           alert(`Successfully uploaded ${result.invoices} invoices and ${result.expenses} expenses!`);
           setOnboardingState(prev => {
             const next = { ...prev, financial: 'uploaded' as const };
-            localStorage.setItem('conn_financial', 'uploaded');
+            void persistChecklist(next);
             return next;
           });
         } else {
@@ -367,7 +329,7 @@ export default function DashboardPage() {
           alert(`Successfully uploaded ${result.count} leads!`);
           setOnboardingState(prev => {
             const next = { ...prev, leads: 'uploaded' as const };
-            localStorage.setItem('conn_leads', 'uploaded');
+            void persistChecklist(next);
             return next;
           });
         } else {
@@ -403,15 +365,7 @@ export default function DashboardPage() {
       });
 
       if (res.ok) {
-        if (skippedAll) {
-          localStorage.setItem('skipped_all_steps', 'true');
-          document.cookie = "skipped_all_steps=true; path=/; max-age=86400";
-        } else {
-          localStorage.setItem('skipped_all_steps', 'false');
-          document.cookie = "skipped_all_steps=false; path=/; max-age=86400";
-        }
-
-        localStorage.removeItem('needsOnboarding');
+        setIsSkippedAll(skippedAll);
         setNeedsOnboarding(false);
         window.location.reload();
       } else {
@@ -441,7 +395,6 @@ export default function DashboardPage() {
     const totalLeads = leads.length;
 
     const closedLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'closed').length;
-    const lostLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'lost').length;
     const procuredLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'procured' || l.status?.toLowerCase() === 'new').length;
     const warmLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'warm' || l.status?.toLowerCase() === 'cold-call in progress').length;
     const coldLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'cold' || l.status?.toLowerCase() === 'call back required').length;
@@ -455,21 +408,15 @@ export default function DashboardPage() {
     // 2. CAC uses closed leads: Total Spend / Closed Leads
     const cac = closedLeads > 0 ? totalSpend / closedLeads : 0;
     
-    // 3. ROAS uses total leads minus lost leads
-    // Target conversion value estimated at $150 per lead
-    const leadTargetValue = 150;
-    const activeLeadValue = (totalLeads - lostLeads) * leadTargetValue;
-    const roas = totalSpend > 0 ? activeLeadValue / totalSpend : 0;
-    
-    // 4. Impressions per Rupee/USD
-    const impressionsPerCurrency = totalSpend > 0 ? totalImpressions / (totalSpend * currencyRate) : 0;
+    // Revenue is not available from the Meta provider payload, so do not invent a ROAS.
+    const roas = null;
+    const impressionsPerCurrency = totalSpend > 0 ? totalImpressions / totalSpend : 0;
 
     return {
       totalSpend,
       totalImpressions,
       totalLeads,
       closedLeads,
-      lostLeads,
       procuredLeads,
       warmLeads,
       coldLeads,
@@ -479,7 +426,7 @@ export default function DashboardPage() {
       roas,
       impressionsPerCurrency
     };
-  }, [ads, metaData, currencyRate]);
+  }, [ads, metaData]);
 
   const warmLeads = React.useMemo(() => {
     const leads = metaData?.leads || [];
@@ -744,30 +691,13 @@ export default function DashboardPage() {
               expandedContent={
                 <div className="flex flex-col h-full space-y-4">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider">Revenue Breakdown</h3>
-                  <div className="space-y-3 relative overflow-hidden pb-10">
-                    <div className="flex justify-between items-center text-xs text-zinc-300 py-1.5 border-b border-zinc-800/50">
-                      <span className="font-semibold">1. Aether Technologies</span>
-                      <span className="font-mono text-emerald-400 font-bold">{formatCurrency(65000 * currencyRate)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs text-zinc-300 py-1.5 border-b border-zinc-800/50">
-                      <span className="font-semibold">2. Pulse Media</span>
-                      <span className="font-mono text-emerald-400 font-bold">{formatCurrency(42000 * currencyRate)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs text-zinc-300 py-1.5 border-b border-zinc-800/50">
-                      <span className="font-semibold">3. Nova BioLabs</span>
-                      <span className="font-mono text-emerald-400 font-bold">{formatCurrency(28000 * currencyRate)}</span>
-                    </div>
-                    <div className="space-y-3 opacity-30 select-none blur-[0.5px]">
-                      <div className="flex justify-between items-center text-xs py-1.5 border-b border-zinc-800/50">
-                        <span>4. Quantum Capital</span>
-                        <span className="font-mono">{formatCurrency(22000 * currencyRate)}</span>
+                  <div className="space-y-3 overflow-y-auto max-h-[280px]">
+                    {financeData?.revenueByClient?.length ? financeData.revenueByClient.map((client: any, index: number) => (
+                      <div key={client.id} className="flex justify-between items-center text-xs text-zinc-300 py-1.5 border-b border-zinc-800/50">
+                        <span className="font-semibold truncate pr-3">{index + 1}. {client.name}</span>
+                        <span className="font-mono text-emerald-400 font-bold">{formatCurrency(client.revenue)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-xs py-1.5 border-b border-zinc-800/50">
-                        <span>5. Vertex Retail</span>
-                        <span className="font-mono">{formatCurrency(16000 * currencyRate)}</span>
-                      </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d0e12] to-transparent pointer-events-none" />
+                    )) : <p className="py-4 text-xs text-zinc-500">No paid invoices have been recorded yet.</p>}
                   </div>
                   <div className="flex justify-center pt-2">
                     <Button
@@ -785,15 +715,14 @@ export default function DashboardPage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Monthly Revenue</CardTitle>
-                <span className="font-bold text-zinc-500 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
+                <TrendingUp className="h-4 w-4 text-zinc-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                  {dbData ? formatCurrency(dbData.currentMonthRevenue * currencyRate) : formatCurrency(0)}
+                  {financeData ? formatCurrency(financeData.currentMonthRevenue) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                  <span>+7.2% vs last month</span>
+                  {financeData?.monthlyChangePercent !== null && financeData?.monthlyChangePercent !== undefined ? <><ArrowUpRight className="h-3.5 w-3.5" /><span>{financeData.monthlyChangePercent >= 0 ? '+' : ''}{financeData.monthlyChangePercent.toFixed(1)}% vs last month</span></> : <span>No prior-month comparison</span>}
                 </div>
               </CardContent>
             </ExpandableCard>
@@ -807,19 +736,19 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-center py-2 border-b border-zinc-855">
                       <span className="text-zinc-400 font-semibold">Gross Billings</span>
                       <span className="font-mono text-white font-bold">
-                        {dbData ? formatCurrency(dbData.grossBillings * currencyRate) : formatCurrency(0)}
+                        {financeData ? formatCurrency(financeData.grossBillings) : formatCurrency(0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-zinc-855">
                       <span className="text-zinc-400 font-semibold">Total Expenses</span>
                       <span className="font-mono text-rose-400 font-bold">
-                        {dbData ? formatCurrency(dbData.totalExpenses * currencyRate) : formatCurrency(0)}
+                        {financeData ? formatCurrency(financeData.totalExpenses) : formatCurrency(0)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-2">
                       <span className="text-zinc-300 font-semibold">Operating Profit</span>
                       <span className="font-mono text-emerald-400 font-bold">
-                        {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(0)}
+                        {financeData ? formatCurrency(financeData.grossBillings - financeData.totalExpenses) : formatCurrency(0)}
                       </span>
                     </div>
                   </div>
@@ -828,11 +757,11 @@ export default function DashboardPage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Net Profit (Amount)</CardTitle>
-                <span className="font-bold text-emerald-450 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
+                <TrendingUp className="h-4 w-4 text-emerald-450" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
-                  {dbData ? formatCurrency((dbData.grossBillings - dbData.totalExpenses) * currencyRate) : formatCurrency(0)}
+                  {financeData ? formatCurrency(financeData.grossBillings - financeData.totalExpenses) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
                   <ArrowUpRight className="h-3.5 w-3.5" />
@@ -870,11 +799,11 @@ export default function DashboardPage() {
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Pending Receivables</CardTitle>
-                <span className="font-bold text-amber-500 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
+                <TrendingUp className="h-4 w-4 text-amber-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold font-mono tracking-tight text-amber-400">
-                  {dbData ? formatCurrency(dbData.outstandingAmount * currencyRate) : formatCurrency(0)}
+                  {financeData ? formatCurrency(financeData.outstandingAmount) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
                   <span>Unpaid client invoices</span>
@@ -1096,15 +1025,8 @@ export default function DashboardPage() {
               description="Aggregated gross billings vs time"
               className="h-full min-h-[560px] w-full"
               contentClassName="h-[430px] md:h-[452px]"
-              data={dbData?.revenueHistory ?? [
-                { label: 'Jan', value: 0 },
-                { label: 'Feb', value: 0 },
-                { label: 'Mar', value: 0 },
-                { label: 'Apr', value: 0 },
-                { label: 'May', value: 0 },
-                { label: 'Jun', value: 0 },
-              ]}
-              currencyRate={currencyRate}
+              data={financeData?.revenueHistory ?? []}
+              currencyRate={1}
             />
           </div>
             </div>
@@ -1133,7 +1055,7 @@ export default function DashboardPage() {
                             <div className="flex items-center gap-3">
                               <span className="text-[10px] font-mono text-zinc-400">Health: {client.healthScore}/100</span>
                               <span className="text-[11px] font-mono font-bold text-emerald-450">
-                                {formatCurrency(client.revenue * currencyRate)}
+                                {formatCurrency(client.revenue)}
                               </span>
                             </div>
                           </div>
@@ -1165,7 +1087,7 @@ export default function DashboardPage() {
                           <span className="block text-[11px] font-semibold text-zinc-250 truncate">{client.name}</span>
                         </div>
                         <span className="text-[10px] font-mono font-bold text-emerald-450 shrink-0">
-                          {formatCurrency(client.revenue * currencyRate)}
+                          {formatCurrency(client.revenue)}
                         </span>
                       </div>
                     ))}

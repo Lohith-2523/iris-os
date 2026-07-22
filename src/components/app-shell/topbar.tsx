@@ -26,14 +26,13 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [prismQuery, setPrismQuery] = React.useState('');
   const [commandResults, setCommandResults] = React.useState<CommandItem[]>([]);
-  const [theme, setTheme] = React.useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('iris-theme') as 'dark' | 'light' | null;
-      if (savedTheme) return savedTheme;
-      return document.documentElement.classList.contains('light') ? 'light' : 'dark';
-    }
-    return 'dark';
-  });
+  const [theme, setTheme] = React.useState<'dark' | 'light'>('dark');
+
+  React.useEffect(() => {
+    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
+      if (workspace?.user?.preferences?.theme) setTheme(workspace.user.preferences.theme);
+    }).catch(() => undefined);
+  }, []);
 
   React.useEffect(() => {
     if (theme === 'light') {
@@ -48,10 +47,12 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('iris-theme', nextTheme);
-      window.dispatchEvent(new CustomEvent('theme-changed', { detail: nextTheme }));
-    }
+    void fetch('/api/workspace', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: { preferences: { theme: nextTheme } } }),
+    });
+    window.dispatchEvent(new CustomEvent('theme-changed', { detail: nextTheme }));
   };
 
   // Keyboard shortcut Ctrl+K

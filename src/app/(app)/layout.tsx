@@ -6,7 +6,7 @@ import { Topbar } from '@/components/app-shell/topbar';
 import { X, Lock, ArrowRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { obfuscateEmail } from '@/lib/utils';
+import { setActiveWorkspaceContext } from '@/lib/utils';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
@@ -18,22 +18,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const fetchUser = React.useCallback(async () => {
     try {
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-      if (!email) {
-        setLoading(false);
-        return;
-      }
-      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const res = await fetch('/api/user');
       if (res.ok) {
         const data = await res.json();
         setUser(data);
+        const workspaceRes = await fetch('/api/workspace');
+        if (workspaceRes.ok) {
+          const workspace = await workspaceRes.json();
+          setActiveWorkspaceContext({ userName: data.name, currency: workspace.organization.currency });
+        }
+      } else if (res.status === 401) {
+        router.replace('/login');
       }
     } catch (e) {
       console.error('Error fetching user in layout:', e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   React.useEffect(() => {
     fetchUser();

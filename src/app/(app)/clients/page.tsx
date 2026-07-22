@@ -10,7 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { ShieldCheck, AlertTriangle, Plus, Filter, Search, UserCheck } from 'lucide-react';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
-import { formatUserMessage } from '@/lib/utils';
+import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
 import { ClientRevenueChart } from '@/components/clients/client-revenue-chart';
 
@@ -133,8 +133,8 @@ export default function ClientsPage() {
           <CardContent>
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {dbClients.length > 0
-                ? `$${dbClients.reduce((sum, c) => sum + (c.status === 'ACTIVE' ? c.upsellOpportunityValue + 20000 : 0), 0).toLocaleString()}/yr`
-                : '$0/yr'}
+                ? `${formatCurrency(dbClients.reduce((sum, c) => sum + (c.status === 'ACTIVE' ? c.upsellOpportunityValue : 0), 0))}/yr`
+                : `${formatCurrency(0)}/yr`}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
               <span>{dbClients.length > 0 ? '+14.2% YoY contract additions' : '0% growth'}</span>
@@ -150,8 +150,8 @@ export default function ClientsPage() {
           <CardContent>
             <div className="text-2xl font-bold font-mono tracking-tight text-white">
               {dbClients.length > 0
-                ? `$${dbClients.reduce((sum, c) => sum + c.upsellOpportunityValue, 0).toLocaleString()}`
-                : '$0'}
+                ? formatCurrency(dbClients.reduce((sum, c) => sum + c.upsellOpportunityValue, 0))
+                : formatCurrency(0)}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
               <span>Upgrade proposals pending review</span>

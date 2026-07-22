@@ -28,20 +28,13 @@ import {
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
+import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
-const PAYPAL_CHARGES = [
-  { id: 'pp_txn_101', email: 'payer1@aether.com', method: 'express_checkout', amount: 250, status: 'completed', createdAt: 'June 26, 2026' },
-  { id: 'pp_txn_102', email: 'payer2@vertex.co', method: 'express_checkout', amount: 80, status: 'completed', createdAt: 'June 25, 2026' },
-  { id: 'pp_txn_103', email: 'payer3@pulse.io', method: 'express_checkout', amount: 1500, status: 'completed', createdAt: 'June 24, 2026' },
-  { id: 'pp_txn_104', email: 'payer4@solaria.net', method: 'express_checkout', amount: 110, status: 'completed', createdAt: 'June 21, 2026' },
-  { id: 'pp_txn_105', email: 'payer5@novabiolabs.com', method: 'express_checkout', amount: 300, status: 'refunded', createdAt: 'June 19, 2026' },
-];
-
 export default function FinancePage() {
-  const isSkippedAll = typeof window !== 'undefined' && localStorage.getItem('skipped_all_steps') === 'true';
+  const [isSkippedAll, setIsSkippedAll] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<'overview' | 'stripe' | 'paypal' | 'razorpay'>('overview');
   const [integrations, setIntegrations] = React.useState<any[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = React.useState(true);
@@ -58,6 +51,7 @@ export default function FinancePage() {
   const [dbData, setDbData] = React.useState<any>(null);
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
+  const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
 
   // Manual Entry States
   const [manualTransactions, setManualTransactions] = React.useState<any[]>([]);
@@ -234,6 +228,30 @@ export default function FinancePage() {
   const [reportYAxis, setReportYAxis] = React.useState('Revenue');
   const [reportTimeframe, setReportTimeframe] = React.useState('All Time');
   const reportRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const saved = readWorkspaceUiPreference(
+      uiScope,
+      'finance',
+      { activeTab: 'overview' as const, timeFrame: 'All Time', reportXAxis: 'Client', reportYAxis: 'Revenue', reportTimeframe: 'All Time' },
+      (value): value is { activeTab: 'overview' | 'stripe' | 'paypal' | 'razorpay'; timeFrame: string; reportXAxis: string; reportYAxis: string; reportTimeframe: string } => {
+        if (!value || typeof value !== 'object') return false;
+        const stored = value as Record<string, unknown>;
+        return ['overview', 'stripe', 'paypal', 'razorpay'].includes(String(stored.activeTab)) &&
+          typeof stored.timeFrame === 'string' && typeof stored.reportXAxis === 'string' &&
+          typeof stored.reportYAxis === 'string' && typeof stored.reportTimeframe === 'string';
+      },
+    );
+    setActiveTab(saved.activeTab);
+    setTimeFrame(saved.timeFrame);
+    setReportXAxis(saved.reportXAxis);
+    setReportYAxis(saved.reportYAxis);
+    setReportTimeframe(saved.reportTimeframe);
+  }, [uiScope]);
+
+  React.useEffect(() => {
+    writeWorkspaceUiPreference(uiScope, 'finance', { activeTab, timeFrame, reportXAxis, reportYAxis, reportTimeframe });
+  }, [uiScope, activeTab, timeFrame, reportXAxis, reportYAxis, reportTimeframe]);
 
   const isInTimeFrame = React.useCallback((dateString: string) => {
     if (timeFrame === 'All Time' || !dateString) return true;
@@ -438,7 +456,7 @@ export default function FinancePage() {
   const fetchStripeData = React.useCallback(async () => {
     setLoadingStripe(true);
     try {
-      const res = await fetch('/api/stripe?demo=true');
+      const res = await fetch('/api/stripe');
       if (res.ok) {
         const data = await res.json();
         setStripeData(data);
@@ -453,7 +471,7 @@ export default function FinancePage() {
   const fetchPaypalData = React.useCallback(async () => {
     setLoadingPaypal(true);
     try {
-      const res = await fetch('/api/paypal?demo=true');
+      const res = await fetch('/api/paypal');
       if (res.ok) {
         const data = await res.json();
         setPaypalData(data);
@@ -468,7 +486,7 @@ export default function FinancePage() {
   const fetchRazorpayData = React.useCallback(async () => {
     setLoadingRazorpay(true);
     try {
-      const res = await fetch('/api/razorpay?demo=true');
+      const res = await fetch('/api/razorpay');
       if (res.ok) {
         const data = await res.json();
         setRazorpayData(data);
@@ -481,16 +499,12 @@ export default function FinancePage() {
   }, []);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrencyState(localStorage.getItem('dashboardCurrency') || 'USD');
-      const handleCurrencyChange = () => {
-        setCurrencyState(localStorage.getItem('dashboardCurrency') || 'USD');
-      };
-      window.addEventListener('currency-updated', handleCurrencyChange);
-      return () => {
-        window.removeEventListener('currency-updated', handleCurrencyChange);
-      };
-    }
+    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
+      if (!workspace) return;
+      setCurrencyState(workspace.organization.currency || 'USD');
+      setIsSkippedAll(Boolean(workspace.onboarding?.checklist?.skippedAll));
+      setUiScope({ userId: workspace.user.id, orgId: workspace.organization.id });
+    }).catch(() => undefined);
   }, []);
 
   React.useEffect(() => {

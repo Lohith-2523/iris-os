@@ -38,16 +38,14 @@ export default function PrismPage() {
   React.useEffect(() => {
     const init = async () => {
       const data = await loadSessions();
-      if (typeof window !== 'undefined') {
-        const savedSessionId = localStorage.getItem('prism_current_session_id');
-        if (savedSessionId && data.some((s: any) => s.id === savedSessionId)) {
-          setCurrentSessionId(savedSessionId);
-          const msgData = await PrismAIService.getSessionMessages(savedSessionId);
+        const latestSessionId = data[0]?.id;
+        if (latestSessionId) {
+          setCurrentSessionId(latestSessionId);
+          const msgData = await PrismAIService.getSessionMessages(latestSessionId);
           if (msgData && msgData.messages && msgData.messages.length > 0) {
             setMessages(msgData.messages);
           }
         }
-      }
     };
     init();
   }, [loadSessions]);
@@ -65,9 +63,6 @@ export default function PrismPage() {
       
       if (response.sessionId && response.sessionId !== currentSessionId) {
         setCurrentSessionId(response.sessionId);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('prism_current_session_id', response.sessionId);
-        }
         loadSessions(); // refresh the sidebar
       }
 
@@ -105,16 +100,10 @@ export default function PrismPage() {
   const handleNewChat = () => {
     setCurrentSessionId(null);
     setMessages([initialMessage]);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('prism_current_session_id');
-    }
   };
 
   const selectSession = async (id: string) => {
     setCurrentSessionId(id);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('prism_current_session_id', id);
-    }
     const data = await PrismAIService.getSessionMessages(id);
     if (data && data.messages && data.messages.length > 0) {
       setMessages(data.messages);

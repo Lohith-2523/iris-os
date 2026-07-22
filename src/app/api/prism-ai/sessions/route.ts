@@ -1,25 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
+import { getRequestUser } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieEmail = request.cookies.get('currentUserEmail')?.value;
-    if (!cookieEmail) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const email = deobfuscateEmail(cookieEmail);
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const sessions = await prisma.prismChatSession.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, orgId: user.orgId },
       orderBy: { updatedAt: 'desc' },
       select: {
         id: true,

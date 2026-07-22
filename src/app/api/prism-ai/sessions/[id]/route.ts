@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
+import { getRequestUser } from '@/lib/org';
 
 export async function GET(
   request: NextRequest,
@@ -8,19 +8,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const cookieEmail = request.cookies.get('currentUserEmail')?.value;
-    if (!cookieEmail) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const email = deobfuscateEmail(cookieEmail);
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const session = await prisma.prismChatSession.findUnique({
       where: { id },
@@ -37,7 +26,7 @@ export async function GET(
       },
     });
 
-    if (!session || session.userId !== user.id) {
+    if (!session || session.userId !== user.id || session.orgId !== user.orgId) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
@@ -54,25 +43,14 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const cookieEmail = request.cookies.get('currentUserEmail')?.value;
-    if (!cookieEmail) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const email = deobfuscateEmail(cookieEmail);
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const session = await prisma.prismChatSession.findUnique({
       where: { id },
     });
 
-    if (!session || session.userId !== user.id) {
+    if (!session || session.userId !== user.id || session.orgId !== user.orgId) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 

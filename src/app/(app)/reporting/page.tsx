@@ -17,15 +17,7 @@ export default function ReportingPage() {
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('saved_comprehensive_reports');
-      if (saved) {
-        try {
-          setReports(JSON.parse(saved));
-        } catch (e) {
-          // Ignore
-        }
-      }
-      
+      fetch('/api/reports').then((res) => res.ok ? res.json() : []).then(setReports).catch(() => undefined);
       // Load clients for client list sidebar
       fetch('/api/data?domain=clients')
         .then(res => {
@@ -51,18 +43,19 @@ export default function ReportingPage() {
       if (res.ok) {
         const json = await res.json();
         const content = json.result || 'No content returned from Prism AI.';
-        const newReport = {
-          id: Date.now().toString(),
+        const reportDraft = {
           title: `Comprehensive ${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
-          client: 'Apex Creative Group',
           type: reportType.toUpperCase(),
-          status: 'READY',
-          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           content
         };
-        const updated = [newReport, ...reports];
-        setReports(updated);
-        localStorage.setItem('saved_comprehensive_reports', JSON.stringify(updated));
+        const saveResponse = await fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reportDraft),
+        });
+        if (!saveResponse.ok) throw new Error('Failed to save generated report.');
+        const savedReport = await saveResponse.json();
+        setReports([{ ...savedReport, content, date: new Date(savedReport.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }, ...reports]);
       } else {
         alert('Failed to generate report from Prism AI.');
       }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrganization } from '@/lib/org';
+import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { encryptIntegrationCredentials } from '@/lib/integration-secrets';
 
 const PROVIDERS = ['RAZORPAY', 'META', 'GOOGLE'];
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
         status,
         lastSync: dbConn ? dbConn.lastSync : null,
         logs,
-        hasConfig: dbConn ? !!dbConn.syncLogs : false,
+        hasConfig: dbConn ? !!dbConn.credentialCiphertext : false,
       };
     });
 
@@ -55,6 +56,8 @@ export async function POST(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    const user = await getRequestUser(request);
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
     const { provider, action, keyId, keySecret } = body;
@@ -85,7 +88,8 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'CONNECTED',
             lastSync: new Date(),
-            syncLogs
+            syncLogs,
+            externalAccountId: body.authResponse?.userID || null,
           }
         });
       } else {
@@ -95,7 +99,8 @@ export async function POST(request: NextRequest) {
             provider: 'META',
             status: 'CONNECTED',
             lastSync: new Date(),
-            syncLogs
+            syncLogs,
+            externalAccountId: body.authResponse?.userID || null,
           }
         });
       }
@@ -123,7 +128,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to reach Razorpay API. Check server connection.' }, { status: 500 });
       }
 
-      const syncLogs = JSON.stringify({ keyId, keySecret });
+      const credentialCiphertext = encryptIntegrationCredentials({ keyId, keySecret });
+      const syncLogs = 'Razorpay credentials verified and stored securely.';
 
       if (existingConnection) {
         await prisma.integrationConnection.update({
@@ -132,6 +138,7 @@ export async function POST(request: NextRequest) {
             status: 'CONNECTED',
             lastSync: new Date(),
             syncLogs,
+            credentialCiphertext,
           },
         });
       } else {
@@ -142,6 +149,7 @@ export async function POST(request: NextRequest) {
             status: 'CONNECTED',
             lastSync: new Date(),
             syncLogs,
+            credentialCiphertext,
           },
         });
       }

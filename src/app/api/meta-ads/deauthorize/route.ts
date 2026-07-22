@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import crypto from 'crypto';
-import { getOrganization } from '@/lib/org';
 
 // Basic parser for Meta signed_request
 function parseSignedRequest(signedRequest: string): any {
@@ -12,16 +11,13 @@ function parseSignedRequest(signedRequest: string): any {
     const sig = Buffer.from(encodedSig.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('hex');
     const data = JSON.parse(Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
 
-    // Verify signature if secret is configured
     const appSecret = process.env.META_APP_SECRET;
-    if (appSecret) {
-      const hmac = crypto.createHmac('sha256', appSecret);
-      const expectedSig = hmac.update(payload).digest('hex');
-      if (sig !== expectedSig) {
-        console.warn('Deauthorization request signature mismatch.');
-        return null;
-      }
-    }
+    if (!appSecret) return null;
+    const hmac = crypto.createHmac('sha256', appSecret);
+    const expectedSig = hmac.update(payload).digest('hex');
+    const actual = Buffer.from(sig, 'hex');
+    const expected = Buffer.from(expectedSig, 'hex');
+    if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return null;
 
     return data;
   } catch (e) {
@@ -44,34 +40,25 @@ export async function POST(request: NextRequest) {
       signedRequest = body.signed_request || '';
     }
 
-    console.log('Meta Deauthorization callback invoked. Signed Request:', signedRequest);
-
-    let userId = 'simulated_user_id';
-    if (signedRequest) {
-      const decoded = parseSignedRequest(signedRequest);
-      if (decoded) {
-        userId = decoded.user_id || userId;
-        console.log('Decoded signed request:', decoded);
-      }
-    }
+    const decoded = signedRequest ? parseSignedRequest(signedRequest) : null;
+    const userId = decoded?.user_id;
+    if (!userId) return NextResponse.json({ error: 'Invalid signed request' }, { status: 401 });
 
     // Set Canva and any other integrations to DISCONNECTED
-    const org = await getOrganization(request);
-    if (org) {
+    const connection = await prisma.integrationConnection.findFirst({ where: { provider: 'META', externalAccountId: userId } });
+    if (connection) {
       await prisma.integrationConnection.updateMany({
-        where: { orgId: org.id },
+        where: { orgId: connection.orgId, provider: 'META' },
         data: {
           status: 'DISCONNECTED',
           syncLogs: `Meta deauthorized for user ID: ${userId}`
         }
       });
-      console.log(`Updated organization ${org.id} integrations to DISCONNECTED due to Meta deauthorization`);
     }
 
     return NextResponse.json({
       success: true,
       message: 'Deauthorization request processed successfully',
-      userId
     });
   } catch (error: any) {
     console.error('Error in Meta Deauthorization route:', error);

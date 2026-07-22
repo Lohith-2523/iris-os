@@ -3,8 +3,9 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { cn, obfuscateEmail } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
+import { clearWorkspaceUiPreferences, readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { PrismIcon } from '@/components/ui/prism-icon';
 import {
   LayoutDashboard,
@@ -21,7 +22,6 @@ import {
   Blocks,
   Settings,
   LogOut,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Megaphone,
@@ -37,22 +37,16 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
-  const [orgName, setOrgName] = React.useState('Apex Creative');
+  const [orgName, setOrgName] = React.useState('Organization');
   const [plan, setPlan] = React.useState('');
   const [user, setUser] = React.useState<{ name: string; email: string; role: string } | null>(null);
   const [, setSession] = React.useState<import('@supabase/supabase-js').Session | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
+  const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
   const [theme, setTheme] = React.useState<'dark' | 'light'>('dark');
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('iris-theme') as 'dark' | 'light' | null;
-      if (savedTheme) {
-        setTheme(savedTheme);
-      } else {
-        setTheme(document.documentElement.classList.contains('light') ? 'light' : 'dark');
-      }
-
       const handleThemeChange = (e: Event) => {
         const nextTheme = (e as CustomEvent).detail || (document.documentElement.classList.contains('light') ? 'light' : 'dark');
         setTheme(nextTheme);
@@ -65,42 +59,47 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
   const loadOrg = async () => {
     try {
-      const res = await fetch('/api/organization');
+      const res = await fetch('/api/workspace');
       if (res.ok) {
         const data = await res.json();
-        setOrgName(data.name || 'Apex Creative');
-        setPlan(data.plan || '');
-        if (data.currency) {
-          const currentLocal = localStorage.getItem('dashboardCurrency');
-          if (currentLocal !== data.currency) {
-            localStorage.setItem('dashboardCurrency', data.currency);
-            window.dispatchEvent(new Event('currency-updated'));
-          }
-        }
+        setOrgName(data.organization.name || 'Agency Workspace');
+        setPlan(data.organization.plan || '');
+        setTheme(data.user.preferences?.theme || 'dark');
+        setUser(data.user);
+        setUiScope({ userId: data.user.id, orgId: data.organization.id });
       }
     } catch (e) {
       console.error('Error loading org in sidebar:', e);
     }
   };
 
-  const loadUser = React.useCallback(async (emailParam?: string) => {
+  const loadUser = React.useCallback(async () => {
     try {
-      const email = emailParam || localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || 'lohith@apex.co';
-      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const res = await fetch('/api/user');
       if (res.ok) {
         const data = await res.json();
         setUser(data);
+        setUiScope({ userId: data.id, orgId: data.orgId });
       } else {
-        const defaultName = email === 'lohith@apex.co' ? 'Lohith Sundar' : (localStorage.getItem('signup_name') || 'Executive User');
-        setUser({ name: defaultName, email: email, role: 'ADMIN' });
+        setUser(null);
       }
     } catch (e) {
       console.error('Error loading user in sidebar:', e);
-      const targetEmail = emailParam || 'lohith@apex.co';
-      const defaultName = targetEmail === 'lohith@apex.co' ? 'Lohith Sundar' : (localStorage.getItem('signup_name') || 'Executive User');
-      setUser({ name: defaultName, email: targetEmail, role: 'ADMIN' });
+      setUser(null);
     }
   }, []);
+
+  React.useEffect(() => {
+    setIsCollapsed(readWorkspaceUiPreference(uiScope, 'sidebar', true, (value): value is boolean => typeof value === 'boolean'));
+  }, [uiScope]);
+
+  const toggleCollapsed = () => {
+    setIsCollapsed((current) => {
+      const next = !current;
+      writeWorkspaceUiPreference(uiScope, 'sidebar', next);
+      return next;
+    });
+  };
 
   React.useEffect(() => {
     Promise.resolve().then(() => {
@@ -110,7 +109,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        loadUser(session.user.email);
+        loadUser();
       } else {
         loadUser();
       }
@@ -119,7 +118,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) {
-        loadUser(session.user.email);
+        loadUser();
       } else {
         setUser(null);
       }
@@ -130,7 +129,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     const handleUserUpdate = () => {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
-          loadUser(session.user.email);
+          loadUser();
         } else {
           loadUser();
         }
@@ -148,13 +147,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   }, [supabase.auth, loadUser]);
 
   const handleSignOut = async () => {
+    clearWorkspaceUiPreferences(uiScope);
     await supabase.auth.signOut();
-    localStorage.removeItem('currentUserEmail');
-    localStorage.removeItem('remember_me');
-    sessionStorage.clear();
-    document.cookie = "currentUserEmail=; path=/; max-age=0";
-    document.cookie = "currentUserRole=; path=/; max-age=0";
     router.push('/login');
+    router.refresh();
   };
 
   const navigationItems = React.useMemo(() => [
@@ -218,7 +214,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     >
       {/* Toggle Button */}
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={toggleCollapsed}
         className="absolute -right-3 top-6 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-zinc-800 bg-[#09090b] text-zinc-400 hover:text-white shadow-md cursor-pointer"
         title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
       >
@@ -249,7 +245,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       {/* Brand Switcher / Org details */}
       <div className="px-2 py-3 border-b border-zinc-900 bg-zinc-950/40">
         <div className={cn(
-          "flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-900 cursor-pointer",
+          "flex items-center rounded-md border border-zinc-800 bg-zinc-900/50",
           isCollapsed ? "p-1.5 justify-center" : "px-3 py-2"
         )}>
           <div className="flex items-center gap-2">
@@ -258,7 +254,6 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
             </div>
             {!isCollapsed && <span className="text-xs font-semibold text-zinc-200 truncate">{orgName}</span>}
           </div>
-          {!isCollapsed && <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />}
         </div>
       </div>
 
@@ -323,10 +318,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
               {!isCollapsed && (
                 <div className="truncate">
                   <span className="block text-xs font-semibold text-white leading-none">
-                    {user?.name || (typeof window !== 'undefined' && (localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail')) === 'lohith@apex.co' ? 'Lohith Sundar' : (typeof window !== 'undefined' ? localStorage.getItem('signup_name') || 'Executive User' : 'Executive User'))}
+                    {user.name}
                   </span>
                   <span className="text-[10px] text-zinc-500 mt-1 block truncate">
-                    {user?.email || 'lohith@apex.co'} {plan ? `(${plan})` : ''}
+                    {user.email} {plan ? `(${plan})` : ''}
                   </span>
                 </div>
               )}

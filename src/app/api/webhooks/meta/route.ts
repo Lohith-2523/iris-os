@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import crypto from 'crypto';
-import { getOrganization } from '@/lib/org';
 
 // Verify Meta Hub signature
 function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
   const metaSecret = process.env.META_APP_SECRET;
   const igSecret = process.env.INSTAGRAM_APP_SECRET;
 
-  // If no secrets are configured, skip signature verification for local offline development.
   if (!metaSecret && !igSecret) {
-    console.warn('Meta Webhook signature verification skipped: No META_APP_SECRET or INSTAGRAM_APP_SECRET configured in environment.');
-    return true;
+    console.error('Meta Webhook signature verification unavailable: provider secret is not configured.');
+    return false;
   }
 
   if (!signatureHeader) {
@@ -62,7 +60,7 @@ function verifySignature(rawBody: string, signatureHeader: string | null): boole
 }
 
 
-const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN || 'irisos_meta_verify_token';
+const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN;
 
 // GET Handshake challenge verification
 export async function GET(request: NextRequest) {
@@ -72,15 +70,7 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
 
-    // Logging verification query params for audit
-    console.log('Meta Webhook GET verification request:', {
-      mode,
-      token,
-      challenge,
-      url: request.url
-    });
-
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    if (VERIFY_TOKEN && mode === 'subscribe' && token === VERIFY_TOKEN) {
       console.log('Meta Webhook handshake verified successfully.');
       if (challenge) {
         return new Response(challenge, {
@@ -105,8 +95,6 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
     const signatureHeader = request.headers.get('X-Hub-Signature-256');
 
-    console.log('Received Meta Webhook POST. Signature Header:', signatureHeader);
-
     // Verify signature if secrets are configured
     if (!verifySignature(rawBody, signatureHeader)) {
       console.warn('Meta Webhook signature verification failed.');
@@ -117,14 +105,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = JSON.parse(rawBody);
-    console.log('Received Meta Webhook payload:', JSON.stringify(body, null, 2));
-
     const { object: webhookObject, entry: entries = [] } = body;
 
-    const org = await getOrganization(request);
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
-    }
+    const externalAccountIds = entries.map((entry: any) => String(entry.id || '')).filter(Boolean);
+    const metaConnection = await prisma.integrationConnection.findFirst({
+      where: { provider: 'META', externalAccountId: { in: externalAccountIds } },
+      select: { orgId: true },
+    });
+    if (!metaConnection) return NextResponse.json({ error: 'Unknown Meta account' }, { status: 404 });
+    const orgId = metaConnection.orgId;
 
     const processedEvents: Record<string, unknown>[] = [];
 
@@ -135,7 +124,7 @@ export async function POST(request: NextRequest) {
         return;
       }
       const conn = await prisma.integrationConnection.findFirst({
-        where: { provider }
+        where: { orgId, provider }
       });
       if (conn) {
         let currentLogs = [];
@@ -174,7 +163,7 @@ export async function POST(request: NextRequest) {
           if (change.field === 'ad_status' || val.ad_id) {
             const adId = val.ad_id;
             const updatedAd = await prisma.metaAd.updateMany({
-              where: { adId },
+              where: { orgId, adId },
               data: {
                 status: val.status || undefined,
                 spend: val.spend !== undefined ? parseFloat(val.spend) : undefined,
@@ -191,7 +180,7 @@ export async function POST(request: NextRequest) {
           if (val.campaign_id) {
             const campaignId = val.campaign_id;
             const updatedCampaign = await prisma.metaCampaign.updateMany({
-              where: { campaignId },
+              where: { orgId, campaignId },
               data: {
                 status: val.status || undefined,
                 dailyBudget: val.daily_budget !== undefined ? parseFloat(val.daily_budget) : undefined
@@ -274,13 +263,19 @@ export async function POST(request: NextRequest) {
             const adId = val.ad_id || '';
 
             const matchingAd = await prisma.metaAd.findUnique({
-              where: { adId }
+              where: { orgId_adId: { orgId, adId } }
             });
 
-            const adName = matchingAd ? matchingAd.name : 'Meta Ad Lead Form';
+            // The webhook contains the provider lead ID. Do not manufacture contact data
+            // when Meta has not supplied it.
+            if (!leadgenId || !val.full_name || !val.email) {
+              processedEvents.push({ type: 'leadgen_skipped', reason: 'missing_contact_data' });
+              continue;
+            }
+            const adName = matchingAd ? matchingAd.name : null;
 
             const lead = await prisma.metaLead.upsert({
-              where: { leadId: leadgenId },
+              where: { orgId_leadId: { orgId, leadId: leadgenId } },
               update: {
                 adId,
                 adName,
@@ -289,12 +284,12 @@ export async function POST(request: NextRequest) {
                 leadId: leadgenId,
                 adId,
                 adName,
-                fullName: val.full_name || `Meta Lead (${leadgenId.slice(-4)})`,
-                email: val.email || `lead-${leadgenId.slice(-4)}@facebook-leads.com`,
-                phone: val.phone || '+1-555-0100',
+                fullName: val.full_name,
+                email: val.email,
+                phone: val.phone || null,
                 status: 'new',
                 createdTime: val.created_time ? new Date(val.created_time * 1000) : new Date(),
-                orgId: org.id,
+                orgId,
               }
             });
 

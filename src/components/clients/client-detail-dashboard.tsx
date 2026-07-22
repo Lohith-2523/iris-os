@@ -73,6 +73,12 @@ interface ClientDetailDashboardProps {
 }
 
 export default function ClientDetailDashboard({ client, teamMembers, onBack }: ClientDetailDashboardProps) {
+  const [currencyState, setCurrencyState] = React.useState('USD');
+  React.useEffect(() => {
+    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
+      if (workspace?.organization?.currency) setCurrencyState(workspace.organization.currency);
+    }).catch(() => undefined);
+  }, []);
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [metaCampaigns, setMetaCampaigns] = React.useState<any[]>([]);
   const [metaLeads, setMetaLeads] = React.useState<any[]>([]);
@@ -84,12 +90,7 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
   const [leadsSearchQuery, setLeadsSearchQuery] = React.useState('');
   const [selectedLeadStatus, setSelectedLeadStatus] = React.useState('all');
   const [syncingAdAccount, setSyncingAdAccount] = React.useState(false);
-  const [selectedAdAccountIndex, setSelectedAdAccountIndex] = React.useState(0);
-  const [adAccounts, setAdAccounts] = React.useState([
-    { id: client.adAccountId || 'act_109283741_aether', name: `${client.name} Portfolio`, role: 'Administrator' },
-    { id: 'act_555444333_sandbox', name: `${client.name} Sandbox Account`, role: 'Advertiser' },
-    { id: 'act_999888777_read_only', name: `${client.name} Read-Only Account`, role: 'Analyst' }
-  ]);
+  const adAccountId = client.adAccountId || null;
 
   // Task Creation Form States
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
@@ -131,13 +132,8 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
       if (res.ok) {
         const data = await res.json();
         // Filter campaigns and leads based on client's adAccountId
-        const adAccountId = client.adAccountId || 'none';
-        const filteredCampaigns = (data.campaigns || []).filter((camp: any) =>
-          camp.campaignId.startsWith(adAccountId)
-        );
-        const filteredLeads = (data.leads || []).filter((l: any) =>
-          l.adId && l.adId.startsWith(adAccountId)
-        );
+        const filteredCampaigns = adAccountId ? (data.campaigns || []).filter((camp: any) => camp.campaignId.startsWith(adAccountId)) : [];
+        const filteredLeads = adAccountId ? (data.leads || []).filter((lead: any) => lead.adId && lead.adId.startsWith(adAccountId)) : [];
         setMetaCampaigns(filteredCampaigns);
         setMetaLeads(filteredLeads);
       }
@@ -152,12 +148,11 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
     loadData();
   }, [loadData]);
 
-  const handleSyncAccount = async (accountId: string, role: string) => {
-    if (role !== 'Administrator') return;
+  const handleSyncAccount = async () => {
+    if (!adAccountId) return;
     setSyncingAdAccount(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      loadData();
+      await loadData();
     } catch (e) {
       console.error(e);
     } finally {
@@ -334,9 +329,6 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Account Details</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-              {(() => {
-                const currencyState = typeof window !== 'undefined' ? localStorage.getItem('currencyState') || 'USD' : 'USD';
-                return (
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-zinc-400 flex items-center gap-1.5">
                       <span className="font-bold text-zinc-500 w-3.5 text-center text-xs select-none">{getCurrencySymbol(currencyState)}</span>
@@ -346,8 +338,6 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
                       {client.upsellOpportunityValue ? `${formatCurrency(client.upsellOpportunityValue)}/yr` : `${formatCurrency(20000)}/yr`}
                     </span>
                   </div>
-                );
-              })()}
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400 flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-zinc-500" /> Agency Service</span>
                 <span className="font-semibold text-zinc-300">{client.agencyType || 'Digital Marketing'}</span>
@@ -392,71 +382,14 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
               <Megaphone className="h-4 w-4 text-zinc-500" />
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              <div className="space-y-1">
-                <label className="text-[9px] uppercase tracking-wider text-zinc-500 block font-bold">Select Synced Ad Account</label>
-                <select
-                  value={selectedAdAccountIndex}
-                  onChange={(e) => setSelectedAdAccountIndex(Number(e.target.value))}
-                  className="w-full text-[11px] bg-zinc-900 border border-zinc-800 p-2 text-white outline-none rounded-md cursor-pointer focus:border-zinc-700"
-                >
-                  {adAccounts.map((acc, idx) => (
-                    <option key={acc.id} value={idx}>
-                      {acc.name} ({acc.id})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5 p-3 bg-zinc-950/40 border border-zinc-905 rounded-lg">
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-zinc-500 font-bold uppercase tracking-wider">Account Role Status</span>
-                  <Badge 
-                    variant={adAccounts[selectedAdAccountIndex].role === 'Administrator' ? 'risk-low' : 'outline'}
-                    className="rounded-md uppercase tracking-wider text-[8.5px]"
-                  >
-                    {adAccounts[selectedAdAccountIndex].role}
-                  </Badge>
+              {adAccountId ? <div className="space-y-3 pt-2">
+                <div className="p-2.5 bg-zinc-950/40 border border-zinc-800 text-zinc-400 text-[9.5px] rounded-lg flex items-start gap-2">
+                  <ShieldCheck className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
+                  <span><strong>Synced account:</strong> {adAccountId}. Metrics are shown only after data is imported from Meta.</span>
                 </div>
-                
-                <div className="space-y-1 mt-2">
-                  <label className="text-[9px] uppercase tracking-wider text-zinc-500 block font-bold">Simulate Role Authorization Change</label>
-                  <select
-                    value={adAccounts[selectedAdAccountIndex].role}
-                    onChange={(e) => {
-                      const newRole = e.target.value;
-                      setAdAccounts(prev => prev.map((acc, idx) => 
-                        idx === selectedAdAccountIndex ? { ...acc, role: newRole } : acc
-                      ));
-                    }}
-                    className="w-full text-[10px] bg-zinc-900 border border-zinc-850 p-1 text-white outline-none rounded-md cursor-pointer focus:border-zinc-750"
-                  >
-                    <option value="Administrator">Administrator (Full Access)</option>
-                    <option value="Advertiser">Advertiser (Read-Only Ads)</option>
-                    <option value="Analyst">Analyst (Read-Only Metrics)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                {adAccounts[selectedAdAccountIndex].role !== 'Administrator' ? (
-                  <div className="p-2.5 bg-rose-950/15 border border-rose-900/30 text-rose-455 text-[9.5px] rounded-lg flex items-start gap-2">
-                    <Lock className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Synchronization Locked:</strong> Admin-level clearance required in the Meta Business Portfolio to trigger API imports.
-                    </span>
-                  </div>
-                ) : (
-                  <div className="p-2.5 bg-emerald-955 border border-emerald-900/35 text-emerald-450 text-[9.5px] rounded-lg flex items-start gap-2">
-                    <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Sync Authorized:</strong> You have administrative control of this ad account portfolio.
-                    </span>
-                  </div>
-                )}
-
                 <Button
-                  onClick={() => handleSyncAccount(adAccounts[selectedAdAccountIndex].id, adAccounts[selectedAdAccountIndex].role)}
-                  disabled={adAccounts[selectedAdAccountIndex].role !== 'Administrator' || syncingAdAccount}
+                  onClick={handleSyncAccount}
+                  disabled={syncingAdAccount}
                   className="w-full h-8.5 bg-white text-zinc-950 hover:bg-zinc-200 text-[10px] font-bold rounded-md flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:hover:bg-white"
                 >
                   {syncingAdAccount ? (
@@ -471,7 +404,7 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
                     </>
                   )}
                 </Button>
-              </div>
+              </div> : <p className="p-3 border border-zinc-800 text-xs text-zinc-500">No Meta ad account is associated with this client.</p>}
             </CardContent>
           </Card>
 

@@ -9,9 +9,13 @@ export async function updateSession(request: NextRequest) {
 
     // With Fluid compute, don't put this client in a global environment
     // variable. Always create a new one on each request.
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    if (!url || !publishableKey) throw new Error('Supabase configuration is missing.')
+
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'placeholder-anon-key',
+      url,
+      publishableKey,
       {
         cookies: {
           getAll() {
@@ -39,8 +43,6 @@ export async function updateSession(request: NextRequest) {
     const { data } = await supabase.auth.getClaims()
     const user = data?.claims
 
-    const mockEmail = request.cookies.get('currentUserEmail')?.value
-
     const pathname = request.nextUrl.pathname
     const isPublicRoute =
       pathname === '/coming-soon' ||
@@ -49,17 +51,19 @@ export async function updateSession(request: NextRequest) {
       pathname === '/pricing' ||
       pathname === '/terms' ||
       pathname === '/privacy' ||
-      pathname.startsWith('/oauth/consent') ||
       pathname.startsWith('/signup') ||
-      pathname.startsWith('/onboarding') ||
+      pathname.startsWith('/onboarding/member') ||
+      pathname === '/invite' ||
       pathname.startsWith('/login') ||
-      pathname.startsWith('/auth') ||
-      pathname.includes('/webhook') ||
-      pathname.includes('/webhooks') ||
-      pathname.includes('/callback') ||
+      pathname === '/auth/callback' ||
+      pathname === '/api/member' ||
+      pathname === '/api/invite' ||
+      pathname === '/api/webhooks/meta' ||
+      pathname === '/api/meta-ads/deauthorize' ||
+      pathname === '/api/meta-ads/delete-data' ||
       pathname === '/api/canva/auth'
 
-    if (!user && !mockEmail && !isPublicRoute) {
+    if (!user && !isPublicRoute) {
       // no user, potentially respond by redirecting the user to the login page
       const url = request.nextUrl.clone()
       url.pathname = '/login'
@@ -69,9 +73,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   } catch (error) {
     console.error('Next.js 16 proxy middleware error caught:', error)
-    // Fallback: let the request proceed so the page can load or render gracefully
-    return NextResponse.next({
-      request,
-    })
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Authentication service unavailable' }, { status: 503 })
+    }
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 }

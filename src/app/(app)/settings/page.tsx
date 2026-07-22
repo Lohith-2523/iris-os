@@ -129,7 +129,6 @@ export default function SettingsPage() {
           // Fetch additional profile fields (name, email) as suggested by reference
           (window as any).FB.api('/me', { fields: 'name, email' }, (meResponse: any) => {
             console.log('Meta user details:', meResponse);
-            localStorage.setItem('conn_meta', 'true');
             
             fetch('/api/integrations', {
               method: 'POST',
@@ -165,6 +164,7 @@ export default function SettingsPage() {
     React.useEffect(() => {
     async function loadOrg() {
       try {
+        let organizationBillingEmail: string | null = null;
         const res = await fetch('/api/organization');
         if (res.ok) {
           const data = await res.json();
@@ -176,16 +176,14 @@ export default function SettingsPage() {
           setCurrency(data.currency || 'USD');
           setHasFinancialData(!!data.hasFinancialData);
           setAiSharingConsent(data.aiSharingConsent || false);
+          organizationBillingEmail = data.billingEmail || null;
         }
 
-        const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-        if (email) {
-          const { obfuscateEmail } = await import('@/lib/utils');
-          const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+        {
+          const userRes = await fetch('/api/user');
           if (userRes.ok) {
             const userData = await userRes.json();
-            const storedBillingEmail = localStorage.getItem('custom_billing_email');
-            setBillingEmail(storedBillingEmail || userData.email);
+            setBillingEmail(organizationBillingEmail || userData.email);
           }
         }
       } catch (e) {
@@ -243,16 +241,13 @@ export default function SettingsPage() {
           bankNames: selectedBanks,
           currency,
           aiSharingConsent: aiSharingConsent,
+          billingEmail,
         }),
       });
 
       if (res.ok) {
         setSaveStatus('success');
         setTimeout(() => setSaveStatus('idle'), 3000);
-        // Save billing email to local storage
-        localStorage.setItem('custom_billing_email', billingEmail);
-        // Save currency to localStorage and dispatch event
-        localStorage.setItem('dashboardCurrency', currency);
         window.dispatchEvent(new Event('currency-updated'));
         // Dispatch custom event to notify sidebar to update
         window.dispatchEvent(new Event('organization-updated'));
@@ -1063,11 +1058,6 @@ export default function SettingsPage() {
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ provider: item.provider, action: 'disconnect' }),
                                           });
-                                          if (item.provider === 'META') {
-                                            localStorage.removeItem('conn_meta');
-                                          } else if (item.provider === 'GOOGLE') {
-                                            localStorage.removeItem('conn_google_calendar');
-                                          }
                                           await fetchIntegrations();
                                         } catch (e) {
                                           console.error(e);
@@ -1321,4 +1311,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

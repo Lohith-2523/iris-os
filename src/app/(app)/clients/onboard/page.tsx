@@ -1,11 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import { formatCurrency } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatUserMessage, obfuscateEmail, getCurrencySymbol } from '@/lib/utils';
+import { formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -40,14 +41,13 @@ const AGENCY_TYPES = [
 
 export default function ClientOnboardPage() {
   const router = useRouter();
-  const currencyState = typeof window !== 'undefined' ? localStorage.getItem('currencyState') || 'USD' : 'USD';
+  const [currencyState, setCurrencyState] = React.useState('USD');
 
   // Onboarding Wizard Steps
   // 1: Business Details, 2: Primary Contact, 3: Agency Type, 4: Service Specifics, 5: Goals & Budget, 6: Review
   const [step, setStep] = React.useState(1);
 
   // Authentication Mocking States
-  const [userEmail, setUserEmail] = React.useState('');
   const [userRole, setUserRole] = React.useState<string | null>(null);
   const [authLoading, setAuthLoading] = React.useState(true);
 
@@ -128,10 +128,10 @@ export default function ClientOnboardPage() {
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   // Load and authenticate active user role
-  const checkRole = async (email: string) => {
+  const checkRole = async () => {
     setAuthLoading(true);
     try {
-      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const res = await fetch('/api/user');
       if (res.ok) {
         const u = await res.json();
         setUserRole(u.role);
@@ -147,13 +147,10 @@ export default function ClientOnboardPage() {
   };
 
   React.useEffect(() => {
-    let email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-    if (!email) {
-      email = 'lohith@apex.co';
-      localStorage.setItem('currentUserEmail', email);
-    }
-    setUserEmail(email);
-    checkRole(email);
+    checkRole();
+    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
+      if (workspace?.organization?.currency) setCurrencyState(workspace.organization.currency);
+    }).catch(() => undefined);
 
     async function fetchTeam() {
       try {
@@ -287,7 +284,6 @@ export default function ClientOnboardPage() {
         upsellOpportunityValue: parseFloat(formData.monthlyRetainer) * 12 || 0.0,
         agencyType: formData.agencyType,
         businessModel: formData.businessModel,
-        currentUserEmail: obfuscateEmail(userEmail),
         adAccountId: formData.adAccountId || null,
         contact: {
           name: formData.pocName,
@@ -1117,17 +1113,13 @@ export default function ClientOnboardPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Associated Meta Ad Account ID</label>
-                      <select
+                      <input
                         name="adAccountId"
                         value={formData.adAccountId}
                         onChange={handleInputChange}
+                        placeholder="act_…"
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-medium"
-                      >
-                        <option value="">None / Unlinked</option>
-                        <option value="act_109283741">act_109283741 (Aether Sandbox)</option>
-                        <option value="act_987654321">act_987654321 (Vertex Sandbox)</option>
-                        <option value="act_555444333">act_555444333 (Nova BioLabs Sandbox)</option>
-                      </select>
+                      />
                     </div>
                   </div>
 
@@ -1571,7 +1563,7 @@ export default function ClientOnboardPage() {
                     <div className="flex justify-between border-t border-zinc-900 pt-2">
                       <span className="text-zinc-400">Retainer Value:</span>
                       <span className="font-bold text-white font-mono">
-                        {formData.monthlyRetainer ? `$${parseInt(formData.monthlyRetainer).toLocaleString()}/mo` : '$0/mo'}
+                        {formData.monthlyRetainer ? `${formatCurrency(parseInt(formData.monthlyRetainer))}/mo` : `${formatCurrency(0)}/mo`}
                       </span>
                     </div>
                   </div>

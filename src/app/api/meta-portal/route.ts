@@ -1,26 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
-import { getOrganization } from '@/lib/org';
+import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    if (!rawEmail) {
-      return NextResponse.json({ campaigns: [], leads: [], orphanedAds: [] });
-    }
-    const email = deobfuscateEmail(rawEmail);
-
-    // 1. Fetch user to check role and ad account authorization
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { client: true }
-    });
-
-    if (!user) {
-      return NextResponse.json({ campaigns: [], leads: [], orphanedAds: [] });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const isClient = user.role === 'client';
     const clientAdAccountId = user?.client?.adAccountId || '';
@@ -96,6 +81,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action } = body;
 
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
     const org = await getOrganization(request);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
@@ -104,66 +93,21 @@ export async function POST(request: NextRequest) {
     // 1. Check if this is the legacy update lead status action
     if (!action && body.leadId && body.status) {
       const updatedLead = await prisma.metaLead.update({
-        where: { leadId: body.leadId, orgId: org.id },
+        where: { orgId_leadId: { orgId: org.id, leadId: body.leadId } },
         data: { status: body.status },
       });
       return NextResponse.json({ success: true, lead: updatedLead });
     }
 
 
-    // 5. Create New Campaign
+    // Campaigns and ads must originate from Meta. Generating local identifiers makes
+    // fictional provider records appear as live advertising data.
     if (action === 'create_campaign') {
-      const { name, status, objective, dailyBudget } = body;
-      if (!name || !status) {
-        return NextResponse.json({ error: 'Missing name or status' }, { status: 400 });
-      }
-
-      const campaign = await prisma.metaCampaign.create({
-        data: {
-          campaignId: `act_109283741_camp_${Date.now().toString().slice(-6)}`,
-          name,
-          status,
-          objective: objective || 'OUTCOME_LEADS',
-          dailyBudget: dailyBudget ? parseFloat(dailyBudget) : null,
-          orgId: org.id
-        }
-      });
-
-      return NextResponse.json({ success: true, campaign });
+      return NextResponse.json({ error: 'Create campaigns in Meta Ads Manager, then synchronize the connected account.' }, { status: 409 });
     }
 
-    // 6. Create New Ad
     if (action === 'create_ad') {
-      const { name, status, platform, campaignId, imageUrl } = body;
-      if (!name || !status || !platform || !campaignId) {
-        return NextResponse.json({ error: 'Missing required parameters: name, status, platform, campaignId' }, { status: 400 });
-      }
-
-      const campaign = await prisma.metaCampaign.findFirst({
-        where: { id: campaignId, orgId: org.id },
-      });
-      if (!campaign) {
-        return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
-      }
-
-      const ad = await prisma.metaAd.create({
-        data: {
-          adId: `act_109283741_ad_${Date.now().toString().slice(-6)}`,
-          name,
-          status,
-          spend: 0,
-          leadsCount: 0,
-          reach: 0,
-          impressions: 0,
-          clicks: 0,
-          platform,
-          imageUrl: imageUrl || null,
-          campaignId,
-          orgId: org.id
-        }
-      });
-
-      return NextResponse.json({ success: true, ad });
+      return NextResponse.json({ error: 'Create ads in Meta Ads Manager, then synchronize the connected account.' }, { status: 409 });
     }
 
     // 7. Edit Campaign

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrganization } from '@/lib/org';
-import { deobfuscateEmail } from '@/lib/utils';
+import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,9 +10,9 @@ export async function GET(request: NextRequest) {
     }
     
     // Check if any financial data exists
-    const txCount = await prisma.transaction.count();
-    const invCount = await prisma.invoice.count();
-    const expCount = await prisma.expense.count();
+    const txCount = await prisma.transaction.count({ where: { orgId: org.id } });
+    const invCount = await prisma.invoice.count({ where: { orgId: org.id } });
+    const expCount = await prisma.expense.count({ where: { orgId: org.id } });
     const hasFinancialData = (txCount + invCount + expCount) > 0;
 
     return NextResponse.json({
@@ -29,64 +28,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, plan, hasAddon, agencyTypes, bankNames, currency, aiSharingConsent, username, email } = body;
+    const { name, plan, hasAddon, agencyTypes, bankNames, currency, aiSharingConsent, username, billingEmail, preferences } = body;
+    const user = await getRequestUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const cookieEmail = request.cookies.get('currentUserEmail')?.value;
-    const userEmail = (deobfuscateEmail(cookieEmail || '') || email || '').toLowerCase();
-
-    if (!userEmail) {
-      return NextResponse.json({ error: 'User email context is required' }, { status: 400 });
-    }
-
-    let user = await prisma.user.findFirst({
-      where: {
-        email: {
-          equals: userEmail,
-          mode: 'insensitive',
-        },
-      },
-      include: { organization: true }
-    });
-
-    let org = user?.organization || null;
-
-    if (!org) {
-      // Create a brand new organization (agency) for the user
-      org = await prisma.organization.create({
-        data: {
-          name: name || 'New Agency',
-          plan: plan || 'BASIC',
-          hasAddon: hasAddon || false,
-          agencyTypes: agencyTypes || [],
-          bankNames: bankNames || [],
-          currency: currency || 'USD',
-          aiSharingConsent: aiSharingConsent || false,
-        }
-      });
-
-      if (!user) {
-        user = await prisma.user.create({
-          data: {
-            email: userEmail,
-            name: username || userEmail.split('@')[0],
-            role: 'ADMIN',
-            orgId: org.id,
-          },
-          include: { organization: true }
-        });
-      } else {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { orgId: org.id },
-          include: { organization: true }
-        });
-      }
-    } else {
+    let org: any = user.organization;
+    {
       // Currency restriction check
       if (currency !== undefined && currency !== org.currency) {
-        const txCount = await prisma.transaction.count();
-        const invCount = await prisma.invoice.count();
-        const expCount = await prisma.expense.count();
+        const txCount = await prisma.transaction.count({ where: { orgId: org.id } });
+        const invCount = await prisma.invoice.count({ where: { orgId: org.id } });
+        const expCount = await prisma.expense.count({ where: { orgId: org.id } });
         const hasFinancialData = (txCount + invCount + expCount) > 0;
         if (hasFinancialData) {
           return NextResponse.json({
@@ -125,8 +78,13 @@ export async function POST(request: NextRequest) {
           bankNames: bankNames !== undefined ? bankNames : org.bankNames,
           currency: currency !== undefined ? currency : org.currency,
           aiSharingConsent: aiSharingConsent !== undefined ? aiSharingConsent : org.aiSharingConsent,
+          billingEmail: billingEmail !== undefined ? billingEmail : org.billingEmail,
+          preferences: preferences !== undefined ? preferences : org.preferences,
         },
       });
+      if (username !== undefined) {
+        await prisma.user.update({ where: { id: user.id }, data: { username } });
+      }
     }
 
     return NextResponse.json(org);
@@ -142,6 +100,10 @@ export async function DELETE(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    const user = await getRequestUser();
+    if (!user || !isOrganizationAdmin(user)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const orgId = org.id;
 
@@ -156,8 +118,10 @@ export async function DELETE(request: NextRequest) {
       
       // 2. Delete tasks, reports, automations, prism messages
       prisma.clientTask.deleteMany({ where: { client: { orgId } } }),
-      prisma.report.deleteMany({ where: { createdBy: { orgId } } }),
-      prisma.askPrismMessage.deleteMany({ where: { user: { orgId } } }),
+      prisma.report.deleteMany({ where: { orgId } }),
+      prisma.askPrismMessage.deleteMany({ where: { orgId } }),
+      prisma.prismChatSession.deleteMany({ where: { orgId } }),
+      prisma.prismInsight.deleteMany({ where: { orgId } }),
       prisma.automationRun.deleteMany({ where: { automation: { orgId } } }),
       prisma.automation.deleteMany({ where: { orgId } }),
 
@@ -178,9 +142,10 @@ export async function DELETE(request: NextRequest) {
       // 6. Delete agency leads & integration connections
       prisma.agencyLead.deleteMany({ where: { orgId } }),
       prisma.integrationConnection.deleteMany({ where: { orgId } }),
+      prisma.memberInvite.deleteMany({ where: { orgId } }),
 
       // 7. Delete financial forecasts (simulated global forecast data)
-      prisma.financialForecast.deleteMany({}),
+      prisma.financialForecast.deleteMany({ where: { orgId } }),
 
       // 8. Update organization to reset selection lists
       prisma.organization.update({
@@ -203,4 +168,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
-

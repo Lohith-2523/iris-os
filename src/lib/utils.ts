@@ -6,31 +6,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+let activeUserName = '';
+let activeCurrency = 'USD';
+
+export function setActiveWorkspaceContext(input: { userName?: string; currency?: string }) {
+  if (input.userName !== undefined) activeUserName = input.userName;
+  if (input.currency !== undefined) activeCurrency = input.currency;
+}
+
 export function formatUserMessage(message: string): string {
-  if (typeof window === 'undefined') return message;
-  
-  const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-  if (!email) return message;
-
-  let name = '';
-  
-  if (email.includes('sarah')) {
-    name = 'Sarah';
-  } else if (email.includes('lohith')) {
-    name = 'Lohith';
-  } else {
-    const prefix = email.split('@')[0];
-    const parts = prefix.split(/[._-]/);
-    if (parts.length > 0) {
-      name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-    }
-  }
-
-  return name ? message.replace(/Lohith/g, name) : message;
+  const firstName = activeUserName.trim().split(/\s+/)[0];
+  return firstName ? message.replace(/Lohith/g, firstName) : message;
 }
 
 export function formatCurrency(amount: number, decimals: number = 0): string {
-  const currency = typeof window !== 'undefined' ? (localStorage.getItem('dashboardCurrency') || 'USD') : 'USD';
+  const currency = activeCurrency;
   let symbol = 'USD';
   let locale = 'en-US';
 
@@ -63,63 +53,13 @@ export function formatPercent(value: number): string {
   return `${value}%`;
 }
 
-// Obfuscates a string to avoid exposing emails in query parameters or cookies
-export function obfuscateEmail(email: string): string {
-  if (!email) return '';
-  // Simple XOR with a key followed by base64 encoding
-  const key = 42;
-  const chars = email.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ key)).join('');
-  if (typeof window !== 'undefined') {
-    return btoa(unescape(encodeURIComponent(chars)));
-  } else {
-    return Buffer.from(chars, 'utf-8').toString('base64');
-  }
-}
-
-// Deobfuscates a string back to the original email (with fallback)
-export function deobfuscateEmail(obfuscated: string): string {
-  if (!obfuscated) return '';
-  if (obfuscated.includes('@')) return obfuscated; // fallback if already plain email
-
-  try {
-    let chars = '';
-    if (typeof window !== 'undefined') {
-      chars = decodeURIComponent(escape(atob(obfuscated)));
-    } else {
-      chars = Buffer.from(obfuscated, 'base64').toString('utf-8');
-    }
-    const key = 42;
-    const decrypted = chars.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ key)).join('');
-    if (decrypted.includes('@')) return decrypted;
-  } catch (e) {
-    // Fail silently and return original input
-  }
-  return obfuscated;
-}
-
 export function renderFormattedText(text: string): React.ReactNode {
   if (!text) return '';
   
   // Format user name if "Lohith" is present
   let processed = text;
-  if (typeof window !== 'undefined') {
-    const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-    let name = '';
-    if (email) {
-      if (email.includes('sarah')) {
-        name = 'Sarah';
-      } else if (email.includes('lohith')) {
-        name = 'Lohith';
-      } else {
-        const prefix = email.split('@')[0];
-        const parts = prefix.split(/[._-]/);
-        if (parts.length > 0) {
-          name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-        }
-      }
-      processed = name ? text.replace(/Lohith/g, name) : text;
-    }
-  }
+  const firstName = activeUserName.trim().split(/\s+/)[0];
+  processed = firstName ? text.replace(/Lohith/g, firstName) : text;
 
   // Parse markdown: **bold**, *italic*, `code`
   const parts = processed.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);

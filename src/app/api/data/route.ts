@@ -2,6 +2,65 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 
+function getFinanceMetrics(invoices: Array<{ amount: number; status: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } }>, expenses: Array<{ amount: number }>) {
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const paidInvoices = invoices.filter((invoice) => invoice.status === 'PAID');
+  const revenueForMonth = (year: number, month: number) => paidInvoices
+    .filter((invoice) => {
+      const issued = new Date(invoice.issuedDate);
+      return issued.getFullYear() === year && issued.getMonth() === month;
+    })
+    .reduce((sum, invoice) => sum + invoice.amount, 0);
+  const previousDate = new Date(currentYear, currentMonth - 1, 1);
+  const currentMonthRevenue = revenueForMonth(currentYear, currentMonth);
+  const previousMonthRevenue = revenueForMonth(previousDate.getFullYear(), previousDate.getMonth());
+  const monthlyChangePercent = previousMonthRevenue > 0
+    ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
+    : null;
+
+  const byClient = new Map<string, { id: string; name: string; domain: string; revenue: number }>();
+  for (const invoice of paidInvoices) {
+    const current = byClient.get(invoice.client.id) || {
+      id: invoice.client.id,
+      name: invoice.client.name,
+      domain: invoice.client.domain || '',
+      revenue: 0,
+    };
+    current.revenue += invoice.amount;
+    byClient.set(invoice.client.id, current);
+  }
+  const revenueByClient = [...byClient.values()]
+    .sort((a, b) => b.revenue - a.revenue)
+    .map((client) => ({
+      ...client,
+      share: paidInvoices.length > 0
+        ? (client.revenue / paidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0)) * 100
+        : 0,
+    }));
+
+  const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
+  const revenueHistory = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(currentYear, currentMonth - (5 - index), 1);
+    return {
+      label: monthFormatter.format(date),
+      value: revenueForMonth(date.getFullYear(), date.getMonth()),
+    };
+  });
+
+  return {
+    grossBillings: invoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+    outstandingAmount: invoices.filter((invoice) => invoice.status === 'UNPAID' || invoice.status === 'OVERDUE').reduce((sum, invoice) => sum + invoice.amount, 0),
+    totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
+    currentMonthRevenue,
+    previousMonthRevenue,
+    monthlyChangePercent,
+    revenueHistory,
+    revenueByClient,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -13,39 +72,7 @@ export async function GET(request: NextRequest) {
 
     const user = await getRequestUser(request);
     if (!user) {
-      switch (domain) {
-        case 'dashboard':
-          return NextResponse.json({
-            activeClientsCount: 0,
-            totalClientsCount: 0,
-            activeProjectsCount: 0,
-            currentMonthRevenue: 0,
-            projectRisks: [],
-            grossBillings: 0,
-            totalExpenses: 0,
-            outstandingAmount: 0,
-          });
-        case 'finance':
-          return NextResponse.json({
-            grossBillings: 0,
-            outstandingAmount: 0,
-            totalExpenses: 0,
-            recentInvoices: [],
-            expenses: [],
-          });
-        case 'clients':
-        case 'projects':
-        case 'team':
-        case 'reporting':
-          return NextResponse.json([]);
-        case 'operations':
-          return NextResponse.json({
-            automationsCount: 0,
-            runsCount: 0,
-          });
-        default:
-          return NextResponse.json({ error: 'Invalid domain specified' }, { status: 400 });
-      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const orgId = user.orgId;
@@ -73,16 +100,8 @@ export async function GET(request: NextRequest) {
         const totalClientsCount = allClients.length;
         const activeProjectsCount = projects.filter(p => p.status === 'IN_PROGRESS' || p.status === 'OVERDUE').length;
         
-        // Sum current month invoices (June 2026 based on seed)
-        const currentMonthRevenue = invoices
-          .filter(inv => inv.status === 'PAID')
-          .reduce((sum, inv) => sum + inv.amount, 0);
-
-        const grossBillings = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-        const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-        const outstandingAmount = invoices
-          .filter(inv => inv.status === 'UNPAID' || inv.status === 'OVERDUE')
-          .reduce((sum, inv) => sum + inv.amount, 0);
+        const invoiceData = invoices.map((invoice) => ({ ...invoice, client: { id: invoice.clientId, name: '', domain: null } }));
+        const financeMetrics = getFinanceMetrics(invoiceData, expenses);
 
         const projectRisks = projects
           .filter(p => p.riskLevel === 'HIGH' || p.riskLevel === 'MEDIUM')
@@ -93,31 +112,12 @@ export async function GET(request: NextRequest) {
             riskDescription: p.riskDescription || '',
           }));
 
-        // Compute revenue history (past 6 months) dynamically
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthlyRevenue = Array(12).fill(0);
-        invoices.forEach(inv => {
-          if (inv.status === 'PAID') {
-            const date = new Date(inv.issuedDate);
-            const monthIdx = date.getMonth();
-            monthlyRevenue[monthIdx] += inv.amount;
-          }
-        });
-        const revenueHistory = months.map((label, index) => ({
-          label,
-          value: monthlyRevenue[index]
-        })).slice(0, 6); // standard 6 months Jan-Jun display
-
         return NextResponse.json({
           activeClientsCount,
           totalClientsCount,
           activeProjectsCount,
-          currentMonthRevenue,
           projectRisks,
-          grossBillings,
-          totalExpenses,
-          outstandingAmount,
-          revenueHistory,
+          ...financeMetrics,
         });
       }
 
@@ -134,11 +134,7 @@ export async function GET(request: NextRequest) {
               orderBy: { date: 'desc' }
             });
 
-        const grossBillings = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-        const outstandingAmount = invoices
-          .filter(inv => inv.status === 'UNPAID' || inv.status === 'OVERDUE')
-          .reduce((sum, inv) => sum + inv.amount, 0);
-        const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const financeMetrics = getFinanceMetrics(invoices, expenses);
 
         const recentInvoices = invoices.slice(0, 10).map(inv => ({
           id: inv.id,
@@ -150,9 +146,7 @@ export async function GET(request: NextRequest) {
         }));
 
         return NextResponse.json({
-          grossBillings,
-          outstandingAmount,
-          totalExpenses,
+          ...financeMetrics,
           recentInvoices,
           expenses: expenses.map(exp => ({
             id: exp.id,

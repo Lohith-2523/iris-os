@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { decryptIntegrationCredentials, encryptIntegrationCredentials } from '@/lib/integration-secrets';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    if (!rawEmail) {
-      return NextResponse.json({ events: [] });
-    }
-    const email = deobfuscateEmail(rawEmail);
-
-    // 1. Fetch user to verify organization and role
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // 2. Fetch events. If client: only see created events or if in attendees list.
     // If admin: see all events in organization.
@@ -34,7 +22,7 @@ export async function GET(request: NextRequest) {
           orgId: user.orgId,
           OR: [
             { creatorId: user.id },
-            { attendees: { has: email } }
+            { attendees: { has: user.email } }
           ]
         },
         orderBy: { startTime: 'asc' },
@@ -52,7 +40,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      email,
       action,
       title,
       description,
@@ -67,18 +54,8 @@ export async function POST(request: NextRequest) {
       isGoogleEvent,
     } = body;
 
-    const rawEmail = email || request.cookies.get('currentUserEmail')?.value;
-    if (!rawEmail) {
-      return NextResponse.json({ error: 'User context required' }, { status: 401 });
-    }
-    const userEmail = deobfuscateEmail(rawEmail);
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Handle Google Calendar Sync Simulation/Real actions
     if (action === 'sync') {
@@ -90,15 +67,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, message: 'Google account is not connected.' }, { status: 400 });
       }
 
-      let syncLogsParsed: any = {};
-      try {
-        syncLogsParsed = JSON.parse(existingConnection.syncLogs || '{}');
-      } catch (e) {
-        console.warn('Failed to parse syncLogs JSON for Google connection:', e);
+      let credentials: { accessToken?: string; refreshToken?: string } = {};
+      if (existingConnection.credentialCiphertext) {
+        credentials = decryptIntegrationCredentials(existingConnection.credentialCiphertext);
       }
 
-      let accessToken = syncLogsParsed.accessToken;
-      const refreshToken = syncLogsParsed.refreshToken;
+      let accessToken = credentials.accessToken;
+      const refreshToken = credentials.refreshToken;
 
       if (!accessToken) {
         return NextResponse.json({ success: false, message: 'No access token available. Please reconnect Google Calendar.' }, { status: 400 });
@@ -127,17 +102,14 @@ export async function POST(request: NextRequest) {
           const refreshData = await refreshRes.json();
           accessToken = refreshData.access_token;
           
-          syncLogsParsed.accessToken = accessToken;
-          if (refreshData.refresh_token) {
-            syncLogsParsed.refreshToken = refreshData.refresh_token;
-          }
-          syncLogsParsed.connectedAt = new Date().toISOString();
+          credentials.accessToken = accessToken;
+          if (refreshData.refresh_token) credentials.refreshToken = refreshData.refresh_token;
 
           await prisma.integrationConnection.update({
             where: { id: existingConnection.id },
             data: {
               lastSync: new Date(),
-              syncLogs: JSON.stringify(syncLogsParsed),
+              credentialCiphertext: encryptIntegrationCredentials(credentials),
             },
           });
           console.log('Successfully refreshed Google access token.');
@@ -157,6 +129,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Sync the calendar events
+      if (!accessToken) return NextResponse.json({ success: false, message: 'Google access token is unavailable.' }, { status: 401 });
       await syncGoogleCalendarEvents(accessToken, user.orgId, user.id);
 
       // Fetch the newly synced events to return them
@@ -254,7 +227,6 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      email,
       id,
       title,
       description,
@@ -267,22 +239,11 @@ export async function PUT(request: NextRequest) {
       color,
       attendees,
       attendeeStatus,
-      rsvpEmail,
       rsvpStatus,
     } = body;
 
-    const rawEmail = email || request.cookies.get('currentUserEmail')?.value;
-    if (!rawEmail) {
-      return NextResponse.json({ error: 'User context required' }, { status: 401 });
-    }
-    const userEmail = deobfuscateEmail(rawEmail);
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const event = await prisma.calendarEvent.findUnique({
       where: { id },
@@ -296,9 +257,13 @@ export async function PUT(request: NextRequest) {
     if (event.orgId !== user.orgId) {
       return NextResponse.json({ error: 'Unauthorized access to event' }, { status: 403 });
     }
+    if (!isOrganizationAdmin(user) && event.creatorId !== user.id && !rsvpStatus) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // RSVP update shortcut
-    if (rsvpEmail && rsvpStatus) {
+    if (rsvpStatus) {
+      const rsvpEmail = user.email;
       const currentStatus = (event.attendeeStatus as Record<string, string>) || {};
       const updatedStatus = {
         ...currentStatus,
@@ -382,23 +347,12 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    if (!rawEmail) {
-      return NextResponse.json({ error: 'User context required' }, { status: 401 });
-    }
-    const email = deobfuscateEmail(rawEmail);
-
     if (!id) {
       return NextResponse.json({ error: 'Missing event ID' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const event = await prisma.calendarEvent.findUnique({
       where: { id },
@@ -411,6 +365,9 @@ export async function DELETE(request: NextRequest) {
     // Verify same organization
     if (event.orgId !== user.orgId) {
       return NextResponse.json({ error: 'Unauthorized access to event' }, { status: 403 });
+    }
+    if (!isOrganizationAdmin(user) && event.creatorId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     await prisma.calendarEvent.delete({

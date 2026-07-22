@@ -7,7 +7,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { User, Phone, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
 import { createClient } from '@/lib/client';
-import { obfuscateEmail } from '@/lib/utils';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -20,7 +19,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !phone || !password) {
       setErrorMsg('Please fill in all fields.');
@@ -28,15 +27,26 @@ export default function SignupPage() {
     }
     setIsLoading(true);
     
-    // Save info in localStorage to carry into the onboarding flow
-    localStorage.setItem('signup_name', name);
-    localStorage.setItem('signup_email', email);
-    localStorage.setItem('signup_phone', phone);
-    
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: { data: { name, full_name: name, phone, role: 'admin' } },
+      });
+      if (error) throw error;
+      if (!data.session) {
+        setErrorMsg('Check your email to confirm your account, then sign in to continue onboarding.');
+        return;
+      }
+      const bootstrap = await fetch('/api/auth/bootstrap', { method: 'POST' });
+      if (!bootstrap.ok) throw new Error('Unable to initialize your workspace.');
       router.push('/onboarding');
-    }, 500);
+      router.refresh();
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Unable to create your workspace.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignup = async () => {
@@ -49,16 +59,9 @@ export default function SignupPage() {
         },
       });
       if (error) throw error;
-    } catch (err: any) {
-      console.warn('Supabase Google OAuth signup failed, falling back to mock:', err?.message || err);
-      const mockEmail = 'new-agency-user@gmail.com';
-      localStorage.setItem('signup_email', mockEmail);
-      localStorage.setItem('signup_phone', '+1 (555) 019-2834');
-      
-      setTimeout(() => {
-        setIsLoading(false);
-        router.push('/onboarding');
-      }, 500);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Google sign-up failed.');
+      setIsLoading(false);
     }
   };
 

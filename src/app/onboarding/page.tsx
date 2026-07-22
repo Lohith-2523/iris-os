@@ -75,43 +75,76 @@ export default function OnboardingPage() {
   const [paymentLog, setPaymentLog] = React.useState<string[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
 
-  // Load signup email from localStorage
   const [email, setEmail] = React.useState('');
   React.useEffect(() => {
+    fetch('/api/workspace')
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Unable to load onboarding state.');
+        return response.json();
+      })
+      .then((workspace) => {
+        const draft = workspace.onboarding?.draft || {};
+        const steps = ['agency', 'pricing', 'consent', 'payment'] as const;
+        setEmail(workspace.user.email);
+        setAgencyName(draft.agencyName || workspace.organization.name || '');
+        setUsername(draft.username || workspace.user.username || workspace.user.name || '');
+        setCardName(workspace.user.name || '');
+        setCurrency(draft.currency || workspace.organization.currency || 'USD');
+        setSelectedPlanId(draft.selectedPlanId || 'pro');
+        setSpecialization(draft.specialization || 'Marketing');
+        setTermsAgreed(Boolean(draft.termsAgreed));
+        setAiSharingConsent(Boolean(draft.aiSharingConsent));
+        if (workspace.onboarding?.currentStep > 0 && workspace.onboarding.currentStep < steps.length) {
+          setStep(steps[workspace.onboarding.currentStep]);
+        }
+      })
+      .catch(() => router.replace('/login'));
+
     if (typeof window !== 'undefined') {
-      setEmail(localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail') || localStorage.getItem('signup_email') || 'executive@shardsmedia.com');
-      setAgencyName(localStorage.getItem('agencyName') || '');
-      setUsername(localStorage.getItem('username') || localStorage.getItem('signup_name') || '');
-      setCardName(localStorage.getItem('signup_name') || '');
-      setCurrency(localStorage.getItem('dashboardCurrency') || 'USD');
-      
       const params = new URLSearchParams(window.location.search);
       const stepParam = params.get('step');
       if (stepParam === 'pricing' || stepParam === 'consent' || stepParam === 'payment') {
         setStep(stepParam as any);
       }
     }
-  }, []);
+  }, [router]);
 
-  const handleAgencySubmit = (e: React.FormEvent) => {
+  const saveProgress = async (currentStep: number) => {
+    await fetch('/api/workspace', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        onboarding: {
+          needsOnboarding: true,
+          currentStep,
+          draft: { agencyName, username, specialization, currency, selectedPlanId, termsAgreed, aiSharingConsent },
+        },
+      }),
+    });
+  };
+
+  const handleAgencySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agencyName || !username) {
       alert('Please fill out all agency profile fields.');
       return;
     }
+    await saveProgress(1);
     setStep('pricing');
   };
 
-  const handlePricingNext = () => {
+  const handlePricingNext = async () => {
+    await saveProgress(2);
     setStep('consent');
   };
 
-  const handleConsentSubmit = (e: React.FormEvent) => {
+  const handleConsentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!termsAgreed) {
       alert('You must read and agree to the Privacy Policy and Terms of Service to continue.');
       return;
     }
+    await saveProgress(3);
     setStep('payment');
   };
 
@@ -138,15 +171,6 @@ export default function OnboardingPage() {
       } else {
         clearInterval(interval);
         
-        // Save onboarding states
-        localStorage.setItem('needsOnboarding', 'true');
-        localStorage.setItem('currentUserEmail', email);
-        document.cookie = `currentUserEmail=${email}; path=/; max-age=86400`;
-        document.cookie = `currentUserRole=admin; path=/; max-age=86400`;
-        localStorage.setItem('agencyName', agencyName);
-        localStorage.setItem('username', username);
-        localStorage.setItem('dashboardCurrency', currency);
-        
         // Update organization plan in PostgreSQL
         fetch('/api/organization', {
           method: 'POST',
@@ -158,10 +182,11 @@ export default function OnboardingPage() {
             currency: currency,
             aiSharingConsent: aiSharingConsent,
             username: username,
-            email: email,
+            billingEmail: email,
           })
         }).then(async (res) => {
           if (res.ok) {
+            await saveProgress(4);
             setTimeout(() => {
               setIsProcessing(false);
               const params = new URLSearchParams(window.location.search);

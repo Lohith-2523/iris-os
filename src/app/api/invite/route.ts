@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getAuthenticatedIdentity } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,6 +61,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This invite link has expired' }, { status: 410 });
     }
 
+    const identity = await getAuthenticatedIdentity();
+    if (!identity?.email || identity.email.toLowerCase() !== invite.email.toLowerCase()) {
+      return NextResponse.json({ error: 'Authenticate with the invited email before continuing.' }, { status: 401 });
+    }
+
     // 1. Create local user record linked to client
     const existingUser = await prisma.user.findUnique({
       where: { email: invite.email }
@@ -73,16 +79,19 @@ export async function POST(request: NextRequest) {
         data: {
           role: 'client',
           clientId: invite.clientId,
+          authUserId: identity.id,
         }
       });
     } else {
       dbUser = await prisma.user.create({
         data: {
           email: invite.email,
+          authUserId: identity.id,
           name: name || invite.name || invite.email.split('@')[0],
           role: 'client',
           clientId: invite.clientId,
           orgId: invite.client.orgId,
+          preferences: { create: {} },
         }
       });
     }

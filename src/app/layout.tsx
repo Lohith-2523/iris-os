@@ -44,22 +44,28 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID;
+  const metaApiVersion = process.env.NEXT_PUBLIC_META_API_VERSION || 'v20.0';
+
   return (
     <html
       lang="en"
       className={cn("h-full", "antialiased", "dark", spaceGrotesk.variable, geistSans.variable, geistMono.variable, "font-mono", jetbrainsMono.variable)}
     >
       <body className="min-h-full flex flex-col">
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {`(function(){var theme=document.cookie.match(/(?:^|; )crystal_theme=(light|dark)(?:;|$)/);if(theme&&theme[1]==='light'){document.documentElement.classList.add('light');document.documentElement.classList.remove('dark')}})();`}
+        </Script>
         <AuthSync />
         {children}
-        <Script id="facebook-jssdk" strategy="afterInteractive">
+        {metaAppId && <Script id="facebook-jssdk" strategy="afterInteractive">
           {`
             window.fbAsyncInit = function() {
               FB.init({
-                appId      : '${process.env.NEXT_PUBLIC_META_APP_ID || "1576428810499716"}',
+                appId      : '${metaAppId}',
                 cookie     : true,
                 xfbml      : true,
-                version    : '${process.env.NEXT_PUBLIC_META_API_VERSION || "v20.0"}'
+                version    : '${metaApiVersion}'
               });
               
               FB.AppEvents.logPageView();   
@@ -73,10 +79,8 @@ export default function RootLayout({
                fjs.parentNode.insertBefore(js, fjs);
              }(document, 'script', 'facebook-jssdk'));
           `}
-        </Script>
+        </Script>}
       </body>
     </html>
   );
 }
-
-

@@ -24,7 +24,7 @@ import {
   Lock,
   Users
 } from 'lucide-react';
-import { formatCurrency, formatPercent, formatUserMessage, obfuscateEmail } from '@/lib/utils';
+import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 
 interface Task {
   id: string;
@@ -88,14 +88,8 @@ export default function TeamsDashboardPage() {
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-      if (!email) {
-        setLoading(false);
-        return;
-      }
-      
       // 1. Fetch user profile
-      const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const userRes = await fetch('/api/user');
       if (!userRes.ok) throw new Error('User not found');
       const userData = await userRes.json();
       setCurrentUser(userData);
@@ -116,7 +110,7 @@ export default function TeamsDashboardPage() {
       }
 
       // 3. Fetch calendar events
-      const calRes = await fetch(`/api/calendar?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const calRes = await fetch('/api/calendar');
       if (calRes.ok) {
         const calData = await calRes.json();
         setCalendarEvents(calData.events || []);

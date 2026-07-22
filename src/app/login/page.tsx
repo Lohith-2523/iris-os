@@ -7,7 +7,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Sparkles, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { createClient } from '@/lib/client';
-import { obfuscateEmail } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,111 +16,28 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [rememberMe, setRememberMe] = React.useState(false);
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const remember = localStorage.getItem('remember_me') === 'true';
-      const savedEmail = localStorage.getItem('currentUserEmail');
-      if (remember && savedEmail) {
-        setIsLoading(true);
-        fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(savedEmail))}`)
-          .then(res => res.json())
-          .then(userData => {
-            const role = userData.role?.toLowerCase() || 'admin';
-            document.cookie = `currentUserRole=${role}; path=/; max-age=2592000`;
-            document.cookie = `currentUserEmail=${obfuscateEmail(savedEmail)}; path=/; max-age=2592000`;
-            window.dispatchEvent(new Event('user-updated'));
-            if (role === 'client') {
-              router.push('/client-dashboard');
-            } else if (role === 'member') {
-              router.push('/teams-dashboard');
-            } else {
-              router.push('/dashboard');
-            }
-          })
-          .catch(() => setIsLoading(false));
-      }
-    }
-  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg(null);
 
-    // Create a timeout promise to prevent hanging on network-isolated test runners
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Network connection timeout')), 1500)
-    );
-
     try {
-      // Race Supabase authentication against the timeout
-      await Promise.race([
-        (async () => {
-          const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (error) {
-            // Auto-registration fallback if user does not exist in Supabase Auth yet
-            if (error.message.includes('Invalid login credentials') || error.message.includes('User not found')) {
-              const { error: signUpError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                  data: {
-                    name: typeof window !== 'undefined' ? (localStorage.getItem('signup_name') || (email.split('@')[0] === 'lohith' ? 'Lohith Sundar' : 'Sarah Chen')) : 'Executive User',
-                    role: 'ADMIN',
-                  }
-                }
-              });
-
-              if (signUpError) throw signUpError;
-
-              const { error: signInAgainError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-              });
-
-              if (signInAgainError) throw signInAgainError;
-            } else {
-              throw error;
-            }
-          }
-        })(),
-        timeoutPromise
-      ]);
-      console.log('Supabase Auth authenticated successfully.');
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+      if (error) throw error;
+      const bootstrap = await fetch('/api/auth/bootstrap', { method: 'POST' });
+      if (!bootstrap.ok) throw new Error('Unable to load your workspace.');
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.warn('Supabase Auth failed or timed out, using mock sandbox fallback:', errMsg);
-      // Proceed gracefully under mock sandbox fallback
+      setErrorMsg(err instanceof Error ? err.message : 'Authentication failed.');
+      setIsLoading(false);
+      return;
     }
-
-    if (rememberMe) {
-      localStorage.setItem('currentUserEmail', email);
-      localStorage.setItem('remember_me', 'true');
-      document.cookie = "currentUserEmail=" + obfuscateEmail(email) + "; path=/; max-age=2592000";
-    } else {
-      localStorage.removeItem('currentUserEmail');
-      localStorage.removeItem('remember_me');
-      sessionStorage.setItem('currentUserEmail', email);
-      document.cookie = "currentUserEmail=" + obfuscateEmail(email) + "; path=/";
-    }
-    window.dispatchEvent(new Event('user-updated'));
 
     try {
-      const res = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+      const res = await fetch('/api/user');
       if (res.ok) {
         const userData = await res.json();
         const role = userData.role?.toLowerCase() || 'admin';
-        if (rememberMe) {
-          document.cookie = `currentUserRole=${role}; path=/; max-age=2592000`;
-        } else {
-          document.cookie = `currentUserRole=${role}; path=/`;
-        }
         if (role === 'client') {
           setTimeout(() => {
             setIsLoading(false);
@@ -155,26 +71,9 @@ export default function LoginPage() {
         },
       });
       if (error) throw error;
-    } catch (err: any) {
-      console.warn('Supabase Google OAuth failed, falling back to mock login:', err?.message || err);
-      const mockGoogleEmail = 'lohith@apex.co';
-      if (rememberMe) {
-        localStorage.setItem('currentUserEmail', mockGoogleEmail);
-        localStorage.setItem('remember_me', 'true');
-        document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/; max-age=2592000";
-        document.cookie = "currentUserRole=admin; path=/; max-age=2592000";
-      } else {
-        localStorage.removeItem('currentUserEmail');
-        localStorage.removeItem('remember_me');
-        sessionStorage.setItem('currentUserEmail', mockGoogleEmail);
-        document.cookie = "currentUserEmail=" + obfuscateEmail(mockGoogleEmail) + "; path=/";
-        document.cookie = "currentUserRole=admin; path=/";
-      }
-      window.dispatchEvent(new Event('user-updated'));
-      setTimeout(() => {
-        setIsLoading(false);
-        router.push('/dashboard');
-      }, 400);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Google login failed.');
+      setIsLoading(false);
     }
   };
 
@@ -236,18 +135,6 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between py-1 select-none">
-              <label className="flex items-center gap-2 cursor-pointer text-zinc-400">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded bg-zinc-900 border-zinc-800 accent-white h-3.5 w-3.5"
-                />
-                <span>Remember me</span>
-              </label>
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">

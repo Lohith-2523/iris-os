@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import * as crypto from 'crypto';
-import { getOrganization } from '@/lib/org';
+import { getAuthenticatedIdentity, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +42,11 @@ export async function POST(request: NextRequest) {
 
     // Action 1: Create an invitation
     if (action === 'invite_member') {
+      const requestingUser = await getRequestUser(request);
+      if (!requestingUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      if (!isOrganizationAdmin(requestingUser)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       const { name, email, phone, agencyTypes, projects } = body;
+      const normalizedEmail = String(email || '').trim().toLowerCase();
 
       if (!name || !email || !agencyTypes || !Array.isArray(agencyTypes) || agencyTypes.length === 0) {
         return NextResponse.json({ error: 'Missing required parameters. Name, Email, and at least one Agency Type are mandatory.' }, { status: 400 });
@@ -50,7 +54,7 @@ export async function POST(request: NextRequest) {
 
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
-        where: { email }
+        where: { email: normalizedEmail }
       });
 
       if (existingUser) {
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
 
       // Check if invitation already exists and is unused
       await prisma.memberInvite.deleteMany({
-        where: { email }
+        where: { email: normalizedEmail, orgId: requestingUser.orgId }
       });
 
       // Generate random token
@@ -70,14 +74,18 @@ export async function POST(request: NextRequest) {
       const invite = await prisma.memberInvite.create({
         data: {
           name,
-          email,
+          email: normalizedEmail,
           phone: phone || null,
           agencyTypes,
           projects: projects || [],
           token,
-          expiresAt
+          expiresAt,
+          orgId: requestingUser.orgId,
         }
       });
+
+      const inviteUrl = new URL('/onboarding/member', request.nextUrl.origin);
+      inviteUrl.searchParams.set('token', token);
 
       // Simulated email text
       const simulatedEmail = `
@@ -86,11 +94,11 @@ To: ${email}
 
 Hi ${name},
 
-Welcome to Apex Creative Group! You have been onboarded as a team specialist in Iris OS and assigned to the following agency disciplines:
+Welcome to ${requestingUser.organization.name}! You have been onboarded as a team specialist in Iris OS and assigned to the following agency disciplines:
 ${agencyTypes.map(t => `- ${t}`).join('\n')}
 
 To activate your workspace access and set up your credentials, please click the secure link below:
-http://localhost:3000/onboarding/member?token=${token}
+${inviteUrl.toString()}
 
 You can set your account password or link your Google login credentials immediately.
 
@@ -101,13 +109,14 @@ The Iris OS Operations Team
       return NextResponse.json({
         success: true,
         invite,
+        inviteUrl: inviteUrl.toString(),
         simulatedEmail
       });
     }
 
     // Action 2: Complete onboarding (Set password or setup Google login)
     if (action === 'complete_onboarding') {
-      const { token, password, useGoogle } = body;
+      const { token } = body;
 
       if (!token) {
         return NextResponse.json({ error: 'Missing token parameter' }, { status: 400 });
@@ -121,21 +130,22 @@ The Iris OS Operations Team
         return NextResponse.json({ error: 'Invalid, used, or expired invite token' }, { status: 400 });
       }
 
-      // Get primary organization
-      const org = await getOrganization(request);
-      if (!org) {
-        return NextResponse.json({ error: 'Organization not found' }, { status: 500 });
+      const identity = await getAuthenticatedIdentity();
+      if (!identity?.email || identity.email.toLowerCase() !== invite.email.toLowerCase()) {
+        return NextResponse.json({ error: 'Authenticate with the invited email before continuing.' }, { status: 401 });
       }
 
       // 1. Create the Member User in the DB
       const newUser = await prisma.user.create({
         data: {
           email: invite.email,
+          authUserId: identity.id,
           name: invite.name,
           role: 'member',
           phone: invite.phone,
           agencyTypes: invite.agencyTypes,
-          orgId: org.id
+          orgId: invite.orgId,
+          preferences: { create: {} },
         }
       });
 
@@ -143,6 +153,8 @@ The Iris OS Operations Team
       if (invite.projects && invite.projects.length > 0) {
         for (const projectId of invite.projects) {
           try {
+            const project = await prisma.project.findFirst({ where: { id: projectId, orgId: invite.orgId }, select: { id: true } });
+            if (!project) continue;
             await prisma.projectMember.create({
               data: {
                 projectId,

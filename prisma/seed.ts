@@ -12,8 +12,10 @@ async function main() {
   
   // Delete in reverse order of foreign keys
   await prisma.clientInvite.deleteMany({});
+  await prisma.memberInvite.deleteMany({});
   await prisma.scheduledPost.deleteMany({});
   await prisma.askPrismMessage.deleteMany({});
+  await prisma.prismChatSession.deleteMany({});
   await prisma.prismInsight.deleteMany({});
   await prisma.integrationConnection.deleteMany({});
   await prisma.automationRun.deleteMany({});
@@ -35,6 +37,7 @@ async function main() {
   await prisma.clientTask.deleteMany({});
   await prisma.client.deleteMany({});
   await prisma.user.deleteMany({});
+  await prisma.organizationOnboardingState.deleteMany({});
   await prisma.brand.deleteMany({});
   await prisma.metaLead.deleteMany({});
   await prisma.metaAd.deleteMany({});
@@ -51,6 +54,9 @@ async function main() {
       plan: 'PRO',
       hasAddon: false,
       agencyTypes: ['Digital Marketing Agency', 'SEO Agency'],
+      billingEmail: 'billing@apex.co',
+      preferences: { dateFormat: 'MMM d, yyyy', timezone: 'Asia/Calcutta' },
+      onboardingState: { create: { needsOnboarding: false, completedAt: new Date() } },
     },
   });
 
@@ -60,6 +66,8 @@ async function main() {
       plan: 'PRO',
       hasAddon: false,
       agencyTypes: ['Digital Marketing Agency'],
+      billingEmail: 'shardsmedia.ai@gmail.com',
+      onboardingState: { create: { needsOnboarding: false, completedAt: new Date() } },
     },
   });
 
@@ -99,6 +107,7 @@ async function main() {
     data: {
       email: 'lohith@apex.co',
       name: 'Lohith Sundar',
+      username: 'lohith_apex',
       role: 'admin', // Executive CEO
       avatarUrl: '/avatars/lohith.png',
       orgId: org.id,
@@ -436,6 +445,7 @@ async function main() {
         projectedExp: 130000 + m * 2000,
         confidence: 90 - m * 5,
         narrative: `Prism AI projects steady growth of ${2.5 + m * 0.2}% in pipeline value, driven by Aether and Vertex account expansions.`,
+        orgId: org.id,
       },
     });
   }
@@ -554,6 +564,7 @@ async function main() {
       filePath: '/reports/q2_finance.pdf',
       summary: 'Prism Executive Summary: Q2 Revenue surged by 12.8% to $528K. Churn rate drops to historic low 2.4%. Profit leaks detected in Contractor Utilizations ($14,500 leakage).',
       createdById: user1.id,
+      orgId: org.id,
     },
   });
 
@@ -565,6 +576,7 @@ async function main() {
       filePath: '/reports/solaria_health.pdf',
       summary: 'Prism AI client churn warning report: Solaria Energy Health drops to 42. Churn Risk Score reaches 68%. Actions: Immediate renewal touchpoint advised.',
       createdById: user2.id,
+      orgId: org.id,
     },
   });
 
@@ -578,6 +590,7 @@ async function main() {
       metric: 'EXCELLENT',
       riskLevel: 'LOW',
       actionableStep: 'Optimize project delivery allocation to prevent designer burn-out.',
+      orgId: org.id,
     },
   });
 
@@ -590,6 +603,7 @@ async function main() {
       metric: 'LEAK_VALUE',
       riskLevel: 'MEDIUM',
       actionableStep: 'Reassign unallocated internal team designers to cover remaining tasks.',
+      orgId: org.id,
     },
   });
 
@@ -602,6 +616,7 @@ async function main() {
       metric: 'CHURN_RISK',
       riskLevel: 'HIGH',
       actionableStep: 'Schedule client success alignment meeting and offer retainer adjustments.',
+      orgId: org.id,
     },
   });
 
@@ -611,6 +626,7 @@ async function main() {
       role: 'USER',
       content: 'Summarize the agency health and highlight profit leaks.',
       userId: user1.id,
+      orgId: org.id,
     },
   });
 
@@ -619,6 +635,7 @@ async function main() {
       role: 'ASSISTANT',
       content: 'Lohith, the Agency Health Score stands at a strong **84/100**. Our primary profit leak is in contractor over-allocations on Vortex Retail projects ($2,800/mo) and unoptimized SaaS subscription redundancies ($1,400/mo). I recommend reassigning internal designers and auditing tool licenses.',
       userId: user1.id,
+      orgId: org.id,
     },
   });
 

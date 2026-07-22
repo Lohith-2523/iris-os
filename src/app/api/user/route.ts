@@ -1,34 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
+import { NextResponse } from 'next/server';
+import { getRequestUser } from '@/lib/org';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const emailParam = searchParams.get('email');
+    const user = await getRequestUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!emailParam) {
-      return NextResponse.json({ error: 'Missing email parameter' }, { status: 400 });
-    }
-
-    const email = deobfuscateEmail(emailParam).toLowerCase();
-
-    const user = await prisma.user.findFirst({
-      where: {
-        email: {
-          equals: email,
-          mode: 'insensitive',
-        },
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      phone: user.phone,
+      avatarUrl: user.avatarUrl,
+      orgId: user.orgId,
+      organization: {
+        id: user.organization.id,
+        name: user.organization.name,
+        plan: user.organization.plan,
+        currency: user.organization.currency,
       },
     });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(user);
-  } catch (error: any) {
-    console.error('Error fetching user:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

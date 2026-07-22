@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
 import { getRequestUser } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
@@ -251,11 +250,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'carry_over') {
-      const rawEmail = request.cookies.get('currentUserEmail')?.value;
-      const email = rawEmail ? deobfuscateEmail(rawEmail) : '';
-      const user = await prisma.user.findUnique({
-        where: { email }
-      });
+      const user = requestUser;
 
       if (!user || user.role.toLowerCase() !== 'member') {
         return NextResponse.json({ error: 'Permission Denied: Only members can carry over tasks.' }, { status: 403 });

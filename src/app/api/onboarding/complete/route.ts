@@ -1,70 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/db';
-import { getOrganization } from '@/lib/org';
-import { deobfuscateEmail } from '@/lib/utils';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+
+const schema = z.object({
+  google: z.string().optional(),
+  meta: z.string().optional(),
+  financial: z.string().optional(),
+  leads: z.string().optional(),
+  skippedAll: z.boolean().optional().default(false),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const org = await getOrganization(request);
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const rawEmail = request.cookies.get('currentUserEmail')?.value;
-    if (!rawEmail) {
-      return NextResponse.json({ error: 'User context required' }, { status: 401 });
-    }
-    const userEmail = deobfuscateEmail(rawEmail).toLowerCase();
+    const parsed = schema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid onboarding state' }, { status: 400 });
 
-    const body = await request.json();
-    const { google, meta, financial, leads, skippedAll } = body;
+    const { skippedAll, ...connections } = parsed.data;
+    await prisma.organizationOnboardingState.upsert({
+      where: { orgId: user.orgId },
+      create: {
+        orgId: user.orgId,
+        needsOnboarding: false,
+        checklist: { ...connections, skippedAll },
+        completedAt: new Date(),
+      },
+      update: {
+        needsOnboarding: false,
+        checklist: { ...connections, skippedAll },
+        completedAt: new Date(),
+      },
+    });
 
-    if (skippedAll) {
-      // Wipe EVERYTHING for this organization
-      await prisma.invoice.deleteMany({ where: { orgId: org.id } });
-      await prisma.expense.deleteMany({ where: { orgId: org.id } });
-      await prisma.projectMember.deleteMany({ where: { project: { orgId: org.id } } });
-      await prisma.clientTask.deleteMany({ where: { client: { orgId: org.id } } });
-      await prisma.projectStage.deleteMany({ where: { project: { orgId: org.id } } });
-      await prisma.project.deleteMany({ where: { orgId: org.id } });
-      await prisma.client.deleteMany({ where: { orgId: org.id } });
-      await prisma.transaction.deleteMany({ where: { orgId: org.id } });
-      await prisma.agencyLead.deleteMany({ where: { orgId: org.id } });
-      await prisma.metaAd.deleteMany({ where: { orgId: org.id } });
-      await prisma.metaLead.deleteMany({ where: { orgId: org.id } });
-      await prisma.metaCampaign.deleteMany({ where: { orgId: org.id } });
-      await prisma.calendarEvent.deleteMany({ where: { orgId: org.id } });
-      await prisma.integrationConnection.deleteMany({ where: { orgId: org.id } });
-      await prisma.recurringSubscription.deleteMany({ where: { orgId: org.id } });
-      
-    } else {
-      if (google === 'skipped') {
-        await prisma.calendarEvent.deleteMany({ where: { orgId: org.id, isGoogleEvent: true } });
-      }
-      if (meta === 'skipped') {
-        await prisma.metaAd.deleteMany({ where: { orgId: org.id } });
-        await prisma.metaLead.deleteMany({ where: { orgId: org.id } });
-        await prisma.metaCampaign.deleteMany({ where: { orgId: org.id } });
-      }
-      if (financial === 'skipped') {
-        await prisma.invoice.deleteMany({ where: { orgId: org.id } });
-        await prisma.expense.deleteMany({ where: { orgId: org.id } });
-        await prisma.projectMember.deleteMany({ where: { project: { orgId: org.id } } });
-        await prisma.clientTask.deleteMany({ where: { client: { orgId: org.id } } });
-        await prisma.projectStage.deleteMany({ where: { project: { orgId: org.id } } });
-        await prisma.project.deleteMany({ where: { orgId: org.id } });
-        await prisma.client.deleteMany({ where: { orgId: org.id } });
-        await prisma.transaction.deleteMany({ where: { orgId: org.id } });
-        await prisma.recurringSubscription.deleteMany({ where: { orgId: org.id } });
-      }
-      if (leads === 'skipped') {
-        await prisma.agencyLead.deleteMany({ where: { orgId: org.id } });
-      }
-    }
-
+    // Skipping an onboarding step changes only progress state. It never deletes
+    // organization data that may already have been imported or created.
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error completing onboarding:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

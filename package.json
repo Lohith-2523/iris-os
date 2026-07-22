@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "prisma generate && prisma db push && prisma db seed && next dev",
+    "dev": "prisma generate && next dev",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma db push --force-reset && prisma db seed",
     "build": "prisma generate && next build",
     "start": "prisma generate && next start",
     "init": "prisma generate && prisma db push && prisma db seed",

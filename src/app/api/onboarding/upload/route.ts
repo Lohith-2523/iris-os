@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrganization } from '@/lib/org';
+import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,26 +8,17 @@ export async function POST(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    const user = await getRequestUser(request);
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
     const { type, data } = body;
 
-    if (!type || !Array.isArray(data)) {
+    if (!type || !Array.isArray(data) || data.length > 5000) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
     if (type === 'financial') {
-      // 1. Wipe existing Invoices, Expenses, Clients, Projects, Tasks, and Transactions for this org
-      await prisma.invoice.deleteMany({ where: { orgId: org.id } });
-      await prisma.expense.deleteMany({ where: { orgId: org.id } });
-      await prisma.projectMember.deleteMany({ where: { project: { orgId: org.id } } });
-      await prisma.clientTask.deleteMany({ where: { client: { orgId: org.id } } });
-      await prisma.projectStage.deleteMany({ where: { project: { orgId: org.id } } });
-      await prisma.project.deleteMany({ where: { orgId: org.id } });
-      await prisma.client.deleteMany({ where: { orgId: org.id } });
-      await prisma.transaction.deleteMany({ where: { orgId: org.id } });
-      await prisma.recurringSubscription.deleteMany({ where: { orgId: org.id } });
-
       let invoiceCount = 0;
       let expenseCount = 0;
 
@@ -40,7 +31,7 @@ export async function POST(request: NextRequest) {
         const dateStr = String(row.date || '').trim();
         const status = String(row.status || '').toUpperCase().trim();
 
-        if (isNaN(amount) || !name) continue;
+        if (isNaN(amount) || !name || !dateStr) continue;
 
         const date = dateStr ? new Date(dateStr) : new Date();
 
@@ -56,11 +47,11 @@ export async function POST(request: NextRequest) {
                 orgId: org.id,
                 name: name,
                 status: 'ACTIVE',
-                healthScore: 90,
-                healthStatus: 'EXCELLENT',
-                churnRiskScore: 10,
-                roiMetric: 4.2,
-                upsellOpportunityValue: 12000,
+                healthScore: 0,
+                healthStatus: 'UNKNOWN',
+                churnRiskScore: 0,
+                roiMetric: 0,
+                upsellOpportunityValue: 0,
               }
             });
           }
@@ -70,7 +61,7 @@ export async function POST(request: NextRequest) {
             data: {
               orgId: org.id,
               clientId: client.id,
-              invoiceNumber: identifier || `INV-${Math.floor(Math.random() * 100000)}`,
+              invoiceNumber: identifier,
               amount: amount,
               dueDate: new Date(date.getTime() + 30 * 24 * 60 * 60 * 1000), // Due in 30 days
               issuedDate: date,
@@ -128,9 +119,6 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ success: true, invoices: invoiceCount, expenses: expenseCount });
     } else if (type === 'leads') {
-      // 1. Wipe existing AgencyLeads for this org
-      await prisma.agencyLead.deleteMany({ where: { orgId: org.id } });
-
       let leadCount = 0;
 
       // 2. Loop through uploaded leads rows
@@ -148,7 +136,6 @@ export async function POST(request: NextRequest) {
         await prisma.agencyLead.create({
           data: {
             orgId: org.id,
-            leadId: `LEAD-${Math.floor(Math.random() * 1000000)}`,
             fullName,
             email,
             phone: phone || null,

@@ -58,6 +58,18 @@ function InvitePageContent() {
     setErrorMsg(null);
 
     try {
+      const supabase = createClient();
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: inviteData.email,
+        password,
+        options: { data: { name, role: 'client' } },
+      });
+      if (signUpError && !signUpError.message.toLowerCase().includes('already registered')) throw signUpError;
+      if (!authData.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: inviteData.email, password });
+        if (signInError) throw signInError;
+      }
+
       const res = await fetch('/api/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,31 +77,6 @@ function InvitePageContent() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        
-        // Also register with Supabase Auth mock gateway just in case
-        const supabase = createClient();
-        try {
-          await supabase.auth.signUp({
-            email: inviteData.email,
-            password,
-            options: {
-              data: {
-                name,
-                role: 'client',
-              }
-            }
-          });
-        } catch (e) {
-          console.warn('Supabase sign up failed/timed out, continuing with mock session:', e);
-        }
-
-        // Set cookies and localstorage for the app session
-        localStorage.setItem('currentUserEmail', inviteData.email);
-        document.cookie = `currentUserEmail=${inviteData.email}; path=/; max-age=86400`;
-        document.cookie = `currentUserRole=client; path=/; max-age=86400`;
-        window.dispatchEvent(new Event('user-updated'));
-
         setTimeout(() => {
           router.push('/client-dashboard');
         }, 300);

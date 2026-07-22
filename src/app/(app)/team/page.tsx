@@ -31,9 +31,14 @@ import * as XLSX from 'xlsx';
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
 
 export default function TeamPage() {
-  const isSkippedAll = typeof window !== 'undefined' && localStorage.getItem('skipped_all_steps') === 'true';
+  const [isSkippedAll, setIsSkippedAll] = React.useState(false);
   // Main stateful active team list
   const [teamList, setTeamList] = React.useState<any[]>([]);
+  React.useEffect(() => {
+    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
+      setIsSkippedAll(Boolean(workspace?.onboarding?.checklist?.skippedAll));
+    }).catch(() => undefined);
+  }, []);
 
   // Selected Member Task Panel Drawer States
   const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
@@ -249,7 +254,8 @@ export default function TeamPage() {
         const data = await res.json();
         setOnboardSuccessData({
           simulatedEmail: data.simulatedEmail,
-          token: data.invite.token
+          token: data.invite.token,
+          inviteUrl: data.inviteUrl,
         });
         
         // Reload team list
@@ -314,7 +320,7 @@ export default function TeamPage() {
 
   // --- TEMPLATE DOWNLOAD HANDLERS ---
   const downloadCsvTemplate = () => {
-    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects,Utilization %\nIRIS_OS_USER_IMPORT_v1,Vikram Patel,vikram@apex.co,+91 98765 43210,Senior Architect,Solaria Redesign,85\nIRIS_OS_USER_IMPORT_v1,Aditi Sharma,aditi@apex.co,+91 99887 76655,Lead Designer,Design Hub,70";
+    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects,Utilization %\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -328,9 +334,7 @@ export default function TeamPage() {
 
   const downloadXlsxTemplate = () => {
     const data = [
-      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects", "Utilization %"],
-      ["IRIS_OS_USER_IMPORT_v1", "Vikram Patel", "vikram@apex.co", "+91 98765 43210", "Senior Architect", "Solaria Redesign", 85],
-      ["IRIS_OS_USER_IMPORT_v1", "Aditi Sharma", "aditi@apex.co", "+91 99887 76655", "Lead Designer", "Design Hub", 70]
+      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects", "Utilization %"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -854,12 +858,12 @@ export default function TeamPage() {
                         <input
                           type="text"
                           readOnly
-                          value={`http://localhost:3000/onboarding/member?token=${onboardSuccessData.token}`}
+                          value={onboardSuccessData.inviteUrl}
                           className="bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-[10px] font-mono text-zinc-450 w-[320px] outline-none"
                         />
                         <Button
                           onClick={() => {
-                            navigator.clipboard.writeText(`http://localhost:3000/onboarding/member?token=${onboardSuccessData.token}`);
+                            navigator.clipboard.writeText(onboardSuccessData.inviteUrl);
                             alert('Onboarding link copied to clipboard!');
                           }}
                           className="bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] px-3 font-semibold"

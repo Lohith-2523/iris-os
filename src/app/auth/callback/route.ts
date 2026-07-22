@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/server';
 import { prisma } from '@/lib/db';
-import { obfuscateEmail } from '@/lib/utils';
+import { provisionAuthenticatedUser } from '@/lib/org';
+import { encryptIntegrationCredentials } from '@/lib/integration-secrets';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/dashboard';
+  const requestedNext = searchParams.get('next') ?? '/dashboard';
+  const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/dashboard';
   const type = searchParams.get('type');
   const isCalendar = type === 'calendar' || next.startsWith('/calendar');
 
@@ -20,65 +22,36 @@ export async function GET(request: Request) {
       const providerRefreshToken = session.provider_refresh_token;
 
       if (email) {
-        // Ensure user exists in database
-        let dbUser = await prisma.user.findUnique({
-          where: { email }
-        });
-
-        if (!dbUser) {
-          const org = await prisma.organization.findFirst({
-            orderBy: { createdAt: 'asc' }
-          });
-          if (org) {
-            dbUser = await prisma.user.create({
-              data: {
-                email,
-                name: session.user.user_metadata?.full_name || email.split('@')[0],
-                role: 'ADMIN', // Default role
-                orgId: org.id,
-                avatarUrl: session.user.user_metadata?.avatar_url || null,
-              }
-            });
+        if (next.startsWith('/onboarding/member')) {
+          const inviteToken = new URL(next, origin).searchParams.get('token');
+          const invite = inviteToken ? await prisma.memberInvite.findUnique({ where: { token: inviteToken } }) : null;
+          if (invite && !invite.used && invite.expiresAt > new Date() && invite.email.toLowerCase() === email.toLowerCase()) {
+            return NextResponse.redirect(`${origin}${next}`);
           }
+          return NextResponse.redirect(`${origin}/login`);
         }
 
+        const dbUser = await provisionAuthenticatedUser(session.user);
         if (dbUser) {
           const role = dbUser.role?.toLowerCase() || 'admin';
 
           if (isCalendar) {
             // Save the Google Connection details in database
-            const syncLogs = JSON.stringify({
+            const credentialCiphertext = encryptIntegrationCredentials({
               accessToken: providerToken || null,
               refreshToken: providerRefreshToken || null,
+            });
+            const syncLogs = JSON.stringify({
               email,
               name: session.user.user_metadata?.full_name || email.split('@')[0],
               connectedAt: new Date().toISOString(),
             });
 
-            const existingConnection = await prisma.integrationConnection.findFirst({
-              where: { orgId: dbUser.orgId, provider: 'GOOGLE' },
+            await prisma.integrationConnection.upsert({
+              where: { orgId_provider: { orgId: dbUser.orgId, provider: 'GOOGLE' } },
+              update: { status: 'CONNECTED', lastSync: new Date(), syncLogs, credentialCiphertext },
+              create: { orgId: dbUser.orgId, provider: 'GOOGLE', status: 'CONNECTED', lastSync: new Date(), syncLogs, credentialCiphertext },
             });
-
-            if (existingConnection) {
-              await prisma.integrationConnection.update({
-                where: { id: existingConnection.id },
-                data: {
-                  status: 'CONNECTED',
-                  lastSync: new Date(),
-                  syncLogs,
-                },
-              });
-            } else {
-              await prisma.integrationConnection.create({
-                data: {
-                  orgId: dbUser.orgId,
-                  provider: 'GOOGLE',
-                  status: 'CONNECTED',
-                  lastSync: new Date(),
-                  syncLogs,
-                },
-              });
-            }
 
             // Sync Google Calendar events if token available
             if (providerToken) {
@@ -86,15 +59,11 @@ export async function GET(request: Request) {
             }
 
             const response = NextResponse.redirect(`${origin}/calendar?google_connected=true`);
-            response.cookies.set('currentUserEmail', obfuscateEmail(email), { path: '/', maxAge: 2592000 });
-            response.cookies.set('currentUserRole', role, { path: '/', maxAge: 2592000 });
             return response;
           } else {
             // Regular Signup / Login flow
             const redirectUrl = role === 'client' ? '/client-dashboard' : role === 'member' ? '/teams-dashboard' : next;
             const response = NextResponse.redirect(`${origin}${redirectUrl}`);
-            response.cookies.set('currentUserEmail', obfuscateEmail(email), { path: '/', maxAge: 2592000 });
-            response.cookies.set('currentUserRole', role, { path: '/', maxAge: 2592000 });
             return response;
           }
         }

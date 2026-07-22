@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrganization } from '@/lib/org';
+import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+
+async function canManageSubscriptions(request: NextRequest) {
+  const user = await getRequestUser(request);
+  return Boolean(user && isOrganizationAdmin(user));
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +13,7 @@ export async function GET(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const subscriptions = await prisma.recurringSubscription.findMany({
       where: { orgId: org.id },
@@ -27,6 +33,7 @@ export async function POST(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
     const { name, amount, category, frequency, startDate } = body;
@@ -74,6 +81,7 @@ export async function PATCH(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
     const { id, amount, frequency } = body;
@@ -127,6 +135,7 @@ export async function DELETE(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

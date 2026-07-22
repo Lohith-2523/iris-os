@@ -14,6 +14,8 @@ model Organization {
   agencyTypes      String[] @default([])
   bankNames        String[] @default([])
   currency         String   @default("USD")
+  billingEmail     String?
+  preferences      Json?
   aiSharingConsent Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -33,6 +35,28 @@ model Organization {
   transactions           Transaction[]
   calendarEvents         CalendarEvent[]
   recurringSubscriptions RecurringSubscription[]
+  reports                Report[]
+  prismInsights          PrismInsight[]
+  prismChatSessions      PrismChatSession[]
+  prismMessages          AskPrismMessage[]
+  financialForecasts     FinancialForecast[]
+  memberInvites          MemberInvite[]
+  onboardingState        OrganizationOnboardingState?
+}
+
+model OrganizationOnboardingState {
+  id              String       @id @default(uuid())
+  orgId           String       @unique
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  needsOnboarding Boolean      @default(true)
+  currentStep     Int          @default(0)
+  checklist       Json?
+  draft           Json?
+  completedAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([orgId, updatedAt])
 }
 
 model Brand {
@@ -54,7 +78,9 @@ model Brand {
 
 model User {
   id           String       @id @default(uuid())
+  authUserId   String?      @unique
   email        String       @unique
+  username     String?
   name         String
   role         String // admin, client, member
   phone        String?
@@ -75,9 +101,20 @@ model User {
   taskComments      TaskComment[]
   createdEvents     CalendarEvent[]    @relation("CreatedEvents")
   prismChatSessions PrismChatSession[]
+  preferences       UserPreference?
 
   @@index([orgId])
   @@index([clientId])
+}
+
+model UserPreference {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme     String   @default("dark")
+  settings  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Client {
@@ -196,7 +233,7 @@ model ResourceAllocation {
 
 model Invoice {
   id            String       @id @default(uuid())
-  invoiceNumber String       @unique
+  invoiceNumber String
   amount        Float
   dueDate       DateTime
   status        String // PAID, UNPAID, OVERDUE, DRAFT
@@ -208,6 +245,7 @@ model Invoice {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
+  @@unique([orgId, invoiceNumber])
   @@index([orgId])
   @@index([clientId])
 }
@@ -228,29 +266,36 @@ model Expense {
 }
 
 model FinancialForecast {
-  id           String   @id @default(uuid())
+  id           String       @id @default(uuid())
   month        DateTime
   projectedRev Float
   projectedExp Float
   confidence   Float // 0-100 percentage
   narrative    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([orgId, month])
 }
 
 model Report {
-  id          String   @id @default(uuid())
-  title       String
-  type        String // FINANCE, CLIENT, OPERATIONS, CREATIVE
-  status      String // READY, ARCHIVED
-  filePath    String?
-  summary     String?
-  createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String       @id @default(uuid())
+  title        String
+  type         String // FINANCE, CLIENT, OPERATIONS, CREATIVE
+  status       String // READY, ARCHIVED
+  filePath     String?
+  summary      String?
+  createdById  String
+  createdBy    User         @relation(fields: [createdById], references: [id])
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([createdById])
+  @@index([orgId, createdAt])
 }
 
 model DesignAsset {
@@ -319,21 +364,25 @@ model AutomationRun {
 }
 
 model IntegrationConnection {
-  id           String       @id @default(uuid())
-  provider     String // CANVA, QUICKBOOKS, STRIPE, HUBSPOT, SLACK
-  status       String // CONNECTED, DISCONNECTED, ERROR, SYNCING
-  lastSync     DateTime?
-  syncLogs     String?
-  orgId        String
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id                   String       @id @default(uuid())
+  provider             String // CANVA, QUICKBOOKS, STRIPE, HUBSPOT, SLACK
+  status               String // CONNECTED, DISCONNECTED, ERROR, SYNCING
+  lastSync             DateTime?
+  syncLogs             String?
+  credentialCiphertext String?
+  externalAccountId    String?
+  orgId                String
+  organization         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
+  @@unique([orgId, provider])
   @@index([orgId])
+  @@index([provider, externalAccountId])
 }
 
 model PrismInsight {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   type           String // HEALTH_SCORE, PROFIT_LEAK, CHURN_PREDICTION, GENERAL
   title          String
   description    String
@@ -341,40 +390,50 @@ model PrismInsight {
   metric         String?
   riskLevel      String // LOW, MEDIUM, HIGH
   actionableStep String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  orgId          String
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([orgId, createdAt])
 }
 
 model PrismChatSession {
-  id        String   @id @default(uuid())
-  title     String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String       @id @default(uuid())
+  title        String
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   messages AskPrismMessage[]
 
   @@index([userId])
+  @@index([orgId, updatedAt])
 }
 
 model AskPrismMessage {
-  id        String            @id @default(uuid())
-  role      String // USER, ASSISTANT
-  content   String
-  userId    String
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionId String?
-  session   PrismChatSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  createdAt DateTime          @default(now())
+  id           String            @id @default(uuid())
+  role         String // USER, ASSISTANT
+  content      String
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId        String
+  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sessionId    String?
+  session      PrismChatSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime          @default(now())
 
   @@index([userId])
+  @@index([orgId, createdAt])
   @@index([sessionId])
 }
 
 model MetaCampaign {
   id           String       @id @default(uuid())
-  campaignId   String       @unique
+  campaignId   String
   name         String
   status       String // ACTIVE, PAUSED, ARCHIVED
   objective    String? // OUTCOME_LEADS, etc.
@@ -385,12 +444,13 @@ model MetaCampaign {
   updatedAt    DateTime     @updatedAt
   ads          MetaAd[]
 
+  @@unique([orgId, campaignId])
   @@index([orgId])
 }
 
 model MetaAd {
   id           String        @id @default(uuid())
-  adId         String        @unique
+  adId         String
   name         String
   status       String // ACTIVE, PAUSED, ARCHIVED
   spend        Float
@@ -407,13 +467,14 @@ model MetaAd {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  @@unique([orgId, adId])
   @@index([orgId])
   @@index([campaignId])
 }
 
 model MetaLead {
   id               String       @id @default(uuid())
-  leadId           String       @unique
+  leadId           String
   adId             String?
   adName           String?
   fullName         String
@@ -429,12 +490,13 @@ model MetaLead {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  @@unique([orgId, leadId])
   @@index([orgId])
 }
 
 model AgencyLead {
   id               String       @id @default(uuid())
-  leadId           String       @unique
+  leadId           String       @default(uuid())
   fullName         String
   email            String
   phone            String?
@@ -448,6 +510,7 @@ model AgencyLead {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  @@unique([orgId, leadId])
   @@index([orgId])
 }
 
@@ -609,16 +672,20 @@ model CalendarEvent {
 }
 
 model MemberInvite {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  name        String
-  phone       String?
-  agencyTypes String[] @default([])
-  projects    String[] @default([])
-  token       String   @unique
-  used        Boolean  @default(false)
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  id           String       @id @default(uuid())
+  email        String       @unique
+  name         String
+  phone        String?
+  agencyTypes  String[]     @default([])
+  projects     String[]     @default([])
+  token        String       @unique
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  used         Boolean      @default(false)
+  expiresAt    DateTime
+  createdAt    DateTime     @default(now())
+
+  @@index([orgId])
 }
 
 model RecurringSubscription {

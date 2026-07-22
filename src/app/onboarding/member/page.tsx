@@ -18,7 +18,8 @@ import {
   Loader2,
   Sparkles
 } from 'lucide-react';
-import { formatUserMessage, obfuscateEmail } from '@/lib/utils';
+import { formatUserMessage } from '@/lib/utils';
+import { createClient } from '@/lib/client';
 
 function MemberOnboardingContent() {
   const searchParams = useSearchParams();
@@ -82,6 +83,27 @@ function MemberOnboardingContent() {
     setSubmitting(true);
 
     try {
+      const supabase = createClient();
+      if (useGoogle) {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/onboarding/member?token=${token}`)}` },
+        });
+        if (error) throw error;
+        return;
+      }
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: invite.email,
+        password,
+        options: { data: { name: invite.name, role: 'member' } },
+      });
+      if (signUpError && !signUpError.message.toLowerCase().includes('already registered')) throw signUpError;
+      if (!data.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: invite.email, password });
+        if (signInError) throw signInError;
+      }
+
       const res = await fetch('/api/member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,15 +116,6 @@ function MemberOnboardingContent() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        
-        // Log user email and role to session cookies/storage
-        localStorage.setItem('currentUserEmail', data.user.email);
-        localStorage.setItem('remember_me', 'true');
-        document.cookie = `currentUserEmail=${obfuscateEmail(data.user.email)}; path=/; max-age=2592000`;
-        document.cookie = `currentUserRole=member; path=/; max-age=2592000`;
-
-        window.dispatchEvent(new Event('user-updated'));
         setSuccess(true);
         
         setTimeout(() => {

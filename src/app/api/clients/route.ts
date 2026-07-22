@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
-import { getOrganization } from '@/lib/org';
+import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,22 +18,11 @@ export async function POST(request: NextRequest) {
       businessModel,
       metadata,
       contact,
-      currentUserEmail: rawUserEmail,
       adAccountId,
     } = body;
-
-    if (!rawUserEmail) {
-      return NextResponse.json({ error: 'Missing currentUserEmail authorization context' }, { status: 400 });
-    }
-
-    const currentUserEmail = deobfuscateEmail(rawUserEmail);
-
-    // Verify admin role (case insensitive to support both 'admin' and 'ADMIN')
-    const user = await prisma.user.findUnique({
-      where: { email: currentUserEmail },
-    });
-
-    if (!user || user.role.toUpperCase() !== 'ADMIN') {
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) {
       return NextResponse.json({ error: 'Access Denied: Administrative clearance required.' }, { status: 403 });
     }
 
@@ -84,7 +72,7 @@ export async function POST(request: NextRequest) {
     const inviteEmail = contact?.email || `contact@${domain || 'example.com'}`;
     const inviteName = contact?.name || `${name} Contact`;
 
-    const invite = await prisma.clientInvite.create({
+    await prisma.clientInvite.create({
       data: {
         email: inviteEmail,
         name: inviteName,
@@ -98,13 +86,8 @@ export async function POST(request: NextRequest) {
     // Simulate sending welcome email in console logs
     console.log('\n==================================================');
     console.log(`✉️ WELCOME EMAIL SIMULATED FOR CLIENT: ${name}`);
-    console.log(`TO: ${inviteEmail} (${inviteName})`);
     console.log('SUBJECT: Welcome to Iris OS - Set Up Your Client Account');
     console.log('BODY:');
-    console.log(`Hello ${inviteName},\n`);
-    console.log(`Welcome to Iris OS! You have been invited by the team at Apex Creative to connect.`);
-    console.log(`You can register your account and access your Meta Portal dashboard using the link below:`);
-    console.log(`http://localhost:3000/invite?token=${token}\n`);
     console.log('This invite token will expire in 7 days.');
     console.log('Best regards,\nIris OS Automation Engine');
     console.log('==================================================\n');

@@ -12,23 +12,27 @@ function ConsentContent() {
   const clientId = searchParams.get('client_id') || 'Shards Media Analytics Console';
   const redirectUri = searchParams.get('redirect_uri') || '/dashboard';
   const scope = searchParams.get('scope') || 'profile email';
-  const state = searchParams.get('state') || 'mock_state_xyz';
+  const state = searchParams.get('state') || '';
+
+  const getSafeRedirect = React.useCallback(() => {
+    const target = new URL(redirectUri, window.location.origin);
+    if (target.origin !== window.location.origin) {
+      throw new Error('External OAuth redirect URIs are not supported.');
+    }
+    return target;
+  }, [redirectUri]);
 
   const scopesList = React.useMemo(() => {
     return scope.split(' ');
   }, [scope]);
 
   const handleApprove = () => {
-    const code = 'spl_mock_auth_code_987654321';
+    const code = crypto.randomUUID();
     
     // Construct the redirect URL
     let targetUrl;
     try {
-      if (redirectUri.startsWith('http://') || redirectUri.startsWith('https://')) {
-        targetUrl = new URL(redirectUri);
-      } else {
-        targetUrl = new URL(redirectUri, window.location.origin);
-      }
+      targetUrl = getSafeRedirect();
       targetUrl.searchParams.set('code', code);
       targetUrl.searchParams.set('state', state);
       window.location.href = targetUrl.toString();
@@ -41,11 +45,7 @@ function ConsentContent() {
   const handleDeny = () => {
     let targetUrl;
     try {
-      if (redirectUri.startsWith('http://') || redirectUri.startsWith('https://')) {
-        targetUrl = new URL(redirectUri);
-      } else {
-        targetUrl = new URL(redirectUri, window.location.origin);
-      }
+      targetUrl = getSafeRedirect();
       targetUrl.searchParams.set('error', 'access_denied');
       targetUrl.searchParams.set('state', state);
       window.location.href = targetUrl.toString();

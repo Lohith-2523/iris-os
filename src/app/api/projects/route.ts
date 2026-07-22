@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getRequestUser } from '@/lib/org';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json([]);
     }
-
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
 
@@ -66,6 +65,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'User context required' }, { status: 401 });
     }
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
     const {
@@ -213,6 +213,7 @@ export async function PUT(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'User context required' }, { status: 401 });
     }
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
     const {

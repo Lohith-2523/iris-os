@@ -25,7 +25,8 @@ import {
   Send,
   Layers
 } from 'lucide-react';
-import { obfuscateEmail, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
+import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 
 export default function TasksPage() {
   const searchParams = useSearchParams();
@@ -40,6 +41,7 @@ export default function TasksPage() {
   const [loading, setLoading] = React.useState(true);
   const [viewMode, setViewMode] = React.useState<'kanban' | 'list'>('kanban');
   const [kanbanGrouping, setKanbanGrouping] = React.useState<'status' | 'stage'>('status');
+  const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
 
   // Selected Task Detail Modal State
   const [selectedTask, setSelectedTask] = React.useState<any | null>(null);
@@ -83,18 +85,34 @@ export default function TasksPage() {
         setTeamMembers(data.filter((t: any) => t.role?.toLowerCase() !== 'client'));
       }
 
-      const email = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-      if (email) {
-        const userRes = await fetch(`/api/user?email=${encodeURIComponent(obfuscateEmail(email))}`);
+        const userRes = await fetch('/api/user');
         if (userRes.ok) {
           const data = await userRes.json();
           setCurrentUser(data);
+          setUiScope({ userId: data.id, orgId: data.orgId });
         }
-      }
     } catch (e) {
       console.error(e);
     }
   }, []);
+
+  React.useEffect(() => {
+    const saved = readWorkspaceUiPreference(
+      uiScope,
+      'tasks',
+      { viewMode: 'kanban' as const, kanbanGrouping: 'status' as const },
+      (value): value is { viewMode: 'kanban' | 'list'; kanbanGrouping: 'status' | 'stage' } =>
+        !!value && typeof value === 'object' &&
+        ((value as { viewMode?: unknown }).viewMode === 'kanban' || (value as { viewMode?: unknown }).viewMode === 'list') &&
+        ((value as { kanbanGrouping?: unknown }).kanbanGrouping === 'status' || (value as { kanbanGrouping?: unknown }).kanbanGrouping === 'stage'),
+    );
+    setViewMode(saved.viewMode);
+    setKanbanGrouping(saved.kanbanGrouping);
+  }, [uiScope]);
+
+  React.useEffect(() => {
+    writeWorkspaceUiPreference(uiScope, 'tasks', { viewMode, kanbanGrouping });
+  }, [uiScope, viewMode, kanbanGrouping]);
 
   // Fetch tasks based on selected project
   const loadTasks = React.useCallback(async () => {
@@ -206,9 +224,6 @@ export default function TasksPage() {
     e.preventDefault();
     if (!newCommentContent || !selectedTask) return;
 
-    const userEmail = localStorage.getItem('currentUserEmail') || sessionStorage.getItem('currentUserEmail');
-    if (!userEmail) return;
-
     try {
       const res = await fetch('/api/tasks', {
         method: 'POST',
@@ -216,8 +231,7 @@ export default function TasksPage() {
         body: JSON.stringify({
           action: 'add_comment',
           taskId: selectedTask.id,
-          content: newCommentContent,
-          userEmail
+          content: newCommentContent
         })
       });
 

@@ -1,25 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { deobfuscateEmail } from '@/lib/utils';
-import { getOrganization } from '@/lib/org';
+import { getOrganization, getRequestUser } from '@/lib/org';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const rawEmail = searchParams.get('email') || request.cookies.get('currentUserEmail')?.value;
-    if (!rawEmail) {
-      return NextResponse.json({ leads: [] });
-    }
-    const email = deobfuscateEmail(rawEmail);
-
-    // Fetch user to scope organization
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User context not found' }, { status: 404 });
-    }
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const leads = await prisma.agencyLead.findMany({
       where: { orgId: user.orgId },
@@ -58,7 +44,7 @@ export async function POST(request: NextRequest) {
       }
 
       const updatedLead = await prisma.agencyLead.update({
-        where: { leadId, orgId: org.id },
+        where: { orgId_leadId: { orgId: org.id, leadId } },
         data: { status }
       });
 
@@ -73,11 +59,8 @@ export async function POST(request: NextRequest) {
       }
 
       const cleanStatus = status.toLowerCase();
-      const generatedLeadId = `agency_lead_${Date.now().toString().slice(-6)}_${Math.random().toString(36).substring(2, 6)}`;
-
       const newLead = await prisma.agencyLead.create({
         data: {
-          leadId: generatedLeadId,
           fullName,
           email,
           phone: phone || null,
@@ -104,22 +87,21 @@ export async function POST(request: NextRequest) {
         const { fullName, email, phone, funnelName, status, approachMethod } = lead;
         if (!fullName || !email) continue; // Skip incomplete items
 
-        const generatedLeadId = `agency_lead_${Date.now().toString().slice(-6)}_${Math.random().toString(36).substring(2, 6)}`;
         const cleanStatus = (status || 'procured').toLowerCase();
 
-        // Create or update by unique email or generate leadId
-        const created = await prisma.agencyLead.upsert({
-          where: { leadId: generatedLeadId },
-          update: {
+        const existing = await prisma.agencyLead.findFirst({ where: { orgId: org.id, email } });
+        const created = existing ? await prisma.agencyLead.update({
+          where: { id: existing.id },
+          data: {
             fullName,
             email,
             phone: phone || null,
             status: cleanStatus,
             funnelName: funnelName || 'Bulk Import',
             approachMethod: approachMethod || 'Email',
-          },
-          create: {
-            leadId: generatedLeadId,
+          }
+        }) : await prisma.agencyLead.create({
+          data: {
             fullName,
             email,
             phone: phone || null,
