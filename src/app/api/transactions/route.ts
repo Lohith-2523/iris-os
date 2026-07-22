@@ -106,3 +106,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const org = await getOrganization(request);
+    const user = await getRequestUser(request);
+    if (!org || !user || !isOrganizationAdmin(user)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const id = new URL(request.url).searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Transaction id is required' }, { status: 400 });
+
+    const result = await prisma.transaction.deleteMany({ where: { id, orgId: org.id } });
+    if (result.count === 0) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting transaction:', error);
+    return NextResponse.json({ error: 'Unable to delete transaction' }, { status: 500 });
+  }
+}

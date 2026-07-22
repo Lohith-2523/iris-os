@@ -28,7 +28,7 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = React.useState<number | null>(null);
 
   return (
-    <div className="bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none animate-fade-in">
+    <div className="workspace-auth workspace-pricing bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none animate-fade-in">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between animate-fade-in">
         {/* Left: Logo */}

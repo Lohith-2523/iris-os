@@ -43,19 +43,6 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   const [, setSession] = React.useState<import('@supabase/supabase-js').Session | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
-  const [theme, setTheme] = React.useState<'dark' | 'light'>('dark');
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleThemeChange = (e: Event) => {
-        const nextTheme = (e as CustomEvent).detail || (document.documentElement.classList.contains('light') ? 'light' : 'dark');
-        setTheme(nextTheme);
-      };
-
-      window.addEventListener('theme-changed', handleThemeChange);
-      return () => window.removeEventListener('theme-changed', handleThemeChange);
-    }
-  }, []);
 
   const loadOrg = async () => {
     try {
@@ -64,7 +51,6 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
         const data = await res.json();
         setOrgName(data.organization.name || 'Agency Workspace');
         setPlan(data.organization.plan || '');
-        setTheme(data.user.preferences?.theme || 'dark');
         setUser(data.user);
         setUiScope({ userId: data.user.id, orgId: data.organization.id });
       }
@@ -206,7 +192,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   return (
     <div
       className={cn(
-        'flex h-full flex-col border-r border-zinc-800 bg-[#09090b] text-zinc-400 transition-all duration-300 relative shrink-0',
+        'workspace-sidebar flex h-full flex-col border-r border-zinc-800 bg-[#09090b] text-zinc-400 transition-all duration-300 relative shrink-0',
         isCollapsed ? 'w-20' : 'w-64',
         className
       )}
@@ -225,14 +211,14 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
         <Link href={user?.role?.toLowerCase() === 'client' ? '/meta-portal' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard'} className="flex items-center gap-2" onClick={onCloseMobile}>
           {isCollapsed ? (
             <img 
-              src={theme === 'light' ? "/iris-logo-black-transparent.png" : "/iris-logo-white-transparent.png"} 
+              src="/iris-logo-white-transparent.png" 
               alt="Iris OS Logo" 
               className="h-8 w-8 object-contain" 
             />
           ) : (
             <div className="flex items-center gap-2">
               <img 
-                src={theme === 'light' ? "/iris-logo-white-bg.png" : "/iris-logo-black-bg.png"} 
+                src="/iris-logo-black-bg.png" 
                 alt="Iris OS Logo" 
                 className="h-8 object-contain" 
               />

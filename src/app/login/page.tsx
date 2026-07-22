@@ -78,7 +78,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-[#09090b] px-4">
+    <div className="workspace-auth flex h-screen w-screen items-center justify-center bg-[#09090b] px-4">
       {/* Glow highlight */}
       <div className="absolute inset-0 bg-radial-[circle_at_center,rgba(255,255,255,0.015)_0%,transparent_70%]" />
 

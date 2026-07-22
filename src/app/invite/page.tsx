@@ -94,7 +94,7 @@ function InvitePageContent() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#09090b]">
+      <div className="workspace-auth flex h-screen w-screen items-center justify-center bg-[#09090b]">
         <div className="text-zinc-500 text-xs flex items-center gap-2">
           <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
           <span>Verifying client invitation link...</span>
@@ -104,7 +104,7 @@ function InvitePageContent() {
   }
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-[#09090b] px-4">
+    <div className="workspace-auth flex h-screen w-screen items-center justify-center bg-[#09090b] px-4">
       <div className="absolute inset-0 bg-radial-[circle_at_center,rgba(255,255,255,0.015)_0%,transparent_70%]" />
 
       <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl font-sans text-xs">
@@ -220,7 +220,7 @@ function InvitePageContent() {
 export default function InvitePage() {
   return (
     <React.Suspense fallback={
-      <div className="flex h-screen w-screen items-center justify-center bg-[#09090b]">
+      <div className="workspace-auth flex h-screen w-screen items-center justify-center bg-[#09090b]">
         <div className="text-zinc-500 text-xs flex items-center gap-2">
           <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
           <span>Loading client invitation...</span>

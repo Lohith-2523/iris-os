@@ -48,6 +48,25 @@ const PLANS = [
   }
 ];
 
+const FULL_PRIVACY_POLICY = [
+  ['1. Data Controller Identification', 'Shards Media ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
+  ['2. Categories of Personal Data We Collect', 'We process identity and account metadata (including corporate name, billing address, currency settings and administrator emails); financial data (internal ledgers, invoices, totals, expenses and merchant names); integration telemetry and OAuth access tokens for connected Canva, Meta, Google and Notion services; contractor allocation information; and system logs such as IP address, device headers and authentication timestamps.'],
+  ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Prism AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
+  ['4. Google and Notion Authentication APIs & Data Scope', 'Google authentication uses your profile data, email address, profile picture and authorization tokens. Iris OS does not read emails, documents or photos unless you separately grant additional permissions. Notion access is limited to the databases you explicitly select for reporting. Integration tokens are encrypted with industry-standard AES-256 encryption and may be revoked from the relevant provider’s security console.'],
+  ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Prism AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
+  ['6. GDPR & DPDP Act Data Subject Rights', 'You may request access to and portability of your data, correction of inaccurate data, withdrawal of consent, grievance redressal, and—where applicable under the DPDP Act—nomination of a person to exercise your rights in the event of death or incapacity.'],
+  ['7. International Cross-Border Data Transfers', 'Personal data may be processed on secure servers in the United States, the EEA and India. EEA transfers use European Commission Standard Contractual Clauses where applicable. Transfers under the DPDP Act follow applicable Government of India cross-border requirements.'],
+  ['8. Contact Our Data Protection Officer', 'To exercise your rights, withdraw consent or raise a privacy concern, contact Shards Media’s Privacy Compliance Department at studio@shardsmedia.com with the subject line “PRIVACY: DATA RIGHTS EXERCISE”.'],
+] as const;
+
+const PRIVACY_TLDR = [
+  'Your workspace data is used to operate Iris OS and stays scoped to your organization.',
+  'Prism AI access is optional. You can leave it off and change that choice later in Settings.',
+  'Connected services only receive the permissions you authorize; you can revoke them at any time.',
+  'You can request access, correction, deletion, or export of your personal data.',
+  'Contact studio@shardsmedia.com for privacy requests or concerns.',
+];
+
 export default function OnboardingPage() {
   const router = useRouter();
   
@@ -57,7 +76,6 @@ export default function OnboardingPage() {
   // Form values
   const [agencyName, setAgencyName] = React.useState('');
   const [username, setUsername] = React.useState('');
-  const [specialization, setSpecialization] = React.useState('Marketing');
   const [currency, setCurrency] = React.useState('USD');
   
   // Pricing state
@@ -66,6 +84,7 @@ export default function OnboardingPage() {
   // Consent state
   const [termsAgreed, setTermsAgreed] = React.useState(false);
   const [aiSharingConsent, setAiSharingConsent] = React.useState(false);
+  const [showPrivacyTldr, setShowPrivacyTldr] = React.useState(false);
 
   // Payment state
   const [cardNumber, setCardNumber] = React.useState('');
@@ -91,7 +110,6 @@ export default function OnboardingPage() {
         setCardName(workspace.user.name || '');
         setCurrency(draft.currency || workspace.organization.currency || 'USD');
         setSelectedPlanId(draft.selectedPlanId || 'pro');
-        setSpecialization(draft.specialization || 'Marketing');
         setTermsAgreed(Boolean(draft.termsAgreed));
         setAiSharingConsent(Boolean(draft.aiSharingConsent));
         if (workspace.onboarding?.currentStep > 0 && workspace.onboarding.currentStep < steps.length) {
@@ -117,7 +135,7 @@ export default function OnboardingPage() {
         onboarding: {
           needsOnboarding: true,
           currentStep,
-          draft: { agencyName, username, specialization, currency, selectedPlanId, termsAgreed, aiSharingConsent },
+          draft: { agencyName, username, currency, selectedPlanId, termsAgreed, aiSharingConsent },
         },
       }),
     });
@@ -223,7 +241,7 @@ export default function OnboardingPage() {
   const ordered = getOrderedPlans();
 
   return (
-    <div className="bg-[#09090b] text-white min-h-screen relative font-sans select-none flex flex-col justify-between py-12 px-6">
+    <div className="workspace-auth bg-[#09090b] text-white min-h-screen relative font-sans select-none flex flex-col justify-between py-12 px-6">
       {/* Glow highlight */}
       <div className="absolute inset-0 bg-radial-[circle_at_center,rgba(255,255,255,0.01)_0%,transparent_75%] pointer-events-none" />
 
@@ -236,7 +254,7 @@ export default function OnboardingPage() {
       {/* Main container */}
       <div className="max-w-5xl mx-auto w-full flex-grow flex items-center justify-center relative z-10 my-4">
         {step === 'agency' && (
-          <Card className="w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
+          <Card className="w-full max-w-3xl bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
             <CardHeader className="text-center pt-6 pb-4 border-b border-zinc-800">
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 1 of 4</span>
               <CardTitle className="text-lg font-bold uppercase tracking-tight mt-1 text-white">Agency Registration</CardTitle>
@@ -278,21 +296,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Agency Focus</label>
-                    <select
-                      value={specialization}
-                      onChange={(e) => setSpecialization(e.target.value)}
-                      className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 px-3 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                    >
-                      <option value="Marketing">Marketing & Ads</option>
-                      <option value="Design">Creative & Design</option>
-                      <option value="Development">Web Development</option>
-                      <option value="Consulting">Consulting Services</option>
-                    </select>
-                  </div>
-
+                <div>
                   <div className="space-y-1.5">
                     <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Currency Ledger</label>
                     <select
@@ -415,20 +419,44 @@ export default function OnboardingPage() {
           <Card className="w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
             <CardHeader className="text-center pt-6 pb-4 border-b border-zinc-800">
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 3 of 4</span>
-              <CardTitle className="text-lg font-bold uppercase tracking-tight mt-1 text-white">Privacy & AI Data Consent</CardTitle>
-              <CardDescription className="text-xs text-zinc-500">
+              <CardTitle className="text-xl font-bold uppercase tracking-tight mt-1 text-white">Privacy & AI Data Consent</CardTitle>
+              <CardDescription className="text-sm text-zinc-500">
                 Review policy terms and configure your workspace data privacy options
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-6 py-6 space-y-4">
-              <div className="space-y-1.5">
-                <span className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Legal Agreement Preview</span>
-                <div className="w-full h-32 rounded border border-zinc-850 bg-zinc-900/40 p-3 overflow-y-auto text-[9px] text-zinc-500 space-y-2 leading-relaxed font-mono">
-                  <p className="font-bold text-zinc-400">1. Data Storage and Control</p>
-                  <p>All business profiles, financial ledgers, and leads uploaded manually to Iris OS are securely isolated within your PostgreSQL workspace. You retain complete ownership and deletion rights over your uploaded data.</p>
-                  <p className="font-bold text-zinc-400">2. Prism AI Processing Consent</p>
-                  <p>With your optional consent, Iris OS connects your local data to LLM models (Google Gemini, OpenAI ChatGPT, and Claude) to analyze cost margins, identify profit leaks, and generate strategy tips. You can decline or revoke this access at any time.</p>
+            <CardContent className="px-7 py-7 space-y-5">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="font-semibold text-zinc-300 block text-xs uppercase font-mono">Privacy Policy · Last updated June 27, 2026</span>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-zinc-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={showPrivacyTldr}
+                      onChange={(event) => setShowPrivacyTldr(event.target.checked)}
+                      className="rounded border-zinc-700 bg-zinc-900 accent-red-600 h-4 w-4"
+                    />
+                    Show TL;DR
+                  </label>
                 </div>
+                <div className="w-full h-[410px] rounded-md border border-zinc-800 bg-zinc-950/50 p-5 overflow-y-auto text-sm text-zinc-400 space-y-5 leading-7">
+                  {showPrivacyTldr ? (
+                    <>
+                      <p className="text-base font-bold text-white">The short version</p>
+                      <ul className="list-disc space-y-3 pl-5">
+                        {PRIVACY_TLDR.map((item) => <li key={item}>{item}</li>)}
+                      </ul>
+                      <p className="text-xs text-zinc-500 pt-2">This summary is for convenience. The full policy remains the governing document.</p>
+                    </>
+                  ) : (
+                    FULL_PRIVACY_POLICY.map(([title, content]) => (
+                      <section key={title} className="space-y-1.5">
+                        <h3 className="text-base font-bold text-zinc-100">{title}</h3>
+                        <p>{content}</p>
+                      </section>
+                    ))
+                  )}
+                </div>
+                <p className="text-xs text-zinc-500">Use the TL;DR checkbox for a plain-language summary. You can also open the <Link href="/privacy" target="_blank" className="text-zinc-300 underline underline-offset-2">full privacy page</Link> in a new tab.</p>
               </div>
 
               <form onSubmit={handleConsentSubmit} className="space-y-4">
@@ -440,7 +468,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setTermsAgreed(e.target.checked)}
                     className="mt-0.5 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-600 focus:ring-0 cursor-pointer h-3.5 w-3.5"
                   />
-                  <label htmlFor="termsCheckbox" className="text-[10.5px] text-zinc-450 leading-relaxed cursor-pointer select-none">
+                  <label htmlFor="termsCheckbox" className="text-sm text-zinc-350 leading-relaxed cursor-pointer select-none">
                     I agree to the <Link href="/terms" target="_blank" className="text-red-500 hover:underline">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="text-red-500 hover:underline">Privacy Policy</Link>. <span className="text-red-650">*</span>
                   </label>
                 </div>
@@ -454,10 +482,10 @@ export default function OnboardingPage() {
                     className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-650 focus:ring-0 cursor-pointer h-3.5 w-3.5"
                   />
                   <div className="cursor-pointer select-none">
-                    <label htmlFor="aiConsentCheckbox" className="block text-[11px] font-bold text-zinc-300">
+                    <label htmlFor="aiConsentCheckbox" className="block text-sm font-bold text-zinc-300">
                       Enable Prism AI Analysis (Recommended)
                     </label>
-                    <span className="block text-[9.5px] text-zinc-500 mt-1 leading-normal">
+                    <span className="block text-sm text-zinc-500 mt-1 leading-relaxed">
                       Allow the AI models to read your transaction records and lead pipeline data to automatically identify leaks and calculate campaign performance metrics. You can revoke this in settings at any time.
                     </span>
                   </div>

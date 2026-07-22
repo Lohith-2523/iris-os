@@ -114,7 +114,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
   return (
     <>
-      <header className="flex h-16 w-full items-center justify-between border-b border-zinc-800 bg-[#09090b] px-6">
+      <header className="workspace-topbar flex h-16 w-full items-center justify-between border-b border-zinc-800 bg-[#09090b] px-6">
         {/* Left: Mobile Toggle & Brand indicator */}
         <div className="flex items-center gap-4">
           <Button
@@ -126,19 +126,6 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* Quick Portfolio Stats */}
-          {!isClient && (
-            <div className="hidden lg:flex items-center gap-6 text-xs border-r border-zinc-800 pr-6 mr-1">
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-500 font-medium">Agency Health Score:</span>
-                <span className="font-semibold text-white px-2 py-0.5 rounded-none bg-zinc-900 border border-zinc-800">84/100</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-500 font-medium">Active Leaks:</span>
-                <span className="font-semibold notification-risk-alert text-rose-400 px-2 py-0.5 rounded-none bg-rose-950/20 border border-rose-900/30">2 Detected</span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Center: Ask Prism Form */}

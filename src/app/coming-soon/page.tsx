@@ -11,7 +11,7 @@ export const metadata = {
 
 export default function ComingSoonPage() {
   return (
-    <div className="min-h-screen w-full bg-[#09090b] text-white flex flex-col justify-between p-6 md:p-12 relative overflow-hidden font-sans select-none">
+    <div className="workspace-auth min-h-screen w-full bg-[#09090b] text-white flex flex-col justify-between p-6 md:p-12 relative overflow-hidden font-sans select-none">
       {/* Background glow highlights */}
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-zinc-900/40 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-zinc-900/30 blur-[120px] pointer-events-none" />

@@ -12,30 +12,39 @@ export async function GET(request: Request) {
   const type = searchParams.get('type');
   const isCalendar = type === 'calendar' || next.startsWith('/calendar');
 
-  if (code) {
+  try {
+    if (!code) {
+      return NextResponse.redirect(`${origin}${isCalendar ? '/calendar?google_connected=error' : '/login?auth_error=missing_code'}`);
+    }
+
     const supabase = await createClient();
     const { error, data } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error && data?.session) {
-      const session = data.session;
-      const email = session.user?.email;
-      const providerToken = session.provider_token;
-      const providerRefreshToken = session.provider_refresh_token;
+    if (error || !data?.session?.user?.email) {
+      console.error('Google OAuth callback session exchange failed:', error);
+      return NextResponse.redirect(`${origin}/login?auth_error=oauth_exchange_failed`);
+    }
 
-      if (email) {
-        if (next.startsWith('/onboarding/member')) {
-          const inviteToken = new URL(next, origin).searchParams.get('token');
-          const invite = inviteToken ? await prisma.memberInvite.findUnique({ where: { token: inviteToken } }) : null;
-          if (invite && !invite.used && invite.expiresAt > new Date() && invite.email.toLowerCase() === email.toLowerCase()) {
-            return NextResponse.redirect(`${origin}${next}`);
-          }
-          return NextResponse.redirect(`${origin}/login`);
-        }
+    const session = data.session;
+    const email = session.user.email;
+    if (!email) {
+      return NextResponse.redirect(`${origin}/login?auth_error=missing_email`);
+    }
+    const providerToken = session.provider_token;
+    const providerRefreshToken = session.provider_refresh_token;
 
-        const dbUser = await provisionAuthenticatedUser(session.user);
-        if (dbUser) {
-          const role = dbUser.role?.toLowerCase() || 'admin';
+    if (next.startsWith('/onboarding/member')) {
+      const inviteToken = new URL(next, origin).searchParams.get('token');
+      const invite = inviteToken ? await prisma.memberInvite.findUnique({ where: { token: inviteToken } }) : null;
+      if (invite && !invite.used && invite.expiresAt > new Date() && invite.email.toLowerCase() === email.toLowerCase()) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+      return NextResponse.redirect(`${origin}/login?auth_error=invalid_invite`);
+    }
 
-          if (isCalendar) {
+    const dbUser = await provisionAuthenticatedUser(session.user);
+    const role = dbUser.role?.toLowerCase() || 'admin';
+
+    if (isCalendar) {
             // Save the Google Connection details in database
             const credentialCiphertext = encryptIntegrationCredentials({
               accessToken: providerToken || null,
@@ -58,22 +67,25 @@ export async function GET(request: Request) {
               await syncGoogleCalendarEvents(providerToken, dbUser.orgId, dbUser.id);
             }
 
-            const response = NextResponse.redirect(`${origin}/calendar?google_connected=true`);
-            return response;
-          } else {
-            // Regular Signup / Login flow
-            const redirectUrl = role === 'client' ? '/client-dashboard' : role === 'member' ? '/teams-dashboard' : next;
-            const response = NextResponse.redirect(`${origin}${redirectUrl}`);
-            return response;
-          }
-        }
-      }
+      return NextResponse.redirect(`${origin}/calendar?google_connected=true`);
     }
-  }
 
-  // If OAuth failed or no code, redirect to login page
-  const redirectPath = isCalendar ? '/calendar?google_connected=error' : '/login';
-  return NextResponse.redirect(`${origin}${redirectPath}`);
+    // First-time users and users with unfinished onboarding resume the saved
+    // wizard state. Completed workspaces return to their requested page/dashboard.
+    const redirectUrl = role === 'client'
+      ? '/client-dashboard'
+      : role === 'member'
+        ? '/teams-dashboard'
+        : dbUser.organization.onboardingState?.needsOnboarding
+          ? '/onboarding'
+          : next === '/onboarding'
+            ? '/dashboard'
+            : next;
+    return NextResponse.redirect(`${origin}${redirectUrl}`);
+  } catch (error) {
+    console.error('Google OAuth callback failed:', error);
+    return NextResponse.redirect(`${origin}${isCalendar ? '/calendar?google_connected=error' : '/login?auth_error=workspace_initialization_failed'}`);
+  }
 }
 
 async function syncGoogleCalendarEvents(accessToken: string, orgId: string, creatorId: string) {

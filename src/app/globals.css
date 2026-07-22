@@ -106,21 +106,32 @@
 }
 
 :root.light {
-  /* Brushed Alabaster Light Profile Variables */
-  --background: #f4f5f7;
-  /* Alabaster */
-  --foreground: #09090b;
-  /* Charcoal text */
+  /* High-contrast porcelain light profile */
+  --background: #f7f9fc;
+  --foreground: #172033;
   --card: #ffffff;
-  /* Pure white */
-  --card-foreground: #18181b;
-  --border: #e4e4e7;
-  /* Soft aluminum border */
-  --muted: #f1f2f5;
-  --muted-foreground: #52525b;
-  --accent: #18181b;
+  --card-foreground: #172033;
+  --border: #cfd8e6;
+  --muted: #edf2f7;
+  --muted-foreground: #475569;
+  --accent: #273b73;
   --accent-foreground: #ffffff;
-  --highlight: #71717a;
+  --highlight: #52627c;
+  --surface-subtle: #f1f5f9;
+  --surface-tint: #e8eef8;
+  --surface-hover: #dbe6f5;
+  --status-info-bg: #e7eefc;
+  --status-info-border: #8097c8;
+  --status-info-text: #263d73;
+  --status-success-bg: #e5f3ed;
+  --status-success-border: #4f9875;
+  --status-success-text: #14543a;
+  --status-warning-bg: #fff3dc;
+  --status-warning-border: #c98a26;
+  --status-warning-text: #74420a;
+  --status-danger-bg: #fbe9eb;
+  --status-danger-border: #bd6170;
+  --status-danger-text: #852536;
 }
 
 @theme {
@@ -215,6 +226,10 @@ h6,
 
 /* Light Mode Global CSS Adaptations for dynamic profile styling */
 :root.light {
+  body {
+    background: linear-gradient(145deg, #f8fafc 0%, #edf3fa 100%);
+  }
+
   .silver-text-gradient {
     background: linear-gradient(180deg, #09090b 0%, #3f3f46 100%);
     -webkit-background-clip: text;
@@ -228,6 +243,7 @@ h6,
 
   /* Map hardcoded dark panels bg to card var */
   .bg-\[\#09090b\],
+  .bg-\[\#0b0c10\],
   .bg-zinc-950,
   .bg-\[\#0d0e12\],
   .bg-\[\#0d0e15\],
@@ -256,12 +272,12 @@ h6,
 
   /* Sidebar active link specific styling */
   .border-r .bg-zinc-900 {
-    background-color: var(--muted) !important;
+    background-color: var(--surface-tint) !important;
     color: var(--foreground) !important;
   }
 
   .border-r .hover\:bg-zinc-950:hover {
-    background-color: var(--muted) !important;
+    background-color: var(--surface-hover) !important;
     color: var(--foreground) !important;
   }
 
@@ -274,8 +290,7 @@ h6,
 
   button.bg-white:hover,
   .bg-white:not(div):hover {
-    background-color: #27272a !important;
-    /* titanium hover state */
+    background-color: #1e3163 !important;
   }
 
   .text-zinc-950 {
@@ -284,24 +299,34 @@ h6,
 
   /* Hover states adaptation in light mode */
   .hover\:bg-zinc-800\/30:hover {
-    background-color: var(--muted) !important;
+    background-color: var(--surface-hover) !important;
   }
 
   .hover\:bg-zinc-900\/80:hover {
-    background-color: var(--muted) !important;
+    background-color: var(--surface-hover) !important;
   }
 
   .hover\:bg-zinc-900:hover {
-    background-color: var(--muted) !important;
+    background-color: var(--surface-hover) !important;
+  }
+
+  .hover\:bg-zinc-950:hover,
+  .hover\:bg-zinc-800:hover {
+    background-color: var(--surface-hover) !important;
   }
 
   /* Progress bar and chart visualization color balancing */
   .bg-zinc-800 {
-    background-color: var(--muted) !important;
+    background-color: var(--surface-subtle) !important;
   }
 
   .bg-zinc-300 {
-    background-color: var(--accent) !important;
+    background-color: var(--surface-tint) !important;
+  }
+
+  .bg-zinc-100,
+  .bg-zinc-200 {
+    background-color: var(--surface-subtle) !important;
   }
 
   .text-white {
@@ -349,13 +374,12 @@ h6,
   }
 
   .text-rose-400 {
-    color: #be123c !important;
-    /* Premium dark-rose */
+    color: var(--status-danger-text) !important;
   }
 
   .bg-rose-950\/20 {
-    background-color: #ffe4e6 !important;
-    border-color: #fca5a5 !important;
+    background-color: var(--status-danger-bg) !important;
+    border-color: var(--status-danger-border) !important;
   }
 
   /* HIGH RISK / DANGER STATUS OVERRIDES */
@@ -364,12 +388,9 @@ h6,
   .insight-risk-high,
   .notification-risk-alert,
   .team-alert-danger {
-    background-color: #ffe4e6 !important;
-    /* rose-100 */
-    border-color: #fb7185 !important;
-    /* rose-400 */
-    color: #9f1239 !important;
-    /* rose-800 - dark, visible text */
+    background-color: var(--status-danger-bg) !important;
+    border-color: var(--status-danger-border) !important;
+    color: var(--status-danger-text) !important;
     font-weight: 600 !important;
   }
 
@@ -379,12 +400,9 @@ h6,
   .insight-risk-medium,
   .sandbox-mode,
   .team-alert-warning {
-    background-color: #fef3c7 !important;
-    /* amber-100 */
-    border-color: #fbbf24 !important;
-    /* amber-400 */
-    color: #78350f !important;
-    /* amber-900 - dark, visible text */
+    background-color: var(--status-warning-bg) !important;
+    border-color: var(--status-warning-border) !important;
+    color: var(--status-warning-text) !important;
     font-weight: 600 !important;
   }
 
@@ -393,36 +411,27 @@ h6,
   .status-closed,
   .meta-sdk-active,
   .team-alert-success {
-    background-color: #d1fae5 !important;
-    /* emerald-100 */
-    border-color: #34d399 !important;
-    /* emerald-400 */
-    color: #064e3b !important;
-    /* emerald-900 - dark, visible text */
+    background-color: var(--status-success-bg) !important;
+    border-color: var(--status-success-border) !important;
+    color: var(--status-success-text) !important;
     font-weight: 600 !important;
   }
 
   /* OUTLINE / NEW / MUTED STATUS OVERRIDES */
   .badge-outline,
   .status-new {
-    background-color: #f4f5f7 !important;
-    /* light gray/slate */
-    border-color: #cbd5e1 !important;
-    /* slate-300 */
-    color: #334155 !important;
-    /* slate-700 - dark readable text */
+    background-color: var(--status-info-bg) !important;
+    border-color: var(--status-info-border) !important;
+    color: var(--status-info-text) !important;
     font-weight: 600 !important;
   }
 
   /* DEFAULT / CALLBACK / NEUTRAL STATUS OVERRIDES */
   .badge-default,
   .status-callback {
-    background-color: #e2e8f0 !important;
-    /* slate-200 */
-    border-color: #94a3b8 !important;
-    /* slate-400 */
-    color: #0f172a !important;
-    /* slate-900 - dark readable text */
+    background-color: var(--surface-tint) !important;
+    border-color: var(--status-info-border) !important;
+    color: var(--status-info-text) !important;
     font-weight: 600 !important;
   }
 
@@ -858,4 +867,233 @@ h6,
 .animate-fade-in-up {
   opacity: 0;
   animation: fadeInUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Workspace visual system: landing-page neomorphism with chrome surfaces. */
+.workspace-shell,
+.workspace-auth {
+  --workspace-base: #0a0a0a;
+  --workspace-raised: #111111;
+  --workspace-inset: #0d0d0d;
+  --workspace-edge: rgba(255, 255, 255, 0.075);
+  --workspace-text: #e8e8e8;
+  --workspace-muted: #8b8b93;
+  background:
+    radial-gradient(ellipse 70% 55% at 8% 5%, rgba(255,255,255,.055), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 94% 12%, rgba(255,255,255,.035), transparent 55%),
+    var(--workspace-base) !important;
+  color: var(--workspace-text);
+}
+
+.workspace-main {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255,255,255,.035), transparent 34%),
+    #0a0a0a !important;
+}
+
+.workspace-card {
+  background: linear-gradient(145deg, #131313 0%, #0f0f0f 100%) !important;
+  border: 1px solid var(--workspace-edge) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    9px 9px 20px rgba(0,0,0,.72),
+    -7px -7px 18px rgba(35,35,35,.72),
+    inset 0 1px 0 rgba(255,255,255,.055) !important;
+}
+
+.workspace-card:hover {
+  border-color: rgba(255,255,255,.12) !important;
+}
+
+.workspace-shell .bg-\[\#0d0e12\].border,
+.workspace-shell .bg-\[\#0b0c10\].border,
+.workspace-auth .bg-\[\#0d0e12\].border,
+.workspace-auth .bg-\[\#0b0c10\].border {
+  background: linear-gradient(145deg, #131313 0%, #0f0f0f 100%) !important;
+  border-color: var(--workspace-edge) !important;
+  border-radius: 20px !important;
+  box-shadow: 9px 9px 20px rgba(0,0,0,.7), -7px -7px 18px rgba(35,35,35,.68), inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+
+.workspace-topbar {
+  background: rgba(17,17,17,.9) !important;
+  border-color: rgba(255,255,255,.07) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.38), inset 0 -1px 0 rgba(255,255,255,.025);
+  backdrop-filter: blur(18px);
+}
+
+.workspace-sidebar {
+  background: linear-gradient(180deg, #101010 0%, #080808 100%) !important;
+  border-color: rgba(255,255,255,.08) !important;
+  box-shadow: 10px 0 28px rgba(0,0,0,.42), inset -1px 0 0 rgba(255,255,255,.025);
+}
+
+.workspace-shell input:not([type='checkbox']):not([type='radio']),
+.workspace-shell select,
+.workspace-shell textarea,
+.workspace-auth input:not([type='checkbox']):not([type='radio']),
+.workspace-auth select,
+.workspace-auth textarea {
+  background: #0d0d0d !important;
+  border: 1px solid rgba(255,255,255,.055) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 5px 5px 12px #040404, inset -5px -5px 12px #1a1a1a !important;
+  color: #e8e8e8 !important;
+}
+
+.workspace-shell input:focus,
+.workspace-shell select:focus,
+.workspace-shell textarea:focus,
+.workspace-auth input:focus,
+.workspace-auth select:focus,
+.workspace-auth textarea:focus {
+  border-color: rgba(255,255,255,.16) !important;
+  box-shadow: inset 5px 5px 12px #040404, inset -5px -5px 12px #1a1a1a, 0 0 0 1px rgba(255,255,255,.08) !important;
+}
+
+.workspace-button {
+  border-radius: 999px !important;
+  box-shadow: 4px 4px 10px rgba(0,0,0,.62), -3px -3px 9px rgba(37,37,37,.55);
+  transition: transform .16s ease, box-shadow .2s ease, border-color .2s ease !important;
+}
+
+.workspace-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 6px 6px 14px rgba(0,0,0,.72), -4px -4px 11px rgba(40,40,40,.58);
+}
+
+.workspace-button:active {
+  transform: translateY(0);
+  box-shadow: inset 3px 3px 8px rgba(0,0,0,.42), inset -3px -3px 8px rgba(255,255,255,.06);
+}
+
+.workspace-shell .workspace-button.bg-white,
+.workspace-auth .workspace-button.bg-white,
+.workspace-shell button.bg-white,
+.workspace-auth button.bg-white {
+  background: linear-gradient(135deg, #b9bcc2 0%, #f4f5f6 48%, #9da1a9 100%) !important;
+  border: 1px solid rgba(255,255,255,.48) !important;
+  color: #09090b !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+}
+
+.workspace-shell table,
+.workspace-auth table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.workspace-shell thead,
+.workspace-auth thead {
+  background: rgba(0,0,0,.24) !important;
+}
+
+.workspace-shell tbody tr:hover,
+.workspace-auth tbody tr:hover {
+  background: rgba(255,255,255,.025) !important;
+}
+
+.workspace-shell [role='dialog'],
+.workspace-auth [role='dialog'] {
+  border: 1px solid rgba(255,255,255,.09);
+  box-shadow: 14px 14px 34px #030303, -8px -8px 24px #202020;
+}
+
+/* Light workspace: porcelain content with a permanently dark navigation rail. */
+:root.light .workspace-shell {
+  --workspace-base: #eef2f7;
+  --workspace-raised: #f8fafc;
+  --workspace-inset: #e9eef5;
+  --workspace-edge: rgba(72,86,110,.18);
+  --workspace-text: #172033;
+  --workspace-muted: #526078;
+  background: linear-gradient(145deg, #f7f9fc 0%, #e9eef6 100%) !important;
+  color: var(--workspace-text) !important;
+}
+
+:root.light .workspace-main {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255,255,255,.95), transparent 32%),
+    linear-gradient(145deg, #f5f8fc 0%, #e8eef6 100%) !important;
+}
+
+:root.light .workspace-shell .workspace-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5fa 100%) !important;
+  border-color: rgba(73,88,115,.18) !important;
+  box-shadow:
+    9px 9px 20px rgba(159,171,190,.42),
+    -8px -8px 18px rgba(255,255,255,.95),
+    inset 0 1px 0 #ffffff !important;
+  color: #172033 !important;
+}
+
+:root.light .workspace-shell .bg-\[\#0d0e12\].border,
+:root.light .workspace-shell .bg-\[\#0b0c10\].border {
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5fa 100%) !important;
+  border-color: rgba(73,88,115,.18) !important;
+  box-shadow: 9px 9px 20px rgba(159,171,190,.42), -8px -8px 18px rgba(255,255,255,.95), inset 0 1px 0 #fff !important;
+}
+
+:root.light .workspace-topbar {
+  background: rgba(248,250,252,.92) !important;
+  border-color: rgba(72,86,110,.18) !important;
+  box-shadow: 0 8px 22px rgba(110,125,148,.16), inset 0 -1px 0 #fff;
+}
+
+:root.light .workspace-sidebar,
+:root.light .workspace-sidebar header,
+:root.light .workspace-sidebar .border-r,
+:root.light .workspace-sidebar .bg-zinc-950,
+:root.light .workspace-sidebar .bg-zinc-950\/40,
+:root.light .workspace-sidebar .bg-zinc-950\/20 {
+  background: linear-gradient(180deg, #111318 0%, #08090c 100%) !important;
+  border-color: rgba(255,255,255,.09) !important;
+  color: #a8adb7 !important;
+}
+
+:root.light .workspace-sidebar .bg-zinc-900,
+:root.light .workspace-sidebar .bg-zinc-900\/50 {
+  background: #191c22 !important;
+  color: #f4f4f5 !important;
+}
+
+:root.light .workspace-sidebar .text-white,
+:root.light .workspace-sidebar .text-zinc-100,
+:root.light .workspace-sidebar .text-zinc-200,
+:root.light .workspace-sidebar .text-zinc-300 {
+  color: #f4f4f5 !important;
+}
+
+:root.light .workspace-sidebar .text-zinc-400,
+:root.light .workspace-sidebar .text-zinc-500 {
+  color: #9ca3af !important;
+}
+
+:root.light .workspace-shell input:not([type='checkbox']):not([type='radio']),
+:root.light .workspace-shell select,
+:root.light .workspace-shell textarea {
+  background: #edf2f7 !important;
+  border-color: rgba(78,94,120,.18) !important;
+  box-shadow: inset 4px 4px 9px rgba(160,172,191,.38), inset -4px -4px 9px #ffffff !important;
+  color: #172033 !important;
+}
+
+:root.light .workspace-shell .workspace-button {
+  box-shadow: 4px 4px 10px rgba(143,157,178,.34), -4px -4px 10px rgba(255,255,255,.95);
+}
+
+:root.light .workspace-shell .workspace-button:hover {
+  box-shadow: 6px 6px 13px rgba(135,150,173,.4), -5px -5px 12px #ffffff;
+}
+
+:root.light .workspace-shell .workspace-button:active {
+  box-shadow: inset 3px 3px 7px rgba(148,162,182,.38), inset -3px -3px 7px #ffffff;
+}
+
+:root.light .workspace-shell thead {
+  background: #e7edf5 !important;
+}
+
+:root.light .workspace-shell tbody tr:hover {
+  background: rgba(80,104,145,.06) !important;
 }

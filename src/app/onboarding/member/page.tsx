@@ -135,7 +135,7 @@ function MemberOnboardingContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-zinc-550 font-sans text-xs">
+      <div className="workspace-auth min-h-screen bg-black flex items-center justify-center text-zinc-550 font-sans text-xs">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Synchronizing onboarding credentials...</span>
@@ -146,7 +146,7 @@ function MemberOnboardingContent() {
 
   if (errorMsg) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-center font-sans text-xs">
+      <div className="workspace-auth min-h-screen bg-black flex items-center justify-center p-6 text-center font-sans text-xs">
         <div className="max-w-sm border border-zinc-900 bg-zinc-950/20 p-6 space-y-4">
           <AlertTriangle className="h-8 w-8 text-rose-500 mx-auto" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Onboarding Link Invalid</h2>
@@ -161,7 +161,7 @@ function MemberOnboardingContent() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-center font-sans text-xs">
+      <div className="workspace-auth min-h-screen bg-black flex items-center justify-center p-6 text-center font-sans text-xs">
         <div className="max-w-sm border border-zinc-900 bg-zinc-950/20 p-6 space-y-4">
           <CheckCircle2 className="h-8 w-8 text-emerald-450 mx-auto animate-bounce" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Account Activated</h2>
@@ -174,7 +174,7 @@ function MemberOnboardingContent() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col justify-center items-center p-4 font-sans text-xs text-left">
+    <div className="workspace-auth min-h-screen bg-black flex flex-col justify-center items-center p-4 font-sans text-xs text-left">
       <div className="w-full max-w-2xl space-y-6">
         {/* Header brand */}
         <div className="text-center space-y-2 flex flex-col items-center">
@@ -308,7 +308,7 @@ function MemberOnboardingContent() {
 export default function MemberOnboardingPage() {
   return (
     <React.Suspense fallback={
-      <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500 font-sans text-xs">
+      <div className="workspace-auth min-h-screen bg-black flex items-center justify-center text-zinc-500 font-sans text-xs">
         <div className="flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Synchronizing onboarding credentials...</span>

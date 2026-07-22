@@ -23,7 +23,8 @@ import {
   Blocks,
   Key,
   Upload,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -310,6 +311,8 @@ export default function FinancePage() {
       return;
     }
 
+    if (!window.confirm('Are you sure you want to add this transaction to the ledger?')) return;
+
     try {
       const res = await fetch('/api/transactions', {
         method: 'POST',
@@ -344,6 +347,20 @@ export default function FinancePage() {
     } catch (err) {
       console.error(err);
       alert('An error occurred while saving.');
+    }
+  };
+
+  const handleTransactionDelete = async (transactionId: string) => {
+    if (!window.confirm('Are you sure you want to permanently remove this transaction? This action cannot be undone.')) return;
+    try {
+      const response = await fetch(`/api/transactions?id=${encodeURIComponent(transactionId)}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to remove transaction.');
+      }
+      await fetchManualTransactions();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to remove transaction.');
     }
   };
 
@@ -678,6 +695,7 @@ export default function FinancePage() {
     manualTransactions.forEach(tx => {
       list.push({
         id: tx.referenceNumber || tx.id.slice(0, 8),
+        transactionId: tx.id,
         source: 'Manual Ledger',
         customer: tx.transactorAccount || 'N/A',
         date: new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
@@ -1568,6 +1586,7 @@ export default function FinancePage() {
                         <TableHead>Date Logged</TableHead>
                         <TableHead className="text-right">Amount ({currencyState})</TableHead>
                         <TableHead className="text-right">Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1596,6 +1615,21 @@ export default function FinancePage() {
                             >
                               {txn.rawStatus}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {txn.source === 'Manual Ledger' && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleTransactionDelete(txn.transactionId)}
+                                className="h-7 px-2 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300"
+                                aria-label={`Remove transaction ${txn.id}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="ml-1">Remove</span>
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

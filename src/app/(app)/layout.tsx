@@ -60,7 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#09090b]">
+      <div className="workspace-shell flex h-screen w-screen items-center justify-center bg-[#09090b]">
         <div className="text-zinc-500 text-xs flex items-center gap-2">
           <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
           <span>Loading workspace session...</span>
@@ -70,7 +70,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#09090b]">
+    <div className="workspace-shell flex h-screen w-screen overflow-hidden bg-[#09090b]">
       {/* Desktop Sidebar */}
       <Sidebar className="hidden md:flex shrink-0" />
 
@@ -101,7 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Topbar onMenuToggle={() => setIsMobileOpen(true)} />
         
         {/* Page Content area */}
-        <main className="flex-1 overflow-y-auto bg-[#0c0c0e] p-6 lg:p-8">
+        <main className="workspace-main flex-1 overflow-y-auto bg-[#0c0c0e] p-6 lg:p-8">
            {isAdminGated ? (
             <div className="flex h-[70vh] flex-col items-center justify-center font-sans text-xs">
               <div className="w-full max-w-md bg-[#0d0e12] border border-zinc-800 p-6 rounded-lg shadow-2xl space-y-6 text-center relative overflow-hidden">

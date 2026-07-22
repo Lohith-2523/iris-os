@@ -147,7 +147,7 @@ export function ExpandableCard({ children, className, expandedContent, disableEx
             : undefined
         }
         className={cn(
-          "transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-card-foreground shadow-sm relative",
+          "workspace-card transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-card-foreground shadow-sm relative",
           !isPoppedOut ? "w-full h-full" : "bg-[#0d0e12] overflow-hidden p-6 md:p-8 shadow-[0_0_100px_rgba(0,0,0,0.85)]",
           !isPoppedOut && !disableExpand ? "hover:ring-2 hover:ring-zinc-800/80 cursor-pointer hover:bg-zinc-900/100" : "",
           !isPoppedOut && className
