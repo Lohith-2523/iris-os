@@ -1,23 +1,38 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/client';
 
 export function AuthSync() {
   const supabase = React.useMemo(() => createClient(), []);
+  const pathname = usePathname();
+  const bootstrapPromise = React.useRef<Promise<void> | null>(null);
 
   React.useEffect(() => {
-    const bootstrap = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) await fetch('/api/auth/bootstrap', { method: 'POST' });
+    // Login and signup explicitly await bootstrap before navigating. Running the
+    // global listener there creates a duplicate provisioning request.
+    if (pathname === '/login' || pathname === '/signup') return;
+
+    const bootstrap = async (hasSession: boolean) => {
+      if (!hasSession) return;
+      if (!bootstrapPromise.current) {
+        bootstrapPromise.current = fetch('/api/auth/bootstrap', { method: 'POST' })
+          .then(() => undefined)
+          .finally(() => {
+            bootstrapPromise.current = null;
+          });
+      }
+      await bootstrapPromise.current;
     };
-    void bootstrap();
+
+    void supabase.auth.getSession().then(({ data }) => bootstrap(Boolean(data.session)));
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) void fetch('/api/auth/bootstrap', { method: 'POST' });
+      void bootstrap(Boolean(session));
     });
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, [pathname, supabase]);
 
   return null;
 }

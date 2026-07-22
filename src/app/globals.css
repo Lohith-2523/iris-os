@@ -1080,10 +1080,12 @@ h6,
 
 :root.light .workspace-shell .workspace-button {
   box-shadow: 4px 4px 10px rgba(143,157,178,.34), -4px -4px 10px rgba(255,255,255,.95);
+  color: #09090b !important;
 }
 
 :root.light .workspace-shell .workspace-button:hover {
   box-shadow: 6px 6px 13px rgba(135,150,173,.4), -5px -5px 12px #ffffff;
+  color: #09090b !important;
 }
 
 :root.light .workspace-shell .workspace-button:active {
@@ -1096,4 +1098,8 @@ h6,
 
 :root.light .workspace-shell tbody tr:hover {
   background: rgba(80,104,145,.06) !important;
+}
+
+:root.light .workspace-shell .agency-leads-summary {
+  background: #ffffff !important;
 }

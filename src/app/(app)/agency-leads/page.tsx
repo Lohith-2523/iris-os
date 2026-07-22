@@ -485,7 +485,7 @@ export default function AgencyLeadsPage() {
       </div>
 
       {/* Leads metrics header banner */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 bg-zinc-950/30 p-4 border border-zinc-900 rounded-lg">
+      <div className="agency-leads-summary grid gap-4 sm:grid-cols-2 lg:grid-cols-5 bg-zinc-950/30 p-4 border border-zinc-900 rounded-lg">
         <div className="border-r border-zinc-900/60 last:border-0 pr-4">
           <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Procured Leads</span>
           <span className="text-lg font-bold font-mono text-white block mt-1">{procuredLeads}</span>

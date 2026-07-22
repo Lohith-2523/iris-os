@@ -88,44 +88,84 @@ export async function provisionAuthenticatedUser(identity: SupabaseUser) {
     identity.user_metadata?.name ||
     normalizedEmail.split('@')[0];
 
-  return prisma.$transaction(async (tx) => {
-    const organization = await tx.organization.create({
-      data: {
-        name: `${displayName}'s Agency`,
-        billingEmail: normalizedEmail,
-        onboardingState: {
-          create: {
-            needsOnboarding: true,
-            currentStep: 0,
-            draft: {
-              signupName: displayName,
-              signupPhone: identity.phone || null,
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Provisioning can be triggered by more than one auth lifecycle event.
+      // Serialize creation for this immutable Supabase subject across all app
+      // instances, then re-check inside the lock before inserting anything.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${identity.id}, 0::bigint))`;
+
+      const provisioned = await tx.user.findFirst({
+        where: {
+          OR: [
+            { authUserId: identity.id },
+            {
+              authUserId: null,
+              email: { equals: normalizedEmail, mode: 'insensitive' },
+            },
+          ],
+        },
+        include: userWithWorkspace,
+      });
+
+      if (provisioned) {
+        if (!provisioned.authUserId) {
+          return tx.user.update({
+            where: { id: provisioned.id },
+            data: { authUserId: identity.id, email: normalizedEmail },
+            include: userWithWorkspace,
+          });
+        }
+        return provisioned;
+      }
+
+      const organization = await tx.organization.create({
+        data: {
+          name: `${displayName}'s Agency`,
+          billingEmail: normalizedEmail,
+          onboardingState: {
+            create: {
+              needsOnboarding: true,
+              currentStep: 0,
+              draft: {
+                signupName: displayName,
+                signupPhone: identity.phone || null,
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    return tx.user.create({
-      data: {
-        authUserId: identity.id,
-        email: normalizedEmail,
-        name: displayName,
-        username: identity.user_metadata?.username || null,
-        phone: identity.phone || null,
-        role: 'admin',
-        orgId: organization.id,
-        avatarUrl: identity.user_metadata?.avatar_url || null,
-        preferences: { create: {} },
-      },
-      include: userWithWorkspace,
+      return tx.user.create({
+        data: {
+          authUserId: identity.id,
+          email: normalizedEmail,
+          name: displayName,
+          username: identity.user_metadata?.username || null,
+          phone: identity.phone || null,
+          role: 'admin',
+          orgId: organization.id,
+          avatarUrl: identity.user_metadata?.avatar_url || null,
+          preferences: { create: {} },
+        },
+        include: userWithWorkspace,
+      });
     });
-  });
+  } catch (error) {
+    // Defensive recovery for a collision on a different deployment version or
+    // an already-running request that began before the advisory-lock change.
+    if ((error as { code?: string }).code === 'P2002') {
+      const provisioned = await prisma.user.findUnique({
+        where: { authUserId: identity.id },
+        include: userWithWorkspace,
+      });
+      if (provisioned) return provisioned;
+    }
+    throw error;
+  }
 }
 
 export async function getOrCreateRequestUser() {
-  const existing = await getRequestUser();
-  if (existing) return existing;
   const identity = await getAuthenticatedIdentity();
   return identity ? provisionAuthenticatedUser(identity) : null;
 }
