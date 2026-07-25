@@ -230,8 +230,8 @@ export async function POST(request: NextRequest) {
         credentials,
         'SYNCING',
         assets.adAccounts.length > 0
-          ? `Meta authorized as ${assets.profile.name}. Select one or more administrator ad accounts.`
-          : `Meta authorized as ${assets.profile.name}, but no ad accounts with administrator access were found.`,
+          ? `Meta authorized as ${assets.profile.name}. Select one or more accessible ad accounts.`
+          : `Meta authorized as ${assets.profile.name}, but no accessible ad accounts were found.`,
       );
       await saveMetaPageMappings(connection.id, user.orgId, assets.pages);
 
@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
           ? assets.pages.length > 0
             ? `${selectedIds.length} Meta ad account${selectedIds.length === 1 ? '' : 's'} connected and ${assets.pages.length} Facebook Page${assets.pages.length === 1 ? '' : 's'} subscribed for lead notifications.`
             : `${selectedIds.length} Meta ad account${selectedIds.length === 1 ? '' : 's'} connected, but no manageable Facebook Pages were found for lead notifications.`
-          : `Meta authorized as ${assets.profile.name}. Select one or more administrator ad accounts.`,
+          : `Meta authorized as ${assets.profile.name}. Select one or more accessible ad accounts.`,
       );
       await saveMetaPageMappings(connection.id, user.orgId, assets.pages);
 

@@ -1177,7 +1177,7 @@ export default function SettingsPage() {
                 </h2>
                 <p className="mt-1 text-xs text-zinc-400">
                   {metaConnection
-                    ? `Authorized as ${metaConnection.facebookUserName}. Only accounts where this user has administrator access are shown.`
+                    ? `Authorized as ${metaConnection.facebookUserName}. Only ad accounts Meta has granted this user access to are shown.`
                     : 'Loading the ad accounts available to this Meta user.'}
                 </p>
               </div>
@@ -1249,8 +1249,8 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div className="rounded-lg border border-amber-900/50 bg-amber-950/20 px-4 py-5 text-sm text-amber-200">
-                  No ad accounts with administrator access were found. Confirm that the Facebook user is an
-                  administrator of the Business Portfolio and that the app has the required Marketing API permissions.
+                  No accessible ad accounts were found. Confirm that the Facebook user has Analyze, Advertise, or
+                  Manage access to an ad account and that the app has the required Marketing API permissions.
                 </div>
               )}
 

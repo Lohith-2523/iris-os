@@ -332,8 +332,12 @@ export async function verifyMetaAccessToken(accessToken: string) {
   };
 }
 
-export function hasMetaAdministratorPermission(account: Pick<MetaAdAccount, 'userTasks'>) {
-  return account.userTasks.some((task) => task.toUpperCase() === 'MANAGE');
+export function hasMetaAdAccountAccess(account: Pick<MetaAdAccount, 'userTasks'>) {
+  // Lead retrieval and ad attribution are read-only. Meta can grant that access
+  // as ANALYZE or ADVERTISE without granting full Business Manager control.
+  return account.userTasks.some((task) =>
+    ['MANAGE', 'ADVERTISE', 'ANALYZE'].includes(task.toUpperCase()),
+  );
 }
 
 export async function discoverMetaBusinessAssets(accessToken: string) {
@@ -378,7 +382,7 @@ export async function discoverMetaBusinessAssets(accessToken: string) {
       businessName: account.business?.name || null,
       userTasks: account.user_tasks || [],
     }))
-    .filter(hasMetaAdministratorPermission);
+    .filter(hasMetaAdAccountAccess);
 
   const pages = rawPages
     .filter((page): page is RawMetaPage & { id: string; name: string; access_token: string } =>
