@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { invalidateWorkspaceDataTags, workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -67,7 +66,6 @@ interface CalendarEvent {
 export default function CalendarPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
   const [viewerEmail, setViewerEmail] = React.useState('');
   const [userRole, setUserRole] = React.useState('');
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
@@ -196,7 +194,17 @@ export default function CalendarPage() {
       } else if (googleConnectedParam === 'denied') {
         alert('Google Calendar access request was denied.');
       } else {
-        alert('Failed to connect Google Calendar.');
+        const reason = searchParams.get('reason');
+        const messages: Record<string, string> = {
+          configuration_error: 'Google Calendar OAuth is not configured for this deployment.',
+          forbidden: 'Only workspace administrators can connect the shared Google Calendar integration.',
+          initial_sync_failed: 'Google connected, but the initial calendar synchronization failed. Try Sync Now.',
+          permissions_missing: 'Approve both Calendar reading and event management permissions to connect.',
+          refresh_token_missing: 'Google did not grant offline access. Remove CrystalOS from your Google account permissions and reconnect.',
+          state_mismatch: 'The Calendar connection session could not be verified. Start the connection again.',
+          workspace_mismatch: 'Your CrystalOS session changed during authorization. Sign in and reconnect the calendar.',
+        };
+        alert(messages[reason || ''] || 'Failed to connect Google Calendar.');
       }
       router.replace('/calendar');
     }
@@ -220,18 +228,8 @@ export default function CalendarPage() {
       .catch(err => console.error('Error disconnecting google calendar:', err))
       .finally(() => setSyncingGoogle(false));
     } else {
-      // Redirect to Google OAuth via Supabase
-      supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
-          redirectTo: `${window.location.origin}/auth/callback?next=/calendar&type=calendar`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
+      setSyncingGoogle(true);
+      window.location.assign('/api/integrations/google/start?returnTo=/calendar');
     }
   };
 

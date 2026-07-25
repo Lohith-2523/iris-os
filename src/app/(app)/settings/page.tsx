@@ -4,7 +4,6 @@ import * as React from 'react';
 import { Popover } from 'radix-ui';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { createClient } from '@/lib/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatUserMessage } from '@/lib/utils';
@@ -89,7 +88,6 @@ const AGENCY_INDUSTRIES = [
 ];
 
 export default function SettingsPage() {
-  const supabase = createClient();
   const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
   const [orgName, setOrgName] = React.useState('Apex Creative Group');
   const [billingEmail, setBillingEmail] = React.useState('billing@apex.co');
@@ -1081,17 +1079,7 @@ export default function SettingsPage() {
                                           handleConnectMeta();
                                         }
                                       } else if (item.provider === 'GOOGLE') {
-                                        supabase.auth.signInWithOAuth({
-                                          provider: 'google',
-                                          options: {
-                                            scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
-                                            redirectTo: `${window.location.origin}/auth/callback?next=/calendar&type=calendar`,
-                                            queryParams: {
-                                              access_type: 'offline',
-                                              prompt: 'consent',
-                                            },
-                                          },
-                                        });
+                                        window.location.assign('/api/integrations/google/start?returnTo=/calendar');
                                       }
                                     }}
                                     className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
