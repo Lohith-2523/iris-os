@@ -1,6 +1,111 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { decryptIntegrationCredentials } from '@/lib/integration-secrets';
+import {
+  type MetaCredentialPayload,
+  MetaIntegrationError,
+  retrieveMetaAdAccountPerformance,
+} from '@/lib/meta-business';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+
+async function syncMetaPerformanceForClient(orgId: string, clientId: string, adAccountId: string) {
+  const [client, connection] = await Promise.all([
+    prisma.client.findFirst({
+      where: { id: clientId, orgId, adAccountId },
+      select: { id: true },
+    }),
+    prisma.integrationConnection.findUnique({
+      where: { orgId_provider: { orgId, provider: 'META' } },
+      select: { credentialCiphertext: true },
+    }),
+  ]);
+  if (!client) throw new MetaIntegrationError('Assign this Meta ad account to the client before syncing.', 409);
+  if (!connection?.credentialCiphertext) throw new MetaIntegrationError('Connect Meta before syncing performance.', 409);
+
+  const credentials = decryptIntegrationCredentials<MetaCredentialPayload & Record<string, unknown>>(
+    connection.credentialCiphertext,
+  );
+  if (!credentials.selectedAdAccountIds.includes(adAccountId)) {
+    throw new MetaIntegrationError('This ad account is not connected to the workspace.', 403);
+  }
+
+  const performance = await retrieveMetaAdAccountPerformance(adAccountId, credentials.accessToken);
+  const syncedAt = new Date();
+  const leadCounts = await prisma.metaLead.groupBy({
+    by: ['adId'],
+    where: { orgId, adAccountId, adId: { not: null } },
+    _count: { _all: true },
+  });
+  const leadsByAdId = new Map(
+    leadCounts.flatMap((entry) => entry.adId ? [[entry.adId, entry._count._all] as const] : []),
+  );
+
+  await prisma.$transaction(async (tx) => {
+    const campaignRecords = new Map<string, { id: string }>();
+    for (const campaign of performance.campaigns) {
+      const saved = await tx.metaCampaign.upsert({
+        where: { orgId_campaignId: { orgId, campaignId: campaign.id } },
+        create: {
+          campaignId: campaign.id,
+          name: campaign.name,
+          status: campaign.status,
+          objective: campaign.objective,
+          dailyBudget: campaign.dailyBudget,
+          adAccountId,
+          providerSyncedAt: syncedAt,
+          orgId,
+        },
+        update: {
+          name: campaign.name,
+          status: campaign.status,
+          objective: campaign.objective,
+          dailyBudget: campaign.dailyBudget,
+          adAccountId,
+          providerSyncedAt: syncedAt,
+        },
+        select: { id: true },
+      });
+      campaignRecords.set(campaign.id, saved);
+    }
+
+    for (const ad of performance.ads) {
+      const campaign = ad.campaignId ? campaignRecords.get(ad.campaignId) : null;
+      if (!campaign) continue;
+      await tx.metaAd.upsert({
+        where: { orgId_adId: { orgId, adId: ad.id } },
+        create: {
+          adId: ad.id,
+          name: ad.name,
+          status: ad.status,
+          spend: ad.spend,
+          leadsCount: leadsByAdId.get(ad.id) || 0,
+          reach: ad.reach,
+          impressions: ad.impressions,
+          clicks: ad.clicks,
+          platform: 'META',
+          campaignId: campaign.id,
+          adAccountId,
+          providerSyncedAt: syncedAt,
+          orgId,
+        },
+        update: {
+          name: ad.name,
+          status: ad.status,
+          spend: ad.spend,
+          leadsCount: leadsByAdId.get(ad.id) || 0,
+          reach: ad.reach,
+          impressions: ad.impressions,
+          clicks: ad.clicks,
+          campaignId: campaign.id,
+          adAccountId,
+          providerSyncedAt: syncedAt,
+        },
+      });
+    }
+  });
+
+  return { campaigns: performance.campaigns.length, ads: performance.ads.length, syncedAt };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +119,8 @@ export async function GET(request: NextRequest) {
     // Provider leads are attributed to a client at ingestion time. Never infer
     // tenancy from provider IDs or expose organization-wide Meta records.
     const campaigns = isClient ? [] : await prisma.metaCampaign.findMany({
-      where: { orgId: user.orgId },
-      include: { ads: true },
+      where: { orgId: user.orgId, providerSyncedAt: { not: null } },
+      include: { ads: { where: { providerSyncedAt: { not: null } } } },
       orderBy: { createdAt: 'desc' },
     });
     const leads = isClient
@@ -34,7 +139,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch any ads that don't have campaigns
     const orphanedAds = isClient ? [] : await prisma.metaAd.findMany({
-      where: { orgId: user.orgId, campaignId: null },
+      where: { orgId: user.orgId, campaignId: null, providerSyncedAt: { not: null } },
       orderBy: { spend: 'desc' },
     });
 
@@ -108,6 +213,16 @@ export async function POST(request: NextRequest) {
 
     if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    if (action === 'sync_performance') {
+      const clientId = typeof body.clientId === 'string' ? body.clientId : '';
+      const adAccountId = typeof body.adAccountId === 'string' ? body.adAccountId : '';
+      if (!clientId || !adAccountId) {
+        return NextResponse.json({ error: 'A client and Meta ad account are required.' }, { status: 400 });
+      }
+      const result = await syncMetaPerformanceForClient(org.id, clientId, adAccountId);
+      return NextResponse.json({ success: true, ...result });
+    }
+
     // Campaigns and ads must originate from Meta. Generating local identifiers makes
     // fictional provider records appear as live advertising data.
     if (action === 'create_campaign') {
@@ -118,48 +233,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Create ads in Meta Ads Manager, then synchronize the connected account.' }, { status: 409 });
     }
 
-    // 7. Edit Campaign
+    // Advertising data is provider-owned. Local edits would make the dashboard
+    // differ from Meta, so changes must happen in Meta Ads Manager and be synced.
     if (action === 'edit_campaign') {
-      const { id, name, status, dailyBudget } = body;
-      if (!id || !name || !status) {
-        return NextResponse.json({ error: 'Missing id, name, or status' }, { status: 400 });
-      }
-
-      const updatedCampaign = await prisma.metaCampaign.update({
-        where: { id, orgId: org.id },
-        data: {
-          name,
-          status,
-          dailyBudget: dailyBudget ? parseFloat(dailyBudget) : null
-        }
-      });
-
-      return NextResponse.json({ success: true, campaign: updatedCampaign });
+      return NextResponse.json({ error: 'Edit campaigns in Meta Ads Manager, then synchronize the connected account.' }, { status: 409 });
     }
 
-    // 8. Edit Ad
     if (action === 'edit_ad') {
-      const { id, name, status, platform, spend, reach, clicks, impressions, leadsCount, imageUrl } = body;
-      if (!id || !name || !status || !platform) {
-        return NextResponse.json({ error: 'Missing id, name, status, or platform' }, { status: 400 });
-      }
-
-      const updatedAd = await prisma.metaAd.update({
-        where: { id, orgId: org.id },
-        data: {
-          name,
-          status,
-          platform,
-          spend: spend !== undefined ? parseFloat(spend) : undefined,
-          reach: reach !== undefined ? parseInt(reach) : undefined,
-          clicks: clicks !== undefined ? parseInt(clicks) : undefined,
-          impressions: impressions !== undefined ? parseInt(impressions) : undefined,
-          leadsCount: leadsCount !== undefined ? parseInt(leadsCount) : undefined,
-          imageUrl: imageUrl !== undefined ? imageUrl : undefined
-        }
-      });
-
-      return NextResponse.json({ success: true, ad: updatedAd });
+      return NextResponse.json({ error: 'Edit ads in Meta Ads Manager, then synchronize the connected account.' }, { status: 409 });
     }
 
 

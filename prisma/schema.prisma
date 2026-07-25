@@ -475,44 +475,50 @@ model AskPrismMessage {
 }
 
 model MetaCampaign {
-  id           String       @id @default(uuid())
-  campaignId   String
-  name         String
-  status       String // ACTIVE, PAUSED, ARCHIVED
-  objective    String? // OUTCOME_LEADS, etc.
-  dailyBudget  Float?
-  orgId        String
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  ads          MetaAd[]
+  id               String       @id @default(uuid())
+  campaignId       String
+  name             String
+  status           String // ACTIVE, PAUSED, ARCHIVED
+  objective        String? // OUTCOME_LEADS, etc.
+  dailyBudget      Float?
+  adAccountId      String?
+  providerSyncedAt DateTime?
+  orgId            String
+  organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  ads              MetaAd[]
 
   @@unique([orgId, campaignId])
   @@index([orgId])
+  @@index([orgId, adAccountId, providerSyncedAt])
 }
 
 model MetaAd {
-  id           String        @id @default(uuid())
-  adId         String
-  name         String
-  status       String // ACTIVE, PAUSED, ARCHIVED
-  spend        Float
-  leadsCount   Int           @default(0)
-  reach        Int           @default(0)
-  impressions  Int           @default(0)
-  clicks       Int           @default(0)
-  platform     String // FACEBOOK, INSTAGRAM, MESSENGER, AUDIENCE_NETWORK
-  imageUrl     String? // Link to design asset image from Canva
-  campaignId   String?
-  campaign     MetaCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  orgId        String
-  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id               String        @id @default(uuid())
+  adId             String
+  name             String
+  status           String // ACTIVE, PAUSED, ARCHIVED
+  spend            Float
+  leadsCount       Int           @default(0)
+  reach            Int           @default(0)
+  impressions      Int           @default(0)
+  clicks           Int           @default(0)
+  platform         String // FACEBOOK, INSTAGRAM, MESSENGER, AUDIENCE_NETWORK
+  imageUrl         String? // Link to design asset image from Canva
+  campaignId       String?
+  campaign         MetaCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  adAccountId      String?
+  providerSyncedAt DateTime?
+  orgId            String
+  organization     Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   @@unique([orgId, adId])
   @@index([orgId])
   @@index([campaignId])
+  @@index([orgId, adAccountId, providerSyncedAt])
 }
 
 model MetaLead {

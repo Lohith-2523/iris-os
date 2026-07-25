@@ -100,6 +100,7 @@ export default function ClientDetailDashboard({
   const [leadsSearchQuery, setLeadsSearchQuery] = React.useState('');
   const [selectedLeadStatus, setSelectedLeadStatus] = React.useState('all');
   const [syncingAdAccount, setSyncingAdAccount] = React.useState(false);
+  const [metaPerformanceError, setMetaPerformanceError] = React.useState('');
   const [assignedAdAccountId, setAssignedAdAccountId] = React.useState(client.adAccountId || '');
   const [pendingAdAccountId, setPendingAdAccountId] = React.useState(client.adAccountId || '');
   const [metaAssignmentStatus, setMetaAssignmentStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -153,9 +154,15 @@ export default function ClientDetailDashboard({
       const res = await fetch('/api/meta-portal');
       if (res.ok) {
         const data = await res.json();
-        // Filter campaigns and leads based on client's adAccountId
-        const filteredCampaigns = adAccountId ? (data.campaigns || []).filter((camp: any) => camp.campaignId.startsWith(adAccountId)) : [];
-        const filteredLeads = adAccountId ? (data.leads || []).filter((lead: any) => lead.adId && lead.adId.startsWith(adAccountId)) : [];
+        // Performance records are eligible only after a provider-backed Meta sync.
+        const filteredCampaigns = adAccountId
+          ? (data.campaigns || []).filter((camp: any) =>
+              camp.adAccountId === adAccountId && camp.providerSyncedAt,
+            )
+          : [];
+        const filteredLeads = adAccountId
+          ? (data.leads || []).filter((lead: any) => lead.adAccountId === adAccountId)
+          : [];
         setMetaCampaigns(filteredCampaigns);
         setMetaLeads(filteredLeads);
       }
@@ -173,10 +180,27 @@ export default function ClientDetailDashboard({
   const handleSyncAccount = async () => {
     if (!adAccountId) return;
     setSyncingAdAccount(true);
+    setMetaPerformanceError('');
     try {
+      const response = await fetch('/api/meta-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync_performance',
+          clientId: client.id,
+          adAccountId,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to sync Meta performance data.');
+      }
       await loadData();
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
+      setMetaPerformanceError(formatUserMessage(
+        error instanceof Error ? error.message : 'Unable to sync Meta performance data.',
+      ));
     } finally {
       setSyncingAdAccount(false);
     }
@@ -311,33 +335,30 @@ export default function ClientDetailDashboard({
     }, 0);
   }, [metaCampaigns]);
 
-  const totalLeads = React.useMemo(() => {
-    return metaCampaigns.reduce((sum, camp) => {
-      return sum + (camp.ads || []).reduce((adSum: number, ad: any) => adSum + ad.leadsCount, 0);
-    }, 0);
-  }, [metaCampaigns]);
+  const totalLeads = metaLeads.length;
 
   const avgCpl = totalLeads > 0 ? totalSpend / totalLeads : 0;
 
   const totalImpressions = React.useMemo(() => {
     return metaCampaigns.reduce((sum, camp) => {
       return sum + (camp.ads || []).reduce((adSum: number, ad: any) => adSum + ad.impressions, 0);
-    }, 0) || 130500;
+    }, 0);
   }, [metaCampaigns]);
 
   const totalReach = React.useMemo(() => {
     return metaCampaigns.reduce((sum, camp) => {
       return sum + (camp.ads || []).reduce((adSum: number, ad: any) => adSum + ad.reach, 0);
-    }, 0) || 94700;
+    }, 0);
   }, [metaCampaigns]);
 
   const totalClicks = React.useMemo(() => {
     return metaCampaigns.reduce((sum, camp) => {
       return sum + (camp.ads || []).reduce((adSum: number, ad: any) => adSum + ad.clicks, 0);
-    }, 0) || 1200;
+    }, 0);
   }, [metaCampaigns]);
 
-  const clickThroughRate = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0.92;
+  const hasMetaPerformance = metaCampaigns.some((campaign) => campaign.ads?.length > 0);
+  const clickThroughRate = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : null;
   const costPerClick = totalClicks > 0 ? totalSpend / totalClicks : 0;
   const costPerThousandImpressions = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
 
@@ -495,9 +516,14 @@ export default function ClientDetailDashboard({
                     <>
                       <RefreshCw className="h-3.5 w-3.5" />
                       <span>Sync Account Metrics</span>
-                    </>
-                  )}
+                  </>
+                )}
                 </Button>
+                {metaPerformanceError && (
+                  <p className="text-[10px] text-rose-300" role="alert">
+                    {metaPerformanceError}
+                  </p>
+                )}
               </div> : <p className="p-3 border border-zinc-800 text-xs text-zinc-500">No Meta ad account is associated with this client.</p>}
             </CardContent>
           </Card>
@@ -717,10 +743,11 @@ export default function ClientDetailDashboard({
                     <span>Ad Campaign Performance & Metrics</span>
                   </h3>
                   <Badge variant="outline" className="text-[8px] bg-zinc-900 border-zinc-800 text-zinc-400">
-                    Live Meta API Feed
+                    Meta-synced data
                   </Badge>
                 </div>
 
+                {hasMetaPerformance ? (
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
                   <Card>
                     <CardHeader className="pb-1">
@@ -751,7 +778,7 @@ export default function ClientDetailDashboard({
                       <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">CTR</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-base font-bold font-mono tracking-tight text-white">{clickThroughRate.toFixed(2)}%</div>
+                      <div className="text-base font-bold font-mono tracking-tight text-white">{clickThroughRate?.toFixed(2) ?? '—'}%</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -779,13 +806,20 @@ export default function ClientDetailDashboard({
                     </CardContent>
                   </Card>
                 </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center text-xs text-zinc-500">
+                      No Meta performance data has been synchronized for this account. Use "Sync Account Metrics" to pull delivery data from Meta.
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Ad Creatives list table */}
                 <Card>
                   <CardHeader className="pb-3 border-b border-zinc-900 flex flex-row items-center justify-between">
                     <div>
                       <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Meta Campaign Creatives</CardTitle>
-                      <CardDescription className="text-[10px] text-zinc-500">Live active ad creatives on Facebook & Instagram.</CardDescription>
+                      <CardDescription className="text-[10px] text-zinc-500">Delivery data imported from the connected Meta ad account.</CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-4 p-0">
@@ -794,8 +828,8 @@ export default function ClientDetailDashboard({
                         <Loader2 className="h-4.5 w-4.5 animate-spin" />
                         <span>Syncing ad creatives...</span>
                       </div>
-                    ) : metaCampaigns.length === 0 ? (
-                      <div className="p-8 text-center text-zinc-650 italic">No ad campaigns synced. Connect ad account to trigger sync.</div>
+                    ) : !hasMetaPerformance ? (
+                      <div className="p-8 text-center text-zinc-650 italic">No Meta performance data has been synchronized for this account.</div>
                     ) : (
                       <Table>
                         <TableHeader>

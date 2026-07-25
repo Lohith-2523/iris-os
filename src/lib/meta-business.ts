@@ -100,6 +100,35 @@ type RawMetaAdAttribution = MetaGraphErrorResponse & {
   campaign_id?: string;
 };
 
+type RawMetaCampaign = {
+  id?: string;
+  name?: string;
+  status?: string;
+  objective?: string;
+  daily_budget?: string;
+};
+
+type RawMetaAdInsight = {
+  ad_id?: string;
+  ad_name?: string;
+  campaign_id?: string;
+  campaign_name?: string;
+  spend?: string;
+  reach?: string;
+  impressions?: string;
+  clicks?: string;
+};
+
+type RawMetaAd = {
+  id?: string;
+  name?: string;
+  status?: string;
+  campaign?: {
+    id?: string;
+    name?: string;
+  };
+};
+
 export type MetaBusiness = {
   id: string;
   name: string;
@@ -228,6 +257,7 @@ async function graphGetAll<T>(
   accessToken: string,
   fields: string,
   maxPages = 20,
+  params: Record<string, string> = {},
 ) {
   const results: T[] = [];
   let after: string | undefined;
@@ -236,6 +266,7 @@ async function graphGetAll<T>(
     const payload = await graphGet<MetaPagedResponse<T>>(path, accessToken, {
       fields,
       limit: '100',
+      ...params,
       ...(after ? { after } : {}),
     });
     results.push(...(payload.data || []));
@@ -245,6 +276,11 @@ async function graphGetAll<T>(
   }
 
   return results;
+}
+
+function numberOrZero(value: string | undefined) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 async function graphPost<T extends MetaGraphErrorResponse>(
@@ -461,6 +497,60 @@ export async function retrieveMetaAdAttribution(adId: string, accessToken: strin
     name: ad.name || null,
     accountId: ad.account_id,
     campaignId: ad.campaign_id || null,
+  };
+}
+
+export async function retrieveMetaAdAccountPerformance(adAccountId: string, accessToken: string) {
+  const [rawCampaigns, rawInsights, rawAds] = await Promise.all([
+    graphGetAll<RawMetaCampaign>(
+      `${adAccountId}/campaigns`,
+      accessToken,
+      'id,name,status,objective,daily_budget',
+    ),
+    graphGetAll<RawMetaAdInsight>(
+      `${adAccountId}/insights`,
+      accessToken,
+      'ad_id,ad_name,campaign_id,campaign_name,spend,reach,impressions,clicks',
+      20,
+      { level: 'ad', date_preset: 'maximum' },
+    ),
+    graphGetAll<RawMetaAd>(
+      `${adAccountId}/ads`,
+      accessToken,
+      'id,name,status,campaign{id,name}',
+    ),
+  ]);
+  const adsById = new Map(
+    rawAds
+      .filter((ad): ad is RawMetaAd & { id: string } => Boolean(ad.id))
+      .map((ad) => [ad.id, ad]),
+  );
+
+  return {
+    campaigns: rawCampaigns
+      .filter((campaign): campaign is RawMetaCampaign & { id: string; name: string; status: string } =>
+        Boolean(campaign.id && campaign.name && campaign.status),
+      )
+      .map((campaign) => ({
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.status,
+        objective: campaign.objective || null,
+        dailyBudget: campaign.daily_budget ? numberOrZero(campaign.daily_budget) : null,
+      })),
+    ads: rawInsights
+      .filter((insight): insight is RawMetaAdInsight & { ad_id: string } => Boolean(insight.ad_id))
+      .map((insight) => ({
+        id: insight.ad_id,
+        name: insight.ad_name || adsById.get(insight.ad_id)?.name || insight.ad_id,
+        status: adsById.get(insight.ad_id)?.status || 'UNKNOWN',
+        campaignId: insight.campaign_id || adsById.get(insight.ad_id)?.campaign?.id || null,
+        campaignName: insight.campaign_name || adsById.get(insight.ad_id)?.campaign?.name || null,
+        spend: numberOrZero(insight.spend),
+        reach: numberOrZero(insight.reach),
+        impressions: numberOrZero(insight.impressions),
+        clicks: numberOrZero(insight.clicks),
+      })),
   };
 }
 
