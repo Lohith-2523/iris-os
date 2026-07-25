@@ -1,321 +1,252 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import crypto from 'crypto';
-
-// Verify Meta Hub signature
-function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
-  const metaSecret = process.env.META_APP_SECRET;
-  const igSecret = process.env.INSTAGRAM_APP_SECRET;
-
-  if (!metaSecret && !igSecret) {
-    console.error('Meta Webhook signature verification unavailable: provider secret is not configured.');
-    return false;
-  }
-
-  if (!signatureHeader) {
-    console.warn('Meta Webhook verification failed: Missing X-Hub-Signature-256 header.');
-    return false;
-  }
-
-  const parts = signatureHeader.split('=');
-  if (parts.length !== 2 || parts[0] !== 'sha256') {
-    console.warn('Meta Webhook verification failed: Invalid X-Hub-Signature-256 header format.');
-    return false;
-  }
-
-  const expectedSignature = parts[1];
-
-  // Try verifying using META_APP_SECRET
-  if (metaSecret) {
-    const hmac = crypto.createHmac('sha256', metaSecret);
-    const calculatedSignature = hmac.update(rawBody).digest('hex');
-    try {
-      const bufferExpected = Buffer.from(expectedSignature, 'hex');
-      const bufferCalculated = Buffer.from(calculatedSignature, 'hex');
-      if (bufferExpected.length === bufferCalculated.length && crypto.timingSafeEqual(bufferExpected, bufferCalculated)) {
-        return true;
-      }
-    } catch (e) {
-      console.error('Error during META_APP_SECRET signature timing check:', e);
-    }
-  }
-
-  // Try verifying using INSTAGRAM_APP_SECRET
-  if (igSecret) {
-    const hmac = crypto.createHmac('sha256', igSecret);
-    const calculatedSignature = hmac.update(rawBody).digest('hex');
-    try {
-      const bufferExpected = Buffer.from(expectedSignature, 'hex');
-      const bufferCalculated = Buffer.from(calculatedSignature, 'hex');
-      if (bufferExpected.length === bufferCalculated.length && crypto.timingSafeEqual(bufferExpected, bufferCalculated)) {
-        return true;
-      }
-    } catch (e) {
-      console.error('Error during INSTAGRAM_APP_SECRET signature timing check:', e);
-    }
-  }
-
-  console.warn('Meta Webhook verification failed: Signature mismatch.');
-  return false;
-}
-
+import { decryptIntegrationCredentials } from '@/lib/integration-secrets';
+import {
+  type MetaCredentialPayload,
+  retrieveMetaAdAttribution,
+  retrieveMetaLead,
+} from '@/lib/meta-business';
+import {
+  normalizeMetaAdAccountId,
+  normalizeMetaLeadFields,
+} from '@/lib/meta-leads-shared';
 
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN;
 
-// GET Handshake challenge verification
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const mode = searchParams.get('hub.mode');
-    const token = searchParams.get('hub.verify_token');
-    const challenge = searchParams.get('hub.challenge');
+function verifySignature(rawBody: string, signatureHeader: string | null) {
+  const appSecret = process.env.META_APP_SECRET;
+  if (!appSecret || !signatureHeader?.startsWith('sha256=')) return false;
 
-    if (VERIFY_TOKEN && mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('Meta Webhook handshake verified successfully.');
-      if (challenge) {
-        return new Response(challenge, {
-          status: 200,
-          headers: { 'Content-Type': 'text/plain' },
-        });
-      }
-    }
-
-    console.warn('Meta Webhook handshake verification failed.');
-    return new Response('Verification failed', { status: 403 });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error in Meta Webhook GET verification:', errorMessage);
-    return new Response(errorMessage, { status: 500 });
-  }
+  const supplied = Buffer.from(signatureHeader.slice('sha256='.length), 'hex');
+  const expected = Buffer.from(
+    crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex'),
+    'hex',
+  );
+  return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
 }
 
-// POST Event Receiver
+function parseMetaDate(value: string | null) {
+  if (!value) return new Date();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+async function appendConnectionLog(connectionId: string, message: string) {
+  const connection = await prisma.integrationConnection.findUnique({
+    where: { id: connectionId },
+    select: { syncLogs: true },
+  });
+  const currentLogs: Array<{ timestamp: string; message: string }> = [];
+  if (connection?.syncLogs) {
+    try {
+      const parsed = JSON.parse(connection.syncLogs);
+      if (Array.isArray(parsed)) currentLogs.push(...parsed);
+    } catch {
+      currentLogs.push({
+        timestamp: new Date().toISOString(),
+        message: connection.syncLogs,
+      });
+    }
+  }
+
+  await prisma.integrationConnection.update({
+    where: { id: connectionId },
+    data: {
+      status: 'CONNECTED',
+      lastSync: new Date(),
+      syncLogs: JSON.stringify([
+        { timestamp: new Date().toISOString(), message },
+        ...currentLogs,
+      ].slice(0, 50)),
+    },
+  });
+}
+
+async function processLeadNotification(
+  pageId: string,
+  value: Record<string, unknown>,
+) {
+  const leadgenId =
+    typeof value.leadgen_id === 'string' || typeof value.leadgen_id === 'number'
+      ? String(value.leadgen_id)
+      : '';
+  if (!leadgenId) {
+    return { type: 'leadgen_ignored', reason: 'missing_leadgen_id' };
+  }
+
+  const pageMapping = await prisma.metaPageConnection.findUnique({
+    where: { pageId },
+    include: { connection: true },
+  });
+  if (
+    !pageMapping?.connection.credentialCiphertext ||
+    pageMapping.connection.status !== 'CONNECTED'
+  ) {
+    return { type: 'leadgen_ignored', leadId: leadgenId, reason: 'unmapped_page' };
+  }
+
+  const credentials = decryptIntegrationCredentials<MetaCredentialPayload & Record<string, unknown>>(
+    pageMapping.connection.credentialCiphertext,
+  );
+  const page = (credentials.pages || []).find((candidate) => candidate.id === pageId);
+  if (!page?.accessToken) {
+    return { type: 'leadgen_ignored', leadId: leadgenId, reason: 'missing_page_token' };
+  }
+
+  const lead = await retrieveMetaLead(leadgenId, page.accessToken);
+  if (!lead.adId) {
+    return { type: 'leadgen_ignored', leadId: leadgenId, reason: 'missing_ad_id' };
+  }
+
+  const ad = await retrieveMetaAdAttribution(lead.adId, credentials.accessToken);
+  const adAccountId = normalizeMetaAdAccountId(ad.accountId);
+  if (!adAccountId || !credentials.selectedAdAccountIds.includes(adAccountId)) {
+    return {
+      type: 'leadgen_ignored',
+      leadId: leadgenId,
+      reason: 'ad_account_not_connected',
+    };
+  }
+
+  const client = await prisma.client.findFirst({
+    where: {
+      orgId: pageMapping.orgId,
+      adAccountId,
+    },
+    select: { id: true, name: true },
+  });
+  if (!client) {
+    return {
+      type: 'leadgen_ignored',
+      leadId: leadgenId,
+      adAccountId,
+      reason: 'ad_account_not_assigned_to_client',
+    };
+  }
+
+  const contact = normalizeMetaLeadFields(lead.fieldData);
+  const storedLead = await prisma.metaLead.upsert({
+    where: {
+      orgId_leadId: {
+        orgId: pageMapping.orgId,
+        leadId: lead.id,
+      },
+    },
+    create: {
+      leadId: lead.id,
+      adId: lead.adId,
+      adName: ad.name,
+      fullName: contact.fullName,
+      email: contact.email,
+      phone: contact.phone,
+      status: 'new',
+      createdTime: parseMetaDate(lead.createdTime),
+      collectionMethod: 'Meta Instant Form',
+      approachMethod: 'Meta Lead Ad',
+      funnelName: ad.name,
+      adAccountId,
+      pageId,
+      formId: lead.formId,
+      campaignId: lead.campaignId || ad.campaignId,
+      fieldData: contact.values,
+      clientId: client.id,
+      orgId: pageMapping.orgId,
+    },
+    update: {
+      adId: lead.adId,
+      adName: ad.name,
+      fullName: contact.fullName,
+      email: contact.email,
+      phone: contact.phone,
+      createdTime: parseMetaDate(lead.createdTime),
+      adAccountId,
+      pageId,
+      formId: lead.formId,
+      campaignId: lead.campaignId || ad.campaignId,
+      fieldData: contact.values,
+      clientId: client.id,
+    },
+  });
+
+  const leadsCount = await prisma.metaLead.count({
+    where: { orgId: pageMapping.orgId, adId: lead.adId },
+  });
+  await prisma.metaAd.updateMany({
+    where: { orgId: pageMapping.orgId, adId: lead.adId },
+    data: { leadsCount },
+  });
+  await appendConnectionLog(
+    pageMapping.connectionId,
+    `Retrieved Meta lead ${lead.id} for ${client.name} from ${ad.name || lead.adId}.`,
+  );
+
+  return {
+    type: 'leadgen_captured',
+    leadId: storedLead.leadId,
+    clientId: client.id,
+    adAccountId,
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const mode = request.nextUrl.searchParams.get('hub.mode');
+  const token = request.nextUrl.searchParams.get('hub.verify_token');
+  const challenge = request.nextUrl.searchParams.get('hub.challenge');
+
+  if (VERIFY_TOKEN && mode === 'subscribe' && token === VERIFY_TOKEN && challenge) {
+    return new Response(challenge, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+  return new Response('Verification failed', { status: 403 });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
-    const signatureHeader = request.headers.get('X-Hub-Signature-256');
-
-    // Verify signature if secrets are configured
-    if (!verifySignature(rawBody, signatureHeader)) {
-      console.warn('Meta Webhook signature verification failed.');
-      return new Response(JSON.stringify({ error: 'Signature verification failed' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!verifySignature(rawBody, request.headers.get('X-Hub-Signature-256'))) {
+      return NextResponse.json({ error: 'Signature verification failed' }, { status: 401 });
     }
 
-    const body = JSON.parse(rawBody);
-    const { object: webhookObject, entry: entries = [] } = body;
-
-    const externalAccountIds = entries.map((entry: any) => String(entry.id || '')).filter(Boolean);
-    const metaConnection = await prisma.integrationConnection.findFirst({
-      where: { provider: 'META', externalAccountId: { in: externalAccountIds } },
-      select: { orgId: true },
-    });
-    if (!metaConnection) return NextResponse.json({ error: 'Unknown Meta account' }, { status: 404 });
-    const orgId = metaConnection.orgId;
-
-    const processedEvents: Record<string, unknown>[] = [];
-
-    // Helper to log connection events to IntegrationConnection log
-    const logConnectionEvent = async (provider: string, message: string) => {
-      if (provider === 'SLACK' || provider === 'HUBSPOT') {
-        console.log(`[Meta Webhook Debug - Redirected from ${provider}]: ${message}`);
-        return;
-      }
-      const conn = await prisma.integrationConnection.findFirst({
-        where: { orgId, provider }
-      });
-      if (conn) {
-        let currentLogs = [];
-        if (conn.syncLogs) {
-          try {
-            currentLogs = JSON.parse(conn.syncLogs);
-          } catch (e) {
-            console.error('Failed to parse connection syncLogs:', e);
-          }
-        }
-        const newLog = {
-          timestamp: new Date().toISOString(),
-          message
-        };
-        const updatedLogs = [newLog, ...(Array.isArray(currentLogs) ? currentLogs : [])].slice(0, 50);
-        await prisma.integrationConnection.update({
-          where: { id: conn.id },
-          data: {
-            lastSync: new Date(),
-            syncLogs: JSON.stringify(updatedLogs),
-            status: 'CONNECTED'
-          }
-        });
-      }
+    const body = JSON.parse(rawBody) as {
+      object?: string;
+      entry?: Array<{
+        id?: string;
+        changes?: Array<{ field?: string; value?: Record<string, unknown> }>;
+      }>;
     };
+    if (body.object !== 'page') {
+      return NextResponse.json({ success: true, processedCount: 0, events: [] });
+    }
 
-    for (const entry of entries) {
-      // 1. Handle Ad Account Webhooks
-      if (webhookObject === 'ad_account') {
-        const changes = entry.changes || [];
-        for (const change of changes) {
-          const val = change.value;
-          if (!val) continue;
-
-          // Check if ad status/spend changes
-          if (change.field === 'ad_status' || val.ad_id) {
-            const adId = val.ad_id;
-            const updatedAd = await prisma.metaAd.updateMany({
-              where: { orgId, adId },
-              data: {
-                status: val.status || undefined,
-                spend: val.spend !== undefined ? parseFloat(val.spend) : undefined,
-                reach: val.reach !== undefined ? parseInt(val.reach) : undefined,
-                clicks: val.clicks !== undefined ? parseInt(val.clicks) : undefined,
-                impressions: val.impressions !== undefined ? parseInt(val.impressions) : undefined
-              }
-            });
-            await logConnectionEvent('SLACK', `Meta Webhook: Ad ${adId} updated status/metrics via ad_account webhook.`);
-            processedEvents.push({ type: 'ad_account_change', adId, success: updatedAd.count > 0 });
-          }
-
-          // Check if campaign level changes
-          if (val.campaign_id) {
-            const campaignId = val.campaign_id;
-            const updatedCampaign = await prisma.metaCampaign.updateMany({
-              where: { orgId, campaignId },
-              data: {
-                status: val.status || undefined,
-                dailyBudget: val.daily_budget !== undefined ? parseFloat(val.daily_budget) : undefined
-              }
-            });
-            processedEvents.push({ type: 'campaign_change', campaignId, success: updatedCampaign.count > 0 });
-          }
-        }
-      }
-
-      // 2. Handle Catalog Webhooks
-      else if (webhookObject === 'catalog') {
-        const changes = entry.changes || [];
-        for (const change of changes) {
-          const val = change.value;
-          await logConnectionEvent('CANVA', `Meta Catalog Webhook: Catalog ${entry.id || 'Unknown'} field ${change.field || 'unknown'} changed: ${JSON.stringify(val)}`);
-          processedEvents.push({ type: 'catalog_change', field: change.field });
-        }
-      }
-
-      // 3. Handle User Webhooks
-      else if (webhookObject === 'user') {
-        const changedFields = entry.changed_fields || [];
-        await logConnectionEvent('SLACK', `Meta User Webhook: User ${entry.uid || 'Unknown'} profile fields changed: ${changedFields.join(', ')}`);
-        processedEvents.push({ type: 'user_profile_change', fields: changedFields });
-      }
-
-      // 4. Handle Permissions Webhooks
-      else if (webhookObject === 'permissions') {
-        const changes = entry.changes || [];
-        for (const change of changes) {
-          await logConnectionEvent('SLACK', `Meta Permissions Webhook: App permission ${change.field || 'unknown'} value: ${JSON.stringify(change.value)}`);
-          processedEvents.push({ type: 'permission_change', permission: change.field });
-        }
-      }
-
-      // 5. Handle Application Webhooks
-      else if (webhookObject === 'application') {
-        const changes = entry.changes || [];
-        for (const change of changes) {
-          await logConnectionEvent('SLACK', `Meta Application Webhook: App field ${change.field || 'unknown'} changed.`);
-          processedEvents.push({ type: 'app_change', field: change.field });
-        }
-      }
-
-      // 6. Handle Instagram Webhooks (including Direct messages)
-      else if (webhookObject === 'instagram') {
-        const changes = entry.changes || [];
-        for (const change of changes) {
-          await logConnectionEvent('CANVA', `Meta Instagram Webhook: IG User ${entry.id || 'Unknown'} field ${change.field || 'unknown'} updated: ${JSON.stringify(change.value)}`);
-          processedEvents.push({ type: 'instagram_event', field: change.field });
-        }
-
-        const messaging = entry.messaging || [];
-        for (const messageEvent of messaging) {
-          const senderId = messageEvent.sender?.id;
-          const recipientId = messageEvent.recipient?.id;
-          const messageText = messageEvent.message?.text;
-          await logConnectionEvent('SLACK', `Instagram Messaging Webhook: Direct message from ${senderId || 'unknown'} to ${recipientId || 'unknown'}: "${messageText || '[Attachment]'}"`);
-          processedEvents.push({ type: 'instagram_messaging_event', senderId, recipientId, hasText: !!messageText });
-        }
-      }
-
-      // 7. Handle Whatsapp Webhooks
-      else if (webhookObject === 'whatsapp_business_account') {
-        const changes = entry.changes || [];
-        for (const change of changes) {
-          await logConnectionEvent('HUBSPOT', `Meta WhatsApp Webhook: WABA ${entry.id || 'Unknown'} field ${change.field || 'unknown'} changed.`);
-          processedEvents.push({ type: 'whatsapp_event', field: change.field });
-        }
-      }
-
-      // 8. Handle Page Webhooks (including Lead Gen and Messenger)
-      else if (webhookObject === 'page') {
-        const changes = entry.changes || [];
-        for (const change of changes) {
-          if (change.field === 'leadgen') {
-            const val = change.value;
-            const leadgenId = val.leadgen_id;
-            const adId = val.ad_id || '';
-
-            const matchingAd = await prisma.metaAd.findUnique({
-              where: { orgId_adId: { orgId, adId } }
-            });
-
-            // The webhook contains the provider lead ID. Do not manufacture contact data
-            // when Meta has not supplied it.
-            if (!leadgenId || !val.full_name || !val.email) {
-              processedEvents.push({ type: 'leadgen_skipped', reason: 'missing_contact_data' });
-              continue;
-            }
-            const adName = matchingAd ? matchingAd.name : null;
-
-            const lead = await prisma.metaLead.upsert({
-              where: { orgId_leadId: { orgId, leadId: leadgenId } },
-              update: {
-                adId,
-                adName,
-              },
-              create: {
-                leadId: leadgenId,
-                adId,
-                adName,
-                fullName: val.full_name,
-                email: val.email,
-                phone: val.phone || null,
-                status: 'new',
-                createdTime: val.created_time ? new Date(val.created_time * 1000) : new Date(),
-                orgId,
-              }
-            });
-
-            await logConnectionEvent('HUBSPOT', `Meta Webhook: Saved new leadgen record: ${lead.fullName} (${lead.email}).`);
-            processedEvents.push({ type: 'leadgen_captured', leadId: leadgenId });
-          } else {
-            await logConnectionEvent('SLACK', `Meta Page Webhook: Page ${entry.id || 'Unknown'} field ${change.field || 'unknown'} update.`);
-            processedEvents.push({ type: 'page_change', field: change.field });
-          }
-        }
-
-        const messaging = entry.messaging || [];
-        for (const messageEvent of messaging) {
-          const senderId = messageEvent.sender?.id;
-          const recipientId = messageEvent.recipient?.id;
-          const messageText = messageEvent.message?.text;
-          await logConnectionEvent('SLACK', `Messenger Webhook: Message from ${senderId || 'unknown'} to ${recipientId || 'unknown'}: "${messageText || '[Attachment]'}"`);
-          processedEvents.push({ type: 'messenger_messaging_event', senderId, recipientId, hasText: !!messageText });
+    const events: Record<string, unknown>[] = [];
+    for (const entry of body.entry || []) {
+      const pageId = String(entry.id || '');
+      for (const change of entry.changes || []) {
+        if (change.field !== 'leadgen' || !change.value) continue;
+        try {
+          events.push(await processLeadNotification(pageId, change.value));
+        } catch (error) {
+          console.error('Unable to retrieve Meta lead:', error);
+          events.push({
+            type: 'leadgen_failed',
+            leadId: change.value.leadgen_id || null,
+            reason: error instanceof Error ? error.message : 'Unknown lead retrieval error',
+          });
         }
       }
     }
 
-    return NextResponse.json({ success: true, processedCount: processedEvents.length, events: processedEvents });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error handling Meta Webhook POST:', error);
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    const failed = events.some((event) => event.type === 'leadgen_failed');
+    return NextResponse.json({
+      success: !failed,
+      processedCount: events.length,
+      events,
+    }, { status: failed ? 500 : 200 });
+  } catch (error) {
+    console.error('Error handling Meta webhook:', error);
+    return NextResponse.json({ error: 'Unable to process Meta webhook' }, { status: 500 });
   }
 }

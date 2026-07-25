@@ -7,6 +7,7 @@ import {
   MetaCredentialPayload,
   MetaIntegrationError,
   publicMetaConnection,
+  subscribeMetaPagesToLeadgen,
   verifyMetaAccessToken,
 } from '@/lib/meta-business';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
@@ -55,6 +56,26 @@ async function saveMetaConnection(
       externalAccountId: credentials.facebookUserId,
       credentialCiphertext: encryptIntegrationCredentials(credentials),
     },
+  });
+}
+
+async function saveMetaPageMappings(
+  connectionId: string,
+  orgId: string,
+  pages: MetaCredentialPayload['pages'],
+) {
+  await prisma.$transaction(async (tx) => {
+    await tx.metaPageConnection.deleteMany({ where: { connectionId } });
+    if ((pages || []).length > 0) {
+      await tx.metaPageConnection.createMany({
+        data: (pages || []).map((page) => ({
+          pageId: page.id,
+          pageName: page.name,
+          connectionId,
+          orgId,
+        })),
+      });
+    }
   });
 }
 
@@ -189,7 +210,7 @@ export async function POST(request: NextRequest) {
           ? new Date(Date.now() + exchangedToken.expiresIn * 1000)
           : null);
       const credentials: MetaCredentialPayload = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         accessToken: exchangedToken.accessToken,
         tokenType: exchangedToken.tokenType,
         facebookUserId: token.userId,
@@ -201,9 +222,10 @@ export async function POST(request: NextRequest) {
         discoveredAdAccounts: assets.adAccounts,
         selectedAdAccountIds: [],
         selectedAdAccounts: [],
+        pages: assets.pages,
       };
 
-      await saveMetaConnection(
+      const connection = await saveMetaConnection(
         user.orgId,
         credentials,
         'SYNCING',
@@ -211,6 +233,7 @@ export async function POST(request: NextRequest) {
           ? `Meta authorized as ${assets.profile.name}. Select one or more administrator ad accounts.`
           : `Meta authorized as ${assets.profile.name}, but no ad accounts with administrator access were found.`,
       );
+      await saveMetaPageMappings(connection.id, user.orgId, assets.pages);
 
       return NextResponse.json({
         success: true,
@@ -250,8 +273,12 @@ export async function POST(request: NextRequest) {
       }
 
       const selectedAdAccounts = assets.adAccounts.filter((account) => selectedIds.includes(account.id));
+      if (selectedIds.length > 0 && assets.pages.length > 0) {
+        await subscribeMetaPagesToLeadgen(assets.pages);
+      }
       const updatedCredentials: MetaCredentialPayload = {
         ...credentials,
+        schemaVersion: 2,
         facebookUserName: assets.profile.name,
         facebookUserEmail: assets.profile.email,
         expiresAt: token.expiresAt?.toISOString() || credentials.expiresAt,
@@ -260,17 +287,21 @@ export async function POST(request: NextRequest) {
         discoveredAdAccounts: assets.adAccounts,
         selectedAdAccountIds: selectedIds,
         selectedAdAccounts,
+        pages: assets.pages,
       };
       const status = selectedIds.length > 0 ? 'CONNECTED' : 'SYNCING';
 
-      await saveMetaConnection(
+      const connection = await saveMetaConnection(
         user.orgId,
         updatedCredentials,
         status,
         selectedIds.length > 0
-          ? `${selectedIds.length} Meta ad account${selectedIds.length === 1 ? '' : 's'} connected for ${assets.profile.name}.`
+          ? assets.pages.length > 0
+            ? `${selectedIds.length} Meta ad account${selectedIds.length === 1 ? '' : 's'} connected and ${assets.pages.length} Facebook Page${assets.pages.length === 1 ? '' : 's'} subscribed for lead notifications.`
+            : `${selectedIds.length} Meta ad account${selectedIds.length === 1 ? '' : 's'} connected, but no manageable Facebook Pages were found for lead notifications.`
           : `Meta authorized as ${assets.profile.name}. Select one or more administrator ad accounts.`,
       );
+      await saveMetaPageMappings(connection.id, user.orgId, assets.pages);
 
       return NextResponse.json({
         success: true,

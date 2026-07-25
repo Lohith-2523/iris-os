@@ -69,6 +69,7 @@ export async function GET() {
         username: user.username,
         email: user.email,
         role: user.role,
+        hasMetaAccount: Boolean(user.client?.adAccountId),
         preferences: user.preferences ?? { theme: 'dark', settings: {} },
       },
       onboarding: user.organization.onboardingState ?? {

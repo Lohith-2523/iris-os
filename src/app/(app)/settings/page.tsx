@@ -59,6 +59,8 @@ type MetaConnectionDetails = {
   tokenExpiresAt: string | null;
   adAccounts: MetaAdAccount[];
   selectedAdAccountIds: string[];
+  pages: Array<{ id: string; name: string; tasks: string[] }>;
+  leadSyncReady: boolean;
 };
 
 const INDIAN_BANKS = [
@@ -232,7 +234,7 @@ export default function SettingsPage() {
       }
     }, {
       config_id: loginConfigurationId,
-      scope: 'public_profile,email,ads_read,ads_management,business_management',
+      scope: 'public_profile,email,ads_read,business_management,leads_retrieval,pages_show_list,pages_manage_metadata',
       auth_type: 'rerequest',
       return_scopes: true,
     });
@@ -1190,6 +1192,17 @@ export default function SettingsPage() {
             </div>
 
             <div className="max-h-[55vh] overflow-y-auto p-6">
+              {metaConnection && (
+                <div className={`mb-4 rounded-lg border px-4 py-3 text-xs ${
+                  metaConnection.pages.length > 0
+                    ? 'border-zinc-800 bg-zinc-950/60 text-zinc-300'
+                    : 'border-amber-900/50 bg-amber-950/20 text-amber-200'
+                }`}>
+                  {metaConnection.pages.length > 0
+                    ? `${metaConnection.pages.length} manageable Facebook Page${metaConnection.pages.length === 1 ? '' : 's'} will be subscribed to Instant Form lead notifications.`
+                    : 'No manageable Facebook Pages were found. Ad accounts can be selected, but Instant Form lead retrieval will remain unavailable.'}
+                </div>
+              )}
               {metaConnectionStatus === 'loading' && !metaConnection ? (
                 <div className="flex items-center justify-center gap-2 py-12 text-sm text-zinc-400">
                   <Loader2 className="h-4 w-4 animate-spin" />

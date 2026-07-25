@@ -64,6 +64,22 @@ export async function PATCH(request: NextRequest) {
       user.orgId,
       body.adAccountId,
     );
+    if (adAccountId) {
+      const assignedClient = await prisma.client.findFirst({
+        where: {
+          orgId: user.orgId,
+          adAccountId,
+          id: { not: existingClient.id },
+        },
+        select: { name: true },
+      });
+      if (assignedClient) {
+        return NextResponse.json(
+          { error: `This Meta ad account is already assigned to ${assignedClient.name}.` },
+          { status: 409 },
+        );
+      }
+    }
 
     const updatedClient = await prisma.$transaction(async (tx) => {
       const client = await tx.client.update({
@@ -125,6 +141,18 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedAdAccountId = await resolveAssignableMetaAdAccountId(org.id, adAccountId);
+    if (validatedAdAccountId) {
+      const assignedClient = await prisma.client.findFirst({
+        where: { orgId: org.id, adAccountId: validatedAdAccountId },
+        select: { name: true },
+      });
+      if (assignedClient) {
+        return NextResponse.json(
+          { error: `This Meta ad account is already assigned to ${assignedClient.name}.` },
+          { status: 409 },
+        );
+      }
+    }
 
     const sourceLead = sourceLeadId ? await prisma.agencyLead.findFirst({
       where: {

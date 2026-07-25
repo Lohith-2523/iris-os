@@ -40,7 +40,14 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   const supabase = createClient();
   const [orgName, setOrgName] = React.useState('Organization');
   const [plan, setPlan] = React.useState('');
-  const [user, setUser] = React.useState<{ name: string; email: string; role: string } | null>(null);
+  const [user, setUser] = React.useState<{
+    id?: string;
+    orgId?: string;
+    name: string;
+    email: string;
+    role: string;
+    hasMetaAccount?: boolean;
+  } | null>(null);
   const [, setSession] = React.useState<import('@supabase/supabase-js').Session | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
@@ -160,6 +167,9 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     if (roleLower === 'client') {
       return [
         { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
+        ...(user?.hasMetaAccount
+          ? [{ name: 'Leads', href: '/client-leads', icon: FileSpreadsheet }]
+          : []),
         { name: 'Calendar', href: '/calendar', icon: Calendar }
       ];
     }
@@ -213,7 +223,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       </button>
 
       <div className={cn("flex h-16 items-center border-b border-zinc-800", isCollapsed ? "justify-center px-2" : "justify-between px-6")}>
-        <Link href={user?.role?.toLowerCase() === 'client' ? '/meta-portal' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard'} className="flex items-center gap-2" onClick={onCloseMobile}>
+        <Link href={user?.role?.toLowerCase() === 'client' ? '/client-dashboard' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard'} className="flex items-center gap-2" onClick={onCloseMobile}>
           {isCollapsed ? (
             <img 
               src="/iris-logo-white-transparent.png" 

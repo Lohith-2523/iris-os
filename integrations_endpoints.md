@@ -35,8 +35,10 @@ Used to sync campaigns, track ad performance metrics, automate lead capture work
     *   `http://127.0.0.1:3000/api/meta-ads/delete-data`
     *   `https://irisos.app/api/meta-ads/delete-data`
 *   **Webhook Verify Token**: Configured via environment variable `META_VERIFY_TOKEN` (defaults to `irisos_meta_verify_token`)
-*   **Graph API Scopes**:
-    `catalog_management`, `pages_show_list`, `ads_management`, `ads_read`, `business_management`, `leads_retrieval`, `pages_read_engagement`, `pages_manage_metadata`, `pages_manage_ads`
+*   **Graph API Permissions Used**:
+    `public_profile`, `email`, `ads_read`, `business_management`, `leads_retrieval`, `pages_show_list`, `pages_manage_metadata`
+*   **Lead retrieval flow**: Discover manageable Facebook Pages, subscribe them to the `leadgen` webhook field, retrieve each lead by `leadgen_id`, resolve the source ad's exact ad account, and persist it only when that account is assigned to a client.
+*   **Not currently requested**: `ads_management`. Add it only when Iris OS performs provider-side campaign, ad, creative, status, or budget mutations.
 
 ---
 
@@ -73,5 +75,4 @@ Used for lead contacts synchronizations and client pipeline indexing.
     *   `http://localhost:3000/api/razorpay/webhook`
     *   `http://127.0.0.1:3000/api/razorpay/webhook`
     *   `https://irisos.app/api/razorpay/webhook`
-
 

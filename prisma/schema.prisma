@@ -28,6 +28,7 @@ model Organization {
   expenses                  Expense[]
   automations               Automation[]
   integrations              IntegrationConnection[]
+  metaPages                 MetaPageConnection[]
   googleCalendarConnections GoogleCalendarConnection[]
   metaAds                   MetaAd[]
   metaLeads                 MetaLead[]
@@ -149,6 +150,7 @@ model Client {
   invites        ClientInvite[]
   scheduledPosts ScheduledPost[]
   tasks          ClientTask[]
+  metaLeads      MetaLead[]
   transactions   Transaction[]
   retainers      RecurringRetainer[]
 
@@ -371,7 +373,7 @@ model AutomationRun {
 }
 
 model IntegrationConnection {
-  id                   String       @id @default(uuid())
+  id                   String               @id @default(uuid())
   provider             String // CANVA, QUICKBOOKS, STRIPE, HUBSPOT, SLACK
   status               String // CONNECTED, DISCONNECTED, ERROR, SYNCING
   lastSync             DateTime?
@@ -379,13 +381,29 @@ model IntegrationConnection {
   credentialCiphertext String?
   externalAccountId    String?
   orgId                String
-  organization         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  organization         Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  metaPages            MetaPageConnection[]
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@unique([orgId, provider])
   @@index([orgId])
   @@index([provider, externalAccountId])
+}
+
+model MetaPageConnection {
+  id           String                @id @default(uuid())
+  pageId       String                @unique
+  pageName     String
+  connectionId String
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  orgId        String
+  organization Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([connectionId])
+  @@index([orgId])
 }
 
 model GoogleCalendarConnection {
@@ -502,14 +520,21 @@ model MetaLead {
   leadId           String
   adId             String?
   adName           String?
-  fullName         String
-  email            String
+  fullName         String?
+  email            String?
   phone            String?
   status           String // new, cold-call in progress, call back required, closed, unqualified
   createdTime      DateTime     @default(now())
   collectionMethod String?
   approachMethod   String?
   funnelName       String?
+  adAccountId      String?
+  pageId           String?
+  formId           String?
+  campaignId       String?
+  fieldData        Json?
+  clientId         String?
+  client           Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   orgId            String
   organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdAt        DateTime     @default(now())
@@ -517,6 +542,8 @@ model MetaLead {
 
   @@unique([orgId, leadId])
   @@index([orgId])
+  @@index([orgId, adAccountId])
+  @@index([clientId, createdTime])
 }
 
 model AgencyLead {

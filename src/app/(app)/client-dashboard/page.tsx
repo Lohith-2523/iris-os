@@ -91,8 +91,8 @@ interface MetaLead {
   id: string;
   leadId: string;
   adId: string | null;
-  fullName: string;
-  email: string;
+  fullName: string | null;
+  email: string | null;
   phone: string | null;
   adName: string | null;
   status: string;
@@ -294,8 +294,8 @@ export default function ClientDashboardPage() {
   const filteredLeads = React.useMemo(() => {
     return leads.filter((l) => {
       const matchSearch =
-        l.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        l.email.toLowerCase().includes(searchQuery.toLowerCase());
+        (l.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (l.email || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchStatus = selectedStatus === 'all' || l.status === selectedStatus;
       return matchSearch && matchStatus;
     });
@@ -733,8 +733,8 @@ export default function ClientDashboardPage() {
                     ) : (
                       filteredLeads.map(lead => (
                         <TableRow key={lead.id}>
-                        <TableCell className="font-semibold text-white">{lead.fullName}</TableCell>
-                        <TableCell className="font-mono text-xs">{lead.email}</TableCell>
+                        <TableCell className="font-semibold text-white">{lead.fullName || 'Name not provided'}</TableCell>
+                        <TableCell className="font-mono text-xs">{lead.email || 'Not provided'}</TableCell>
                         <TableCell className="text-xs font-mono">{lead.phone || 'N/A'}</TableCell>
                         <TableCell className="text-xs text-zinc-400">{lead.adName || 'Instant Form'}</TableCell>
                         <TableCell>
@@ -1073,7 +1073,7 @@ export default function ClientDashboardPage() {
                 <div className="space-y-3 pt-3 border-t border-zinc-900">
                   <div className="p-3 bg-amber-950/15 border border-amber-900/30 text-amber-400 rounded leading-relaxed text-[11px] font-sans">
                     <span className="font-bold block uppercase tracking-wider text-[9px] mb-1">Feedback Submitted</span>
-                    "{selectedDayPost.clientFeedback || feedbackText}"
+                    &ldquo;{selectedDayPost.clientFeedback || feedbackText}&rdquo;
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button

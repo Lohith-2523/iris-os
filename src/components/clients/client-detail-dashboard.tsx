@@ -1172,8 +1172,8 @@ export default function ClientDetailDashboard({
             {/* Modal Body: Leads List Table */}
             <div className="flex-1 overflow-y-auto my-4 scrollbar-none">
               {metaLeads.filter((lead: any) => {
-                const matchesSearch = lead.fullName.toLowerCase().includes(leadsSearchQuery.toLowerCase()) ||
-                  lead.email.toLowerCase().includes(leadsSearchQuery.toLowerCase());
+                const matchesSearch = (lead.fullName || '').toLowerCase().includes(leadsSearchQuery.toLowerCase()) ||
+                  (lead.email || '').toLowerCase().includes(leadsSearchQuery.toLowerCase());
                 const matchesStatus = selectedLeadStatus === 'all' || lead.status === selectedLeadStatus;
                 return matchesSearch && matchesStatus;
               }).length === 0 ? (
@@ -1195,17 +1195,17 @@ export default function ClientDetailDashboard({
                   <TableBody>
                     {metaLeads
                       .filter((lead: any) => {
-                        const matchesSearch = lead.fullName.toLowerCase().includes(leadsSearchQuery.toLowerCase()) ||
-                          lead.email.toLowerCase().includes(leadsSearchQuery.toLowerCase());
+                        const matchesSearch = (lead.fullName || '').toLowerCase().includes(leadsSearchQuery.toLowerCase()) ||
+                          (lead.email || '').toLowerCase().includes(leadsSearchQuery.toLowerCase());
                         const matchesStatus = selectedLeadStatus === 'all' || lead.status === selectedLeadStatus;
                         return matchesSearch && matchesStatus;
                       })
                       .map((lead: any) => (
                         <TableRow key={lead.id}>
-                          <TableCell className="font-semibold text-white">{lead.fullName}</TableCell>
+                          <TableCell className="font-semibold text-white">{lead.fullName || 'Name not provided'}</TableCell>
                           <TableCell>
                             <div>
-                              <span className="block text-[10px] text-zinc-300 font-mono">{lead.email}</span>
+                              <span className="block text-[10px] text-zinc-300 font-mono">{lead.email || 'Not provided'}</span>
                               <span className="block text-[9px] text-zinc-500 font-mono mt-0.5">{lead.phone || 'N/A'}</span>
                             </div>
                           </TableCell>

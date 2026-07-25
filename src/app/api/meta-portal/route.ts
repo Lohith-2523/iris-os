@@ -9,53 +9,32 @@ export async function GET(request: NextRequest) {
 
     const isClient = user.role === 'client';
     const clientAdAccountId = user?.client?.adAccountId || '';
+    const clientId = user?.client?.id || '';
 
-    let campaigns;
-    let leads;
-
-    if (isClient) {
-      // Client view: filter campaigns and ads by the client's adAccountId
-      campaigns = await prisma.metaCampaign.findMany({
-        where: clientAdAccountId ? {
+    // Provider leads are attributed to a client at ingestion time. Never infer
+    // tenancy from provider IDs or expose organization-wide Meta records.
+    const campaigns = isClient ? [] : await prisma.metaCampaign.findMany({
+      where: { orgId: user.orgId },
+      include: { ads: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    const leads = isClient
+      ? await prisma.metaLead.findMany({
+        where: clientAdAccountId && clientId ? {
           orgId: user.orgId,
-          campaignId: {
-            startsWith: clientAdAccountId
-          }
-        } : { id: 'none' },
-        include: { ads: true },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      leads = await prisma.metaLead.findMany({
-        where: clientAdAccountId ? {
-          orgId: user.orgId,
-          adId: {
-            startsWith: clientAdAccountId
-          }
+          clientId,
+          adAccountId: clientAdAccountId,
         } : { id: 'none' },
         orderBy: { createdTime: 'desc' },
-      });
-    } else {
-      // Admin view: see everything
-      campaigns = await prisma.metaCampaign.findMany({
-        where: { orgId: user.orgId },
-        include: { ads: true },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      leads = await prisma.metaLead.findMany({
-        where: { orgId: user.orgId },
-        orderBy: { createdTime: 'desc' },
-      });
-    }
+      })
+      : await prisma.metaLead.findMany({
+          where: { orgId: user.orgId },
+          orderBy: { createdTime: 'desc' },
+        });
 
     // Fetch any ads that don't have campaigns
-    const orphanedAds = await prisma.metaAd.findMany({
-      where: isClient && clientAdAccountId ? {
-        orgId: user.orgId,
-        campaignId: null,
-        adId: { startsWith: clientAdAccountId }
-      } : { orgId: user.orgId, campaignId: null },
+    const orphanedAds = isClient ? [] : await prisma.metaAd.findMany({
+      where: { orgId: user.orgId, campaignId: null },
       orderBy: { spend: 'desc' },
     });
 
@@ -64,7 +43,9 @@ export async function GET(request: NextRequest) {
       leads,
       orphanedAds,
       role: user.role,
-      clientName: user?.client?.name || null
+      clientName: user?.client?.name || null,
+      hasMetaAccount: Boolean(clientAdAccountId),
+      adAccountId: isClient ? clientAdAccountId || null : null,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -83,7 +64,6 @@ export async function POST(request: NextRequest) {
 
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const org = await getOrganization(request);
     if (!org) {
@@ -92,13 +72,41 @@ export async function POST(request: NextRequest) {
 
     // 1. Check if this is the legacy update lead status action
     if (!action && body.leadId && body.status) {
-      const updatedLead = await prisma.metaLead.update({
-        where: { orgId_leadId: { orgId: org.id, leadId: body.leadId } },
+      const allowedStatuses = new Set([
+        'new',
+        'cold-call in progress',
+        'call back required',
+        'closed',
+        'unqualified',
+      ]);
+      if (!allowedStatuses.has(body.status)) {
+        return NextResponse.json({ error: 'Invalid lead status' }, { status: 400 });
+      }
+
+      const clientScope = user.role === 'client'
+        ? {
+            clientId: user.client?.id || '__none__',
+            adAccountId: user.client?.adAccountId || '__none__',
+          }
+        : {};
+      const result = await prisma.metaLead.updateMany({
+        where: {
+          orgId: org.id,
+          leadId: body.leadId,
+          ...clientScope,
+        },
         data: { status: body.status },
+      });
+      if (result.count === 0) {
+        return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      }
+      const updatedLead = await prisma.metaLead.findUnique({
+        where: { orgId_leadId: { orgId: org.id, leadId: body.leadId } },
       });
       return NextResponse.json({ success: true, lead: updatedLead });
     }
 
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // Campaigns and ads must originate from Meta. Generating local identifiers makes
     // fictional provider records appear as live advertising data.

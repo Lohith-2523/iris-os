@@ -3,7 +3,13 @@ import 'server-only';
 import { createHmac } from 'crypto';
 
 const DEFAULT_META_API_VERSION = 'v25.0';
-const REQUIRED_META_SCOPES = ['ads_read', 'business_management'] as const;
+const REQUIRED_META_SCOPES = [
+  'ads_read',
+  'business_management',
+  'leads_retrieval',
+  'pages_show_list',
+  'pages_manage_metadata',
+] as const;
 
 type MetaGraphErrorResponse = {
   error?: {
@@ -64,6 +70,36 @@ type RawMetaBusiness = {
   name?: string;
 };
 
+type RawMetaPage = {
+  id?: string;
+  name?: string;
+  access_token?: string;
+  tasks?: string[];
+};
+
+type MetaMutationResponse = MetaGraphErrorResponse & {
+  success?: boolean;
+};
+
+type RawMetaLead = MetaGraphErrorResponse & {
+  id?: string;
+  created_time?: string;
+  ad_id?: string;
+  form_id?: string;
+  campaign_id?: string;
+  field_data?: Array<{
+    name?: string;
+    values?: unknown[];
+  }>;
+};
+
+type RawMetaAdAttribution = MetaGraphErrorResponse & {
+  id?: string;
+  name?: string;
+  account_id?: string;
+  campaign_id?: string;
+};
+
 export type MetaBusiness = {
   id: string;
   name: string;
@@ -81,8 +117,15 @@ export type MetaAdAccount = {
   userTasks: string[];
 };
 
+export type MetaPage = {
+  id: string;
+  name: string;
+  accessToken: string;
+  tasks: string[];
+};
+
 export type MetaCredentialPayload = {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   accessToken: string;
   tokenType: string;
   facebookUserId: string;
@@ -94,6 +137,7 @@ export type MetaCredentialPayload = {
   discoveredAdAccounts: MetaAdAccount[];
   selectedAdAccountIds: string[];
   selectedAdAccounts: MetaAdAccount[];
+  pages?: MetaPage[];
 };
 
 export class MetaIntegrationError extends Error {
@@ -203,6 +247,27 @@ async function graphGetAll<T>(
   return results;
 }
 
+async function graphPost<T extends MetaGraphErrorResponse>(
+  path: string,
+  accessToken: string,
+  params: Record<string, string> = {},
+) {
+  const url = graphUrl(path);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  url.searchParams.set('appsecret_proof', appSecretProof(accessToken));
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  return readGraphResponse<T>(response, 'Meta Graph API mutation failed.');
+}
+
 export async function exchangeMetaAccessToken(shortLivedAccessToken: string) {
   const { appId, appSecret } = metaConfig();
   const url = graphUrl('oauth/access_token');
@@ -272,13 +337,18 @@ export function hasMetaAdministratorPermission(account: Pick<MetaAdAccount, 'use
 }
 
 export async function discoverMetaBusinessAssets(accessToken: string) {
-  const [profile, rawBusinesses, rawAdAccounts] = await Promise.all([
+  const [profile, rawBusinesses, rawAdAccounts, rawPages] = await Promise.all([
     graphGet<MetaProfileResponse>('me', accessToken, { fields: 'id,name,email' }),
     graphGetAll<RawMetaBusiness>('me/businesses', accessToken, 'id,name'),
     graphGetAll<RawMetaAdAccount>(
       'me/adaccounts',
       accessToken,
       'id,account_id,name,account_status,currency,timezone_name,business,user_tasks',
+    ),
+    graphGetAll<RawMetaPage>(
+      'me/accounts',
+      accessToken,
+      'id,name,access_token,tasks',
     ),
   ]);
 
@@ -310,6 +380,17 @@ export async function discoverMetaBusinessAssets(accessToken: string) {
     }))
     .filter(hasMetaAdministratorPermission);
 
+  const pages = rawPages
+    .filter((page): page is RawMetaPage & { id: string; name: string; access_token: string } =>
+      Boolean(page.id && page.name && page.access_token),
+    )
+    .map<MetaPage>((page) => ({
+      id: page.id,
+      name: page.name,
+      accessToken: page.access_token,
+      tasks: page.tasks || [],
+    }));
+
   return {
     profile: {
       id: profile.id,
@@ -318,6 +399,64 @@ export async function discoverMetaBusinessAssets(accessToken: string) {
     },
     businesses,
     adAccounts,
+    pages,
+  };
+}
+
+export async function subscribeMetaPagesToLeadgen(pages: MetaPage[]) {
+  const results = await Promise.allSettled(
+    pages.map(async (page) => {
+      const response = await graphPost<MetaMutationResponse>(
+        `${page.id}/subscribed_apps`,
+        page.accessToken,
+        { subscribed_fields: 'leadgen' },
+      );
+      if (!response.success) {
+        throw new MetaIntegrationError(`Meta did not subscribe ${page.name} to lead notifications.`);
+      }
+      return page.id;
+    }),
+  );
+
+  const failures = results.flatMap((result, index) =>
+    result.status === 'rejected' ? [pages[index]?.name || 'Unknown Page'] : [],
+  );
+  if (failures.length > 0) {
+    throw new MetaIntegrationError(
+      `Unable to subscribe these Facebook Pages to lead notifications: ${failures.join(', ')}.`,
+    );
+  }
+}
+
+export async function retrieveMetaLead(leadId: string, pageAccessToken: string) {
+  const lead = await graphGet<RawMetaLead>(leadId, pageAccessToken, {
+    fields: 'id,created_time,ad_id,form_id,campaign_id,field_data',
+  });
+  if (!lead.id) {
+    throw new MetaIntegrationError('Meta did not return the requested lead.');
+  }
+  return {
+    id: lead.id,
+    createdTime: lead.created_time || null,
+    adId: lead.ad_id || null,
+    formId: lead.form_id || null,
+    campaignId: lead.campaign_id || null,
+    fieldData: lead.field_data || [],
+  };
+}
+
+export async function retrieveMetaAdAttribution(adId: string, accessToken: string) {
+  const ad = await graphGet<RawMetaAdAttribution>(adId, accessToken, {
+    fields: 'id,name,account_id,campaign_id',
+  });
+  if (!ad.id || !ad.account_id) {
+    throw new MetaIntegrationError('Meta did not return an ad account for the lead.');
+  }
+  return {
+    id: ad.id,
+    name: ad.name || null,
+    accountId: ad.account_id,
+    campaignId: ad.campaign_id || null,
   };
 }
 
@@ -331,5 +470,10 @@ export function publicMetaConnection(credentials: MetaCredentialPayload) {
     adAccounts: credentials.discoveredAdAccounts,
     selectedAdAccountIds: credentials.selectedAdAccountIds,
     selectedAdAccounts: credentials.selectedAdAccounts,
+    pages: (credentials.pages || []).map(({ id, name, tasks }) => ({ id, name, tasks })),
+    leadSyncReady:
+      credentials.selectedAdAccountIds.length > 0 &&
+      (credentials.pages || []).length > 0 &&
+      REQUIRED_META_SCOPES.every((scope) => credentials.grantedScopes.includes(scope)),
   };
 }

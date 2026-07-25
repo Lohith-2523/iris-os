@@ -101,6 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isClientGated = user?.role?.toLowerCase() === 'client' && 
     pathname !== '/client-dashboard' && 
+    pathname !== '/client-leads' &&
     pathname !== '/clients/onboard' &&
     pathname !== '/calendar';
   
@@ -110,7 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname !== '/calendar';
 
   const isAdminGated = user?.role?.toLowerCase() === 'admin' && 
-    (pathname === '/client-dashboard' || pathname === '/teams-dashboard');
+    (pathname === '/client-dashboard' || pathname === '/client-leads' || pathname === '/teams-dashboard');
 
   if (loading) {
     return (

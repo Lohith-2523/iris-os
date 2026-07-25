@@ -3,6 +3,7 @@ export const workspaceThemePaths = [
   '/analytics',
   '/calendar',
   '/client-dashboard',
+  '/client-leads',
   '/clients',
   '/dashboard',
   '/explorer',
