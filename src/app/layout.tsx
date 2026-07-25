@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { workspaceThemePaths } from "@/lib/theme-routes";
 import Script from "next/script";
 import { AuthSync } from "@/components/app-shell/auth-sync";
+import { MetaSdkLoader } from "@/components/integrations/meta-sdk-loader";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -61,28 +62,9 @@ export default function RootLayout({
         </Script>
         <AuthSync />
         {children}
-        {metaAppId && <Script id="facebook-jssdk" strategy="afterInteractive">
-          {`
-            window.fbAsyncInit = function() {
-              FB.init({
-                appId      : '${metaAppId}',
-                cookie     : true,
-                xfbml      : true,
-                version    : '${metaApiVersion}'
-              });
-              
-              FB.AppEvents.logPageView();   
-            };
-
-            (function(d, s, id){
-               var js, fjs = d.getElementsByTagName(s)[0];
-               if (d.getElementById(id)) {return;}
-               js = d.createElement(s); js.id = id;
-               js.src = "https://connect.facebook.net/en_US/sdk.js";
-               fjs.parentNode.insertBefore(js, fjs);
-             }(document, 'script', 'facebook-jssdk'));
-          `}
-        </Script>}
+        {metaAppId && (
+          <MetaSdkLoader appId={metaAppId} apiVersion={metaApiVersion} />
+        )}
       </body>
     </html>
   );

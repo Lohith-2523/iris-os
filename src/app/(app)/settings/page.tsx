@@ -8,6 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatUserMessage } from '@/lib/utils';
 import {
+  getMetaSdkStatus,
+  META_SDK_ERROR_EVENT,
+  META_SDK_READY_EVENT,
+  type MetaSdkStatus,
+} from '@/lib/meta-sdk-status';
+import {
   Save,
   CreditCard,
   Laptop,
@@ -111,6 +117,7 @@ export default function SettingsPage() {
   const [selectedMetaAccountIds, setSelectedMetaAccountIds] = React.useState<string[]>([]);
   const [metaConnectionStatus, setMetaConnectionStatus] = React.useState<'idle' | 'authorizing' | 'loading' | 'saving'>('idle');
   const [metaConnectionError, setMetaConnectionError] = React.useState('');
+  const [metaSdkStatus, setMetaSdkStatus] = React.useState<MetaSdkStatus>('loading');
 
   // Wipe Data Modal States
   const [showWipeModal, setShowWipeModal] = React.useState(false);
@@ -171,7 +178,20 @@ export default function SettingsPage() {
 
   const handleConnectMeta = () => {
     setMetaConnectionError('');
-    if (typeof window === 'undefined' || !(window as any).FB) {
+
+    if (!process.env.NEXT_PUBLIC_META_APP_ID) {
+      setMetaConnectionError('Meta Login is not configured for this deployment.');
+      return;
+    }
+
+    if (metaSdkStatus === 'error') {
+      setMetaConnectionError(
+        'Facebook Login could not load. Disable ad or tracking protection for this site, then refresh and try again.',
+      );
+      return;
+    }
+
+    if (typeof window === 'undefined' || !(window as any).FB || metaSdkStatus !== 'ready') {
       setMetaConnectionError('Facebook Login is still loading. Please try again in a moment.');
       return;
     }
@@ -254,6 +274,26 @@ export default function SettingsPage() {
       fetchIntegrations();
     }
   }, [activeTab, fetchIntegrations]);
+
+  React.useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_META_APP_ID) {
+      setMetaSdkStatus('error');
+      return;
+    }
+
+    setMetaSdkStatus(getMetaSdkStatus());
+
+    const handleReady = () => setMetaSdkStatus('ready');
+    const handleError = () => setMetaSdkStatus('error');
+
+    window.addEventListener(META_SDK_READY_EVENT, handleReady);
+    window.addEventListener(META_SDK_ERROR_EVENT, handleError);
+
+    return () => {
+      window.removeEventListener(META_SDK_READY_EVENT, handleReady);
+      window.removeEventListener(META_SDK_ERROR_EVENT, handleError);
+    };
+  }, []);
 
     React.useEffect(() => {
     async function loadOrg() {
@@ -1070,7 +1110,13 @@ export default function SettingsPage() {
                                   <Button
                                     type="button"
                                     size="sm"
-                                    disabled={item.provider === 'META' && metaConnectionStatus !== 'idle'}
+                                    disabled={
+                                      item.provider === 'META' &&
+                                      (
+                                        metaConnectionStatus !== 'idle' ||
+                                        (item.status !== 'SYNCING' && metaSdkStatus === 'loading')
+                                      )
+                                    }
                                     onClick={() => {
                                       if (item.provider === 'META') {
                                         if (item.status === 'SYNCING' && item.hasConfig) {
@@ -1084,12 +1130,15 @@ export default function SettingsPage() {
                                     }}
                                     className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
                                   >
-                                    {item.provider === 'META' && metaConnectionStatus !== 'idle' ? (
+                                    {item.provider === 'META' &&
+                                    (metaConnectionStatus !== 'idle' || metaSdkStatus === 'loading') ? (
                                       <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                                     ) : null}
-                                    {item.provider === 'META' && item.status === 'SYNCING'
-                                      ? 'Complete setup'
-                                      : 'Connect Account'}
+                                    {item.provider === 'META' && item.status !== 'SYNCING' && metaSdkStatus === 'loading'
+                                      ? 'Loading Facebook'
+                                      : item.provider === 'META' && item.status === 'SYNCING'
+                                        ? 'Complete setup'
+                                        : 'Connect Account'}
                                   </Button>
                                 )
                               ) : null}
