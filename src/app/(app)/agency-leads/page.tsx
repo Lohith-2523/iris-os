@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,12 +41,27 @@ interface AgencyLead {
   createdTime: string;
 }
 
+interface LeadMetrics {
+  marketingSpend: number;
+  closedLeadCount: number;
+  sourcedRetainerRevenue: number;
+  averageCac: number | null;
+  averageRoas: number | null;
+}
+
 export default function AgencyLeadsPage() {
   const [leads, setLeads] = React.useState<AgencyLead[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [activeTab, setActiveTab] = React.useState<'pipeline' | 'entry'>('pipeline');
+  const [metrics, setMetrics] = React.useState<LeadMetrics>({
+    marketingSpend: 0,
+    closedLeadCount: 0,
+    sourcedRetainerRevenue: 0,
+    averageCac: null,
+    averageRoas: null,
+  });
 
   // Manual Form State
   const [manualForm, setManualForm] = React.useState({
@@ -79,6 +95,13 @@ export default function AgencyLeadsPage() {
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
+        setMetrics(data.metrics || {
+          marketingSpend: 0,
+          closedLeadCount: 0,
+          sourcedRetainerRevenue: 0,
+          averageCac: null,
+          averageRoas: null,
+        });
       }
     } catch (e) {
       console.error('Failed to load agency leads data:', e);
@@ -120,6 +143,7 @@ export default function AgencyLeadsPage() {
       if (!res.ok) {
         throw new Error('Failed to update status on server');
       }
+      await loadData();
     } catch (e) {
       console.error(e);
       setLeads(previousLeads);
@@ -158,8 +182,8 @@ export default function AgencyLeadsPage() {
         body: JSON.stringify({ action: 'delete', id }),
       });
       if (res.ok) {
-        setLeads(prev => prev.filter(l => l.id !== id));
         setSelectedLead(null);
+        await loadData();
       } else {
         alert('Failed to delete lead.');
       }
@@ -193,8 +217,7 @@ export default function AgencyLeadsPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setLeads(prev => [data.lead, ...prev]);
+        await loadData();
         setFormSuccess(true);
         setManualForm({
           fullName: '',
@@ -369,8 +392,7 @@ export default function AgencyLeadsPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setLeads(prev => [...data.leads, ...prev]);
+        await loadData();
         setStagedLeads([]);
         setIsTemplateAligned(null);
         setUploadStatus('idle');
@@ -451,10 +473,10 @@ export default function AgencyLeadsPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Tab Selection */}
-          <div className="flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-lg">
+          <div className="workspace-segmented-control flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-lg">
             <button
               onClick={() => setActiveTab('pipeline')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'pipeline' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -463,7 +485,7 @@ export default function AgencyLeadsPage() {
             </button>
             <button
               onClick={() => setActiveTab('entry')}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'entry' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -526,9 +548,10 @@ export default function AgencyLeadsPage() {
             <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
               <CardContent className="pt-4 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">ROAS</span>
-                  <span className="text-xl font-bold font-mono text-white block mt-1">—</span>
-                  <span className="text-[9px] text-zinc-550 block mt-0.5">Available after Meta revenue sync</span>
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Average ROAS</span>
+                  <span className="text-xl font-bold font-mono text-white block mt-1">
+                    {metrics.averageRoas === null ? '—' : `${metrics.averageRoas.toFixed(2)}x`}
+                  </span>
                 </div>
                 <TrendingUp className="h-8 w-8 text-zinc-700" />
               </CardContent>
@@ -538,8 +561,9 @@ export default function AgencyLeadsPage() {
               <CardContent className="pt-4 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Average CAC Bound</span>
-                  <span className="text-xl font-bold font-mono text-white block mt-1">—</span>
-                  <span className="text-[9px] text-zinc-555 block mt-0.5">Available after Meta spend sync</span>
+                  <span className="text-xl font-bold font-mono text-white block mt-1">
+                    {metrics.averageCac === null ? '—' : formatCurrency(metrics.averageCac, 2)}
+                  </span>
                 </div>
                 <Users className="h-8 w-8 text-zinc-700" />
               </CardContent>
@@ -548,14 +572,15 @@ export default function AgencyLeadsPage() {
 
           {/* Filters */}
           <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between pb-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-500" />
+            <div className="flex max-w-sm flex-1 items-center gap-2.5 rounded-md border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
+              <Search aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
               <input
                 type="text"
+                aria-label="Search leads"
                 placeholder="Search leads by name, email, phone or funnel..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900/40 py-1.5 pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none transition-all font-sans"
+                className="min-w-0 flex-1 bg-transparent py-1.5 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none font-sans"
               />
             </div>
             <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 font-mono">

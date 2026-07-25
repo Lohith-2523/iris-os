@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -333,9 +334,9 @@ export default function TeamsDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-canvas space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
+      <div className="dashboard-header flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest font-mono">Teams Workspace</span>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
@@ -347,10 +348,10 @@ export default function TeamsDashboardPage() {
         </div>
 
         {/* Tab Toggle buttons */}
-        <div className="flex items-center gap-1.5 bg-zinc-950 p-1 border border-zinc-900 rounded-lg max-w-fit">
+        <div className="workspace-segmented-control flex items-center gap-1.5 bg-zinc-950 p-1 border border-zinc-900 rounded-lg max-w-fit">
           <button
             onClick={() => setActiveTab('tasks')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'tasks' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -359,7 +360,7 @@ export default function TeamsDashboardPage() {
           </button>
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'calendar' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >

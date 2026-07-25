@@ -1,12 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { formatCurrency } from '@/lib/utils';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
+import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -17,11 +17,12 @@ import {
   User,
   Layers,
   Sparkles,
-  DollarSign,
+  Wallet,
   AlertTriangle,
   Info,
   Layers as LayersIcon,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 
 const AGENCY_TYPES = [
@@ -37,6 +38,14 @@ const AGENCY_TYPES = [
   'Web Design & Development Agency',
 ];
 
+interface ClosedLeadOption {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  status: string;
+  convertedClient?: { id: string; name: string } | null;
+}
 
 
 export default function ClientOnboardPage() {
@@ -44,7 +53,8 @@ export default function ClientOnboardPage() {
   const [currencyState, setCurrencyState] = React.useState('USD');
 
   // Onboarding Wizard Steps
-  // 1: Business Details, 2: Primary Contact, 3: Agency Type, 4: Service Specifics, 5: Goals & Budget, 6: Review
+  // 1: Company Profile, 2: Client Contact, 3: Commercial Details,
+  // 4: Initial Project, 5: Review
   const [step, setStep] = React.useState(1);
 
   // Authentication Mocking States
@@ -55,20 +65,14 @@ export default function ClientOnboardPage() {
   const [formData, setFormData] = React.useState({
     // Step 1: Universal details
     name: '',
-    domain: '',
-    industry: '',
+    legalEntityName: '',
     description: '',
-    companySize: '',
-    yearsInOperation: '',
-    businessModel: 'B2B',
-    revenueStreams: '',
-    serviceCategories: '',
-    avgCustomerValue: '',
-    // Step 2: Main Point of Contact
-    pocName: '',
-    pocDesignation: '',
-    pocEmail: '',
-    pocPhone: '',
+    // Step 2: Client Contact
+    clientName: '',
+    clientDesignation: '',
+    clientEmail: '',
+    clientPhone: '',
+    sourceLeadId: '',
     // Step 3: Agency Type dropdown
     agencyType: 'Digital Marketing Agency',
     // Step 4: Service metadata (will be custom inputs based on type)
@@ -95,14 +99,13 @@ export default function ClientOnboardPage() {
     metaEditingMood: '',
     metaDevScope: '',
     metaTechStack: '',
-    // Step 5: Goals & Budget
-    shortTermGoals: [] as string[],
-    longTermGoals: [] as string[],
+    // Step 3: Commercial details
     monthlyRetainer: '',
+    retainerStartDate: '',
     paymentTerms: 'NET_30',
     adAccountId: '',
     assignedTeamMemberId: '',
-    // Step 6: Initial Project Setup
+    // Step 4: Initial Project Setup
     createProject: true,
     projectName: '',
     projectServiceLine: 'Paid Ads & CRO',
@@ -121,6 +124,8 @@ export default function ClientOnboardPage() {
   });
 
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
+  const [closedLeadOptions, setClosedLeadOptions] = React.useState<ClosedLeadOption[]>([]);
+  const [metaConnected, setMetaConnected] = React.useState(false);
 
   const [inviteUrl, setInviteUrl] = React.useState('');
 
@@ -150,6 +155,9 @@ export default function ClientOnboardPage() {
     checkRole();
     fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
       if (workspace?.organization?.currency) setCurrencyState(workspace.organization.currency);
+      setMetaConnected(Boolean(workspace?.integrations?.some((integration: any) =>
+        integration.provider === 'META' && ['CONNECTED', 'ACTIVE'].includes(integration.status?.toUpperCase())
+      )));
     }).catch(() => undefined);
 
     async function fetchTeam() {
@@ -164,6 +172,20 @@ export default function ClientOnboardPage() {
       }
     }
     fetchTeam();
+
+    async function fetchClosedLeads() {
+      try {
+        const res = await fetch('/api/agency-leads');
+        if (!res.ok) return;
+        const data = await res.json();
+        setClosedLeadOptions((data.leads || []).filter((lead: ClosedLeadOption) =>
+          lead.status?.toLowerCase() === 'closed' && !lead.convertedClient
+        ));
+      } catch (e) {
+        console.error('Error fetching closed leads:', e);
+      }
+    }
+    fetchClosedLeads();
   }, []);
 
   const recalculateStages = (stagesList: any[], startDateStr: string, endDateStr: string) => {
@@ -186,7 +208,7 @@ export default function ClientOnboardPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      let nextData = { ...prev, [name]: value };
+      const nextData = { ...prev, [name]: value };
       if (name === 'projectStartDate' || name === 'projectDeadline') {
         const start = name === 'projectStartDate' ? value : prev.projectStartDate;
         const end = name === 'projectDeadline' ? value : prev.projectDeadline;
@@ -197,13 +219,27 @@ export default function ClientOnboardPage() {
     setFormError('');
   };
 
-  const handleGoalToggle = (goal: string, type: 'short' | 'long') => {
-    setFormData((prev) => {
-      const key = type === 'short' ? 'shortTermGoals' : 'longTermGoals';
-      const list = prev[key] as string[];
-      const newList = list.includes(goal) ? list.filter((g) => g !== goal) : [...list, goal];
-      return { ...prev, [key]: newList };
-    });
+  const handleClosedLeadSelection = (leadId: string) => {
+    const lead = closedLeadOptions.find((option) => option.id === leadId);
+    setFormData((prev) => ({
+      ...prev,
+      sourceLeadId: leadId,
+      clientName: lead?.fullName || '',
+      clientEmail: lead?.email || '',
+      clientPhone: lead?.phone || '',
+    }));
+    setFormError('');
+  };
+
+  const handleProjectStepDecision = (createProject: boolean) => {
+    if (createProject && !formData.projectName.trim()) {
+      setFormError(formatUserMessage('Project Name is required to create an initial project.'));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, createProject }));
+    setStep(5);
+    setFormError('');
   };
 
   const handleNextStep = () => {
@@ -211,15 +247,19 @@ export default function ClientOnboardPage() {
       setFormError(formatUserMessage('Lohith, Client Company Name is required to proceed.'));
       return;
     }
-    if (step === 2 && (!formData.pocName || !formData.pocEmail)) {
-      setFormError(formatUserMessage('Lohith, Point of Contact Name and Email are required.'));
+    if (step === 2 && (!formData.clientName || !formData.clientEmail)) {
+      setFormError(formatUserMessage('Client Name and Client Email are required.'));
       return;
     }
-    if (step === 5 && !formData.assignedTeamMemberId) {
-      setFormError(formatUserMessage('Lohith, please assign a team member to work with the client.'));
+    if (step === 3 && !formData.assignedTeamMemberId) {
+      setFormError(formatUserMessage('Please assign a team member to work with the client.'));
       return;
     }
-    if (step === 5) {
+    if (step === 3 && formData.monthlyRetainer && !formData.retainerStartDate) {
+      setFormError(formatUserMessage('Please select the retainer start date.'));
+      return;
+    }
+    if (step === 3) {
       const start = new Date();
       const end = new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
       const defaultStartStr = start.toISOString().split('T')[0];
@@ -255,11 +295,11 @@ export default function ClientOnboardPage() {
         };
       });
     }
-    if (step === 6 && formData.createProject && !formData.projectName) {
-      setFormError(formatUserMessage('Lohith, Project Name is required if creating a project.'));
+    if (step === 4) {
+      handleProjectStepDecision(formData.createProject);
       return;
     }
-    setStep((prev) => Math.min(prev + 1, 7));
+    setStep((prev) => Math.min(prev + 1, 5));
     setFormError('');
   };
 
@@ -275,61 +315,46 @@ export default function ClientOnboardPage() {
     try {
       const payload = {
         name: formData.name,
-        domain: formData.domain,
+        domain: null,
         status: 'ACTIVE',
         healthScore: 100,
         healthStatus: 'EXCELLENT',
         churnRiskScore: 0,
         roiMetric: 0.0,
         upsellOpportunityValue: parseFloat(formData.monthlyRetainer) * 12 || 0.0,
-        agencyType: formData.agencyType,
-        businessModel: formData.businessModel,
-        adAccountId: formData.adAccountId || null,
+        sourceLeadId: formData.sourceLeadId || null,
+        adAccountId: metaConnected ? formData.adAccountId || null : null,
         contact: {
-          name: formData.pocName,
-          email: formData.pocEmail,
-          phone: formData.pocPhone,
-          role: formData.pocDesignation || 'Primary Client POC',
+          name: formData.clientName,
+          email: formData.clientEmail,
+          phone: formData.clientPhone,
+          role: formData.clientDesignation || 'Primary Client Contact',
         },
         metadata: {
-          industry: formData.industry,
+          legalEntityName: formData.legalEntityName,
           description: formData.description,
-          companySize: formData.companySize,
-          yearsInOperation: formData.yearsInOperation,
-          revenueStreams: formData.revenueStreams,
-          serviceCategories: formData.serviceCategories,
-          avgCustomerValue: formData.avgCustomerValue,
-          shortTermGoals: formData.shortTermGoals,
-          longTermGoals: formData.longTermGoals,
           paymentTerms: formData.paymentTerms,
           assignedTeamMemberId: formData.assignedTeamMemberId || null,
-          // Service Specific Data
-          metaData: {
-            currentSpend: formData.metaCurrentSpend,
-            performanceHistory: formData.metaPerformanceHistory,
-            cac: formData.metaCac,
-            activePlatforms: formData.metaActivePlatforms,
-            postingFrequency: formData.metaPostingFrequency,
-            brandVoice: formData.metaBrandVoice,
-            organicTraffic: formData.metaOrganicTraffic,
-            targetKeywords: formData.metaTargetKeywords,
-            cmsPlatform: formData.metaCmsPlatform,
-            adAccounts: formData.metaAdAccounts,
-            targetRoas: formData.metaTargetRoas,
-            currentPositioning: formData.metaCurrentPositioning,
-            longTermVision: formData.metaLongTermVision,
-            dimensionsFormats: formData.metaDimensionsFormats,
-            visualConstraints: formData.metaVisualConstraints,
-            typographyColor: formData.metaTypographyColor,
-            founderStory: formData.metaFounderStory,
-            smeAvailability: formData.metaSmeAvailability,
-            contentObjectives: formData.metaContentObjectives,
-            shootLogistics: formData.metaShootLogistics,
-            editingMood: formData.metaEditingMood,
-            devScope: formData.metaDevScope,
-            techStack: formData.metaTechStack,
-          }
-        }
+        },
+        initialRetainer: formData.monthlyRetainer ? {
+          name: `${formData.name} Monthly Retainer`,
+          amount: formData.monthlyRetainer,
+          frequency: 'monthly',
+          startDate: formData.retainerStartDate,
+        } : null,
+        initialProject: formData.createProject ? {
+          name: formData.projectName,
+          serviceLine: formData.projectServiceLine,
+          budget: formData.projectBudget,
+          timeline: formData.projectTimeline,
+          startDate: formData.projectStartDate,
+          endDate: formData.projectDeadline || null,
+          memberIds: formData.projectMemberIds,
+          deliverables: formData.projectDeliverables
+            ? formData.projectDeliverables.split(',').map((deliverable: string) => deliverable.trim()).filter(Boolean)
+            : [],
+          stages: formData.projectStages,
+        } : null,
       };
 
       const res = await fetch('/api/clients', {
@@ -340,34 +365,6 @@ export default function ClientOnboardPage() {
 
       if (res.ok) {
         const data = await res.json();
-        const createdClient = data.client;
-
-        // If createProject is enabled, trigger Project API creation
-        if (formData.createProject && createdClient) {
-          try {
-            await fetch('/api/projects', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                clientId: createdClient.id,
-                name: formData.projectName,
-                serviceLine: formData.projectServiceLine,
-                budget: formData.projectBudget,
-                timeline: formData.projectTimeline,
-                startDate: formData.projectStartDate,
-                endDate: formData.projectDeadline || null,
-                memberIds: formData.projectMemberIds,
-                deliverables: formData.projectDeliverables 
-                  ? formData.projectDeliverables.split(',').map((d: string) => d.trim()).filter(Boolean) 
-                  : [],
-                stages: formData.projectStages
-              })
-            });
-          } catch (projError) {
-            console.error('Error creating initial client project:', projError);
-          }
-        }
-
         setInviteUrl(data.inviteUrl || '');
         setSubmitStatus('success');
       } else {
@@ -391,7 +388,7 @@ export default function ClientOnboardPage() {
             <h3 className="text-xs font-semibold text-white uppercase tracking-wider border-b border-zinc-900 pb-2">Digital Marketing Performance Specs</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400 block">Current Monthly Marketing Budget ($)</label>
+                <label className="font-semibold text-zinc-400 block">Current Monthly Marketing Budget ({getCurrencySymbol(currencyState)})</label>
                 <input
                   type="text"
                   name="metaCurrentSpend"
@@ -402,7 +399,7 @@ export default function ClientOnboardPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400 block">Customer Acquisition Cost Target ($)</label>
+                <label className="font-semibold text-zinc-400 block">Customer Acquisition Cost Target ({getCurrencySymbol(currencyState)})</label>
                 <input
                   type="text"
                   name="metaCac"
@@ -795,7 +792,7 @@ export default function ClientOnboardPage() {
           </Button>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white silver-text-gradient">Client Onboarding Portal</h1>
-            <p className="text-[10px] text-zinc-500 mt-0.5">Administrator Terminal | Step {step} of 7</p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">Administrator Terminal | Step {step} of 5</p>
           </div>
         </div>
       </div>
@@ -805,12 +802,10 @@ export default function ClientOnboardPage() {
         <div className="md:col-span-1 space-y-1.5">
           {[
             { s: 1, name: 'Company Profile', desc: 'Universal business details' },
-            { s: 2, name: 'Contacts & POC', desc: 'Point of contact specs' },
-            { s: 3, name: 'Service Selection', desc: 'Dropdown agency industry' },
-            { s: 4, name: 'Specific Checklist', desc: 'Dynamic requirements' },
-            { s: 5, name: 'Goals & Budget', desc: 'Retainers and terms' },
-            { s: 6, name: 'Project Setup', desc: 'Launch initial campaign' },
-            { s: 7, name: 'Review & Verify', desc: 'Complete onboarding' },
+            { s: 2, name: 'Client Contact', desc: 'Primary client details' },
+            { s: 3, name: 'Commercial Details', desc: 'Retainer, terms, and owner' },
+            { s: 4, name: 'Project Setup', desc: 'Service, checklist, and delivery' },
+            { s: 5, name: 'Review & Verify', desc: 'Complete onboarding' },
           ].map((item) => (
             <div
               key={item.s}
@@ -841,7 +836,10 @@ export default function ClientOnboardPage() {
 
         {/* Wizard Panel Content */}
         <div className="md:col-span-3">
-          <Card className="border-zinc-850/80 min-h-[400px] flex flex-col justify-between">
+          <Card
+            className="relative min-h-[400px] overflow-hidden border-zinc-850/80 flex flex-col justify-between"
+            aria-busy={submitStatus === 'submitting'}
+          >
             <CardContent className="p-6">
               {formError && (
                 <div className="flex gap-2.5 rounded border border-rose-900/30 bg-rose-950/10 p-3.5 text-rose-400 mb-6 font-semibold">
@@ -876,77 +874,11 @@ export default function ClientOnboardPage() {
                       <label className="font-semibold text-zinc-400 block">Legal Entity Name</label>
                       <input
                         type="text"
-                        name="domain"
-                        placeholder="e.g. aethertech.com"
-                        value={formData.domain}
+                        name="legalEntityName"
+                        placeholder="e.g. Aether Technologies, Inc."
+                        value={formData.legalEntityName}
                         onChange={handleInputChange}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Industry / Niche</label>
-                      <input
-                        type="text"
-                        name="industry"
-                        placeholder="e.g. SaaS, Fintech, E-Commerce"
-                        value={formData.industry}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Business Model</label>
-                      <select
-                        name="businessModel"
-                        value={formData.businessModel}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                      >
-                        <option value="B2B">B2B (Business-to-Business)</option>
-                        <option value="B2C">B2C (Business-to-Consumer)</option>
-                        <option value="D2C">D2C (Direct-to-Consumer)</option>
-                        <option value="SaaS">SaaS (Software as a Service)</option>
-                        <option value="Marketplace">Marketplace</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Company Size (Employees)</label>
-                      <input
-                        type="number"
-                        name="companySize"
-                        placeholder="e.g. 50"
-                        value={formData.companySize}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Years in Operation</label>
-                      <input
-                        type="number"
-                        name="yearsInOperation"
-                        placeholder="e.g. 5"
-                        value={formData.yearsInOperation}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Avg Customer Value ({getCurrencySymbol(currencyState)}/yr)</label>
-                      <input
-                        type="text"
-                        name="avgCustomerValue"
-                        placeholder="e.g. 10000"
-                        value={formData.avgCustomerValue}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -970,123 +902,91 @@ export default function ClientOnboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <User className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Point of Contact Information</h2>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">POC Full Name *</label>
-                      <input
-                        type="text"
-                        name="pocName"
-                        placeholder="e.g. John Doe"
-                        value={formData.pocName}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Designation / Role</label>
-                      <input
-                        type="text"
-                        name="pocDesignation"
-                        placeholder="e.g. Head of Marketing, VP Product"
-                        value={formData.pocDesignation}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Email Address *</label>
-                      <input
-                        type="email"
-                        name="pocEmail"
-                        placeholder="e.g. contact@domain.com"
-                        value={formData.pocEmail}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Phone Number</label>
-                      <input
-                        type="tel"
-                        name="pocPhone"
-                        placeholder="e.g. +1-555-019-9234"
-                        value={formData.pocPhone}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Agency Type dropdown selection */}
-              {step === 3 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-                    <Layers className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Agency & Service line Focus</h2>
+                    <h2 className="text-sm font-semibold text-white">Client Information</h2>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-400 block">Onboarding Scope (Select specialization dropdown)</label>
+                    <label className="font-semibold text-zinc-400 block">Import from Closed Lead</label>
                     <select
-                      name="agencyType"
-                      value={formData.agencyType}
-                      onChange={handleInputChange}
-                      className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-3 text-white text-xs focus:border-zinc-750 focus:outline-none font-semibold transition-all"
+                      value={formData.sourceLeadId}
+                      onChange={(event) => handleClosedLeadSelection(event.target.value)}
+                      className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
                     >
-                      {AGENCY_TYPES.map((type) => (
-                        <option key={type} value={type} className="bg-zinc-950 text-zinc-300">
-                          {type}
+                      <option value="">Enter contact details manually</option>
+                      {closedLeadOptions.map((lead) => (
+                        <option key={lead.id} value={lead.id}>
+                          {lead.fullName} — {lead.email}
                         </option>
                       ))}
                     </select>
+                    <p className="text-[10px] text-zinc-600">
+                      Selecting a closed lead imports its name, email, and phone and attributes this client’s retainer to that conversion.
+                    </p>
                   </div>
 
-                  <div className="rounded-lg border border-zinc-850 bg-zinc-900/10 p-4 space-y-2 flex items-start gap-3 mt-4">
-                    <div className="h-6 w-6 rounded bg-zinc-850 flex items-center justify-center shrink-0">
-                      <Sparkles className="h-3.5 w-3.5 text-zinc-350" />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Client Name *</label>
+                      <input
+                        type="text"
+                        name="clientName"
+                        placeholder="e.g. John Doe"
+                        value={formData.clientName}
+                        onChange={handleInputChange}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
+                      />
                     </div>
-                    <div>
-                      <span className="block font-semibold text-zinc-300">Industry-specific Client Onboarding</span>
-                      <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
-                        Each selection will change the list of details required for the client onboarding, which is tailored specific to the main requirement of the client
-                      </span>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Client Role</label>
+                      <input
+                        type="text"
+                        name="clientDesignation"
+                        placeholder="e.g. Head of Marketing, VP Product"
+                        value={formData.clientDesignation}
+                        onChange={handleInputChange}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Client Email *</label>
+                      <input
+                        type="email"
+                        name="clientEmail"
+                        placeholder="e.g. contact@domain.com"
+                        value={formData.clientEmail}
+                        onChange={handleInputChange}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Client Phone</label>
+                      <input
+                        type="tel"
+                        name="clientPhone"
+                        placeholder="e.g. +1-555-019-9234"
+                        value={formData.clientPhone}
+                        onChange={handleInputChange}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
+                      />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Step 4: Service Specific sub-forms */}
-              {step === 4 && (
+              {/* Step 3: Commercial details */}
+              {step === 3 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-                    <Sparkles className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">{formData.agencyType} requirements</h2>
+                    <Wallet className="h-4 w-4 text-zinc-400" />
+                    <h2 className="text-sm font-semibold text-white">Commercial Details</h2>
                   </div>
 
-                  {/* Render the specific details subform */}
-                  {renderServiceSpecificFields()}
-                </div>
-              )}
-
-              {/* Step 5: Goals & retainers */}
-              {step === 5 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-                    <DollarSign className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Commercial details & Goals</h2>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Monthly Retainer ({getCurrencySymbol(currencyState)} / month)</label>
                       <input
@@ -1096,6 +996,17 @@ export default function ClientOnboardPage() {
                         value={formData.monthlyRetainer}
                         onChange={handleInputChange}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Retainer Start Date</label>
+                      <input
+                        type="date"
+                        name="retainerStartDate"
+                        required={Boolean(formData.monthlyRetainer)}
+                        value={formData.retainerStartDate}
+                        onChange={handleInputChange}
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1118,69 +1029,19 @@ export default function ClientOnboardPage() {
                         value={formData.adAccountId}
                         onChange={handleInputChange}
                         placeholder="act_…"
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-medium"
+                        disabled={!metaConnected}
+                        aria-describedby="meta-account-status"
+                        className={`w-full rounded border border-zinc-850 p-2 text-white focus:border-zinc-750 focus:outline-none font-medium ${
+                          metaConnected
+                            ? 'bg-zinc-900/40'
+                            : 'cursor-not-allowed bg-zinc-900/20 opacity-45 blur-[1px]'
+                        }`}
                       />
-                    </div>
-                  </div>
-
-                  {/* Short term goals */}
-                  <div className="space-y-2 pt-2">
-                    <span className="font-semibold text-zinc-400 block">Short-Term Business Goals (Select all that apply)</span>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        'Lead Generation',
-                        'Revenue Growth',
-                        'Brand Awareness',
-                        'Website Traffic',
-                        'Social Growth',
-                        'Product Launches',
-                      ].map((goal) => {
-                        const active = formData.shortTermGoals.includes(goal);
-                        return (
-                          <button
-                            type="button"
-                            key={goal}
-                            onClick={() => handleGoalToggle(goal, 'short')}
-                            className={`px-3 py-1.5 rounded-full border text-[10px] font-semibold transition-all ${
-                              active
-                                ? 'bg-white text-zinc-950 border-white font-bold'
-                                : 'border-zinc-850 text-zinc-400 hover:border-zinc-750'
-                            }`}
-                          >
-                            {goal}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Long term goals */}
-                  <div className="space-y-2 pt-2">
-                    <span className="font-semibold text-zinc-400 block">Long-Term Strategic Directions</span>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        'Market Expansion',
-                        'Industry Positioning',
-                        'Customer Retention',
-                        'Brand Authority',
-                        'New Geographic Markets',
-                      ].map((goal) => {
-                        const active = formData.longTermGoals.includes(goal);
-                        return (
-                          <button
-                            type="button"
-                            key={goal}
-                            onClick={() => handleGoalToggle(goal, 'long')}
-                            className={`px-3 py-1.5 rounded-full border text-[10px] font-semibold transition-all ${
-                              active
-                                ? 'bg-white text-zinc-950 border-white font-bold'
-                                : 'border-zinc-850 text-zinc-400 hover:border-zinc-750'
-                            }`}
-                          >
-                            {goal}
-                          </button>
-                        );
-                      })}
+                      <span id="meta-account-status" className="block text-[10px] text-zinc-500">
+                        {metaConnected
+                          ? 'Connected Meta account detected.'
+                          : 'Connect Meta in Settings to add an account ID.'}
+                      </span>
                     </div>
                   </div>
 
@@ -1239,30 +1100,15 @@ export default function ClientOnboardPage() {
                 </div>
               )}
 
-              {/* Step 6: Initial Project Setup */}
-              {step === 6 && (
+              {/* Step 4: Initial Project Setup */}
+              {step === 4 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <Layers className="h-4 w-4 text-zinc-400" />
                     <h2 className="text-sm font-semibold text-white">Create Initial Project for Client</h2>
                   </div>
 
-                  <div className="flex items-center gap-2 pb-2">
-                    <input
-                      type="checkbox"
-                      id="createProject"
-                      name="createProject"
-                      checked={formData.createProject}
-                      onChange={(e) => setFormData(prev => ({ ...prev, createProject: e.target.checked }))}
-                      className="rounded bg-zinc-900 border-zinc-850 text-white accent-white cursor-pointer h-4 w-4"
-                    />
-                    <label htmlFor="createProject" className="font-semibold text-zinc-350 text-xs cursor-pointer select-none">
-                      Initialize a core project with deliverables & budgets immediately
-                    </label>
-                  </div>
-
-                  {formData.createProject && (
-                    <div className="space-y-4 pt-2 border-t border-zinc-900/60 animate-fadeIn">
+                  <div className="space-y-4 pt-2 border-t border-zinc-900/60 animate-fadeIn">
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
                           <label className="font-semibold text-zinc-400 block">Project Name *</label>
@@ -1497,13 +1343,12 @@ export default function ClientOnboardPage() {
                             })}
                         </div>
                       </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               )}
 
-              {/* Step 7: Review & finalize */}
-              {step === 7 && (
+              {/* Step 5: Review & finalize */}
+              {step === 5 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <CheckCircle className="h-4 w-4 text-zinc-400" />
@@ -1518,42 +1363,30 @@ export default function ClientOnboardPage() {
                         <span className="font-semibold text-white">{formData.name}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Website URL:</span>
-                        <span className="font-mono text-zinc-300">{formData.domain || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">Industry:</span>
-                        <span className="text-zinc-300">{formData.industry || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">Business Model:</span>
-                        <span className="text-zinc-300">{formData.businessModel}</span>
+                        <span className="text-zinc-400">Legal Entity:</span>
+                        <span className="font-mono text-zinc-300">{formData.legalEntityName || 'N/A'}</span>
                       </div>
                     </div>
 
                     <div className="rounded border border-zinc-900 p-3 space-y-2 bg-zinc-950/20">
-                      <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Primary Contacts Summary</span>
+                      <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Client Summary</span>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Point of Contact:</span>
-                        <span className="font-semibold text-white">{formData.pocName}</span>
+                        <span className="text-zinc-400">Client Name:</span>
+                        <span className="font-semibold text-white">{formData.clientName}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">POC Designation:</span>
-                        <span className="text-zinc-300">{formData.pocDesignation || 'N/A'}</span>
+                        <span className="text-zinc-400">Client Role:</span>
+                        <span className="text-zinc-300">{formData.clientDesignation || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Email Address:</span>
-                        <span className="text-zinc-300">{formData.pocEmail}</span>
+                        <span className="text-zinc-400">Client Email:</span>
+                        <span className="text-zinc-300">{formData.clientEmail}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="rounded border border-zinc-900 p-3 space-y-2 bg-zinc-950/20 text-[11px]">
-                    <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Selected Agency Scope</span>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Agency industry Focus:</span>
-                      <span className="font-semibold text-white">{formData.agencyType}</span>
-                    </div>
+                    <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Commercial Summary</span>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Assigned Specialist:</span>
                       <span className="font-semibold text-white">
@@ -1563,7 +1396,15 @@ export default function ClientOnboardPage() {
                     <div className="flex justify-between border-t border-zinc-900 pt-2">
                       <span className="text-zinc-400">Retainer Value:</span>
                       <span className="font-bold text-white font-mono">
-                        {formData.monthlyRetainer ? `${formatCurrency(parseInt(formData.monthlyRetainer))}/mo` : `${formatCurrency(0)}/mo`}
+                        {formData.monthlyRetainer ? `${formatCurrency(Number(formData.monthlyRetainer), 2)}/mo` : `${formatCurrency(0)}/mo`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Retainer Starts:</span>
+                      <span className="font-medium text-zinc-300">
+                        {formData.retainerStartDate
+                          ? new Date(`${formData.retainerStartDate}T00:00:00`).toLocaleDateString()
+                          : 'Not configured'}
                       </span>
                     </div>
                   </div>
@@ -1581,7 +1422,7 @@ export default function ClientOnboardPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-zinc-400">Timeline / Budget:</span>
-                        <span className="text-zinc-300 font-mono">{formData.projectTimeline} (${parseFloat(formData.projectBudget || '0').toLocaleString()})</span>
+                        <span className="text-zinc-300 font-mono">{formData.projectTimeline} ({formatCurrency(parseFloat(formData.projectBudget || '0'), 2)})</span>
                       </div>
                       <div className="mt-2 pt-2 border-t border-zinc-900/65 space-y-1">
                         <span className="block text-[8px] text-zinc-500 uppercase font-bold">Planned Development Stages:</span>
@@ -1623,7 +1464,7 @@ export default function ClientOnboardPage() {
                             </Button>
                           </div>
                           <span className="block text-[9px] text-zinc-500">
-                            Provide this link to the client for account activation. An invitation email was also automatically dispatched to {formData.pocEmail}.
+                            Provide this link to the client for account activation. An invitation email was also automatically dispatched to {formData.clientEmail}.
                           </span>
                         </div>
                       )}
@@ -1631,10 +1472,10 @@ export default function ClientOnboardPage() {
                       <div className="rounded border border-zinc-900 bg-zinc-950/40 p-4 space-y-2.5 text-[10px]">
                         <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[8px]">Simulated Welcome Email Dispatch</span>
                         <div className="border-t border-zinc-900 pt-2 space-y-1 text-zinc-400">
-                          <div><span className="font-semibold text-zinc-300">To:</span> {formData.pocEmail}</div>
+                          <div><span className="font-semibold text-zinc-300">To:</span> {formData.clientEmail}</div>
                           <div><span className="font-semibold text-zinc-300">Subject:</span> Welcome to Iris OS - Set Up Your Client Account</div>
                           <div className="pt-2 leading-relaxed italic text-zinc-500 bg-zinc-900/20 p-2.5 rounded">
-                            "Hello {formData.pocName},\n\nWelcome to Iris OS! You have been invited to register your client portal account. Visit: {window.location.origin}{inviteUrl} to set up your password."
+                            &quot;Hello {formData.clientName},\n\nWelcome to Iris OS! You have been invited to register your client portal account. Visit: {window.location.origin}{inviteUrl} to set up your password.&quot;
                           </div>
                         </div>
                       </div>
@@ -1667,7 +1508,26 @@ export default function ClientOnboardPage() {
                   <span>Back</span>
                 </Button>
  
-                {step < 7 ? (
+                {step === 4 ? (
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => handleProjectStepDecision(false)}
+                      className="h-9 px-3 text-xs font-semibold text-zinc-400 hover:text-white"
+                    >
+                      Skip project creation
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => handleProjectStepDecision(true)}
+                      className="h-9 font-semibold text-xs bg-white text-zinc-950 hover:bg-zinc-200"
+                    >
+                      <span>Create project & continue</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : step < 5 ? (
                   <Button
                     type="button"
                     onClick={handleNextStep}
@@ -1682,11 +1542,32 @@ export default function ClientOnboardPage() {
                     disabled={submitStatus === 'submitting'}
                     onClick={handleFormSubmit}
                     className="h-9 font-semibold text-xs flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-200"
-                  >
-                    <Save className="h-4 w-4" />
+                >
+                    {submitStatus === 'submitting' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     <span>{submitStatus === 'submitting' ? 'Onboarding Client...' : 'Onboard Client'}</span>
                   </Button>
                 )}
+              </div>
+            )}
+
+            {submitStatus === 'submitting' && (
+              <div
+                className="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/80 p-6 backdrop-blur-sm"
+                role="status"
+                aria-live="assertive"
+              >
+                <div className="w-full max-w-sm rounded-2xl border border-zinc-700/80 bg-zinc-900/90 p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-100 shadow-inner">
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                  </div>
+                  <h2 className="mt-4 text-sm font-semibold text-white">Creating client workspace</h2>
+                  <p className="mt-2 text-xs leading-5 text-zinc-400">
+                    Saving the company profile, client contact, retainer, and initial project. This can take a moment.
+                  </p>
+                  <div className="mt-5 h-1 overflow-hidden rounded-full bg-zinc-800">
+                    <div className="h-full w-1/2 animate-pulse rounded-full bg-zinc-300" />
+                  </div>
+                </div>
               </div>
             )}
           </Card>

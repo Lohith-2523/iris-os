@@ -1,3 +1,5 @@
+import { workspaceFetch } from '@/lib/workspace-data-cache';
+
 export interface AgencyHealthScore {
   score: number;
   rating: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'RISK';
@@ -30,18 +32,108 @@ const UNAVAILABLE_HEALTH = {
 
 const AI_UNAVAILABLE = 'Prism AI is currently unavailable. No synthetic organization data was returned.';
 
-async function fetchPrismAI(action: string, bodyData: any = {}): Promise<any> {
+export class PrismAIRequestError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = 'PrismAIRequestError';
+  }
+}
+
+// Automatic Prisma insights are derived from a point-in-time workspace snapshot.
+// Keep them in session storage (not local storage) so navigating between workspace
+// pages does not repeatedly invoke an AI provider, while a new browser session starts
+// with a fresh, authenticated snapshot.
+const INSIGHT_CACHE_TTL_MS = 30 * 60 * 1000;
+const CACHEABLE_ACTIONS = new Set([
+  'dashboard-summary',
+  'operations-advice',
+  'finance-analysis',
+  'forecasting',
+  'reporting-brief',
+]);
+const inFlightRequests = new Map<string, Promise<any>>();
+let activeWorkspaceScope = '';
+
+export function setPrismAIWorkspaceScope(scope: { userId: string; orgId: string } | null) {
+  activeWorkspaceScope = scope ? `${scope.userId}:${scope.orgId}` : '';
+}
+
+function stableSerialize(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`).join(',')}}`;
+}
+
+function insightCacheKey(action: string, bodyData: Record<string, unknown>) {
+  return `crystal.prism.insight:${activeWorkspaceScope || 'unscoped'}:${action}:${stableSerialize(bodyData)}:v1`;
+}
+
+function readCachedInsight(key: string): any | null {
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as { expiresAt?: number; data?: unknown };
+    if (!cached.expiresAt || cached.expiresAt <= Date.now()) {
+      window.sessionStorage.removeItem(key);
+      return null;
+    }
+    return cached.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheInsight(key: string, data: unknown) {
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify({
+      expiresAt: Date.now() + INSIGHT_CACHE_TTL_MS,
+      data,
+    }));
+  } catch {
+    // Session storage is only a performance optimization and must never block Prism.
+  }
+}
+
+async function fetchPrismAI(action: string, bodyData: Record<string, unknown> = {}): Promise<any> {
   if (typeof window === 'undefined') {
     return { result: '' };
   }
 
-  const res = await fetch('/api/prism-ai', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, ...bodyData })
-  });
-  if (!res.ok) throw new Error();
-  return res.json();
+  const cacheable = CACHEABLE_ACTIONS.has(action);
+  const cacheKey = cacheable ? insightCacheKey(action, bodyData) : null;
+  if (cacheKey) {
+    const cached = readCachedInsight(cacheKey);
+    if (cached) return cached;
+
+    const pending = inFlightRequests.get(cacheKey);
+    if (pending) return pending;
+  }
+
+  const request = (async () => {
+    const res = await workspaceFetch('/api/prism-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...bodyData })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new PrismAIRequestError(
+        typeof data.error === 'string' ? data.error : 'Prism AI could not complete this request.',
+        res.status,
+      );
+    }
+    if (cacheKey) cacheInsight(cacheKey, data);
+    return data;
+  })();
+
+  if (cacheKey) inFlightRequests.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    if (cacheKey) inFlightRequests.delete(cacheKey);
+  }
 }
 
 export const PrismAIService = {
@@ -96,23 +188,28 @@ export const PrismAIService = {
     }
   },
 
+  async getReportingBrief(context?: Record<string, unknown>): Promise<{ result: string; model: string }> {
+    if (typeof window === 'undefined') return { result: AI_UNAVAILABLE, model: 'Prism AI' };
+    const data = await fetchPrismAI('reporting-brief', { context });
+    return { result: data.result || AI_UNAVAILABLE, model: data.model || 'Prism AI' };
+  },
+
   /**
    * Delegates query execution.
    */
-  async askPrism(query: string, context?: any, sessionId?: string): Promise<{ result: string; model: string; sessionId?: string }> {
+  async askPrism(query: string, context?: any, sessionId?: string): Promise<{ result: string; model: string; sessionId: string }> {
     if (typeof window === 'undefined') {
-      return { result: AI_UNAVAILABLE, model: 'Prism AI' };
+      throw new PrismAIRequestError('Prism chat is only available in the browser.');
     }
-    try {
-      const data = await fetchPrismAI('ask-prism', { query, context, sessionId });
-      return {
-        result: data.result,
-        model: data.model || 'Prism AI',
-        sessionId: data.sessionId,
-      };
-    } catch {
-      return { result: AI_UNAVAILABLE, model: 'Prism AI' };
+    const data = await fetchPrismAI('ask-prism', { query, context, sessionId });
+    if (!data.persisted || typeof data.sessionId !== 'string' || !data.result) {
+      throw new PrismAIRequestError('Prism replied, but the chat could not be saved. Please retry.');
     }
+    return {
+      result: data.result,
+      model: data.model || 'Prism AI',
+      sessionId: data.sessionId,
+    };
   },
 
   /**
@@ -132,7 +229,7 @@ export const PrismAIService = {
 
   async getSessions() {
     if (typeof window === 'undefined') return [];
-    const res = await fetch('/api/prism-ai/sessions');
+    const res = await workspaceFetch('/api/prism-ai/sessions');
     if (!res.ok) return [];
     const data = await res.json();
     return data.sessions || [];
@@ -140,14 +237,14 @@ export const PrismAIService = {
 
   async getSessionMessages(id: string) {
     if (typeof window === 'undefined') return null;
-    const res = await fetch(`/api/prism-ai/sessions/${id}`);
+    const res = await workspaceFetch(`/api/prism-ai/sessions/${id}`);
     if (!res.ok) return null;
     return await res.json();
   },
 
   async deleteSession(id: string) {
     if (typeof window === 'undefined') return;
-    await fetch(`/api/prism-ai/sessions/${id}`, { method: 'DELETE' });
+    await workspaceFetch(`/api/prism-ai/sessions/${id}`, { method: 'DELETE' });
   }
 };
 

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -339,9 +340,9 @@ export default function ClientDashboardPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="dashboard-canvas space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
+      <div className="dashboard-header flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
           <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Client Workspace</span>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">

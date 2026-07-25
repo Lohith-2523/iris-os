@@ -1,5 +1,5 @@
 export interface IntegrationState {
-  provider: 'CANVA' | 'PAYPAL' | 'STRIPE' | 'RAZORPAY' | 'GOOGLE';
+  provider: 'CANVA' | 'PAYPAL' | 'STRIPE' | 'GOOGLE';
   status: 'CONNECTED' | 'DISCONNECTED' | 'SYNCING' | 'ERROR';
   lastSync: Date | null;
   logs: string;
@@ -31,7 +31,6 @@ export const IntegrationAdapters = {
       { provider: 'CANVA', status: 'CONNECTED', lastSync: new Date(), logs: 'Synced 12 assets from Canva workspace root.' },
       { provider: 'PAYPAL', status: 'DISCONNECTED', lastSync: null, logs: 'Not connected. Connect your PayPal Client ID and Secret.' },
       { provider: 'STRIPE', status: 'CONNECTED', lastSync: new Date(), logs: 'Synced subscription events, active webhooks verified.' },
-      { provider: 'RAZORPAY', status: 'DISCONNECTED', lastSync: null, logs: 'Not connected. Connect your Razorpay Key ID and Secret.' },
       { provider: 'GOOGLE', status: 'DISCONNECTED', lastSync: null, logs: 'Not connected. Connect your Google account to sync Google Calendar.' }
     ];
   },

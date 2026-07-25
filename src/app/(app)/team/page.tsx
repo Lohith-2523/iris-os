@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ import * as XLSX from 'xlsx';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
+const isInternalTeamUser = (user: { role?: string }) => ['admin', 'member'].includes(user.role?.toLowerCase() || '');
 
 export default function TeamPage() {
   const [isSkippedAll, setIsSkippedAll] = React.useState(false);
@@ -80,7 +82,7 @@ export default function TeamPage() {
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
-            setTeamList(data);
+            setTeamList(data.filter(isInternalTeamUser));
           }
         }
       } catch (e) {
@@ -172,6 +174,9 @@ export default function TeamPage() {
 
   const filteredTeamList = React.useMemo(() => {
     return teamList.filter((t) => {
+      if (!isInternalTeamUser(t)) {
+        return false;
+      }
       if (roleFilter !== 'ALL' && t.role !== roleFilter) {
         return false;
       }
@@ -262,7 +267,7 @@ export default function TeamPage() {
         const teamRes = await fetch('/api/data?domain=team');
         if (teamRes.ok) {
           const freshTeam = await teamRes.json();
-          setTeamList(freshTeam);
+          setTeamList(freshTeam.filter(isInternalTeamUser));
         }
       } else {
         const err = await res.json();
@@ -689,7 +694,7 @@ export default function TeamPage() {
                     <TableHead>Role</TableHead>
                     <TableHead>Assigned Projects</TableHead>
                     <TableHead className="text-center">Utilization</TableHead>
-                    <TableHead className="text-right">Performance</TableHead>
+                    <TableHead className="text-right">Tasks</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -733,9 +738,19 @@ export default function TeamPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant={t.status === 'EXCELLENT' ? 'risk-low' : 'outline'} className="rounded-md">
-                          {t.status}
-                        </Badge>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedMember(t);
+                            setEditingTaskId(null);
+                          }}
+                          className="h-7 border-zinc-700 bg-zinc-900 px-2.5 text-[10px] font-semibold text-zinc-200 hover:bg-zinc-800 hover:text-white"
+                        >
+                          View tasks
+                        </Button>
                       </TableCell>
                     </TableRow>
                   )))}

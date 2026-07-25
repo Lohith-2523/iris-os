@@ -3,10 +3,10 @@ import { cn } from '@/lib/utils';
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
+    <div className="workspace-table-scroll relative w-full overflow-auto">
       <table
         ref={ref}
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn('workspace-table w-full caption-bottom text-sm', className)}
         {...props}
       />
     </div>
@@ -16,7 +16,7 @@ Table.displayName = 'Table';
 
 const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <thead ref={ref} className={cn('[&_tr]:border-b border-border bg-zinc-900/40', className)} {...props} />
+    <thead ref={ref} className={cn('workspace-table-header [&_tr]:border-b border-border bg-zinc-900/40', className)} {...props} />
   )
 );
 TableHeader.displayName = 'TableHeader';
@@ -48,7 +48,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        'border-b border-zinc-800/60 transition-colors hover:bg-zinc-800/30 data-[state=selected]:bg-muted',
+        'workspace-table-row border-b border-zinc-800/60 transition-colors hover:bg-zinc-800/30 data-[state=selected]:bg-muted',
         className
       )}
       {...props}
@@ -62,7 +62,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        'h-10 px-4 text-left align-middle font-medium text-zinc-400 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'workspace-table-head h-10 px-4 text-left align-middle font-medium text-zinc-400 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className
       )}
       {...props}
@@ -76,7 +76,7 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
     <td
       ref={ref}
       className={cn(
-        'p-4 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] text-zinc-300',
+        'workspace-table-cell p-4 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] text-zinc-300',
         className
       )}
       {...props}

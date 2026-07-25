@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useRouter, usePathname } from 'next/navigation';
 import { Search, Sparkles, Command, Menu, X, BrainCircuit, Play, ArrowRight, Sun, Moon } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -122,6 +123,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             size="icon"
             onClick={onMenuToggle}
             className="md:hidden text-zinc-400 hover:text-white"
+            aria-label="Open navigation"
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -131,16 +133,15 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
         {/* Center: Ask Prism Form */}
         {!isClient && (
           <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <form onSubmit={handlePrismSubmit} className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <PrismIcon className="h-3.5 w-3.5" />
-              </div>
+            <form onSubmit={handlePrismSubmit} className="workspace-topbar-search flex items-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
+              <PrismIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
               <input
                 type="text"
+                aria-label="Ask Prism AI"
                 placeholder="Ask Prism AI (e.g. summarize health, forecast)..."
                 value={prismQuery}
                 onChange={(e) => setPrismQuery(e.target.value)}
-                className="w-full rounded-md border border-zinc-800 bg-zinc-900/40 py-1.5 pl-9 pr-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-all font-sans"
+                className="min-w-0 flex-1 bg-transparent py-2 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
               />
               <button type="submit" className="hidden" />
             </form>
@@ -155,14 +156,18 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             onClick={toggleTheme}
             className="h-9 w-9 text-zinc-400 hover:text-white border border-zinc-800 bg-zinc-950 flex items-center justify-center cursor-pointer transition-colors"
             title="Toggle theme profile"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            aria-pressed={theme === 'light'}
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
             {!isClient && (
-              <div
+              <button
+                type="button"
                 onClick={() => setIsCommandOpen(true)}
-                className="flex h-9 w-40 items-center justify-between rounded-md border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
+                className="workspace-command-trigger flex h-9 w-40 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
+                aria-label="Open workspace search"
               >
                 <div className="flex items-center gap-2">
                   <Search className="h-3.5 w-3.5 text-zinc-500" />
@@ -172,17 +177,17 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                   <Command className="h-2 w-2 mr-0.5" />
                   <span>K</span>
                 </div>
-              </div>
+              </button>
             )}
         </div>
       </header>
 
       {/* Command Menu Modal Dialog */}
       {isCommandOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[15vh]">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+            className="workspace-overlay fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
             onClick={() => {
               setIsCommandOpen(false);
               setSearchQuery('');
@@ -191,7 +196,12 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
           />
 
           {/* Dialog Container */}
-          <div className="relative z-50 w-full max-w-lg overflow-hidden rounded-lg border border-zinc-800 bg-[#0d0e12] shadow-2xl transition-all">
+          <div
+            className="workspace-command-dialog relative z-50 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-800 bg-[#0d0e12] shadow-2xl transition-all"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Workspace command menu"
+          >
             <div className="flex items-center border-b border-zinc-800 px-4">
               <Search className="h-4 w-4 text-zinc-500 mr-2" />
               <input
@@ -228,7 +238,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                     <div
                       key={idx}
                       onClick={() => executeCommand(item)}
-                      className="flex items-center justify-between rounded-md px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer transition-colors"
+                      className="workspace-command-item flex items-center justify-between rounded-xl px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer transition-colors"
                     >
                       <span>{item.name}</span>
                       <span className="rounded bg-zinc-900 border border-zinc-800 px-1.5 py-0.2 text-[9px] text-zinc-500 uppercase tracking-wider">
@@ -246,7 +256,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                         <div
                           key={idx}
                           onClick={() => executeCommand(item)}
-                          className="flex items-center gap-2 rounded-md px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-white cursor-pointer transition-colors"
+                          className="workspace-command-item flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-white cursor-pointer transition-colors"
                         >
                           <Play className="h-3 w-3 text-zinc-500" />
                           <span>{item.name}</span>

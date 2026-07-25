@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { InsightPanel } from '@/components/ui/insight-panel';
@@ -24,7 +25,8 @@ import {
   Key,
   Upload,
   Sparkles,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { PrismAIService } from '@/lib/prism-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -33,10 +35,11 @@ import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPrefe
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
 
 export default function FinancePage() {
   const [isSkippedAll, setIsSkippedAll] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'stripe' | 'paypal' | 'razorpay'>('overview');
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'manual' | 'stripe' | 'paypal' | 'razorpay'>('overview');
   const [integrations, setIntegrations] = React.useState<any[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = React.useState(true);
 
@@ -57,7 +60,10 @@ export default function FinancePage() {
   // Manual Entry States
   const [manualTransactions, setManualTransactions] = React.useState<any[]>([]);
   const [loadingManual, setLoadingManual] = React.useState(false);
+  const [isSavingTransaction, setIsSavingTransaction] = React.useState(false);
+  const [isImportingTransactions, setIsImportingTransactions] = React.useState(false);
   const [bankNames, setBankNames] = React.useState<string[]>([]);
+  const [clients, setClients] = React.useState<any[]>([]);
 
   // Form states
   const [formDate, setFormDate] = React.useState('');
@@ -69,7 +75,20 @@ export default function FinancePage() {
   const [formReferenceNumber, setFormReferenceNumber] = React.useState('');
   const [formComments, setFormComments] = React.useState('');
   const [formCategory, setFormCategory] = React.useState('Expense');
+  const [formClientId, setFormClientId] = React.useState('');
   const [timeFrame, setTimeFrame] = React.useState('All Time');
+
+  const formatLedgerDate = (value: unknown) => {
+    if (!value) return '—';
+    const raw = value instanceof Date ? value.toISOString() : String(value);
+    const isoDate = raw.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+    if (isoDate) return isoDate;
+
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime())
+      ? raw.replace(/T.*$/, '')
+      : parsed.toLocaleDateString('en-CA', { timeZone: 'UTC' });
+  };
 
   // Recurring Subscription States
   const [subscriptions, setSubscriptions] = React.useState<any[]>([]);
@@ -82,6 +101,19 @@ export default function FinancePage() {
   const [editingSub, setEditingSub] = React.useState<any | null>(null);
   const [editAmount, setEditAmount] = React.useState('');
   const [editFrequency, setEditFrequency] = React.useState('monthly');
+
+  // Recurring Client Retainer States
+  const [retainers, setRetainers] = React.useState<any[]>([]);
+  const [loadingRetainers, setLoadingRetainers] = React.useState(false);
+  const [retainerClientId, setRetainerClientId] = React.useState('');
+  const [retainerName, setRetainerName] = React.useState('');
+  const [retainerAmount, setRetainerAmount] = React.useState('');
+  const [retainerFrequency, setRetainerFrequency] = React.useState('monthly');
+  const [retainerStartDate, setRetainerStartDate] = React.useState('');
+  const [editingRetainer, setEditingRetainer] = React.useState<any | null>(null);
+  const [editRetainerAmount, setEditRetainerAmount] = React.useState('');
+  const [editRetainerFrequency, setEditRetainerFrequency] = React.useState('monthly');
+  const [editRetainerStartDate, setEditRetainerStartDate] = React.useState('');
 
   const fetchSubscriptions = React.useCallback(async () => {
     setLoadingSubs(true);
@@ -179,41 +211,96 @@ export default function FinancePage() {
     }
   };
 
+  const fetchRetainers = React.useCallback(async () => {
+    setLoadingRetainers(true);
+    try {
+      const response = await fetch('/api/retainers');
+      if (response.ok) setRetainers(await response.json());
+    } catch (error) {
+      console.error('Error loading retainers:', error);
+    } finally {
+      setLoadingRetainers(false);
+    }
+  }, []);
+
+  const handleRetainerSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!retainerClientId || !retainerName || !retainerAmount || !retainerStartDate) {
+      alert('Please complete all retainer fields.');
+      return;
+    }
+    const response = await fetch('/api/retainers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: retainerClientId,
+        name: retainerName,
+        amount: Number(retainerAmount),
+        frequency: retainerFrequency,
+        startDate: retainerStartDate,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      alert(error.error || 'Failed to save retainer.');
+      return;
+    }
+    setRetainerClientId('');
+    setRetainerName('');
+    setRetainerAmount('');
+    setRetainerFrequency('monthly');
+    setRetainerStartDate('');
+    await fetchRetainers();
+  };
+
+  const handleRetainerEdit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingRetainer) return;
+    const response = await fetch('/api/retainers', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: editingRetainer.id,
+        amount: Number(editRetainerAmount),
+        frequency: editRetainerFrequency,
+        startDate: editRetainerStartDate,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      alert(error.error || 'Failed to update retainer.');
+      return;
+    }
+    setEditingRetainer(null);
+    await fetchRetainers();
+  };
+
+  const handleRetainerDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this recurring client retainer?')) return;
+    const response = await fetch(`/api/retainers?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      alert(error.error || 'Failed to remove retainer.');
+      return;
+    }
+    await fetchRetainers();
+  };
+
   const generateOccurrences = React.useCallback((sub: any) => {
-    const list: any[] = [];
-    const start = new Date(sub.startDate);
-    const end = new Date();
-    
-    if (isNaN(start.getTime())) return [];
-    
-    let current = new Date(start);
-    
-    while (current <= end) {
-      const occDate = new Date(current);
+    return generateRecurringOccurrences(sub.startDate, Number(sub.amount), sub.frequency).map(({ date: occDate }) => {
       const idStr = `${sub.id}-${occDate.toISOString().slice(0, 10)}`;
-      
-      list.push({
+      return {
         id: idStr.slice(0, 12),
+        transactionId: null,
         source: 'Recurring Ledger',
         customer: 'N/A',
-        date: occDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        date: occDate.toISOString(),
         amountUSD: -sub.amount,
         status: 'failed',
         rawStatus: 'EXPENSE',
         details: `${sub.name} (${sub.category})`,
-      });
-      
-      if (sub.frequency === 'monthly') {
-        current.setMonth(current.getMonth() + 1);
-      } else if (sub.frequency === 'quarterly') {
-        current.setMonth(current.getMonth() + 3);
-      } else if (sub.frequency === 'yearly') {
-        current.setFullYear(current.getFullYear() + 1);
-      } else {
-        break;
-      }
-    }
-    return list;
+      };
+    });
   }, []);
 
   const subscriptionTransactions = React.useMemo(() => {
@@ -223,6 +310,24 @@ export default function FinancePage() {
     });
     return list;
   }, [subscriptions, generateOccurrences]);
+
+  const retainerTransactions = React.useMemo(() => {
+    return retainers.flatMap((retainer) =>
+      generateRecurringOccurrences(retainer.startDate, Number(retainer.amount), retainer.frequency).map(({ date }) => ({
+        id: `${retainer.id}-${date.toISOString().slice(0, 10)}`.slice(0, 12),
+        transactionId: null,
+        source: 'Retainer Ledger',
+        customer: retainer.client?.name || 'Unknown Client',
+        clientId: retainer.clientId,
+        date: date.toISOString(),
+        amountUSD: Number(retainer.amount),
+        status: 'succeeded',
+        rawStatus: 'INCOME',
+        category: 'Revenue',
+        details: retainer.name,
+      }))
+    );
+  }, [retainers]);
 
   // Custom report states
   const [reportXAxis, setReportXAxis] = React.useState('Client');
@@ -235,10 +340,10 @@ export default function FinancePage() {
       uiScope,
       'finance',
       { activeTab: 'overview' as const, timeFrame: 'All Time', reportXAxis: 'Client', reportYAxis: 'Revenue', reportTimeframe: 'All Time' },
-      (value): value is { activeTab: 'overview' | 'stripe' | 'paypal' | 'razorpay'; timeFrame: string; reportXAxis: string; reportYAxis: string; reportTimeframe: string } => {
+      (value): value is { activeTab: 'overview' | 'manual' | 'stripe' | 'paypal' | 'razorpay'; timeFrame: string; reportXAxis: string; reportYAxis: string; reportTimeframe: string } => {
         if (!value || typeof value !== 'object') return false;
         const stored = value as Record<string, unknown>;
-        return ['overview', 'stripe', 'paypal', 'razorpay'].includes(String(stored.activeTab)) &&
+        return ['overview', 'manual', 'stripe', 'paypal', 'razorpay'].includes(String(stored.activeTab)) &&
           typeof stored.timeFrame === 'string' && typeof stored.reportXAxis === 'string' &&
           typeof stored.reportYAxis === 'string' && typeof stored.reportTimeframe === 'string';
       },
@@ -293,6 +398,15 @@ export default function FinancePage() {
     }
   }, []);
 
+  const fetchClients = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/data?domain=clients');
+      if (response.ok) setClients(await response.json());
+    } catch (error) {
+      console.error('Error loading clients:', error);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (bankNames.length > 0 && !formYourAccount) {
       setFormYourAccount(bankNames[0]);
@@ -301,6 +415,7 @@ export default function FinancePage() {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingTransaction) return;
     if (!formDate || !formDetails || !formType || !formTransactorAccount || (!formYourAccount && bankNames.length > 0) || !formAmount) {
       alert('Please fill out all required fields.');
       return;
@@ -313,6 +428,7 @@ export default function FinancePage() {
 
     if (!window.confirm('Are you sure you want to add this transaction to the ledger?')) return;
 
+    setIsSavingTransaction(true);
     try {
       const res = await fetch('/api/transactions', {
         method: 'POST',
@@ -327,6 +443,7 @@ export default function FinancePage() {
           amount: parseFloat(formAmount),
           referenceNumber: formReferenceNumber || null,
           comments: formComments || null,
+          clientId: formCategory === 'Revenue' ? formClientId || null : null,
         }),
       });
 
@@ -334,12 +451,13 @@ export default function FinancePage() {
         // Reset form
         setFormDetails('');
         setFormCategory('Expense');
+        setFormClientId('');
         setFormTransactorAccount('');
         setFormAmount('');
         setFormReferenceNumber('');
         setFormComments('');
         // Reload transactions
-        fetchManualTransactions();
+        await fetchManualTransactions();
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to save transaction.');
@@ -347,6 +465,8 @@ export default function FinancePage() {
     } catch (err) {
       console.error(err);
       alert('An error occurred while saving.');
+    } finally {
+      setIsSavingTransaction(false);
     }
   };
 
@@ -364,77 +484,173 @@ export default function FinancePage() {
     }
   };
 
-  const downloadTemplate = (format: 'csv' | 'xlsx') => {
-    const headers = ['Date', 'Transaction details', 'Category', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
-    const sampleRow = ['2026-06-30', 'Ad Campaign Setup Fee', 'Expense', 'NEFT', 'transactor@upi', 'ICICI Bank', '25000', 'TXN776655', 'Initial setup charges'];
-    const csvContent = [headers.join(','), sampleRow.join(',')].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const saveWorkbook = React.useCallback(async (workbook: any, filename: string) => {
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `financial_ledger_template.${format}`);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const downloadTemplate = async () => {
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Iris OS';
+    const ledger = workbook.addWorksheet('Ledger Import', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const lists = workbook.addWorksheet('Validation Lists');
+    lists.state = 'veryHidden';
+
+    const headers = [
+      'Date',
+      'Transaction details',
+      'Category',
+      'Transaction type',
+      'Client',
+      'UPI ID/Account No. of transactor',
+      'Bank account',
+      'Amount',
+      'Reference Number',
+      'Comments',
+    ];
+    ledger.addRow(headers);
+    ledger.columns = [
+      { width: 15 }, { width: 32 }, { width: 20 }, { width: 20 }, { width: 28 },
+      { width: 30 }, { width: 25 }, { width: 16 }, { width: 22 }, { width: 36 },
+    ];
+    ledger.getRow(1).height = 26;
+    ledger.getRow(1).eachCell((cell: any) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+      cell.alignment = { vertical: 'middle' };
+    });
+    ledger.autoFilter = { from: 'A1', to: 'J1' };
+
+    const categories = ['Revenue', 'Expense', 'AI Subscription'];
+    const transactionTypes = ['UPI', 'IMPS', 'NEFT', 'Cash', 'Others'];
+    lists.getColumn(1).values = ['Categories', ...categories];
+    lists.getColumn(2).values = ['Transaction Types', ...transactionTypes];
+    lists.getColumn(3).values = ['Clients', ...clients.map((client) => client.name)];
+    lists.getColumn(4).values = ['Bank Accounts', ...bankNames];
+
+    for (let row = 2; row <= 501; row += 1) {
+      ledger.getCell(`A${row}`).numFmt = 'yyyy-mm-dd';
+      ledger.getCell(`C${row}`).dataValidation = {
+        type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$A$2:$A$${categories.length + 1}`],
+      };
+      ledger.getCell(`D${row}`).dataValidation = {
+        type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$B$2:$B$${transactionTypes.length + 1}`],
+      };
+      if (clients.length > 0) {
+        ledger.getCell(`E${row}`).dataValidation = {
+          type: 'list', allowBlank: true, formulae: [`'Validation Lists'!$C$2:$C$${clients.length + 1}`],
+        };
+      }
+      if (bankNames.length > 0) {
+        ledger.getCell(`G${row}`).dataValidation = {
+          type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$D$2:$D$${bankNames.length + 1}`],
+        };
+      }
+      ledger.getCell(`H${row}`).numFmt = '#,##0.00';
+    }
+
+    await saveWorkbook(workbook, 'iris_os_financial_ledger_template.xlsx');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isImportingTransactions) return;
     const file = e.target.files?.[0];
     if (!file) return;
     
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext !== 'csv' && ext !== 'xlsx' && ext !== 'xls') {
-      alert('Unsupported file format. Please upload only the downloaded CSV/Excel template.');
+    if (ext !== 'xlsx') {
+      alert('Unsupported file format. Please upload the Iris OS Excel template (.xlsx).');
       return;
     }
-    
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
-      if (lines.length === 0) {
-        alert('The uploaded file is empty.');
-        return;
+    setIsImportingTransactions(true);
+    try {
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(await file.arrayBuffer());
+      const sheet = workbook.getWorksheet('Ledger Import') || workbook.worksheets[0];
+      if (!sheet) throw new Error('Ledger Import sheet is missing.');
+      const expectedHeaders = [
+        'Date', 'Transaction details', 'Category', 'Transaction type', 'Client',
+        'UPI ID/Account No. of transactor', 'Bank account', 'Amount', 'Reference Number', 'Comments',
+      ];
+      const getCellValue = (cell: any): unknown => {
+        const value = cell.value;
+        if (value === null || value === undefined) return '';
+        if (value instanceof Date) return value;
+        if (typeof value !== 'object') return value;
+        if (Array.isArray(value.richText)) return value.richText.map((part: { text?: string }) => part.text || '').join('');
+        if ('result' in value) return value.result ?? '';
+        if ('text' in value) return value.text ?? '';
+        return String(value);
+      };
+      const normalizeText = (value: unknown) => String(value ?? '')
+        .replace(/^\uFEFF/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const headers = expectedHeaders.map((_, index) => normalizeText(getCellValue(sheet.getRow(1).getCell(index + 1))));
+      if (!expectedHeaders.every((header, index) => header.toLowerCase() === headers[index]?.toLowerCase())) {
+        throw new Error('The workbook columns do not match the Iris OS ledger template.');
       }
-      
-      // Parse headers
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-      const expectedHeaders = ['Date', 'Transaction details', 'Category', 'Transaction type', 'UPI ID/Account No. of transactor', 'Your Account', 'Amount', 'Reference Number', 'Comments'];
-      
-      const headersMatch = expectedHeaders.every((h, i) => headers[i]?.toLowerCase() === h.toLowerCase());
-      if (!headersMatch) {
-        alert('Invalid template format. The columns must match the template exactly: ' + expectedHeaders.join(', '));
-        return;
-      }
-      
-      // Parse rows
-      const txs = [];
-      for (let i = 1; i < lines.length; i++) {
-        // Split line by commas not inside quotes
-        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(val => val.trim().replace(/^["']|["']$/g, ''));
-        if (row.length < expectedHeaders.length) continue;
-        
+
+      const txs: any[] = [];
+      const invalidRows: string[] = [];
+      const toImportDate = (value: unknown) => {
+        if (value instanceof Date) return value.toISOString();
+        if (typeof value === 'number') return new Date(Date.UTC(1899, 11, 30) + value * 86_400_000).toISOString();
+        const text = normalizeText(value);
+        const dayFirstMatch = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+        if (dayFirstMatch) {
+          const [, day, month, year] = dayFirstMatch;
+          const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+          if (
+            parsed.getUTCFullYear() === Number(year) &&
+            parsed.getUTCMonth() === Number(month) - 1 &&
+            parsed.getUTCDate() === Number(day)
+          ) {
+            return parsed.toISOString();
+          }
+        }
+        return text;
+      };
+      sheet.eachRow((row: any, rowNumber: number) => {
+        if (rowNumber === 1) return;
+        const values = expectedHeaders.map((_, index) => getCellValue(row.getCell(index + 1)));
+        if (!values.some((value) => normalizeText(value) !== '')) return;
+
+        const dateValue = toImportDate(values[0]);
+        const rawAmount = normalizeText(values[7]);
+        const amount = Number(rawAmount.replace(/[,\s₹$€£]/g, '').replace(/^\((.*)\)$/, '-$1'));
+        if (!Number.isFinite(amount)) {
+          invalidRows.push(`Row ${rowNumber}: Amount must be a number.`);
+          return;
+        }
         txs.push({
-          date: row[0],
-          details: row[1],
-          category: row[2],
-          type: row[3],
-          transactorAccount: row[4],
-          yourAccount: row[5],
-          amount: row[6],
-          referenceNumber: row[7],
-          comments: row[8]
+          date: dateValue,
+          details: normalizeText(values[1]),
+          category: normalizeText(values[2]),
+          type: normalizeText(values[3]),
+          client: normalizeText(values[4]),
+          transactorAccount: normalizeText(values[5]),
+          yourAccount: normalizeText(values[6]),
+          amount,
+          referenceNumber: normalizeText(values[8]) || null,
+          comments: normalizeText(values[9]) || null,
+          sourceRow: rowNumber,
         });
-      }
-      
+      });
       if (txs.length === 0) {
-        alert('No valid transactions found in the file.');
-        return;
+        throw new Error(invalidRows[0] || 'No populated transaction rows were found.');
       }
-      
-      // Send to bulk save API
-      try {
+
         const response = await fetch('/api/transactions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -443,17 +659,26 @@ export default function FinancePage() {
         
         if (response.ok) {
           const result = await response.json();
-          alert(`Successfully imported ${result.count} transactions in bulk!`);
-          fetchManualTransactions();
+          const skippedMessage = result.rejectedCount
+            ? ` ${result.rejectedCount} row${result.rejectedCount === 1 ? '' : 's'} skipped: ${result.rejected?.map((item: { row: number | null; reason: string }) => `Row ${item.row ?? 'unknown'}: ${item.reason}`).join(' ')}`
+            : '';
+          alert(`Successfully imported ${result.count} transaction${result.count === 1 ? '' : 's'}.${skippedMessage}`);
+          await fetchManualTransactions();
         } else {
-          alert('Failed to import transactions. Please verify data formats.');
+          const error = await response.json().catch(() => ({}));
+          const firstRejected = Array.isArray(error.rejected) ? error.rejected[0] : null;
+          const rejectionDetail = firstRejected
+            ? ` Row ${firstRejected.row ?? 'unknown'}: ${firstRejected.reason}`
+            : '';
+          throw new Error(`${error.error || 'Failed to import transactions.'}${rejectionDetail}`);
         }
-      } catch (error) {
-        console.error('Error importing bulk data:', error);
-        alert('An error occurred during import.');
-      }
-    };
-    reader.readAsText(file);
+    } catch (error) {
+      console.error('Error importing bulk data:', error);
+      alert(error instanceof Error ? error.message : 'An error occurred during import.');
+    } finally {
+      setIsImportingTransactions(false);
+      e.target.value = '';
+    }
   };
 
   const fetchIntegrations = React.useCallback(async () => {
@@ -544,8 +769,10 @@ export default function FinancePage() {
     fetchIntegrations();
     fetchManualTransactions();
     fetchOrgBanks();
+    fetchClients();
     fetchSubscriptions();
-  }, [fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchSubscriptions]);
+    fetchRetainers();
+  }, [fetchClients, fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchRetainers, fetchSubscriptions]);
 
   const isStripeConnected = React.useMemo(() => {
     return integrations.some((i) => i.provider === 'STRIPE' && i.status === 'CONNECTED');
@@ -587,7 +814,7 @@ export default function FinancePage() {
     if (timeFrame === 'Monthly') scale = 1/12;
     if (timeFrame === 'Quarterly') scale = 3/12;
 
-    const baseGross = (dbData?.grossBillings ?? 0) * scale;
+    const baseGross = (dbData?.invoiceGrossBillings ?? 0) * scale;
     const baseOutstanding = (dbData?.outstandingAmount ?? 0) * scale;
     const baseExpenses = (dbData?.totalExpenses ?? 0) * scale;
 
@@ -646,6 +873,9 @@ export default function FinancePage() {
         aiSubscriptionCosts += amt;
       }
     });
+    retainerTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach((tx: any) => {
+      manualGross += tx.amountUSD;
+    });
 
     const totalGross = baseGross + stripeGross + paypalGross + razorpayGross + manualGross;
     const totalExpenses = baseExpenses + stripeExpenses + paypalExpenses + razorpayExpenses + manualExpenses;
@@ -659,7 +889,7 @@ export default function FinancePage() {
       netProfitMargin: profitMargin,
       aiSubscriptionCosts
     };
-  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, manualTransactions, subscriptionTransactions, isInTimeFrame, timeFrame]);
+  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, manualTransactions, subscriptionTransactions, retainerTransactions, isInTimeFrame, timeFrame]);
 
   const expenseBreakdownData = React.useMemo(() => {
     let aiCosts = combinedMetrics.aiSubscriptionCosts;
@@ -697,14 +927,23 @@ export default function FinancePage() {
         id: tx.referenceNumber || tx.id.slice(0, 8),
         transactionId: tx.id,
         source: 'Manual Ledger',
-        customer: tx.transactorAccount || 'N/A',
-        date: new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        customer: tx.client?.name || tx.transactorAccount || 'N/A',
+        clientId: tx.clientId || null,
+        date: tx.date,
         amountUSD: tx.amount,
         status: tx.amount >= 0 ? 'succeeded' : 'failed',
         rawStatus: tx.amount >= 0 ? 'INCOME' : 'EXPENSE',
         details: tx.details,
+        category: tx.category,
+        type: tx.type,
+        transactorAccount: tx.transactorAccount,
+        yourAccount: tx.yourAccount,
+        referenceNumber: tx.referenceNumber,
+        comments: tx.comments,
       });
     });
+
+    list.push(...subscriptionTransactions, ...retainerTransactions);
 
     // Sort newest first
     return list.sort((a, b) => {
@@ -712,7 +951,7 @@ export default function FinancePage() {
       const dateB = new Date(b.date).getTime() || 0;
       return dateB - dateA;
     });
-  }, [manualTransactions]);
+  }, [manualTransactions, retainerTransactions, subscriptionTransactions]);
 
   const revenueLineData = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -830,8 +1069,7 @@ export default function FinancePage() {
     }
 
     const list = Array.from(revenueMap.entries()).map(([name, revenue]) => {
-      const expenseRatio = 0.2 + (name.charCodeAt(0) % 4) * 0.1;
-      const expense = revenue * expenseRatio;
+      const expense = 0;
       const profit = revenue - expense;
       const margin = (profit / revenue) * 100;
       return {
@@ -943,30 +1181,202 @@ export default function FinancePage() {
     }, 450);
   };
 
-  const handleExportCSV = () => {
-    const headers = ['Transaction ID', 'Source / Ledger', 'Customer / Client', 'Date', `Amount (${currencyState})`, 'Status'];
-    const rows = combinedTransactions.map((tx: any) => [
-      tx.id,
-      tx.source,
-      tx.customer,
-      tx.date,
-      tx.amountUSD.toFixed(2),
-      tx.rawStatus
-    ]);
+  const handleExportExcel = async () => {
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Iris OS';
+    workbook.created = new Date();
+    workbook.modified = new Date();
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
+    const summary = workbook.addWorksheet('Summary', { views: [{ state: 'frozen', ySplit: 3 }] });
+    const ledger = workbook.addWorksheet('Ledger', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const recurring = workbook.addWorksheet('Recurring Subscriptions', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const retainersSheet = workbook.addWorksheet('Retainers', { views: [{ state: 'frozen', ySplit: 1 }] });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `financial_export_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const styleHeader = (row: any) => {
+      row.height = 24;
+      row.eachCell((cell: any) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+        cell.alignment = { vertical: 'middle' };
+      });
+    };
+
+    ledger.columns = [
+      { header: 'Transaction ID', key: 'id', width: 18 },
+      { header: 'Source / Ledger', key: 'source', width: 22 },
+      { header: 'Client', key: 'client', width: 28 },
+      { header: 'Date', key: 'date', width: 15 },
+      { header: 'Category', key: 'category', width: 20 },
+      { header: 'Transaction Type', key: 'type', width: 20 },
+      { header: 'Bank Account', key: 'bank', width: 24 },
+      { header: `Amount (${currencyState})`, key: 'amount', width: 18 },
+      { header: 'Reference Number', key: 'reference', width: 22 },
+      { header: 'Details', key: 'details', width: 36 },
+      { header: 'Comments', key: 'comments', width: 40 },
+    ];
+    styleHeader(ledger.getRow(1));
+    combinedTransactions.forEach((transaction: any) => {
+      ledger.addRow({
+        id: transaction.transactionId || transaction.id,
+        source: transaction.source,
+        client: transaction.customer || '',
+        date: new Date(transaction.date),
+        category: transaction.category || (transaction.amountUSD >= 0 ? 'Revenue' : 'Expense'),
+        type: transaction.type || (transaction.source === 'Retainer Ledger' ? 'Recurring Retainer' : 'Recurring'),
+        bank: transaction.yourAccount || '',
+        amount: transaction.amountUSD,
+        reference: transaction.referenceNumber || '',
+        details: transaction.details || '',
+        comments: transaction.comments || '',
+      });
+    });
+    ledger.getColumn('date').numFmt = 'yyyy-mm-dd';
+    ledger.getColumn('amount').numFmt = '#,##0.00;[Red](#,##0.00);-';
+    ledger.autoFilter = { from: 'A1', to: 'K1' };
+
+    recurring.columns = [
+      { header: 'Name', key: 'name', width: 32 },
+      { header: 'Category', key: 'category', width: 24 },
+      { header: 'Frequency', key: 'frequency', width: 16 },
+      { header: 'Start Date', key: 'startDate', width: 16 },
+      { header: `Amount (${currencyState})`, key: 'amount', width: 18 },
+    ];
+    styleHeader(recurring.getRow(1));
+    subscriptions.forEach((subscription) => recurring.addRow({
+      ...subscription,
+      startDate: new Date(subscription.startDate),
+    }));
+    recurring.getColumn('startDate').numFmt = 'yyyy-mm-dd';
+    recurring.getColumn('amount').numFmt = '#,##0.00';
+    recurring.autoFilter = { from: 'A1', to: 'E1' };
+
+    retainersSheet.columns = [
+      { header: 'Client', key: 'client', width: 28 },
+      { header: 'Retainer Name', key: 'name', width: 34 },
+      { header: 'Frequency', key: 'frequency', width: 16 },
+      { header: 'Start Date', key: 'startDate', width: 16 },
+      { header: `Amount (${currencyState})`, key: 'amount', width: 18 },
+      { header: 'Recognized Revenue To Date', key: 'recognized', width: 28 },
+    ];
+    styleHeader(retainersSheet.getRow(1));
+    retainers.forEach((retainer) => retainersSheet.addRow({
+      client: retainer.client?.name || '',
+      name: retainer.name,
+      frequency: retainer.frequency,
+      startDate: new Date(retainer.startDate),
+      amount: retainer.amount,
+      recognized: generateRecurringOccurrences(retainer.startDate, retainer.amount, retainer.frequency)
+        .reduce((sum, occurrence) => sum + occurrence.amount, 0),
+    }));
+    retainersSheet.getColumn('startDate').numFmt = 'yyyy-mm-dd';
+    retainersSheet.getColumn('amount').numFmt = '#,##0.00';
+    retainersSheet.getColumn('recognized').numFmt = '#,##0.00';
+    retainersSheet.autoFilter = { from: 'A1', to: 'F1' };
+
+    const ledgerLastRow = Math.max(2, ledger.rowCount);
+    summary.mergeCells('A1:H1');
+    summary.getCell('A1').value = 'Iris OS Financial Summary';
+    summary.getCell('A1').font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+    summary.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF09090B' } };
+    summary.getCell('A2').value = 'Exported';
+    summary.getCell('B2').value = new Date();
+    summary.getCell('B2').numFmt = 'yyyy-mm-dd hh:mm';
+    summary.getCell('D2').value = 'Currency';
+    summary.getCell('E2').value = currencyState;
+    summary.getCell('A4').value = 'Metric';
+    summary.getCell('B4').value = `Amount (${currencyState})`;
+    styleHeader(summary.getRow(4));
+    ['Revenue', 'Expenses', 'AI Subscriptions', 'Net Cash Flow'].forEach((label, index) => {
+      summary.getCell(`A${5 + index}`).value = label;
+    });
+    summary.getCell('B5').value = { formula: `SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"Revenue",'Ledger'!$H$2:$H$${ledgerLastRow})` };
+    summary.getCell('B6').value = { formula: `-SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"Expense",'Ledger'!$H$2:$H$${ledgerLastRow})` };
+    summary.getCell('B7').value = { formula: `-SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"AI Subscription",'Ledger'!$H$2:$H$${ledgerLastRow})` };
+    summary.getCell('B8').value = { formula: 'B5-B6-B7' };
+    for (let row = 5; row <= 8; row += 1) summary.getCell(`B${row}`).numFmt = '#,##0.00;[Red](#,##0.00);-';
+
+    const monthly = new Map<string, { revenue: number; expenses: number; ai: number }>();
+    combinedTransactions.forEach((transaction: any) => {
+      const date = new Date(transaction.date);
+      if (Number.isNaN(date.getTime())) return;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const current = monthly.get(key) || { revenue: 0, expenses: 0, ai: 0 };
+      const category = transaction.category || (transaction.amountUSD >= 0 ? 'Revenue' : 'Expense');
+      if (category === 'Revenue') current.revenue += transaction.amountUSD;
+      else if (category === 'AI Subscription') current.ai += Math.abs(transaction.amountUSD);
+      else current.expenses += Math.abs(transaction.amountUSD);
+      monthly.set(key, current);
+    });
+    const monthlyRows = [...monthly.entries()].sort(([a], [b]) => a.localeCompare(b));
+    summary.getRow(11).values = ['Month', 'Revenue', 'Expenses', 'AI Subscriptions'];
+    styleHeader(summary.getRow(11));
+    monthlyRows.forEach(([month, values], index) => {
+      summary.getRow(12 + index).values = [month, values.revenue, values.expenses, values.ai];
+    });
+    if (monthlyRows.length > 0) {
+      for (let row = 12; row <= 11 + monthlyRows.length; row += 1) {
+        for (let column = 2; column <= 4; column += 1) summary.getRow(row).getCell(column).numFmt = '#,##0.00';
+      }
+    }
+
+    const clientRevenue = new Map<string, number>();
+    combinedTransactions
+      .filter((transaction: any) => transaction.amountUSD > 0)
+      .forEach((transaction: any) => {
+        const client = transaction.customer || 'Unassigned Revenue';
+        clientRevenue.set(client, (clientRevenue.get(client) || 0) + transaction.amountUSD);
+      });
+    summary.getCell('F4').value = 'Client Revenue';
+    summary.getCell('G4').value = `Amount (${currencyState})`;
+    styleHeader(summary.getRow(4));
+    [...clientRevenue.entries()].sort((a, b) => b[1] - a[1]).forEach(([client, amount], index) => {
+      summary.getRow(5 + index).getCell(6).value = client;
+      summary.getRow(5 + index).getCell(7).value = amount;
+      summary.getRow(5 + index).getCell(7).numFmt = '#,##0.00';
+    });
+
+    if (monthlyRows.length > 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1200;
+      canvas.height = 420;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.fillStyle = '#09090b';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = '#ffffff';
+        context.font = 'bold 28px Arial';
+        context.fillText(`Revenue, Expenses & AI Subscriptions (${currencyState})`, 36, 48);
+        const maxValue = Math.max(1, ...monthlyRows.flatMap(([, values]) => [values.revenue, values.expenses, values.ai]));
+        const groupWidth = 1080 / monthlyRows.length;
+        monthlyRows.forEach(([month, values], index) => {
+          const x = 48 + index * groupWidth;
+          [
+            { value: values.revenue, color: '#d4d4d8' },
+            { value: values.expenses, color: '#71717a' },
+            { value: values.ai, color: '#3f3f46' },
+          ].forEach((series, seriesIndex) => {
+            const height = (series.value / maxValue) * 270;
+            context.fillStyle = series.color;
+            context.fillRect(x + seriesIndex * 22, 340 - height, 16, height);
+          });
+          context.fillStyle = '#a1a1aa';
+          context.font = '14px Arial';
+          context.fillText(month, x, 372);
+        });
+        const imageId = workbook.addImage({ base64: canvas.toDataURL('image/png'), extension: 'png' });
+        summary.addImage(imageId, { tl: { col: 5, row: 10 }, ext: { width: 720, height: 252 } });
+      }
+    }
+
+    summary.columns = [
+      { width: 24 }, { width: 18 }, { width: 18 }, { width: 20 },
+      { width: 4 }, { width: 30 }, { width: 18 }, { width: 18 },
+    ];
+    summary.eachRow((row: any) => {
+      row.alignment = { vertical: 'middle' };
+    });
+    await saveWorkbook(workbook, `iris_os_financial_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
@@ -991,11 +1401,11 @@ export default function FinancePage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={handleExportCSV}
+            onClick={handleExportExcel}
             className="h-8 border-zinc-800 text-zinc-300 gap-1.5 cursor-pointer"
           >
             <Download className="h-3.5 w-3.5" />
-            <span>Export CSV</span>
+            <span>Export Excel</span>
           </Button>
         </div>
       </div>
@@ -1015,9 +1425,9 @@ export default function FinancePage() {
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('manual' as any)}
+          onClick={() => setActiveTab('manual')}
           className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
-            activeTab === ('manual' as any)
+            activeTab === 'manual'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-zinc-550 hover:text-zinc-350'
           }`}
@@ -1555,12 +1965,13 @@ export default function FinancePage() {
                   )}
                 </CardContent>
               </Card>
+
             </div>
           )}
         </div>
       )}
       {/* LEDGER TAB */}
-      {activeTab === ('manual' as any) && (
+      {activeTab === 'manual' && (
         <div className="space-y-6 animate-fadeIn font-sans text-xs">
           <div className="grid gap-6 md:grid-cols-3">
             {/* Transactions List */}
@@ -1582,7 +1993,7 @@ export default function FinancePage() {
                       <TableRow>
                         <TableHead>Transaction ID / #</TableHead>
                         <TableHead>Channel Source</TableHead>
-                        <TableHead>Account Client</TableHead>
+                        <TableHead>Transaction accounts</TableHead>
                         <TableHead>Date Logged</TableHead>
                         <TableHead className="text-right">Amount ({currencyState})</TableHead>
                         <TableHead className="text-right">Status</TableHead>
@@ -1599,7 +2010,7 @@ export default function FinancePage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="font-semibold text-zinc-300">{txn.customer}</TableCell>
-                          <TableCell>{txn.date}</TableCell>
+                          <TableCell className="font-mono text-zinc-400">{formatLedgerDate(txn.date)}</TableCell>
                           <TableCell className="text-right font-mono font-semibold text-white">
                             {formatCurrency(txn.amountUSD)}
                           </TableCell>
@@ -1779,6 +2190,150 @@ export default function FinancePage() {
                   </div>
                 </CardContent>
               </Card>
+              
+              {/* Recurring Client Retainers Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold text-white">Recurring Client Retainers</CardTitle>
+                  <CardDescription>
+                    Recognize recurring client revenue from each retainer start date and include it in client revenue reporting.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-2">
+                      {loadingRetainers ? (
+                        <div className="py-6 text-center font-mono text-zinc-500">Loading client retainers...</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Retainer</TableHead>
+                              <TableHead>Frequency</TableHead>
+                              <TableHead>Start Date</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {retainers.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} className="py-6 text-center text-zinc-500">
+                                  No recurring client retainers configured.
+                                </TableCell>
+                              </TableRow>
+                            ) : retainers.map((retainer) => (
+                              <TableRow key={retainer.id}>
+                                <TableCell className="font-semibold text-white">{retainer.client?.name}</TableCell>
+                                <TableCell className="text-zinc-300">{retainer.name}</TableCell>
+                                <TableCell className="capitalize text-zinc-400">{retainer.frequency}</TableCell>
+                                <TableCell className="text-zinc-400">
+                                  {new Date(retainer.startDate).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="text-right font-mono font-semibold text-white">
+                                  {formatCurrency(retainer.amount)}
+                                </TableCell>
+                                <TableCell className="space-x-2 text-right text-[10px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingRetainer(retainer);
+                                      setEditRetainerAmount(String(retainer.amount));
+                                      setEditRetainerFrequency(retainer.frequency);
+                                      setEditRetainerStartDate(new Date(retainer.startDate).toISOString().slice(0, 10));
+                                    }}
+                                    className="font-semibold text-zinc-300 hover:text-white hover:underline"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRetainerDelete(retainer.id)}
+                                    className="font-semibold text-rose-400 hover:text-rose-300 hover:underline"
+                                  >
+                                    Remove
+                                  </button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                    <div className="space-y-4 rounded border border-zinc-900 bg-zinc-900/10 p-4">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-white">Add Client Retainer</h4>
+                      <form onSubmit={handleRetainerSubmit} className="space-y-3 font-sans text-xs">
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Client</label>
+                          <select
+                            required
+                            value={retainerClientId}
+                            onChange={(event) => {
+                              setRetainerClientId(event.target.value);
+                              const client = clients.find((item) => item.id === event.target.value);
+                              if (client && !retainerName) setRetainerName(`${client.name} Retainer`);
+                            }}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                          >
+                            <option value="">Select client...</option>
+                            {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Name</label>
+                          <input
+                            required
+                            value={retainerName}
+                            onChange={(event) => setRetainerName(event.target.value)}
+                            placeholder="Monthly strategy retainer"
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Amount</label>
+                            <input
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              required
+                              value={retainerAmount}
+                              onChange={(event) => setRetainerAmount(event.target.value)}
+                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Frequency</label>
+                            <select
+                              value={retainerFrequency}
+                              onChange={(event) => setRetainerFrequency(event.target.value)}
+                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                            >
+                              <option value="monthly">Monthly</option>
+                              <option value="quarterly">Quarterly</option>
+                              <option value="yearly">Yearly</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Start Date</label>
+                          <input
+                            type="date"
+                            required
+                            value={retainerStartDate}
+                            onChange={(event) => setRetainerStartDate(event.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                          />
+                        </div>
+                        <Button type="submit" className="h-9 w-full bg-white text-xs font-bold text-zinc-950 hover:bg-zinc-200">
+                          Add Retainer
+                        </Button>
+                      </form>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Forms Panel */}
@@ -1826,6 +2381,25 @@ export default function FinancePage() {
                         <option value="AI Subscription">AI Subscription</option>
                       </select>
                     </div>
+
+                    {formCategory === 'Revenue' && (
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Client</label>
+                        <select
+                          value={formClientId}
+                          onChange={(e) => setFormClientId(e.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                        >
+                          <option value="">General / non-client revenue</option>
+                          {clients.map((client) => (
+                            <option key={client.id} value={client.id}>{client.name}</option>
+                          ))}
+                        </select>
+                        <span className="block text-[10px] text-zinc-500">
+                          Selecting a client includes this payment in that client&apos;s revenue breakdown.
+                        </span>
+                      </div>
+                    )}
 
                     <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Transaction Type</label>
@@ -1933,8 +2507,17 @@ export default function FinancePage() {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full h-9 bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-250 cursor-pointer">
-                      Save Transaction
+                    <Button
+                      type="submit"
+                      disabled={isSavingTransaction}
+                      className="w-full h-9 bg-white text-zinc-950 font-bold text-xs hover:bg-zinc-250 cursor-pointer"
+                    >
+                      {isSavingTransaction ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+                          Saving transaction…
+                        </>
+                      ) : 'Save Transaction'}
                     </Button>
                   </form>
                 </CardContent>
@@ -1948,36 +2531,43 @@ export default function FinancePage() {
                 </CardHeader>
                 <CardContent className="space-y-4 font-sans text-xs">
                   {/* Download Template Buttons */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div>
                     <button
                       type="button"
-                      onClick={() => downloadTemplate('csv')}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 border border-zinc-855 hover:border-zinc-750 rounded text-[10px] font-semibold text-zinc-300 bg-zinc-900/20 hover:bg-zinc-900 cursor-pointer transition-colors"
+                      onClick={downloadTemplate}
+                      className="flex w-full items-center justify-center gap-1.5 py-2 px-3 border border-zinc-855 hover:border-zinc-750 rounded text-[10px] font-semibold text-zinc-300 bg-zinc-900/20 hover:bg-zinc-900 cursor-pointer transition-colors"
                     >
                       <Download className="h-3 w-3" />
-                      <span>CSV Template</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => downloadTemplate('xlsx')}
-                      className="flex items-center justify-center gap-1.5 py-2 px-3 border border-zinc-855 hover:border-zinc-750 rounded text-[10px] font-semibold text-zinc-300 bg-zinc-900/20 hover:bg-zinc-900 cursor-pointer transition-colors"
-                    >
-                      <Download className="h-3 w-3" />
-                      <span>XLSX Template</span>
+                      <span>Excel Template</span>
                     </button>
                   </div>
 
                   {/* Upload Dropzone */}
-                  <div className="relative border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-900/10 hover:bg-zinc-900/20 rounded-lg p-5 transition-all text-center flex flex-col items-center justify-center cursor-pointer">
+                  <div className={`relative border border-dashed rounded-lg p-5 transition-all text-center flex flex-col items-center justify-center ${
+                    isImportingTransactions
+                      ? 'border-zinc-700 bg-zinc-900/30 cursor-wait'
+                      : 'border-zinc-800 hover:border-zinc-700 bg-zinc-900/10 hover:bg-zinc-900/20 cursor-pointer'
+                  }`}>
                     <input
                       type="file"
-                      accept=".csv, .xlsx, .xls"
+                      accept=".xlsx"
                       onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      disabled={isImportingTransactions}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-wait"
                     />
-                    <Upload className="h-6 w-6 text-zinc-450 mb-2" />
-                    <span className="block font-semibold text-zinc-300">Upload Filled Template</span>
-                    <span className="block text-[9px] text-zinc-550 mt-1">Accepts CSV or XLSX templates only</span>
+                    {isImportingTransactions ? (
+                      <>
+                        <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none text-zinc-300 mb-2" />
+                        <span className="block font-semibold text-zinc-200">Processing workbook…</span>
+                        <span className="block text-[9px] text-zinc-500 mt-1">Validating rows and adding transactions to the ledger.</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-6 w-6 text-zinc-450 mb-2" />
+                        <span className="block font-semibold text-zinc-300">Upload Filled Template</span>
+                        <span className="block text-[9px] text-zinc-550 mt-1">Accepts the Iris OS XLSX template only</span>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -2022,6 +2612,62 @@ export default function FinancePage() {
                     Cancel
                   </Button>
                   <Button type="submit" className="text-xs h-9 bg-white text-zinc-950 hover:bg-zinc-200">
+                    Save Changes
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {editingRetainer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 text-xs backdrop-blur-sm">
+          <Card className="w-full max-w-sm border-zinc-800 bg-[#0d0e12] p-2 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-sm font-bold uppercase text-white">Edit Client Retainer</CardTitle>
+              <CardDescription>Update recurring revenue timing for {editingRetainer.client?.name}.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleRetainerEdit} className="space-y-4 font-sans">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-semibold uppercase text-zinc-400">Amount ({currencyState})</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    value={editRetainerAmount}
+                    onChange={(event) => setEditRetainerAmount(event.target.value)}
+                    className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-semibold uppercase text-zinc-400">Frequency</label>
+                  <select
+                    value={editRetainerFrequency}
+                    onChange={(event) => setEditRetainerFrequency(event.target.value)}
+                    className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-semibold uppercase text-zinc-400">Start Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={editRetainerStartDate}
+                    onChange={(event) => setEditRetainerStartDate(event.target.value)}
+                    className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button type="button" variant="ghost" onClick={() => setEditingRetainer(null)} className="h-9 text-xs text-zinc-400">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="h-9 bg-white text-xs text-zinc-950 hover:bg-zinc-200">
                     Save Changes
                   </Button>
                 </div>

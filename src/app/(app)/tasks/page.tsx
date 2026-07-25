@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,10 +24,24 @@ import {
   ArrowRight,
   ShieldAlert,
   Send,
-  Layers
+  Layers,
+  Pencil
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
+
+function taskEditorValues(task: any) {
+  return {
+    title: task.title || '',
+    description: task.description || '',
+    assignedToId: task.assignedToId || '',
+    status: task.status || 'TODO',
+    progress: task.progress ?? 0,
+    timeline: task.timeline || '',
+    deadline: task.deadline ? new Date(task.deadline).toISOString().slice(0, 10) : '',
+    blocker: task.blocker || '',
+  };
+}
 
 export default function TasksPage() {
   const searchParams = useSearchParams();
@@ -39,7 +54,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [viewMode, setViewMode] = React.useState<'kanban' | 'list'>('kanban');
+  const [viewMode, setViewMode] = React.useState<'kanban' | 'list'>('list');
   const [kanbanGrouping, setKanbanGrouping] = React.useState<'status' | 'stage'>('status');
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
 
@@ -62,6 +77,19 @@ export default function TasksPage() {
   // Task Interaction Form States
   const [newUpdateContent, setNewUpdateContent] = React.useState('');
   const [newCommentContent, setNewCommentContent] = React.useState('');
+  const [isEditingTask, setIsEditingTask] = React.useState(false);
+  const [isSavingTask, setIsSavingTask] = React.useState(false);
+  const [taskEditError, setTaskEditError] = React.useState('');
+  const [editTaskForm, setEditTaskForm] = React.useState({
+    title: '',
+    description: '',
+    assignedToId: '',
+    status: 'TODO',
+    progress: 0,
+    timeline: '',
+    deadline: '',
+    blocker: '',
+  });
 
   // Reset kanban grouping when "All Projects" is selected
   React.useEffect(() => {
@@ -69,6 +97,20 @@ export default function TasksPage() {
       setKanbanGrouping('status');
     }
   }, [selectedProjectId]);
+
+  React.useEffect(() => {
+    if (!selectedTask) {
+      setIsEditingTask(false);
+      return;
+    }
+    setEditTaskForm(taskEditorValues(selectedTask));
+    setTaskEditError('');
+  }, [selectedTask?.id]);
+
+  const resetTaskEditor = React.useCallback(() => {
+    if (selectedTask) setEditTaskForm(taskEditorValues(selectedTask));
+    setTaskEditError('');
+  }, [selectedTask]);
 
   // Load basic dropdown lists
   const loadInitialData = React.useCallback(async () => {
@@ -100,7 +142,7 @@ export default function TasksPage() {
     const saved = readWorkspaceUiPreference(
       uiScope,
       'tasks',
-      { viewMode: 'kanban' as const, kanbanGrouping: 'status' as const },
+      { viewMode: 'list' as const, kanbanGrouping: 'status' as const },
       (value): value is { viewMode: 'kanban' | 'list'; kanbanGrouping: 'status' | 'stage' } =>
         !!value && typeof value === 'object' &&
         ((value as { viewMode?: unknown }).viewMode === 'kanban' || (value as { viewMode?: unknown }).viewMode === 'list') &&
@@ -244,6 +286,41 @@ export default function TasksPage() {
     }
   };
 
+  const handleSaveTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTask || !editTaskForm.title.trim()) {
+      setTaskEditError('A task name is required.');
+      return;
+    }
+
+    setIsSavingTask(true);
+    setTaskEditError('');
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_task',
+          id: selectedTask.id,
+          ...editTaskForm,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to save task changes.');
+      }
+
+      setTasks((current) => current.map((task) => task.id === result.task.id ? result.task : task));
+      setSelectedTask(result.task);
+      setIsEditingTask(false);
+      void loadTasks();
+    } catch (error) {
+      setTaskEditError(error instanceof Error ? error.message : 'Unable to save task changes.');
+    } finally {
+      setIsSavingTask(false);
+    }
+  };
+
 
 
   // Retrieve current active project's stages
@@ -261,9 +338,16 @@ export default function TasksPage() {
       intervention: tasks.filter(t => t.status === 'BLOCKED' && t.blocker)
     };
   }, [tasks]);
+  const canEditSelectedTask = Boolean(
+    selectedTask && currentUser && (
+      currentUser.role?.toLowerCase() === 'admin' ||
+      (currentUser.role?.toLowerCase() === 'member' && selectedTask.assignedToId === currentUser.id)
+    )
+  );
+  const canAssignTask = currentUser?.role?.toLowerCase() === 'admin';
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden font-sans text-xs">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden font-sans text-xs">
       {/* Top Header Control Panel */}
       <div className="w-full border-b border-zinc-800/50 pb-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-6">
@@ -385,7 +469,7 @@ export default function TasksPage() {
           </div>
         ) : viewMode === 'kanban' ? (
           /* KANBAN BOARD WITH CLASS-WISE COLUMNS OR STAGE-WISE COLUMNS */
-          <div className="flex-1 flex gap-4 overflow-x-auto pb-4 pr-6 scrollbar-none h-full max-h-[calc(100vh-140px)]">
+          <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-4 pr-6 scrollbar-none">
             {kanbanGrouping === 'status' ? (
               <>
                 {/* Column 1: Unassigned */}
@@ -677,12 +761,30 @@ export default function TasksPage() {
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider mt-0.5">{selectedTask.title}</h3>
                 <span className="text-[9px] text-zinc-550 font-semibold block">{selectedTask.client?.name}</span>
               </div>
-              <button
-                onClick={() => setSelectedTask(null)}
-                className="text-zinc-500 hover:text-white border border-zinc-800 hover:border-zinc-750 p-1.5 transition-colors cursor-pointer rounded-md"
-              >
-                <X className="h-4.5 w-4.5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {canEditSelectedTask && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (isEditingTask) resetTaskEditor();
+                      setIsEditingTask((current) => !current);
+                    }}
+                    className="h-8 border-zinc-800 text-[10px]"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    {isEditingTask ? 'Close editor' : 'Edit task'}
+                  </Button>
+                )}
+                <button
+                  onClick={() => setSelectedTask(null)}
+                  className="text-zinc-500 hover:text-white border border-zinc-800 hover:border-zinc-750 p-1.5 transition-colors cursor-pointer rounded-md"
+                  aria-label="Close task details"
+                >
+                  <X className="h-4.5 w-4.5" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-5 flex-1 pb-6">
@@ -706,6 +808,156 @@ export default function TasksPage() {
                   </div>
                 </div>
               </div>
+
+              {isEditingTask && canEditSelectedTask && (
+                <form onSubmit={handleSaveTask} className="space-y-4 rounded-xl border border-zinc-700/80 bg-zinc-900/25 p-4">
+                  <div className="flex items-center justify-between gap-3 border-b border-zinc-800/70 pb-3">
+                    <div>
+                      <span className="block text-[8px] font-bold uppercase tracking-wider text-zinc-500">Task editor</span>
+                      <span className="block text-[10px] text-zinc-400">Update the task’s delivery details and routing.</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-semibold text-zinc-500">Task name *</label>
+                    <input
+                      type="text"
+                      value={editTaskForm.title}
+                      onChange={(event) => setEditTaskForm((current) => ({ ...current, title: event.target.value }))}
+                      className="w-full bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none text-xs rounded-md focus:border-zinc-700"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-semibold text-zinc-500">Description</label>
+                    <textarea
+                      rows={3}
+                      value={editTaskForm.description}
+                      onChange={(event) => setEditTaskForm((current) => ({ ...current, description: event.target.value }))}
+                      className="w-full bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none text-xs rounded-md focus:border-zinc-700"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-semibold text-zinc-500">Status</label>
+                      <select
+                        value={editTaskForm.status}
+                        onChange={(event) => {
+                          const status = event.target.value;
+                          setEditTaskForm((current) => ({
+                            ...current,
+                            status,
+                            progress: status === 'COMPLETED' ? 100 : current.progress,
+                          }));
+                        }}
+                        className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
+                      >
+                        <option value="TODO">To Do</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="BLOCKED">Blocked</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <label htmlFor="task-progress-slider" className="text-[9px] font-semibold text-zinc-500">Progress</label>
+                        <span className="font-mono text-[10px] font-semibold text-white">{editTaskForm.progress}%</span>
+                      </div>
+                      <input
+                        id="task-progress-slider"
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={editTaskForm.progress}
+                        onChange={(event) => {
+                          const progress = Number(event.target.value);
+                          setEditTaskForm((current) => ({
+                            ...current,
+                            progress,
+                            status: progress === 100
+                              ? 'COMPLETED'
+                              : current.status === 'COMPLETED'
+                                ? 'IN_PROGRESS'
+                                : current.status,
+                          }));
+                        }}
+                        style={{ '--task-progress': `${editTaskForm.progress}%` } as React.CSSProperties}
+                        className="task-progress-slider h-2 w-full cursor-grab rounded-full active:cursor-grabbing"
+                        aria-valuetext={`${editTaskForm.progress}% complete`}
+                      />
+                      <span className="block text-[9px] text-zinc-600">Saved with the task changes below.</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-semibold text-zinc-500">Timeline</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 2 weeks"
+                        value={editTaskForm.timeline}
+                        onChange={(event) => setEditTaskForm((current) => ({ ...current, timeline: event.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-semibold text-zinc-500">Deadline</label>
+                      <input
+                        type="date"
+                        value={editTaskForm.deadline}
+                        onChange={(event) => setEditTaskForm((current) => ({ ...current, deadline: event.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
+                      />
+                    </div>
+                  </div>
+
+                  {canAssignTask && (
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-semibold text-zinc-500">Assigned specialist</label>
+                      <select
+                        value={editTaskForm.assignedToId}
+                        onChange={(event) => setEditTaskForm((current) => ({ ...current, assignedToId: event.target.value }))}
+                        className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
+                      >
+                        <option value="">Unassigned</option>
+                        {teamMembers.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-semibold text-zinc-500">Blocker or intervention notes</label>
+                    <input
+                      type="text"
+                      value={editTaskForm.blocker}
+                      onChange={(event) => setEditTaskForm((current) => ({ ...current, blocker: event.target.value }))}
+                      className="w-full bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
+                    />
+                  </div>
+
+                  {taskEditError && <p className="text-[10px] text-rose-300" role="alert">{taskEditError}</p>}
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        resetTaskEditor();
+                        setIsEditingTask(false);
+                      }}
+                      disabled={isSavingTask}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" size="sm" disabled={isSavingTask} className="bg-zinc-100 text-zinc-950 hover:bg-white">
+                      {isSavingTask ? 'Saving…' : 'Save changes'}
+                    </Button>
+                  </div>
+                </form>
+              )}
 
               {/* Task Stage Mapping (Manual Stage Move Selector) */}
               {selectedTask.projectId && (
@@ -800,109 +1052,6 @@ export default function TasksPage() {
                   )}
                 </div>
               )}
-
-              {/* Quick Status / Progress Adjuster */}
-              <div className="border border-zinc-800/80 p-3 bg-zinc-900/20 space-y-3 rounded-xl">
-                <span className="text-[8px] text-zinc-500 uppercase font-bold block">Status & Progress updates</span>
-                <div className="grid gap-3 grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-500">Work Status</label>
-                    <select
-                      value={selectedTask.status}
-                      onChange={async (e) => {
-                        const newStatus = e.target.value;
-                        const defaultProg = newStatus === 'COMPLETED' ? 100 : selectedTask.progress;
-                        try {
-                          await fetch('/api/tasks', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              action: 'update_task',
-                              id: selectedTask.id,
-                              status: newStatus,
-                              progress: defaultProg
-                            })
-                          });
-                          loadTasks();
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      className="w-full bg-zinc-900/60 border border-zinc-800 p-1.5 text-white outline-none rounded-md cursor-pointer focus:border-zinc-70"
-                    >
-                      <option value="TODO">To Do</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="COMPLETED">Completed</option>
-                      <option value="BLOCKED">Blocked</option>
-                    </select>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <label className="text-[9px] text-zinc-555">Progress Completion ({selectedTask.progress}%)</label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={selectedTask.progress}
-                      onChange={async (e) => {
-                        const nextProgress = parseInt(e.target.value, 10);
-                        const nextStatus = nextProgress === 100 ? 'COMPLETED' : selectedTask.status;
-                        try {
-                          await fetch('/api/tasks', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              action: 'update_task',
-                              id: selectedTask.id,
-                              progress: nextProgress,
-                              status: nextStatus
-                            })
-                          });
-                          loadTasks();
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      className="w-full accent-white bg-zinc-900 border border-zinc-800 h-8 px-1"
-                    />
-                  </div>
-                </div>
-
-                {/* Blockers handler */}
-                <div className="space-y-1.5 pt-2 border-t border-zinc-800/60">
-                  <label className="text-[9px] text-zinc-500 block font-semibold">Active Blocker / Intervention notes</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. Awaiting client Facebook ad access approval..."
-                      defaultValue={selectedTask.blocker || ''}
-                      onBlur={async (e) => {
-                        const blockerNotes = e.target.value;
-                        const nextStatus = blockerNotes ? 'BLOCKED' : 'IN_PROGRESS';
-                        try {
-                          await fetch('/api/tasks', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              action: 'update_task',
-                              id: selectedTask.id,
-                              blocker: blockerNotes,
-                              status: nextStatus
-                            })
-                          });
-                          loadTasks();
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                      className="flex-1 bg-zinc-900 border border-zinc-800 px-2 py-1 text-white placeholder-zinc-700 outline-none text-[11px] rounded-md focus:border-zinc-700"
-                    />
-                  </div>
-                </div>
-              </div>
-
-
 
               {/* Task Update Logs */}
               <div className="space-y-2 pt-2 border-t border-zinc-800/60">

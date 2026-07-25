@@ -1,24 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
+import { z } from 'zod';
 
-// Rate limiter states
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS = 30; // 30 requests per minute
+const AUTOMATIC_INSIGHT_TTL_MS = 30 * 60 * 1000;
+const CHAT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const MAX_CHAT_REQUESTS_PER_WINDOW = 12;
 const requestCounts = new Map<string, number[]>();
+const automaticInsightCache = new Map<string, { expiresAt: number; payload: { result: string; model: string } }>();
+const AUTOMATIC_INSIGHT_ACTIONS = new Set([
+  'dashboard-summary',
+  'operations-advice',
+  'finance-analysis',
+  'forecasting',
+  'reporting-brief',
+]);
 
-function checkRateLimit(key: string): boolean {
+const prismRequestSchema = z.object({
+  action: z.enum([
+    'dashboard-summary',
+    'reporting-brief',
+    'finance-analysis',
+    'forecasting',
+    'ask-prism',
+    'operations-advice',
+    'meta-strategy',
+    'parse-team-file',
+  ]),
+  query: z.string().trim().max(8_000).optional().default(''),
+  context: z.record(z.string(), z.unknown()).optional(),
+  sessionId: z.string().trim().min(1).max(128).optional(),
+}).strict();
+
+function checkRateLimit(key: string, windowMs: number, maxRequests: number): boolean {
   const now = Date.now();
   const timestamps = requestCounts.get(key) || [];
-  const activeTimestamps = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
+  const activeTimestamps = timestamps.filter(t => now - t < windowMs);
   
-  if (activeTimestamps.length >= MAX_REQUESTS) {
+  if (activeTimestamps.length >= maxRequests) {
     return false;
   }
   
   activeTimestamps.push(now);
   requestCounts.set(key, activeTimestamps);
   return true;
+}
+
+function stableSerialize(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`).join(',')}}`;
+}
+
+function automaticInsightCacheKey(orgId: string, action: string, context: unknown) {
+  return `${orgId}:${action}:${stableSerialize(context ?? {})}`;
+}
+
+function cachedInsightResponse(key: string) {
+  const cached = automaticInsightCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    automaticInsightCache.delete(key);
+    return null;
+  }
+  return cached.payload;
 }
 
 // Security injection scanning
@@ -285,14 +331,40 @@ Currently, senior specialist utilization stands at **88%**, presenting a bottlen
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, query, context, sessionId } = await request.json();
+    const parsed = prismRequestSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid Prism AI request.' }, { status: 400 });
+    }
+    const { action, query, context, sessionId } = parsed.data;
 
-    // 1. Rate Limiting Check
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-    if (!checkRateLimit(`${user.id}:${ip}`)) {
-      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+
+    // Automatic insight requests have a 30-minute response lifetime. Check this
+    // before touching the database or an AI provider so remounts are inexpensive.
+    const insightKey = AUTOMATIC_INSIGHT_ACTIONS.has(action)
+      ? automaticInsightCacheKey(user.orgId, action, context)
+      : null;
+    if (insightKey) {
+      const cached = cachedInsightResponse(insightKey);
+      if (cached) {
+        return NextResponse.json(cached, {
+          headers: {
+            'Cache-Control': 'private, max-age=1800, must-revalidate',
+            'X-Prism-Cache': 'HIT',
+          },
+        });
+      }
+    }
+
+    // Interactive requests are intentionally not cached, but they are tightly
+    // limited by the authenticated user ID (not a spoofable client IP header).
+    if (!AUTOMATIC_INSIGHT_ACTIONS.has(action) && !checkRateLimit(
+      `${user.id}:${action}`,
+      CHAT_RATE_LIMIT_WINDOW_MS,
+      MAX_CHAT_REQUESTS_PER_WINDOW,
+    )) {
+      return NextResponse.json({ error: 'Too many Prism AI requests. Please try again in a few minutes.' }, { status: 429 });
     }
 
     // 2. Injection Protection Check
@@ -485,7 +557,9 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         
         ${dbContextText}`;
         const output = await callGemini(prompt);
-        return NextResponse.json({ result: output, model: 'Prism AI' });
+        const payload = { result: output, model: 'Prism AI' };
+        if (insightKey) automaticInsightCache.set(insightKey, { expiresAt: Date.now() + AUTOMATIC_INSIGHT_TTL_MS, payload });
+        return NextResponse.json(payload, { headers: insightKey ? { 'Cache-Control': 'private, max-age=1800, must-revalidate', 'X-Prism-Cache': 'MISS' } : undefined });
       }
       
       case 'reporting-brief': {
@@ -507,7 +581,9 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
           Database Context: ${dbContextText}`;
         }
         const output = await callGemini(prompt);
-        return NextResponse.json({ result: output, model: 'Prism AI' });
+        const payload = { result: output, model: 'Prism AI' };
+        if (insightKey) automaticInsightCache.set(insightKey, { expiresAt: Date.now() + AUTOMATIC_INSIGHT_TTL_MS, payload });
+        return NextResponse.json(payload, { headers: insightKey ? { 'Cache-Control': 'private, max-age=1800, must-revalidate', 'X-Prism-Cache': 'MISS' } : undefined });
       }
 
       // 2. Mid-Level AI: ChatGPT (financial analysis, forecasting, profit leaks)
@@ -518,7 +594,9 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         
         ${dbContextText}`;
         const output = await callChatGPT(systemPrompt, userPrompt);
-        return NextResponse.json({ result: output, model: 'Prism AI' });
+        const payload = { result: output, model: 'Prism AI' };
+        if (insightKey) automaticInsightCache.set(insightKey, { expiresAt: Date.now() + AUTOMATIC_INSIGHT_TTL_MS, payload });
+        return NextResponse.json(payload, { headers: insightKey ? { 'Cache-Control': 'private, max-age=1800, must-revalidate', 'X-Prism-Cache': 'MISS' } : undefined });
       }
 
       case 'forecasting': {
@@ -528,7 +606,9 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         
         ${dbContextText}`;
         const output = await callChatGPT(systemPrompt, userPrompt);
-        return NextResponse.json({ result: output, model: 'Prism AI' });
+        const payload = { result: output, model: 'Prism AI' };
+        if (insightKey) automaticInsightCache.set(insightKey, { expiresAt: Date.now() + AUTOMATIC_INSIGHT_TTL_MS, payload });
+        return NextResponse.json(payload, { headers: insightKey ? { 'Cache-Control': 'private, max-age=1800, must-revalidate', 'X-Prism-Cache': 'MISS' } : undefined });
       }
 
       // 3. High-Level Strategy AI: Claude (strategy, Ask Prism, complex reasoning)
@@ -602,9 +682,8 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
             : 'Prism AI is currently unavailable. No synthetic organization data was returned.';
         }
 
-        let currentSessionId = sessionId;
-        if (user && action === 'ask-prism') {
-          if (currentSessionId) {
+        const currentSessionId = sessionId;
+        if (currentSessionId) {
             const ownedSession = await prisma.prismChatSession.findFirst({
               where: { id: currentSessionId, userId: user.id, orgId: user.orgId },
               select: { id: true },
@@ -612,41 +691,32 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
             if (!ownedSession) {
               return NextResponse.json({ error: 'Chat session not found' }, { status: 404 });
             }
-          }
-          if (!currentSessionId) {
-            const title = query.length > 30 ? query.substring(0, 30) + '...' : query || 'New Chat';
-            const newSession = await prisma.prismChatSession.create({
-              data: {
-                title,
-                userId: user.id,
-                orgId: user.orgId,
-              }
-            });
-            currentSessionId = newSession.id;
-          }
-          
-          await prisma.askPrismMessage.create({
-            data: {
-              role: 'user',
-              content: query || '',
-              userId: user.id,
-              orgId: user.orgId,
-              sessionId: currentSessionId
-            }
-          });
-          
-          await prisma.askPrismMessage.create({
-            data: {
-              role: 'assistant',
-              content: output || '',
-              userId: user.id,
-              orgId: user.orgId,
-              sessionId: currentSessionId
-            }
-          });
         }
 
-        return NextResponse.json({ result: output, model: 'Prism AI', sessionId: currentSessionId });
+        const persistedSessionId = await prisma.$transaction(async (tx) => {
+          let persistedSessionId = currentSessionId;
+          if (!persistedSessionId) {
+            const title = query.length > 30 ? `${query.substring(0, 30)}...` : query || 'New Chat';
+            const session = await tx.prismChatSession.create({
+              data: { title, userId: user.id, orgId: user.orgId },
+            });
+            persistedSessionId = session.id;
+          } else {
+            // Message inserts do not update the parent row's @updatedAt field.
+            // Touch it so the history list reliably promotes the active conversation.
+            await tx.prismChatSession.update({ where: { id: persistedSessionId }, data: { updatedAt: new Date() } });
+          }
+
+          await tx.askPrismMessage.createMany({
+            data: [
+              { role: 'user', content: query, userId: user.id, orgId: user.orgId, sessionId: persistedSessionId },
+              { role: 'assistant', content: output, userId: user.id, orgId: user.orgId, sessionId: persistedSessionId },
+            ],
+          });
+          return persistedSessionId;
+        });
+
+        return NextResponse.json({ result: output, model: 'Prism AI', sessionId: persistedSessionId, persisted: true });
       }
 
       case 'operations-advice': {
@@ -656,7 +726,9 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         
         ${dbContextText}`;
         const output = await callClaude(systemPrompt, userPrompt);
-        return NextResponse.json({ result: output, model: 'Prism AI' });
+        const payload = { result: output, model: 'Prism AI' };
+        if (insightKey) automaticInsightCache.set(insightKey, { expiresAt: Date.now() + AUTOMATIC_INSIGHT_TTL_MS, payload });
+        return NextResponse.json(payload, { headers: insightKey ? { 'Cache-Control': 'private, max-age=1800, must-revalidate', 'X-Prism-Cache': 'MISS' } : undefined });
       }
 
       case 'meta-strategy': {

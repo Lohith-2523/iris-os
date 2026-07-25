@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
-import { encryptIntegrationCredentials } from '@/lib/integration-secrets';
 
-const PROVIDERS = ['RAZORPAY', 'META', 'GOOGLE'];
+const PROVIDERS = ['META', 'GOOGLE'];
 
 const DEFAULT_LOGS: Record<string, string> = {
-  RAZORPAY: 'Not connected. Connect your Razorpay Key ID and Secret.',
   META: 'Not connected. Authorize your Meta Business Account via Facebook SDK.',
   GOOGLE: 'Not connected. Connect your Google account to sync Google Calendar.',
 };
@@ -60,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await request.json();
-    const { provider, action, keyId, keySecret } = body;
+    const { provider, action } = body;
 
     if (!provider || !PROVIDERS.includes(provider)) {
       return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
@@ -104,56 +102,6 @@ export async function POST(request: NextRequest) {
           }
         });
       }
-      return NextResponse.json({ success: true, status: 'CONNECTED' });
-    }
-
-    if (provider === 'RAZORPAY') {
-      if (!keyId || !keySecret) {
-        return NextResponse.json({ error: 'Key ID and Secret Key are required.' }, { status: 400 });
-      }
-
-      // Validate keys against Razorpay API
-      const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
-      try {
-        const testRes = await fetch('https://api.razorpay.com/v1/payments?count=1', {
-          headers: { Authorization: authHeader },
-        });
-        if (!testRes.ok) {
-          const errMsg = await testRes.text();
-          console.error('Razorpay key validation failed:', errMsg);
-          return NextResponse.json({ error: 'Invalid Razorpay credentials. Please verify Key ID and Secret.' }, { status: 400 });
-        }
-      } catch (err: any) {
-        console.error('Network error validating Razorpay credentials:', err);
-        return NextResponse.json({ error: 'Failed to reach Razorpay API. Check server connection.' }, { status: 500 });
-      }
-
-      const credentialCiphertext = encryptIntegrationCredentials({ keyId, keySecret });
-      const syncLogs = 'Razorpay credentials verified and stored securely.';
-
-      if (existingConnection) {
-        await prisma.integrationConnection.update({
-          where: { id: existingConnection.id },
-          data: {
-            status: 'CONNECTED',
-            lastSync: new Date(),
-            syncLogs,
-            credentialCiphertext,
-          },
-        });
-      } else {
-        await prisma.integrationConnection.create({
-          data: {
-            orgId: org.id,
-            provider: 'RAZORPAY',
-            status: 'CONNECTED',
-            lastSync: new Date(),
-            syncLogs,
-            credentialCiphertext,
-          },
-        });
-      }
-
       return NextResponse.json({ success: true, status: 'CONNECTED' });
     }
 

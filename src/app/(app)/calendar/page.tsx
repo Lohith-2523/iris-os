@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { invalidateWorkspaceDataTags, workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/client';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -22,8 +23,7 @@ import {
   RefreshCw,
   Trash2,
   Edit2,
-  ExternalLink,
-  Info
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
@@ -190,6 +190,7 @@ export default function CalendarPage() {
     if (googleConnectedParam) {
       if (googleConnectedParam === 'true') {
         setGoogleConnected(true);
+        invalidateWorkspaceDataTags(['calendar', 'integrations', 'dashboard']);
         loadEvents();
         alert('Google Calendar successfully connected and synchronized!');
       } else if (googleConnectedParam === 'denied') {
@@ -223,7 +224,7 @@ export default function CalendarPage() {
       supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly',
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
           redirectTo: `${window.location.origin}/auth/callback?next=/calendar&type=calendar`,
           queryParams: {
             access_type: 'offline',
@@ -338,9 +339,11 @@ export default function CalendarPage() {
       title: formTitle,
       description: formDescription,
       location: formLocation,
-      meetLink: formAddMeet ? formMeetLink : '',
+      meetLink: isEditing && formAddMeet ? formMeetLink : '',
+      createGoogleMeet: !isEditing && formAddMeet,
       startTime: start.toISOString(),
       endTime: end.toISOString(),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       isRecurring: formRecurring,
       recurrence: formRecurrence,
       color: formType === 'calls' ? '#a855f7' : formColor,
@@ -615,17 +618,16 @@ export default function CalendarPage() {
             <CardHeader className="p-0 pb-3 border-b border-zinc-850">
               <CardTitle className="text-[10px] uppercase tracking-wider text-zinc-400">Search Events</CardTitle>
             </CardHeader>
-            <CardContent className="p-0 pt-3 relative">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Search className="h-3.5 w-3.5 text-zinc-500" />
-                </div>
+            <CardContent className="p-0 pt-3">
+              <div className="flex items-center gap-2.5 rounded border border-zinc-850 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-750 focus-within:bg-zinc-900">
+                <Search aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                 <input
                   type="text"
+                  aria-label="Search events"
                   placeholder="Filter title, details, guests..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                  className="min-w-0 flex-1 bg-transparent py-2 pr-3 text-white placeholder-zinc-650 focus:outline-none"
                 />
               </div>
             </CardContent>
@@ -671,19 +673,6 @@ export default function CalendarPage() {
                 <span className={cn("font-medium", !googleConnected && "text-zinc-600")}>Google Calendar Events</span>
               </label>
             </CardContent>
-          </Card>
-
-          {/* Quick Info card */}
-          <Card className="bg-[#0d0e12] border-zinc-800 p-4">
-            <div className="flex gap-2.5 items-start">
-              <Info className="h-4.5 w-4.5 text-zinc-500 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <span className="block font-bold text-zinc-350">Workspace Context</span>
-                <p className="text-[10px] text-zinc-500 leading-normal">
-                  All scheduled events are securely synchronized inside the PostgreSQL IrisOS gateway. Timezones default to local system.
-                </p>
-              </div>
-            </div>
           </Card>
 
         </div>
@@ -1259,6 +1248,7 @@ export default function CalendarPage() {
                     type="checkbox"
                     checked={formAddMeet}
                     onChange={(e) => setFormAddMeet(e.target.checked)}
+                    disabled={!googleConnected && !isEditing}
                     className="rounded border-zinc-800 text-blue-600 focus:ring-0 focus:ring-offset-0 bg-zinc-900 h-3.5 w-3.5"
                   />
                   <span className="font-semibold flex items-center gap-1.5">
@@ -1266,6 +1256,11 @@ export default function CalendarPage() {
                     <span>Add Google Meet video conferencing</span>
                   </span>
                 </label>
+                {!googleConnected && !isEditing && (
+                  <p className="text-[10px] leading-relaxed text-zinc-500">
+                    Connect Google Calendar to generate a valid Meet link and send calendar invitations.
+                  </p>
+                )}
 
               </CardContent>
 

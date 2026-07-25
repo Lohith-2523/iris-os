@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import {
   Plus,
   Calendar,
-  DollarSign,
   AlertTriangle,
   Loader2,
   Users,
@@ -20,7 +20,7 @@ import {
   Edit2
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function ProjectsPage() {
   const [clients, setClients] = React.useState<any[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [currencyState, setCurrencyState] = React.useState('USD');
   const [expandedClientId, setExpandedClientId] = React.useState<string | null>(null);
   const gridRef = React.useRef<HTMLDivElement>(null);
 
@@ -115,6 +116,12 @@ export default function ProjectsPage() {
       if (teamRes.ok) {
         const data = await teamRes.json();
         setTeamMembers(data.filter((t: any) => t.role?.toLowerCase() !== 'client'));
+      }
+
+      const workspaceRes = await fetch('/api/workspace');
+      if (workspaceRes.ok) {
+        const workspace = await workspaceRes.json();
+        setCurrencyState(workspace.organization?.currency || 'USD');
       }
     } catch (e) {
       console.error(e);
@@ -461,7 +468,7 @@ export default function ProjectsPage() {
             <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Committed Portfolio Budget</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold font-mono tracking-tight text-white">${stats.budgetSum.toLocaleString()}</div>
+            <div className="text-xl font-bold font-mono tracking-tight text-white">{formatCurrency(stats.budgetSum)}</div>
           </CardContent>
         </Card>
 
@@ -755,7 +762,7 @@ export default function ProjectsPage() {
 
               <div className="grid gap-4 sm:grid-cols-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Budget ($)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Budget ({getCurrencySymbol(currencyState)})</label>
                   <input
                     type="number"
                     placeholder="e.g. 20000"
@@ -1022,7 +1029,7 @@ export default function ProjectsPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Retainer Allocation ($)</label>
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Retainer Allocation ({getCurrencySymbol(currencyState)})</label>
                       <input
                         type="number"
                         value={editForm.budget}
@@ -1240,7 +1247,7 @@ export default function ProjectsPage() {
                 <div className="grid gap-3 grid-cols-3 bg-zinc-950/20 p-3 border border-zinc-900">
                   <div>
                     <span className="block text-[8px] text-zinc-650 uppercase font-bold">Retainer / Budget</span>
-                    <span className="font-mono font-bold text-white text-xs">${(selectedProject.budget || 0).toLocaleString()}</span>
+                    <span className="font-mono font-bold text-white text-xs">{formatCurrency(selectedProject.budget || 0)}</span>
                   </div>
                   <div>
                     <span className="block text-[8px] text-zinc-650 uppercase font-bold">Service Line</span>

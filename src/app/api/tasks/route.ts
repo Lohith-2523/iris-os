@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getRequestUser } from '@/lib/org';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+
+function canEditTask(user: { id: string; role: string }, task: { assignedToId: string | null }) {
+  return isOrganizationAdmin(user) || (user.role.toLowerCase() === 'member' && task.assignedToId === user.id);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -130,6 +134,57 @@ export async function POST(request: NextRequest) {
       if (!existingTask || existingTask.client.orgId !== requestUser.orgId) {
         return NextResponse.json({ error: 'Task not found' }, { status: 404 });
       }
+      if (!canEditTask(requestUser, existingTask)) {
+        return NextResponse.json({ error: 'You can only edit tasks assigned to you.' }, { status: 403 });
+      }
+
+      const normalizedTitle = title !== undefined ? String(title).trim() : undefined;
+      if (normalizedTitle !== undefined && !normalizedTitle) {
+        return NextResponse.json({ error: 'Task title is required' }, { status: 400 });
+      }
+      const normalizedProgress = progress !== undefined ? Number(progress) : undefined;
+      if (normalizedProgress !== undefined && (!Number.isInteger(normalizedProgress) || normalizedProgress < 0 || normalizedProgress > 100)) {
+        return NextResponse.json({ error: 'Task progress must be a whole number between 0 and 100' }, { status: 400 });
+      }
+      const normalizedDeadline = deadline !== undefined && deadline ? new Date(deadline) : null;
+      if (deadline !== undefined && deadline && Number.isNaN(normalizedDeadline?.getTime())) {
+        return NextResponse.json({ error: 'Task deadline must be a valid date' }, { status: 400 });
+      }
+
+      if (assignedToId !== undefined && assignedToId) {
+        const assignee = await prisma.user.findFirst({
+          where: { id: assignedToId, orgId: requestUser.orgId },
+          select: { id: true },
+        });
+        if (!assignee) {
+          return NextResponse.json({ error: 'Assignee must belong to this organization' }, { status: 400 });
+        }
+      }
+
+      const targetProjectId = projectId === undefined
+        ? existingTask.projectId
+        : (projectId || null);
+      if (targetProjectId) {
+        const project = await prisma.project.findFirst({
+          where: { id: targetProjectId, orgId: requestUser.orgId, clientId: existingTask.clientId },
+          select: { id: true },
+        });
+        if (!project) {
+          return NextResponse.json({ error: 'Project must belong to the task client' }, { status: 400 });
+        }
+      }
+      if (stageId && !targetProjectId) {
+        return NextResponse.json({ error: 'A task stage requires a project' }, { status: 400 });
+      }
+      if (stageId && targetProjectId) {
+        const stage = await prisma.projectStage.findFirst({
+          where: { id: stageId, projectId: targetProjectId },
+          select: { id: true },
+        });
+        if (!stage) {
+          return NextResponse.json({ error: 'Stage must belong to the selected project' }, { status: 400 });
+        }
+      }
 
       // If they provided a raw update string, we also add it to TaskUpdate
       if (update) {
@@ -144,17 +199,17 @@ export async function POST(request: NextRequest) {
       const updatedTask = await prisma.clientTask.update({
         where: { id },
         data: {
-          title: title !== undefined ? title : undefined,
-          description: description !== undefined ? description : undefined,
+          title: normalizedTitle,
+          description: description !== undefined ? (description === '' ? null : String(description)) : undefined,
           status: status !== undefined ? status : undefined,
-          progress: progress !== undefined ? parseInt(progress, 10) : undefined,
+          progress: normalizedProgress,
           blocker: blocker !== undefined ? (blocker === '' ? null : blocker) : undefined,
           update: update !== undefined ? (update === '' ? null : update) : undefined,
           assignedToId: assignedToId !== undefined ? (assignedToId === '' || assignedToId === null ? null : assignedToId) : undefined,
           projectId: projectId !== undefined ? (projectId === '' || projectId === null ? null : projectId) : undefined,
           stageId: stageId !== undefined ? (stageId === '' || stageId === null ? null : stageId) : undefined,
-          timeline: timeline !== undefined ? (timeline === '' ? null : timeline) : undefined,
-          deadline: deadline !== undefined ? (deadline ? new Date(deadline) : null) : undefined,
+          timeline: timeline !== undefined ? (timeline === '' ? null : String(timeline)) : undefined,
+          deadline: deadline !== undefined ? normalizedDeadline : undefined,
         },
         include: taskInclude
       });

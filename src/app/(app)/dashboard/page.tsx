@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -484,9 +485,9 @@ export default function DashboardPage() {
   }, [calendarEvents]);
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-canvas space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
+      <div className="dashboard-header flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Agency Command Center</h1>
           <p className="text-xs text-zinc-500">Real-time financial, operational, and paid creative performance intelligence.</p>
@@ -770,7 +771,41 @@ export default function DashboardPage() {
               </CardContent>
             </ExpandableCard>
  
-            <ExpandableCard className="min-h-[164px] flex flex-col justify-between">
+            <ExpandableCard
+              className="min-h-[164px] flex flex-col justify-between"
+              expandedContent={
+                <div className="flex h-full flex-col space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-white">Active Projects</h3>
+                    <span className="text-[10px] font-mono text-zinc-500">{dbData?.activeProjects?.length ?? 0} active</span>
+                  </div>
+                  <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
+                    {dbData?.activeProjects?.length ? dbData.activeProjects.map((project: any) => {
+                      const progress = Math.max(0, Math.min(100, Number(project.progress) || 0));
+                      return (
+                        <div key={project.id} className="rounded-md border border-zinc-850 bg-zinc-950/30 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <span className="block truncate text-xs font-semibold text-zinc-200">{project.name}</span>
+                              <span className="mt-0.5 block truncate text-[10px] text-zinc-500">{project.clientName}</span>
+                            </div>
+                            <span className="shrink-0 text-[10px] font-mono font-semibold text-zinc-300">{progress}%</span>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                            <div className="h-full rounded-full bg-zinc-300" style={{ width: `${progress}%` }} />
+                          </div>
+                          <span className="mt-2 block text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
+                            {project.status.replaceAll('_', ' ')}
+                          </span>
+                        </div>
+                      );
+                    }) : (
+                      <div className="py-6 text-center text-xs text-zinc-500">No active projects to display.</div>
+                    )}
+                  </div>
+                </div>
+              }
+            >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Active Projects</CardTitle>
                 <FolderKanban className="h-4 w-4 text-zinc-500" />
@@ -816,7 +851,7 @@ export default function DashboardPage() {
             <div className="grid gap-6 md:grid-cols-[minmax(180px,0.9fr)_minmax(420px,3.2fr)_minmax(180px,0.9fr)] md:items-stretch">
             <div className="flex min-h-[560px] flex-col gap-6">
               <ExpandableCard 
-                className="flex-1 flex flex-col justify-between overflow-hidden"
+                className="min-h-[230px] flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
                   <div className="flex flex-col h-full space-y-3">
                     <div className="flex items-center justify-between">
@@ -902,7 +937,7 @@ export default function DashboardPage() {
               </ExpandableCard>
 
               <ExpandableCard 
-                className="flex-1 flex flex-col justify-between overflow-hidden cursor-default hover:ring-0"
+                className="min-h-[200px] flex-1 flex flex-col justify-between overflow-hidden cursor-default hover:ring-0"
                 disableExpand={true}
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1133,7 +1168,7 @@ export default function DashboardPage() {
                 <CardContent className="pt-2 flex-1 flex flex-col justify-between">
                   <div className="space-y-2">
                     {priorityTasks.length > 0 ? (
-                      priorityTasks.slice(0, 3).map((t: any) => (
+                      priorityTasks.slice(0, 2).map((t: any) => (
                         <div key={t.id} className="flex items-center justify-between text-[11px] py-1 border-b border-zinc-900/40">
                           <span className="text-zinc-300 truncate pr-2 font-medium">{t.title}</span>
                           <Badge className="scale-90 text-[9px] uppercase font-mono font-bold shrink-0" variant={t.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'}>
@@ -1217,7 +1252,12 @@ export default function DashboardPage() {
               <X className="h-5 w-5" />
             </button>
             <div className="mt-4">
-              <ClientRevenueChart />
+              <ClientRevenueChart
+                clients={(financeData?.revenueByClient || []).map((client: any) => ({
+                  ...client,
+                  percentage: Math.round(client.share || 0),
+                }))}
+              />
             </div>
           </div>
         </div>

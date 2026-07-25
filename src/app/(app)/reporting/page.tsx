@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { InsightPanel } from '@/components/ui/insight-panel';
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { FileText, Download, Plus, Sparkles, CheckCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import { formatUserMessage, renderFormattedText } from '@/lib/utils';
+import { PrismAIService } from '@/lib/prism-ai/service';
 
 export default function ReportingPage() {
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -32,17 +34,9 @@ export default function ReportingPage() {
   const triggerReportGeneration = async () => {
     setIsGenerating(true);
     try {
-      const res = await fetch('/api/prism-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'reporting-brief',
-          context: { type: reportType }
-        })
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const content = json.result || 'No content returned from Prism AI.';
+      const json = await PrismAIService.getReportingBrief({ type: reportType });
+      if (json.result) {
+        const content = json.result;
         const reportDraft = {
           title: `Comprehensive ${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
           type: reportType.toUpperCase(),

@@ -9,7 +9,7 @@ function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-none border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+        'workspace-badge inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-[0.01em] transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
         variant === 'default' && 'badge-default border-zinc-700 bg-zinc-800 text-zinc-100',
         variant === 'secondary' && 'badge-secondary border-zinc-800 bg-zinc-900 text-zinc-300',
         variant === 'outline' && 'badge-outline border-zinc-700 text-zinc-300 bg-transparent',

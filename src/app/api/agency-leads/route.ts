@@ -1,19 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser } from '@/lib/org';
+import { calculateLeadEconomics } from '@/lib/lead-economics';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const leads = await prisma.agencyLead.findMany({
-      where: { orgId: user.orgId },
-      orderBy: { createdTime: 'desc' }
+    const [leads, expenseTransactions, closedLeadCount, sourcedRetainers] = await Promise.all([
+      prisma.agencyLead.findMany({
+        where: { orgId: user.orgId },
+        orderBy: { createdTime: 'desc' },
+        include: {
+          convertedClient: {
+            select: { id: true, name: true },
+          },
+        },
+      }),
+      prisma.transaction.findMany({
+        where: {
+          orgId: user.orgId,
+          category: { equals: 'Expense', mode: 'insensitive' },
+        },
+        select: { details: true, amount: true },
+      }),
+      prisma.agencyLead.count({
+        where: {
+          orgId: user.orgId,
+          status: { equals: 'closed', mode: 'insensitive' },
+        },
+      }),
+      prisma.recurringRetainer.findMany({
+        where: {
+          orgId: user.orgId,
+          client: {
+            sourceLead: {
+              is: {
+                status: { equals: 'closed', mode: 'insensitive' },
+              },
+            },
+          },
+        },
+        select: { amount: true },
+      }),
+    ]);
+
+    const metrics = calculateLeadEconomics({
+      expenseTransactions,
+      closedLeadCount,
+      sourcedRetainerRevenue: sourcedRetainers.reduce((total, retainer) => total + retainer.amount, 0),
     });
 
     return NextResponse.json({
       leads,
+      metrics,
       role: user.role || 'admin'
     });
   } catch (error: unknown) {

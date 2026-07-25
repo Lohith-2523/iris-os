@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { Popover } from 'radix-ui';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { createClient } from '@/lib/client';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +25,6 @@ import {
   AlertTriangle,
   Blocks,
   ArrowLeft,
-  Key,
   RefreshCw,
   Wallet,
   TrendingUp,
@@ -86,11 +87,6 @@ export default function SettingsPage() {
   // Integrations States
   const [integrations, setIntegrations] = React.useState<any[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = React.useState(false);
-  const [connectingProvider, setConnectingProvider] = React.useState<string | null>(null);
-  const [keyIdInput, setKeyIdInput] = React.useState('');
-  const [keySecretInput, setKeySecretInput] = React.useState('');
-  const [verifyingKeys, setVerifyingKeys] = React.useState(false);
-  const [integrationError, setIntegrationError] = React.useState('');
 
   // Wipe Data Modal States
   const [showWipeModal, setShowWipeModal] = React.useState(false);
@@ -319,7 +315,6 @@ export default function SettingsPage() {
           onClick={() => {
             setActiveTab('integrations');
             setErrorMessage('');
-            setConnectingProvider(null);
           }}
           className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
             activeTab === 'integrations'
@@ -480,52 +475,55 @@ export default function SettingsPage() {
                     <div className="relative space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Select/Search Indian Banks</label>
                       <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <input
-                            type="text"
-                            placeholder="Type to search e.g. HDFC, SBI..."
-                            value={searchBankInput}
-                            onChange={(e) => {
-                              setSearchBankInput(e.target.value);
-                              setShowBankDropdown(true);
-                            }}
-                            onFocus={() => setShowBankDropdown(true)}
-                            className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
-                          />
-                          {showBankDropdown && (
-                            <>
-                              <div 
-                                className="fixed inset-0 z-10" 
-                                onClick={() => setShowBankDropdown(false)} 
+                        <Popover.Root open={showBankDropdown} onOpenChange={setShowBankDropdown}>
+                          <Popover.Anchor asChild>
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                placeholder="Type to search e.g. HDFC, SBI..."
+                                value={searchBankInput}
+                                onChange={(e) => {
+                                  setSearchBankInput(e.target.value);
+                                  setShowBankDropdown(true);
+                                }}
+                                onFocus={() => setShowBankDropdown(true)}
+                                className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
                               />
-                              <div className="absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-zinc-950 border border-zinc-800 rounded shadow-xl z-20 scrollbar-thin">
-                                {INDIAN_BANKS.filter(bank => 
-                                  bank.toLowerCase().includes(searchBankInput.toLowerCase()) &&
-                                  !selectedBanks.includes(bank)
-                                ).map(bank => (
-                                  <button
-                                    key={bank}
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedBanks(prev => [...prev, bank]);
-                                      setSearchBankInput('');
-                                      setShowBankDropdown(false);
-                                    }}
-                                    className="w-full text-left px-3 py-2 hover:bg-zinc-900 text-zinc-350 hover:text-white transition-all border-b border-zinc-900/50 last:border-0 cursor-pointer"
-                                  >
-                                    {bank}
-                                  </button>
-                                ))}
-                                {INDIAN_BANKS.filter(bank => 
-                                  bank.toLowerCase().includes(searchBankInput.toLowerCase()) &&
-                                  !selectedBanks.includes(bank)
-                                ).length === 0 && (
-                                  <div className="p-3 text-zinc-650 text-[10px]">No matching suggestions</div>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
+                            </div>
+                          </Popover.Anchor>
+                          <Popover.Portal>
+                            <Popover.Content
+                              align="start"
+                              sideOffset={6}
+                              collisionPadding={16}
+                              className="z-50 max-h-52 w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded border border-zinc-800 bg-zinc-950 shadow-xl scrollbar-thin"
+                            >
+                              {INDIAN_BANKS.filter(bank =>
+                                bank.toLowerCase().includes(searchBankInput.toLowerCase()) &&
+                                !selectedBanks.includes(bank)
+                              ).map(bank => (
+                                <button
+                                  key={bank}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedBanks(prev => [...prev, bank]);
+                                    setSearchBankInput('');
+                                    setShowBankDropdown(false);
+                                  }}
+                                  className="w-full border-b border-zinc-900/50 px-3 py-2 text-left text-zinc-350 transition-all last:border-0 hover:bg-zinc-900 hover:text-white cursor-pointer"
+                                >
+                                  {bank}
+                                </button>
+                              ))}
+                              {INDIAN_BANKS.filter(bank =>
+                                bank.toLowerCase().includes(searchBankInput.toLowerCase()) &&
+                                !selectedBanks.includes(bank)
+                              ).length === 0 && (
+                                <div className="p-3 text-[10px] text-zinc-650">No matching suggestions</div>
+                              )}
+                            </Popover.Content>
+                          </Popover.Portal>
+                        </Popover.Root>
                         {searchBankInput.trim() && !INDIAN_BANKS.includes(searchBankInput) && !selectedBanks.includes(searchBankInput) && (
                           <button
                             type="button"
@@ -852,119 +850,7 @@ export default function SettingsPage() {
             </Card>
           </div>
 
-          {connectingProvider === 'RAZORPAY' ? (
-            <Card className="max-w-xl border-zinc-800">
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Key className="h-4.5 w-4.5 text-zinc-400" />
-                  <span>Link Razorpay Gateway Credentials</span>
-                </CardTitle>
-                <CardDescription>
-                  Provide your Razorpay Key ID and Secret Key to connect. Your credentials are encrypted and used solely for ledger audits and financial transactions synchronization.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-xs font-sans">
-                {integrationError && (
-                  <div className="flex gap-2.5 rounded border border-rose-900/30 bg-rose-950/10 p-3.5 text-xs text-rose-400">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                    <span>{integrationError}</span>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="font-semibold text-zinc-400 block">
-                    Razorpay Key ID
-                  </label>
-                  <input
-                    type="text"
-                    value={keyIdInput}
-                    onChange={(e) => setKeyIdInput(e.target.value)}
-                    placeholder="rzp_test_..."
-                    className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="font-semibold text-zinc-400 block">
-                    Razorpay Key Secret
-                  </label>
-                  <input
-                    type="password"
-                    value={keySecretInput}
-                    onChange={(e) => setKeySecretInput(e.target.value)}
-                    placeholder="••••••••••••••••"
-                    className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all font-mono"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-3 justify-between items-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setKeyIdInput('rzp_test_T6wXv1phNxSL5Q');
-                      setKeySecretInput('f7Lc6zOMbDngZAmvtnY5AzOd');
-                    }}
-                    className="text-xs h-9 border-zinc-850 hover:bg-zinc-900 font-semibold"
-                  >
-                    Autofill Sandbox Keys
-                  </Button>
-
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
-                        setConnectingProvider(null);
-                        setKeyIdInput('');
-                        setKeySecretInput('');
-                        setIntegrationError('');
-                      }}
-                      className="text-xs h-9 text-zinc-400 hover:text-white"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      disabled={verifyingKeys}
-                      onClick={async () => {
-                        setVerifyingKeys(true);
-                        setIntegrationError('');
-                        try {
-                          const res = await fetch('/api/integrations', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              provider: 'RAZORPAY',
-                              keyId: keyIdInput,
-                              keySecret: keySecretInput,
-                            }),
-                          });
-                          const data = await res.json();
-                          if (res.ok && data.success) {
-                            await fetchIntegrations();
-                            setConnectingProvider(null);
-                            setKeyIdInput('');
-                            setKeySecretInput('');
-                          } else {
-                            setIntegrationError(data.error || 'Failed to authenticate Razorpay keys.');
-                          }
-                        } catch (err) {
-                          setIntegrationError('A connection error occurred. Check backend console.');
-                        } finally {
-                          setVerifyingKeys(false);
-                        }
-                      }}
-                      className="text-xs h-9 bg-white text-zinc-950 font-bold hover:bg-zinc-200"
-                    >
-                      {verifyingKeys ? 'Verifying...' : 'Verify & Connect'}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
+          <Card>
               <CardHeader>
                 <CardTitle className="text-sm font-semibold text-white">Workspace Integrations Directory</CardTitle>
                 <CardDescription>Verify link statuses and sync connection logs across workspace integrations.</CardDescription>
@@ -1014,7 +900,7 @@ export default function SettingsPage() {
                             </td>
                             <td className="p-4 text-[11px] leading-relaxed max-w-sm truncate">{item.logs}</td>
                             <td className="p-4 text-right">
-                              {item.provider === 'RAZORPAY' || item.provider === 'META' || item.provider === 'GOOGLE' ? (
+                              {item.provider === 'META' || item.provider === 'GOOGLE' ? (
                                 item.status === 'CONNECTED' ? (
                                   <div className="flex gap-2 justify-end">
                                     {item.provider === 'GOOGLE' && (
@@ -1079,7 +965,7 @@ export default function SettingsPage() {
                                         supabase.auth.signInWithOAuth({
                                           provider: 'google',
                                           options: {
-                                            scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly',
+                                            scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
                                             redirectTo: `${window.location.origin}/auth/callback?next=/calendar&type=calendar`,
                                             queryParams: {
                                               access_type: 'offline',
@@ -1087,8 +973,6 @@ export default function SettingsPage() {
                                             },
                                           },
                                         });
-                                      } else {
-                                        setConnectingProvider('RAZORPAY');
                                       }
                                     }}
                                     className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
@@ -1105,8 +989,7 @@ export default function SettingsPage() {
                   </table>
                 </div>
               </CardContent>
-            </Card>
-          )}
+          </Card>
         </div>
       )}
 

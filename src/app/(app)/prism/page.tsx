@@ -28,6 +28,7 @@ export default function PrismPage() {
   const [messages, setMessages] = React.useState<Message[]>([initialMessage]);
   const [query, setQuery] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
+  const [chatError, setChatError] = React.useState<string | null>(null);
 
   const loadSessions = React.useCallback(async () => {
     const data = await PrismAIService.getSessions();
@@ -56,26 +57,23 @@ export default function PrismPage() {
     const userMsg: Message = { role: 'user', content: textToSend };
     setMessages((prev) => [...prev, userMsg]);
     setQuery('');
+    setChatError(null);
     setIsLoading(true);
 
     try {
       const response = await PrismAIService.askPrism(textToSend, undefined, currentSessionId || undefined);
       
-      if (response.sessionId && response.sessionId !== currentSessionId) {
+      if (response.sessionId !== currentSessionId) {
         setCurrentSessionId(response.sessionId);
-        loadSessions(); // refresh the sidebar
       }
-
-      // Artificial delay for premium experience loading feel
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { role: 'assistant', content: formatUserMessage(response.result), model: response.model }]);
-        setIsLoading(false);
-      }, 1000);
-    } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: formatUserMessage('Lohith, I encountered a connection anomaly while fetching insights. Please retry.') },
-      ]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: formatUserMessage(response.result), model: response.model }]);
+      await loadSessions();
+    } catch (error) {
+      // The optimistic user message was never persisted, so remove it instead
+      // of displaying a misleading completed-looking conversation.
+      setMessages((prev) => prev.slice(0, -1));
+      setChatError(error instanceof Error ? error.message : 'Prism could not save this chat. Please retry.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -131,7 +129,7 @@ export default function PrismPage() {
   const showSuggestions = messages.length <= 1;
 
   return (
-    <div className="flex h-[calc(100vh-8.5rem)] flex-col gap-6">
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-6">
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5 shrink-0">
         <div>
@@ -217,6 +215,11 @@ export default function PrismPage() {
         <div className="flex flex-1 flex-col rounded-none border border-zinc-800 bg-[#0d0e12] overflow-hidden brushed-border">
           {/* Messages stream */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {chatError && (
+              <div role="alert" className="border border-amber-900/70 bg-amber-950/30 px-4 py-3 text-xs text-amber-200">
+                {chatError}
+              </div>
+            )}
             {messages.map((msg, idx) => (
               <div
                 key={idx}

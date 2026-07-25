@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -9,7 +10,7 @@ import { clearWorkspaceUiPreferences, readWorkspaceUiPreference, type WorkspaceU
 import { PrismIcon } from '@/components/ui/prism-icon';
 import {
   LayoutDashboard,
-  DollarSign,
+  Wallet,
   Users,
   FolderKanban,
   UserCheck,
@@ -141,7 +142,8 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
   const navigationItems = React.useMemo(() => [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Finance', href: '/finance', icon: DollarSign },
+    { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
+    { name: 'Finance', href: '/finance', icon: Wallet },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Tasks', href: '/tasks', icon: Activity },
@@ -149,7 +151,6 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     { name: 'Team', href: '/team', icon: UserCheck },
     { name: 'Reporting', href: '/reporting', icon: FileText },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
     { name: 'Prism AI', href: '/prism', icon: PrismIcon, highlight: true },
     { name: 'Settings', href: '/settings', icon: Settings },
   ], []);
@@ -201,8 +202,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       {/* Toggle Button */}
       <button
         onClick={toggleCollapsed}
-        className="absolute -right-3 top-6 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-zinc-800 bg-[#09090b] text-zinc-400 hover:text-white shadow-md cursor-pointer"
+        className="workspace-icon-control absolute -right-3 top-6 z-50 flex h-7 w-7 items-center justify-center rounded-full border border-zinc-800 bg-[#09090b] text-zinc-400 hover:text-white shadow-md cursor-pointer"
         title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+        aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+        aria-expanded={!isCollapsed}
       >
         {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
       </button>
@@ -231,7 +234,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       {/* Brand Switcher / Org details */}
       <div className="px-2 py-3 border-b border-zinc-900 bg-zinc-950/40">
         <div className={cn(
-          "flex items-center rounded-md border border-zinc-800 bg-zinc-900/50",
+          "workspace-org-identity flex items-center rounded-xl border border-zinc-800 bg-zinc-900/50",
           isCollapsed ? "p-1.5 justify-center" : "px-3 py-2"
         )}>
           <div className="flex items-center gap-2">
@@ -256,8 +259,9 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
                 href={item.href}
                 onClick={onCloseMobile}
                 title={isCollapsed ? item.name : undefined}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'group flex items-center rounded-md transition-all duration-150',
+                  'workspace-nav-link group flex items-center rounded-xl transition-[transform,background-color,color,box-shadow,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500',
                   isCollapsed ? 'justify-center p-2.5 mb-1' : 'justify-between px-3 py-2 text-xs font-medium',
                   isActive
                     ? item.highlight
@@ -314,8 +318,9 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
             </div>
             <button
               onClick={handleSignOut}
-              className="h-8 w-8 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-900 cursor-pointer shrink-0"
+              className="workspace-icon-control h-9 w-9 rounded-full flex items-center justify-center text-zinc-500 hover:text-white hover:bg-zinc-900 cursor-pointer shrink-0"
               title="Sign Out"
+              aria-label="Sign out"
             >
               <LogOut className="h-4.5 w-4.5" />
             </button>

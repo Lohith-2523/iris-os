@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getOrCreateRequestUser } from '@/lib/org';
+import { getOrCreateRequestUser, WorkspaceIdentityConflictError } from '@/lib/org';
 
 export async function POST() {
   try {
@@ -17,6 +17,9 @@ export async function POST() {
       },
     });
   } catch (error) {
+    if (error instanceof WorkspaceIdentityConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     console.error('Failed to bootstrap authenticated workspace:', error);
     return NextResponse.json({ error: 'Unable to initialize workspace' }, { status: 500 });
   }

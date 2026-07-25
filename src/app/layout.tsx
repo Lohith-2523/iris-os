@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { workspaceThemePaths } from "@/lib/theme-routes";
 import Script from "next/script";
 import { AuthSync } from "@/components/app-shell/auth-sync";
 
@@ -46,15 +47,17 @@ export default function RootLayout({
 }>) {
   const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID;
   const metaApiVersion = process.env.NEXT_PUBLIC_META_API_VERSION || 'v20.0';
+  const serializedWorkspaceThemePaths = JSON.stringify(workspaceThemePaths);
 
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn("h-full", "antialiased", "dark", spaceGrotesk.variable, geistSans.variable, geistMono.variable, "font-mono", jetbrainsMono.variable)}
     >
       <body className="min-h-full flex flex-col">
         <Script id="theme-bootstrap" strategy="beforeInteractive">
-          {`(function(){var theme=document.cookie.match(/(?:^|; )crystal_theme=(light|dark)(?:;|$)/);if(theme&&theme[1]==='light'){document.documentElement.classList.add('light');document.documentElement.classList.remove('dark')}})();`}
+          {`(function(){var root=document.documentElement;root.classList.remove('light');root.classList.add('dark');var path=window.location.pathname;var workspacePaths=${serializedWorkspaceThemePaths};var isWorkspace=workspacePaths.some(function(workspacePath){return path===workspacePath||path.indexOf(workspacePath+'/')===0;});if(!isWorkspace)return;var theme=document.cookie.match(/(?:^|; )crystal_theme=(light|dark)(?:;|$)/);if(theme&&theme[1]==='light'){root.classList.add('light');root.classList.remove('dark')}})();`}
         </Script>
         <AuthSync />
         {children}
