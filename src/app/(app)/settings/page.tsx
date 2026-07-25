@@ -203,8 +203,7 @@ export default function SettingsPage() {
       return;
     }
 
-    setMetaConnectionStatus('authorizing');
-    (window as any).FB.login(async (response: any) => {
+    const completeMetaAuthorization = async (response: any) => {
       if (response.status !== 'connected' || !response.authResponse?.accessToken) {
         setMetaConnectionStatus('idle');
         setMetaConnectionError('Meta authorization was cancelled or did not complete.');
@@ -232,6 +231,13 @@ export default function SettingsPage() {
       } finally {
         setMetaConnectionStatus('idle');
       }
+    };
+
+    setMetaConnectionStatus('authorizing');
+    // Meta's SDK validates the callback as a regular Function. Passing an
+    // `async` function here is rejected by the SDK before the login flow starts.
+    (window as any).FB.login((response: any) => {
+      void completeMetaAuthorization(response);
     }, {
       config_id: loginConfigurationId,
       scope: 'public_profile,email,ads_read,business_management,leads_retrieval,pages_show_list,pages_manage_metadata',
