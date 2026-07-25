@@ -32,8 +32,29 @@ import {
   CheckCircle,
   XCircle,
   HelpCircle,
-  Trash2
+  Trash2,
+  Loader2,
+  X
 } from 'lucide-react';
+
+type MetaAdAccount = {
+  id: string;
+  accountId: string;
+  name: string;
+  accountStatus: number | null;
+  currency: string | null;
+  timezoneName: string | null;
+  businessId: string | null;
+  businessName: string | null;
+};
+
+type MetaConnectionDetails = {
+  facebookUserName: string;
+  facebookUserEmail: string | null;
+  tokenExpiresAt: string | null;
+  adAccounts: MetaAdAccount[];
+  selectedAdAccountIds: string[];
+};
 
 const INDIAN_BANKS = [
   'State Bank of India',
@@ -87,6 +108,11 @@ export default function SettingsPage() {
   // Integrations States
   const [integrations, setIntegrations] = React.useState<any[]>([]);
   const [loadingIntegrations, setLoadingIntegrations] = React.useState(false);
+  const [showMetaAccountPicker, setShowMetaAccountPicker] = React.useState(false);
+  const [metaConnection, setMetaConnection] = React.useState<MetaConnectionDetails | null>(null);
+  const [selectedMetaAccountIds, setSelectedMetaAccountIds] = React.useState<string[]>([]);
+  const [metaConnectionStatus, setMetaConnectionStatus] = React.useState<'idle' | 'authorizing' | 'loading' | 'saving'>('idle');
+  const [metaConnectionError, setMetaConnectionError] = React.useState('');
 
   // Wipe Data Modal States
   const [showWipeModal, setShowWipeModal] = React.useState(false);
@@ -116,37 +142,111 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleConnectMeta = () => {
-    if (typeof window !== 'undefined' && (window as any).FB) {
-      (window as any).FB.login((response: any) => {
-        if (response.status === 'connected' && response.authResponse) {
-          console.log('Connected to Meta successfully:', response);
-          
-          // Fetch additional profile fields (name, email) as suggested by reference
-          (window as any).FB.api('/me', { fields: 'name, email' }, (meResponse: any) => {
-            console.log('Meta user details:', meResponse);
-            
-            fetch('/api/integrations', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                provider: 'META',
-                action: 'connect_sdk',
-                authResponse: response.authResponse,
-                profile: meResponse
-              })
-            }).then(async () => {
-              await fetchIntegrations();
-            }).catch(err => console.error(err));
-          });
-        } else {
-          alert('Meta login connection failed.');
-        }
-      }, {
-        config_id: process.env.NEXT_PUBLIC_META_LOGIN_CONFIG_ID || '2233768390705051'
+  const openMetaAccountPicker = (meta: MetaConnectionDetails) => {
+    setMetaConnection(meta);
+    setSelectedMetaAccountIds(meta.selectedAdAccountIds || []);
+    setMetaConnectionError('');
+    setShowMetaAccountPicker(true);
+  };
+
+  const loadMetaAccounts = async () => {
+    setMetaConnectionStatus('loading');
+    setMetaConnectionError('');
+    setMetaConnection(null);
+    setShowMetaAccountPicker(true);
+    try {
+      const response = await fetch('/api/integrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'META', action: 'refresh_meta_accounts' }),
       });
-    } else {
-      alert('Facebook SDK is not fully loaded yet. Please try again.');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to load Meta ad accounts.');
+      openMetaAccountPicker(data.meta);
+    } catch (error) {
+      setMetaConnectionError(formatUserMessage(error instanceof Error ? error.message : 'Unable to load Meta ad accounts.'));
+      setShowMetaAccountPicker(true);
+    } finally {
+      setMetaConnectionStatus('idle');
+    }
+  };
+
+  const handleConnectMeta = () => {
+    setMetaConnectionError('');
+    if (typeof window === 'undefined' || !(window as any).FB) {
+      setMetaConnectionError('Facebook Login is still loading. Please try again in a moment.');
+      return;
+    }
+    const loginConfigurationId = process.env.NEXT_PUBLIC_META_LOGIN_CONFIG_ID;
+    if (!loginConfigurationId) {
+      setMetaConnectionError('Meta Login for Business is not configured for this deployment.');
+      return;
+    }
+
+    setMetaConnectionStatus('authorizing');
+    (window as any).FB.login(async (response: any) => {
+      if (response.status !== 'connected' || !response.authResponse?.accessToken) {
+        setMetaConnectionStatus('idle');
+        setMetaConnectionError('Meta authorization was cancelled or did not complete.');
+        return;
+      }
+
+      try {
+        const integrationResponse = await fetch('/api/integrations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: 'META',
+            action: 'connect_sdk',
+            authResponse: response.authResponse,
+          }),
+        });
+        const data = await integrationResponse.json();
+        if (!integrationResponse.ok) {
+          throw new Error(data.error || 'Meta authorization could not be verified.');
+        }
+        openMetaAccountPicker(data.meta);
+        await fetchIntegrations();
+      } catch (error) {
+        setMetaConnectionError(formatUserMessage(error instanceof Error ? error.message : 'Meta authorization could not be verified.'));
+      } finally {
+        setMetaConnectionStatus('idle');
+      }
+    }, {
+      config_id: loginConfigurationId,
+      scope: 'public_profile,email,ads_read,ads_management,business_management',
+      auth_type: 'rerequest',
+      return_scopes: true,
+    });
+  };
+
+  const saveMetaAccountSelection = async () => {
+    if (selectedMetaAccountIds.length === 0) {
+      setMetaConnectionError('Select at least one ad account.');
+      return;
+    }
+
+    setMetaConnectionStatus('saving');
+    setMetaConnectionError('');
+    try {
+      const response = await fetch('/api/integrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'META',
+          action: 'select_meta_accounts',
+          accountIds: selectedMetaAccountIds,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to save the selected Meta ad accounts.');
+      setShowMetaAccountPicker(false);
+      setMetaConnection(data.meta);
+      await fetchIntegrations();
+    } catch (error) {
+      setMetaConnectionError(formatUserMessage(error instanceof Error ? error.message : 'Unable to save the selected Meta ad accounts.'));
+    } finally {
+      setMetaConnectionStatus('idle');
     }
   };
 
@@ -903,6 +1003,20 @@ export default function SettingsPage() {
                               {item.provider === 'META' || item.provider === 'GOOGLE' ? (
                                 item.status === 'CONNECTED' ? (
                                   <div className="flex gap-2 justify-end">
+                                    {item.provider === 'META' && (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={loadMetaAccounts}
+                                        disabled={metaConnectionStatus !== 'idle'}
+                                        className="h-8 bg-zinc-800 text-white hover:bg-zinc-700 text-xs font-semibold"
+                                      >
+                                        {metaConnectionStatus === 'loading' ? (
+                                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                        ) : null}
+                                        Manage accounts
+                                      </Button>
+                                    )}
                                     {item.provider === 'GOOGLE' && (
                                       <Button
                                         type="button"
@@ -958,9 +1072,14 @@ export default function SettingsPage() {
                                   <Button
                                     type="button"
                                     size="sm"
+                                    disabled={item.provider === 'META' && metaConnectionStatus !== 'idle'}
                                     onClick={() => {
                                       if (item.provider === 'META') {
-                                        handleConnectMeta();
+                                        if (item.status === 'SYNCING' && item.hasConfig) {
+                                          loadMetaAccounts();
+                                        } else {
+                                          handleConnectMeta();
+                                        }
                                       } else if (item.provider === 'GOOGLE') {
                                         supabase.auth.signInWithOAuth({
                                           provider: 'google',
@@ -977,7 +1096,12 @@ export default function SettingsPage() {
                                     }}
                                     className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
                                   >
-                                    Connect Account
+                                    {item.provider === 'META' && metaConnectionStatus !== 'idle' ? (
+                                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                    ) : null}
+                                    {item.provider === 'META' && item.status === 'SYNCING'
+                                      ? 'Complete setup'
+                                      : 'Connect Account'}
                                   </Button>
                                 )
                               ) : null}
@@ -990,6 +1114,132 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
           </Card>
+          {metaConnectionError && !showMetaAccountPicker ? (
+            <div className="flex items-start gap-2 rounded-lg border border-rose-900/60 bg-rose-950/20 px-4 py-3 text-xs text-rose-300">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{metaConnectionError}</span>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {showMetaAccountPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="meta-account-picker-title"
+            className="w-full max-w-2xl overflow-hidden rounded-xl border border-zinc-800 bg-[#0d0e12] shadow-2xl"
+          >
+            <div className="flex items-start justify-between border-b border-zinc-800 px-6 py-5">
+              <div>
+                <h2 id="meta-account-picker-title" className="text-base font-semibold text-white">
+                  Select Meta ad accounts
+                </h2>
+                <p className="mt-1 text-xs text-zinc-400">
+                  {metaConnection
+                    ? `Authorized as ${metaConnection.facebookUserName}. Only accounts where this user has administrator access are shown.`
+                    : 'Loading the ad accounts available to this Meta user.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close account selection"
+                onClick={() => setShowMetaAccountPicker(false)}
+                className="rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-[55vh] overflow-y-auto p-6">
+              {metaConnectionStatus === 'loading' && !metaConnection ? (
+                <div className="flex items-center justify-center gap-2 py-12 text-sm text-zinc-400">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading administrator ad accounts...
+                </div>
+              ) : metaConnection?.adAccounts.length ? (
+                <div className="space-y-2">
+                  {metaConnection.adAccounts.map((account) => {
+                    const isSelected = selectedMetaAccountIds.includes(account.id);
+                    return (
+                      <label
+                        key={account.id}
+                        className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                          isSelected
+                            ? 'border-blue-500/70 bg-blue-500/10'
+                            : 'border-zinc-800 bg-zinc-950/40 hover:border-zinc-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedMetaAccountIds((current) =>
+                              current.includes(account.id)
+                                ? current.filter((id) => id !== account.id)
+                                : [...current, account.id],
+                            );
+                          }}
+                          className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-white">{account.name}</span>
+                          <span className="mt-1 block text-[11px] text-zinc-500">
+                            {account.businessName || 'No Business Portfolio name'} · {account.accountId}
+                            {account.currency ? ` · ${account.currency}` : ''}
+                          </span>
+                        </span>
+                        <Badge variant={account.accountStatus === 1 ? 'risk-low' : 'outline'}>
+                          {account.accountStatus === 1 ? 'ACTIVE' : `STATUS ${account.accountStatus ?? 'UNKNOWN'}`}
+                        </Badge>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-amber-900/50 bg-amber-950/20 px-4 py-5 text-sm text-amber-200">
+                  No ad accounts with administrator access were found. Confirm that the Facebook user is an
+                  administrator of the Business Portfolio and that the app has the required Marketing API permissions.
+                </div>
+              )}
+
+              {metaConnectionError ? (
+                <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-900/60 bg-rose-950/20 px-4 py-3 text-xs text-rose-300">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{metaConnectionError}</span>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-center justify-between gap-4 border-t border-zinc-800 bg-zinc-950/40 px-6 py-4">
+              <span className="text-xs text-zinc-500">
+                {selectedMetaAccountIds.length} account{selectedMetaAccountIds.length === 1 ? '' : 's'} selected
+              </span>
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={() => setShowMetaAccountPicker(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={saveMetaAccountSelection}
+                  disabled={
+                    selectedMetaAccountIds.length === 0 ||
+                    metaConnectionStatus === 'saving' ||
+                    !metaConnection
+                  }
+                  className="bg-white text-zinc-950 hover:bg-zinc-200"
+                >
+                  {metaConnectionStatus === 'saving' ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1.5 h-4 w-4" />
+                  )}
+                  Save accounts
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

@@ -46,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID;
-  const metaApiVersion = process.env.NEXT_PUBLIC_META_API_VERSION || 'v20.0';
+  const metaApiVersion = process.env.NEXT_PUBLIC_META_API_VERSION || 'v25.0';
   const serializedWorkspaceThemePaths = JSON.stringify(workspaceThemePaths);
 
   return (
