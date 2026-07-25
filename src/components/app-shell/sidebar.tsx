@@ -165,7 +165,9 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     }
     if (roleLower === 'member') {
       return [
-        { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard }
+        { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard },
+        { name: 'Tasks', href: '/tasks', icon: Activity },
+        { name: 'Calendar', href: '/calendar', icon: Calendar },
       ];
     }
     return navigationItems;

@@ -5,6 +5,7 @@ import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatPercent, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import {
@@ -71,9 +72,17 @@ interface ClientDetailDashboardProps {
   client: any;
   teamMembers: any[];
   onBack: () => void;
+  canManageMetaAccounts: boolean;
+  onClientUpdated: (client: any) => void;
 }
 
-export default function ClientDetailDashboard({ client, teamMembers, onBack }: ClientDetailDashboardProps) {
+export default function ClientDetailDashboard({
+  client,
+  teamMembers,
+  onBack,
+  canManageMetaAccounts,
+  onClientUpdated,
+}: ClientDetailDashboardProps) {
   const [currencyState, setCurrencyState] = React.useState('USD');
   React.useEffect(() => {
     fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
@@ -91,7 +100,19 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
   const [leadsSearchQuery, setLeadsSearchQuery] = React.useState('');
   const [selectedLeadStatus, setSelectedLeadStatus] = React.useState('all');
   const [syncingAdAccount, setSyncingAdAccount] = React.useState(false);
-  const adAccountId = client.adAccountId || null;
+  const [assignedAdAccountId, setAssignedAdAccountId] = React.useState(client.adAccountId || '');
+  const [pendingAdAccountId, setPendingAdAccountId] = React.useState(client.adAccountId || '');
+  const [metaAssignmentStatus, setMetaAssignmentStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [metaAssignmentError, setMetaAssignmentError] = React.useState('');
+  const adAccountId = assignedAdAccountId || null;
+
+  React.useEffect(() => {
+    const currentAccountId = client.adAccountId || '';
+    setAssignedAdAccountId(currentAccountId);
+    setPendingAdAccountId(currentAccountId);
+    setMetaAssignmentStatus('idle');
+    setMetaAssignmentError('');
+  }, [client.id, client.adAccountId]);
 
   // Task Creation Form States
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
@@ -143,7 +164,7 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
     } finally {
       setLoadingMeta(false);
     }
-  }, [client.id, client.adAccountId]);
+  }, [adAccountId, client.id]);
 
   React.useEffect(() => {
     loadData();
@@ -158,6 +179,37 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
       console.error(e);
     } finally {
       setSyncingAdAccount(false);
+    }
+  };
+
+  const handleSaveMetaAccount = async () => {
+    setMetaAssignmentStatus('saving');
+    setMetaAssignmentError('');
+
+    try {
+      const response = await fetch('/api/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: client.id,
+          adAccountId: pendingAdAccountId || null,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || 'Unable to assign the Meta ad account.');
+      }
+
+      const nextAccountId = payload.client?.adAccountId || '';
+      setAssignedAdAccountId(nextAccountId);
+      setPendingAdAccountId(nextAccountId);
+      setMetaAssignmentStatus('success');
+      onClientUpdated({ ...client, adAccountId: nextAccountId || null });
+    } catch (error) {
+      setMetaAssignmentStatus('error');
+      setMetaAssignmentError(formatUserMessage(
+        error instanceof Error ? error.message : 'Unable to assign the Meta ad account.',
+      ));
     }
   };
 
@@ -383,6 +435,47 @@ export default function ClientDetailDashboard({ client, teamMembers, onBack }: C
               <Megaphone className="h-4 w-4 text-zinc-500" />
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
+              {canManageMetaAccounts && (
+                <div className="space-y-2 border-b border-zinc-900 pb-4">
+                  <label htmlFor={`client-${client.id}-meta-account`} className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                    Client Meta ad account
+                  </label>
+                  <MetaAdAccountSelect
+                    id={`client-${client.id}-meta-account`}
+                    value={pendingAdAccountId}
+                    onChange={(accountId) => {
+                      setPendingAdAccountId(accountId);
+                      setMetaAssignmentStatus('idle');
+                      setMetaAssignmentError('');
+                    }}
+                    disabled={metaAssignmentStatus === 'saving'}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleSaveMetaAccount}
+                    disabled={
+                      metaAssignmentStatus === 'saving' ||
+                      pendingAdAccountId === assignedAdAccountId
+                    }
+                    className="h-8 w-full bg-zinc-100 text-[10px] font-bold text-zinc-950 hover:bg-white"
+                  >
+                    {metaAssignmentStatus === 'saving' && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    )}
+                    {metaAssignmentStatus === 'saving' ? 'Saving association…' : 'Save account association'}
+                  </Button>
+                  {metaAssignmentStatus === 'success' && (
+                    <p className="text-[10px] text-emerald-400" role="status">
+                      Meta ad account association updated.
+                    </p>
+                  )}
+                  {metaAssignmentError && (
+                    <p className="text-[10px] text-rose-300" role="alert">
+                      {metaAssignmentError}
+                    </p>
+                  )}
+                </div>
+              )}
               {adAccountId ? <div className="space-y-3 pt-2">
                 <div className="p-2.5 bg-zinc-950/40 border border-zinc-800 text-zinc-400 text-[9.5px] rounded-lg flex items-start gap-2">
                   <ShieldCheck className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />

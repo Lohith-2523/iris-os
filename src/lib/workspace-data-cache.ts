@@ -275,8 +275,18 @@ function patchJsonCollection(
     return { value: { ...(isRecord(currentPayload) ? currentPayload : {}), events: mutationPayload.events }, changed: true };
   }
   if (kind === 'calendar' && isRecord(body) && body.action === 'disconnect' && isRecord(currentPayload) && Array.isArray(currentPayload.events)) {
+    const disconnectedCreatorId = isRecord(mutationPayload) && typeof mutationPayload.disconnectedCreatorId === 'string'
+      ? mutationPayload.disconnectedCreatorId
+      : null;
     return {
-      value: { ...currentPayload, events: currentPayload.events.filter((item) => !isRecord(item) || !item.isGoogleEvent) },
+      value: {
+        ...currentPayload,
+        events: currentPayload.events.filter((item) =>
+          !isRecord(item) ||
+          !item.isGoogleEvent ||
+          (disconnectedCreatorId !== null && item.creatorId !== disconnectedCreatorId)
+        ),
+      },
       changed: true,
     };
   }

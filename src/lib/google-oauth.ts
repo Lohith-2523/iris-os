@@ -194,17 +194,13 @@ export async function connectGoogleCalendar(input: {
   code: string;
   orgId: string;
   redirectUri: string;
+  userId: string;
 }) {
   const tokens = await exchangeAuthorizationCode(input.code, input.redirectUri);
   const scopes = validateCalendarScopes(tokens.scope);
   const profile = await fetchGoogleProfile(tokens.access_token!);
-  const existingConnection = await prisma.integrationConnection.findUnique({
-    where: {
-      orgId_provider: {
-        orgId: input.orgId,
-        provider: 'GOOGLE',
-      },
-    },
+  const existingConnection = await prisma.googleCalendarConnection.findUnique({
+    where: { userId: input.userId },
   });
 
   let existingRefreshToken: string | null = null;
@@ -246,16 +242,11 @@ export async function connectGoogleCalendar(input: {
     name: profile.name || profile.email.split('@')[0],
   });
 
-  await prisma.integrationConnection.upsert({
-    where: {
-      orgId_provider: {
-        orgId: input.orgId,
-        provider: 'GOOGLE',
-      },
-    },
+  await prisma.googleCalendarConnection.upsert({
+    where: { userId: input.userId },
     create: {
       orgId: input.orgId,
-      provider: 'GOOGLE',
+      userId: input.userId,
       status: 'SYNCING',
       lastSync: new Date(),
       syncLogs,
@@ -263,6 +254,7 @@ export async function connectGoogleCalendar(input: {
       externalAccountId: profile.email,
     },
     update: {
+      orgId: input.orgId,
       status: 'SYNCING',
       lastSync: new Date(),
       syncLogs,

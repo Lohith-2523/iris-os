@@ -12,7 +12,7 @@ import {
   GoogleCalendarIntegrationError,
   syncGoogleCalendarEvents,
 } from '@/lib/google-calendar';
-import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { getRequestUser } from '@/lib/org';
 
 function valuesMatch(left: string, right: string) {
   const leftBuffer = Buffer.from(left, 'utf8');
@@ -80,7 +80,6 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (
       !user ||
-      !isOrganizationAdmin(user) ||
       user.id !== state.userId ||
       user.orgId !== state.orgId
     ) {
@@ -91,14 +90,15 @@ export async function GET(request: NextRequest) {
       code,
       orgId: state.orgId,
       redirectUri: googleOAuthRedirectUri(request.url),
+      userId: state.userId,
     });
 
     try {
       await syncGoogleCalendarEvents(state.orgId, state.userId);
     } catch (syncError) {
       console.error('Initial Google Calendar synchronization failed:', syncError);
-      await prisma.integrationConnection.updateMany({
-        where: { orgId: state.orgId, provider: 'GOOGLE' },
+      await prisma.googleCalendarConnection.updateMany({
+        where: { orgId: state.orgId, userId: state.userId },
         data: {
           status: 'ERROR',
           syncLogs: JSON.stringify({

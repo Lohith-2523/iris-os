@@ -5,7 +5,7 @@ import {
   googleOAuthRedirectUri,
   GoogleOAuthError,
 } from '@/lib/google-oauth';
-import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { getRequestUser } from '@/lib/org';
 
 const ALLOWED_RETURN_PATHS = new Set(['/calendar', '/settings']);
 
@@ -15,12 +15,6 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.redirect(new URL('/login?auth_error=session_required', request.url));
     }
-    if (!isOrganizationAdmin(user)) {
-      return NextResponse.redirect(
-        new URL('/calendar?google_connected=forbidden', request.url),
-      );
-    }
-
     const requestedReturnPath = request.nextUrl.searchParams.get('returnTo') || '/calendar';
     const returnTo = ALLOWED_RETURN_PATHS.has(requestedReturnPath)
       ? requestedReturnPath

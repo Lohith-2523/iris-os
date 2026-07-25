@@ -32,15 +32,27 @@ export async function GET() {
     const user = await getRequestUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const [integrations, reportCount, prismSessionCount] = await Promise.all([
+    const [organizationIntegrations, googleCalendarConnection, reportCount, prismSessionCount] = await Promise.all([
       prisma.integrationConnection.findMany({
-        where: { orgId: user.orgId },
+        where: { orgId: user.orgId, provider: { not: 'GOOGLE' } },
         select: { provider: true, status: true, lastSync: true },
         orderBy: { provider: 'asc' },
+      }),
+      prisma.googleCalendarConnection.findUnique({
+        where: { userId: user.id },
+        select: { status: true, lastSync: true },
       }),
       prisma.report.count({ where: { orgId: user.orgId } }),
       prisma.prismChatSession.count({ where: { orgId: user.orgId } }),
     ]);
+    const integrations = [
+      ...organizationIntegrations,
+      {
+        provider: 'GOOGLE',
+        status: googleCalendarConnection?.status || 'DISCONNECTED',
+        lastSync: googleCalendarConnection?.lastSync || null,
+      },
+    ];
 
     const response = NextResponse.json({
       organization: {

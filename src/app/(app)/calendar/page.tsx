@@ -75,6 +75,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = React.useState(true);
   const [syncingGoogle, setSyncingGoogle] = React.useState(false);
   const [googleConnected, setGoogleConnected] = React.useState(false);
+  const [googleAccountEmail, setGoogleAccountEmail] = React.useState('');
   const [currentView, setCurrentView] = React.useState<'month' | 'week' | 'day' | 'agenda'>('month');
   
   const [currentDate, setCurrentDate] = React.useState<Date>(() => new Date());
@@ -134,6 +135,9 @@ export default function CalendarPage() {
           const googleConn = data.find((i: any) => i.provider === 'GOOGLE');
           const isConnected = googleConn && googleConn.status === 'CONNECTED';
           setGoogleConnected(isConnected);
+          setGoogleAccountEmail(isConnected && typeof googleConn.accountEmail === 'string'
+            ? googleConn.accountEmail
+            : '');
         })
         .catch(e => console.error('Error fetching integrations status:', e));
     }
@@ -197,7 +201,7 @@ export default function CalendarPage() {
         const reason = searchParams.get('reason');
         const messages: Record<string, string> = {
           configuration_error: 'Google Calendar OAuth is not configured for this deployment.',
-          forbidden: 'Only workspace administrators can connect the shared Google Calendar integration.',
+          forbidden: 'Your account could not start Google Calendar authorization.',
           initial_sync_failed: 'Google connected, but the initial calendar synchronization failed. Try Sync Now.',
           permissions_missing: 'Approve both Calendar reading and event management permissions to connect.',
           refresh_token_missing: 'Google did not grant offline access. Remove CrystalOS from your Google account permissions and reconnect.',
@@ -223,6 +227,7 @@ export default function CalendarPage() {
       .then(res => res.json())
       .then(() => {
         setGoogleConnected(false);
+        setGoogleAccountEmail('');
         loadEvents();
       })
       .catch(err => console.error('Error disconnecting google calendar:', err))
@@ -515,7 +520,7 @@ export default function CalendarPage() {
             <CalendarIcon className="h-6 w-6 text-zinc-100" />
             <span>Interactive Calendar Hub</span>
           </h1>
-          <p className="text-xs text-zinc-500">Coordinate scheduled team calls, client consultations, and Google Calendar sync loops.</p>
+          <p className="text-xs text-zinc-500">Coordinate workspace events and synchronize your own Google Calendar account.</p>
         </div>
 
         {/* Sync Controls */}
@@ -539,6 +544,11 @@ export default function CalendarPage() {
                 )}>
                   {googleConnected ? 'CONNECTED & SYNCED' : 'NOT CONNECTED'}
                 </span>
+                {googleConnected && googleAccountEmail && (
+                  <span className="block max-w-44 truncate text-[9px] text-zinc-500" title={googleAccountEmail}>
+                    {googleAccountEmail}
+                  </span>
+                )}
               </div>
             </div>
             
@@ -1310,7 +1320,7 @@ export default function CalendarPage() {
                 </div>
 
                 {/* Edit / Delete (Only for admins, or creator client) */}
-                {(userRole === 'admin' || selectedEvent.attendees.includes(viewerEmail)) && (
+                {(userRole === 'admin' || selectedEvent.creatorId === uiScope?.userId) && (
                   <div className="flex gap-1 shrink-0">
                     <button
                       onClick={() => handleOpenEdit(selectedEvent)}

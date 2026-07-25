@@ -20,29 +20,30 @@ model Organization {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  brands                 Brand[]
-  users                  User[]
-  clients                Client[]
-  projects               Project[]
-  invoices               Invoice[]
-  expenses               Expense[]
-  automations            Automation[]
-  integrations           IntegrationConnection[]
-  metaAds                MetaAd[]
-  metaLeads              MetaLead[]
-  metaCampaigns          MetaCampaign[]
-  agencyLeads            AgencyLead[]
-  transactions           Transaction[]
-  calendarEvents         CalendarEvent[]
-  recurringSubscriptions RecurringSubscription[]
-  recurringRetainers     RecurringRetainer[]
-  reports                Report[]
-  prismInsights          PrismInsight[]
-  prismChatSessions      PrismChatSession[]
-  prismMessages          AskPrismMessage[]
-  financialForecasts     FinancialForecast[]
-  memberInvites          MemberInvite[]
-  onboardingState        OrganizationOnboardingState?
+  brands                    Brand[]
+  users                     User[]
+  clients                   Client[]
+  projects                  Project[]
+  invoices                  Invoice[]
+  expenses                  Expense[]
+  automations               Automation[]
+  integrations              IntegrationConnection[]
+  googleCalendarConnections GoogleCalendarConnection[]
+  metaAds                   MetaAd[]
+  metaLeads                 MetaLead[]
+  metaCampaigns             MetaCampaign[]
+  agencyLeads               AgencyLead[]
+  transactions              Transaction[]
+  calendarEvents            CalendarEvent[]
+  recurringSubscriptions    RecurringSubscription[]
+  recurringRetainers        RecurringRetainer[]
+  reports                   Report[]
+  prismInsights             PrismInsight[]
+  prismChatSessions         PrismChatSession[]
+  prismMessages             AskPrismMessage[]
+  financialForecasts        FinancialForecast[]
+  memberInvites             MemberInvite[]
+  onboardingState           OrganizationOnboardingState?
 }
 
 model OrganizationOnboardingState {
@@ -94,15 +95,16 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  projectMembers    ProjectMember[]
-  reports           Report[]
-  automations       Automation[]
-  askPrismMessages  AskPrismMessage[]
-  clientTasks       ClientTask[]
-  taskComments      TaskComment[]
-  createdEvents     CalendarEvent[]    @relation("CreatedEvents")
-  prismChatSessions PrismChatSession[]
-  preferences       UserPreference?
+  projectMembers           ProjectMember[]
+  reports                  Report[]
+  automations              Automation[]
+  askPrismMessages         AskPrismMessage[]
+  clientTasks              ClientTask[]
+  taskComments             TaskComment[]
+  createdEvents            CalendarEvent[]           @relation("CreatedEvents")
+  prismChatSessions        PrismChatSession[]
+  preferences              UserPreference?
+  googleCalendarConnection GoogleCalendarConnection?
 
   @@index([orgId])
   @@index([clientId])
@@ -384,6 +386,24 @@ model IntegrationConnection {
   @@unique([orgId, provider])
   @@index([orgId])
   @@index([provider, externalAccountId])
+}
+
+model GoogleCalendarConnection {
+  id                   String       @id @default(uuid())
+  status               String // CONNECTED, DISCONNECTED, ERROR, SYNCING
+  lastSync             DateTime?
+  syncLogs             String?
+  credentialCiphertext String?
+  externalAccountId    String?
+  orgId                String
+  organization         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId               String       @unique
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([orgId, status])
+  @@index([externalAccountId])
 }
 
 model PrismInsight {

@@ -6,32 +6,20 @@ import {
   GoogleCalendarIntegrationError,
   syncGoogleCalendarEvents,
 } from '@/lib/google-calendar';
+import {
+  googleCalendarOwnerScope,
+  visibleCalendarEventScope,
+} from '@/lib/google-calendar-scope';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // 2. Fetch events. If client: only see created events or if in attendees list.
-    // If admin: see all events in organization.
-    let events;
-    if (user.role.toLowerCase() === 'admin') {
-      events = await prisma.calendarEvent.findMany({
-        where: { orgId: user.orgId },
-        orderBy: { startTime: 'asc' },
-      });
-    } else {
-      events = await prisma.calendarEvent.findMany({
-        where: {
-          orgId: user.orgId,
-          OR: [
-            { creatorId: user.id },
-            { attendees: { has: user.email } }
-          ]
-        },
-        orderBy: { startTime: 'asc' },
-      });
-    }
+    const events = await prisma.calendarEvent.findMany({
+      where: visibleCalendarEventScope(user),
+      orderBy: { startTime: 'asc' },
+    });
 
     return NextResponse.json({ events });
   } catch (error: any) {
@@ -67,7 +55,7 @@ export async function POST(request: NextRequest) {
       const result = await syncGoogleCalendarEvents(user.orgId, user.id);
 
       const updatedEvents = await prisma.calendarEvent.findMany({
-        where: { orgId: user.orgId },
+        where: visibleCalendarEventScope(user),
         orderBy: { startTime: 'asc' },
       });
 
@@ -79,23 +67,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'disconnect') {
-      // Disconnect by deleting the connection record
-      const existingConnection = await prisma.integrationConnection.findFirst({
-        where: { orgId: user.orgId, provider: 'GOOGLE' },
+      await prisma.$transaction([
+        prisma.googleCalendarConnection.deleteMany({
+          where: { orgId: user.orgId, userId: user.id },
+        }),
+        prisma.calendarEvent.deleteMany({
+          where: googleCalendarOwnerScope(user.orgId, user.id),
+        }),
+      ]);
+      return NextResponse.json({
+        success: true,
+        message: 'Google Calendar disconnected.',
+        disconnectedCreatorId: user.id,
       });
-      if (existingConnection) {
-        await prisma.integrationConnection.delete({
-          where: { id: existingConnection.id },
-        });
-      }
-      // Delete synced google events
-      await prisma.calendarEvent.deleteMany({
-        where: {
-          orgId: user.orgId,
-          isGoogleEvent: true,
-        },
-      });
-      return NextResponse.json({ success: true, message: 'Google Calendar disconnected.' });
     }
 
     // Normal creation validation (time range check)
@@ -134,6 +118,7 @@ export async function POST(request: NextRequest) {
     const googleEvent = createGoogleMeet
       ? await createGoogleCalendarEvent({
           orgId: user.orgId,
+          userId: user.id,
           title,
           description,
           location,

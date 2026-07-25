@@ -3,6 +3,7 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
 import { decryptIntegrationCredentials, encryptIntegrationCredentials } from '@/lib/integration-secrets';
+import { googleCalendarOwnerScope } from '@/lib/google-calendar-scope';
 
 type GoogleCredentials = {
   accessToken?: string | null;
@@ -78,13 +79,21 @@ function attendeeStatus(event: GoogleCalendarEvent) {
   return statuses;
 }
 
-async function createGoogleCalendarClient(orgId: string) {
-  const connection = await prisma.integrationConnection.findUnique({
-    where: { orgId_provider: { orgId, provider: 'GOOGLE' } },
+async function createGoogleCalendarClient(orgId: string, userId: string) {
+  const connection = await prisma.googleCalendarConnection.findUnique({
+    where: { userId },
   });
 
-  if (!connection || connection.status === 'DISCONNECTED' || !connection.credentialCiphertext) {
-    throw new GoogleCalendarIntegrationError('Connect a Google account before using Google Calendar.', 400);
+  if (
+    !connection ||
+    connection.orgId !== orgId ||
+    connection.status === 'DISCONNECTED' ||
+    !connection.credentialCiphertext
+  ) {
+    throw new GoogleCalendarIntegrationError(
+      'Connect your Google account before using Google Calendar.',
+      400,
+    );
   }
 
   const activeConnection = connection;
@@ -115,7 +124,7 @@ async function createGoogleCalendarClient(orgId: string) {
     });
 
     if (!response.ok) {
-      await prisma.integrationConnection.update({
+      await prisma.googleCalendarConnection.update({
         where: { id: activeConnection.id },
         data: { status: 'ERROR' },
       });
@@ -131,7 +140,7 @@ async function createGoogleCalendarClient(orgId: string) {
     credentials.accessToken = payload.access_token;
     if (payload.refresh_token) credentials.refreshToken = payload.refresh_token;
 
-    await prisma.integrationConnection.update({
+    await prisma.googleCalendarConnection.update({
       where: { id: activeConnection.id },
       data: {
         status: 'CONNECTED',
@@ -227,7 +236,7 @@ async function listCalendarEvents(
 }
 
 export async function syncGoogleCalendarEvents(orgId: string, creatorId: string) {
-  const { json, connection } = await createGoogleCalendarClient(orgId);
+  const { json, connection } = await createGoogleCalendarClient(orgId, creatorId);
   const calendars = await listCalendars(json);
   const synchronizedEvents: Array<GoogleCalendarEvent & { calendarId: string }> = [];
 
@@ -267,9 +276,11 @@ export async function syncGoogleCalendarEvents(orgId: string, creatorId: string)
   }
 
   await prisma.$transaction([
-    prisma.calendarEvent.deleteMany({ where: { orgId, isGoogleEvent: true } }),
+    prisma.calendarEvent.deleteMany({
+      where: googleCalendarOwnerScope(orgId, creatorId),
+    }),
     ...createOperations,
-    prisma.integrationConnection.update({
+    prisma.googleCalendarConnection.update({
       where: { id: connection.id },
       data: {
         status: 'CONNECTED',
@@ -288,6 +299,7 @@ export async function syncGoogleCalendarEvents(orgId: string, creatorId: string)
 
 type CreateGoogleEventInput = {
   orgId: string;
+  userId: string;
   title: string;
   description?: string | null;
   location?: string | null;
@@ -301,7 +313,7 @@ type CreateGoogleEventInput = {
 };
 
 export async function createGoogleCalendarEvent(input: CreateGoogleEventInput) {
-  const { json } = await createGoogleCalendarClient(input.orgId);
+  const { json } = await createGoogleCalendarClient(input.orgId, input.userId);
   const requestId = randomUUID();
   const recurrence = input.isRecurring && ['DAILY', 'WEEKLY'].includes(input.recurrence || '')
     ? [`RRULE:FREQ=${input.recurrence}`]

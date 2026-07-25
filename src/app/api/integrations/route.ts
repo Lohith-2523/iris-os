@@ -9,7 +9,8 @@ import {
   publicMetaConnection,
   verifyMetaAccessToken,
 } from '@/lib/meta-business';
-import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { googleCalendarOwnerScope } from '@/lib/google-calendar-scope';
 
 const PROVIDERS = ['META', 'GOOGLE'];
 
@@ -59,18 +60,27 @@ async function saveMetaConnection(
 
 export async function GET(request: NextRequest) {
   try {
-    const org = await getOrganization(request);
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const dbConnections = await prisma.integrationConnection.findMany({
-      where: { orgId: org.id },
-    });
-    const connectionsMap = new Map(dbConnections.map((connection) => [connection.provider, connection]));
+    const [metaConnection, googleConnection] = await Promise.all([
+      prisma.integrationConnection.findUnique({
+        where: {
+          orgId_provider: {
+            orgId: user.orgId,
+            provider: 'META',
+          },
+        },
+      }),
+      prisma.googleCalendarConnection.findUnique({
+        where: { userId: user.id },
+      }),
+    ]);
 
     const integrations = PROVIDERS.map((provider) => {
-      const connection = connectionsMap.get(provider);
+      const connection = provider === 'META' ? metaConnection : googleConnection;
       const result: Record<string, unknown> = {
         provider,
         status: connection?.status || 'DISCONNECTED',
@@ -78,8 +88,15 @@ export async function GET(request: NextRequest) {
         logs: connection?.syncLogs || DEFAULT_LOGS[provider],
         hasConfig: Boolean(connection?.credentialCiphertext),
       };
+      if (provider === 'GOOGLE' && connection?.externalAccountId) {
+        result.accountEmail = connection.externalAccountId;
+      }
 
-      if (provider === 'META' && connection?.credentialCiphertext) {
+      if (
+        provider === 'META' &&
+        isOrganizationAdmin(user) &&
+        connection?.credentialCiphertext
+      ) {
         try {
           const credentials = readMetaCredentials(connection.credentialCiphertext);
           result.meta = publicMetaConnection(credentials);
@@ -102,14 +119,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const org = await getOrganization(request);
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
-    }
     const user = await getRequestUser(request);
-    if (!user || !isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
     const { provider, action } = body;
@@ -118,11 +129,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
     }
 
+    if (provider === 'GOOGLE') {
+      if (action !== 'disconnect') {
+        return NextResponse.json(
+          { error: 'Connect Google Calendar through the OAuth flow.' },
+          { status: 400 },
+        );
+      }
+
+      await prisma.$transaction([
+        prisma.googleCalendarConnection.deleteMany({
+          where: { orgId: user.orgId, userId: user.id },
+        }),
+        prisma.calendarEvent.deleteMany({
+          where: googleCalendarOwnerScope(user.orgId, user.id),
+        }),
+      ]);
+      return NextResponse.json({ success: true, status: 'DISCONNECTED' });
+    }
+
+    if (!isOrganizationAdmin(user)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const existingConnection = await prisma.integrationConnection.findUnique({
       where: {
         orgId_provider: {
-          orgId: org.id,
-          provider,
+          orgId: user.orgId,
+          provider: 'META',
         },
       },
     });
@@ -170,7 +204,7 @@ export async function POST(request: NextRequest) {
       };
 
       await saveMetaConnection(
-        org.id,
+        user.orgId,
         credentials,
         'SYNCING',
         assets.adAccounts.length > 0
@@ -230,7 +264,7 @@ export async function POST(request: NextRequest) {
       const status = selectedIds.length > 0 ? 'CONNECTED' : 'SYNCING';
 
       await saveMetaConnection(
-        org.id,
+        user.orgId,
         updatedCredentials,
         status,
         selectedIds.length > 0
@@ -245,28 +279,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Google currently completes OAuth through the existing auth callback.
-    if (existingConnection) {
-      await prisma.integrationConnection.update({
-        where: { id: existingConnection.id },
-        data: {
-          status: 'CONNECTED',
-          lastSync: new Date(),
-        },
-      });
-    } else {
-      await prisma.integrationConnection.create({
-        data: {
-          orgId: org.id,
-          provider,
-          status: 'CONNECTED',
-          lastSync: new Date(),
-          syncLogs: 'Manual integration connected.',
-        },
-      });
-    }
-
-    return NextResponse.json({ success: true, status: 'CONNECTED' });
+    return NextResponse.json({ error: 'Unsupported integration action' }, { status: 400 });
   } catch (error) {
     console.error('Error updating integration connection:', error);
     if (error instanceof MetaIntegrationError) {

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -125,7 +126,6 @@ export default function ClientOnboardPage() {
 
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [closedLeadOptions, setClosedLeadOptions] = React.useState<ClosedLeadOption[]>([]);
-  const [metaConnected, setMetaConnected] = React.useState(false);
 
   const [inviteUrl, setInviteUrl] = React.useState('');
 
@@ -155,9 +155,6 @@ export default function ClientOnboardPage() {
     checkRole();
     fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
       if (workspace?.organization?.currency) setCurrencyState(workspace.organization.currency);
-      setMetaConnected(Boolean(workspace?.integrations?.some((integration: any) =>
-        integration.provider === 'META' && ['CONNECTED', 'ACTIVE'].includes(integration.status?.toUpperCase())
-      )));
     }).catch(() => undefined);
 
     async function fetchTeam() {
@@ -323,7 +320,7 @@ export default function ClientOnboardPage() {
         roiMetric: 0.0,
         upsellOpportunityValue: parseFloat(formData.monthlyRetainer) * 12 || 0.0,
         sourceLeadId: formData.sourceLeadId || null,
-        adAccountId: metaConnected ? formData.adAccountId || null : null,
+        adAccountId: formData.adAccountId || null,
         contact: {
           name: formData.clientName,
           email: formData.clientEmail,
@@ -1023,25 +1020,17 @@ export default function ClientOnboardPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Associated Meta Ad Account ID</label>
-                      <input
-                        name="adAccountId"
+                      <label htmlFor="onboarding-meta-ad-account" className="font-semibold text-zinc-400 block">
+                        Associated Meta Ad Account
+                      </label>
+                      <MetaAdAccountSelect
+                        id="onboarding-meta-ad-account"
                         value={formData.adAccountId}
-                        onChange={handleInputChange}
-                        placeholder="act_…"
-                        disabled={!metaConnected}
-                        aria-describedby="meta-account-status"
-                        className={`w-full rounded border border-zinc-850 p-2 text-white focus:border-zinc-750 focus:outline-none font-medium ${
-                          metaConnected
-                            ? 'bg-zinc-900/40'
-                            : 'cursor-not-allowed bg-zinc-900/20 opacity-45 blur-[1px]'
-                        }`}
+                        onChange={(adAccountId) => {
+                          setFormData((current) => ({ ...current, adAccountId }));
+                          setFormError('');
+                        }}
                       />
-                      <span id="meta-account-status" className="block text-[10px] text-zinc-500">
-                        {metaConnected
-                          ? 'Connected Meta account detected.'
-                          : 'Connect Meta in Settings to add an account ID.'}
-                      </span>
                     </div>
                   </div>
 

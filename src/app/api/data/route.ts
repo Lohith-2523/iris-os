@@ -328,6 +328,9 @@ export async function GET(request: NextRequest) {
             roiMetric: c.roiMetric,
             renewalDate: c.renewalDate ? c.renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
             upsellOpportunityValue: c.upsellOpportunityValue,
+            agencyType: c.agencyType,
+            businessModel: c.businessModel,
+            adAccountId: c.adAccountId,
             metadata: c.metadata || null,
             revenue
           };

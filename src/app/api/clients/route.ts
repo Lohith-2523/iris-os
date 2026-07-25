@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import {
+  MetaAdAccountAssignmentError,
+  resolveAssignableMetaAdAccountId,
+} from '@/lib/meta-ad-accounts';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -28,6 +32,59 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Error deleting client:', error);
     return NextResponse.json({ error: 'Unable to delete client' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) {
+      return NextResponse.json(
+        { error: 'Access Denied: Administrative clearance required.' },
+        { status: 403 },
+      );
+    }
+
+    const body = await request.json();
+    const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
+    if (!clientId) {
+      return NextResponse.json({ error: 'Missing clientId parameter' }, { status: 400 });
+    }
+
+    const existingClient = await prisma.client.findFirst({
+      where: { id: clientId, orgId: user.orgId },
+      select: { id: true },
+    });
+    if (!existingClient) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    const adAccountId = await resolveAssignableMetaAdAccountId(
+      user.orgId,
+      body.adAccountId,
+    );
+
+    const updatedClient = await prisma.$transaction(async (tx) => {
+      const client = await tx.client.update({
+        where: { id: existingClient.id },
+        data: { adAccountId },
+        select: { id: true, adAccountId: true },
+      });
+      await tx.clientInvite.updateMany({
+        where: { clientId: existingClient.id },
+        data: { adAccountId },
+      });
+      return client;
+    });
+
+    return NextResponse.json({ success: true, client: updatedClient });
+  } catch (error) {
+    if (error instanceof MetaAdAccountAssignmentError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    console.error('Error assigning client Meta ad account:', error);
+    return NextResponse.json({ error: 'Unable to update the client Meta ad account.' }, { status: 500 });
   }
 }
 
@@ -66,6 +123,8 @@ export async function POST(request: NextRequest) {
     if (!name) {
       return NextResponse.json({ error: 'Missing client name parameter' }, { status: 400 });
     }
+
+    const validatedAdAccountId = await resolveAssignableMetaAdAccountId(org.id, adAccountId);
 
     const sourceLead = sourceLeadId ? await prisma.agencyLead.findFirst({
       where: {
@@ -129,7 +188,7 @@ export async function POST(request: NextRequest) {
           agencyType: agencyType || null,
           businessModel: businessModel || null,
           metadata: metadata || {},
-          adAccountId: adAccountId || null,
+          adAccountId: validatedAdAccountId,
           sourceLeadId: sourceLead?.id || null,
           orgId: org.id,
           contacts: contact ? {
@@ -149,7 +208,7 @@ export async function POST(request: NextRequest) {
           email: inviteEmail,
           name: inviteName,
           clientId: newClient.id,
-          adAccountId: adAccountId || null,
+          adAccountId: validatedAdAccountId,
           token,
           expiresAt,
         }
@@ -267,6 +326,9 @@ export async function POST(request: NextRequest) {
       inviteUrl: `/invite?token=${token}`
     });
   } catch (error: any) {
+    if (error instanceof MetaAdAccountAssignmentError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error onboarding client:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }

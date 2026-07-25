@@ -142,6 +142,7 @@ export async function DELETE(request: NextRequest) {
       // 6. Delete agency leads & integration connections
       prisma.agencyLead.deleteMany({ where: { orgId } }),
       prisma.integrationConnection.deleteMany({ where: { orgId } }),
+      prisma.googleCalendarConnection.deleteMany({ where: { orgId } }),
       prisma.memberInvite.deleteMany({ where: { orgId } }),
 
       // 7. Delete financial forecasts (simulated global forecast data)

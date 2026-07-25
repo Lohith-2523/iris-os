@@ -122,6 +122,12 @@ export default function ClientsPage() {
         client={selectedClient}
         teamMembers={team}
         onBack={() => setSelectedClientId(null)}
+        canManageMetaAccounts={canManageClients}
+        onClientUpdated={(updatedClient) => {
+          setDbClients((current) => current.map((client) =>
+            client.id === updatedClient.id ? { ...client, ...updatedClient } : client
+          ));
+        }}
       />
     );
   }
