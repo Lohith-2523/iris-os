@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/server';
 import { prisma } from '@/lib/db';
 import { provisionAuthenticatedUser } from '@/lib/org';
+import {
+  isTransientDatabaseConnectionError,
+  withDatabaseConnectionRetry,
+} from '@/lib/database-resilience';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -35,7 +39,14 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?auth_error=invalid_invite`);
     }
 
-    const dbUser = await provisionAuthenticatedUser(session.user);
+    const dbUser = await withDatabaseConnectionRetry(
+      () => provisionAuthenticatedUser(session.user),
+      {
+        onRetry: (_error, nextAttempt) => {
+          console.warn(`Workspace initialization is waiting for a database connection (attempt ${nextAttempt}).`);
+        },
+      },
+    );
     const role = dbUser.role?.toLowerCase() || 'admin';
 
     // First-time users and users with unfinished onboarding resume the saved
@@ -52,6 +63,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}${redirectUrl}`);
   } catch (error) {
     console.error('Google OAuth callback failed:', error);
+    if (isTransientDatabaseConnectionError(error)) {
+      return NextResponse.redirect(`${origin}/login?auth_error=workspace_temporarily_unavailable`);
+    }
     return NextResponse.redirect(`${origin}/login?auth_error=workspace_initialization_failed`);
   }
 }

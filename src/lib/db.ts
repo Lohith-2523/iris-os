@@ -1,6 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
+import { resolveDatabasePoolMax } from './database-resilience';
 
 type PrismaGlobal = typeof globalThis & {
   prisma?: PrismaClient;
@@ -8,22 +8,27 @@ type PrismaGlobal = typeof globalThis & {
 };
 
 const globalForPrisma = globalThis as PrismaGlobal;
+const databasePoolMax = resolveDatabasePoolMax(process.env.DATABASE_POOL_MAX);
 const prismaModelSignature = JSON.stringify(
-  Prisma.dmmf.datamodel.models
-    .map((model) => ({
-      name: model.name,
-      fields: model.fields
-        .map((field) => ({
-          name: field.name,
-          kind: field.kind,
-          type: field.type,
-          isList: field.isList,
-          isRequired: field.isRequired,
-          relationName: field.relationName ?? null,
-        }))
-        .sort((left, right) => left.name.localeCompare(right.name)),
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name)),
+  {
+    connectionPolicyVersion: 2,
+    databasePoolMax,
+    models: Prisma.dmmf.datamodel.models
+      .map((model) => ({
+        name: model.name,
+        fields: model.fields
+          .map((field) => ({
+            name: field.name,
+            kind: field.kind,
+            type: field.type,
+            isList: field.isList,
+            isRequired: field.isRequired,
+            relationName: field.relationName ?? null,
+          }))
+          .sort((left, right) => left.name.localeCompare(right.name)),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name)),
+  },
 );
 const requiredModelDelegates = ['recurringRetainer'] as const;
 
@@ -33,8 +38,20 @@ function hasRequiredModelDelegates(client: PrismaClient) {
 }
 
 function createPrismaClient() {
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-  return new PrismaClient({ adapter: new PrismaPg(pool) });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not configured.');
+  }
+
+  const adapter = new PrismaPg({
+    connectionString,
+    max: databasePoolMax,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 10_000,
+    maxLifetimeSeconds: 300,
+  });
+
+  return new PrismaClient({ adapter });
 }
 
 let prisma: PrismaClient;
