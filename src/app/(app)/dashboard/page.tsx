@@ -690,9 +690,9 @@ export default function DashboardPage() {
             <ExpandableCard 
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
-                <div className="flex flex-col h-full space-y-4">
+                <div className="flex h-full min-h-0 flex-col gap-4">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider">Revenue Breakdown</h3>
-                  <div className="space-y-3 overflow-y-auto max-h-[280px]">
+                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
                     {financeData?.revenueByClient?.length ? financeData.revenueByClient.map((client: any, index: number) => (
                       <div key={client.id} className="flex justify-between items-center text-xs text-zinc-300 py-1.5 border-b border-zinc-800/50">
                         <span className="font-semibold truncate pr-3">{index + 1}. {client.name}</span>
@@ -700,18 +700,18 @@ export default function DashboardPage() {
                       </div>
                     )) : <p className="py-4 text-xs text-zinc-500">No paid invoices have been recorded yet.</p>}
                   </div>
-                  <div className="flex justify-center pt-2">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsRevenueModalOpen(true);
-                      }}
-                      className="w-full h-9 text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
-                    >
-                      Show more
-                    </Button>
-                  </div>
                 </div>
+              }
+              expandedFooter={
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsRevenueModalOpen(true);
+                  }}
+                  className="w-full h-9 text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
+                >
+                  Show more
+                </Button>
               }
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -774,12 +774,12 @@ export default function DashboardPage() {
             <ExpandableCard
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
-                <div className="flex h-full flex-col space-y-3">
+                <div className="flex h-full min-h-0 flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-white">Active Projects</h3>
                     <span className="text-[10px] font-mono text-zinc-500">{dbData?.activeProjects?.length ?? 0} active</span>
                   </div>
-                  <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
+                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
                     {dbData?.activeProjects?.length ? dbData.activeProjects.map((project: any) => {
                       const progress = Math.max(0, Math.min(100, Number(project.progress) || 0));
                       return (
@@ -853,7 +853,7 @@ export default function DashboardPage() {
               <ExpandableCard 
                 className="min-h-[230px] flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full space-y-3">
+                  <div className="flex h-full min-h-0 flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Agency Leads Pipeline</h3>
                       <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-400 text-[9px] uppercase font-mono rounded-md">
@@ -861,7 +861,7 @@ export default function DashboardPage() {
                       </Badge>
                     </div>
                     
-                    <div className="divide-y divide-zinc-900 border-t border-zinc-900 overflow-y-auto max-h-[220px] pr-1">
+                    <div className="min-h-0 flex-1 divide-y divide-zinc-900 overflow-y-auto border-t border-zinc-900 pr-1">
                       {agencyLeadsList.length > 0 ? (
                         agencyLeadsList.map((l: any) => {
                           const isWarmFirstTwo = warmAgencyLeads.slice(0, 2).some((wl: any) => wl.leadId === l.leadId);
@@ -891,19 +891,19 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-zinc-900">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.location.href = '/agency-leads';
-                        }}
-                        className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
-                      >
-                        <span>See more</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
                   </div>
+                }
+                expandedFooter={
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = '/agency-leads';
+                    }}
+                    className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
+                  >
+                    <span>See more</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -969,7 +969,7 @@ export default function DashboardPage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full space-y-3">
+                  <div className="flex h-full min-h-0 flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Leads Pipeline Overview</h3>
                       <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-400 text-[9px] uppercase font-mono">
@@ -977,7 +977,7 @@ export default function DashboardPage() {
                       </Badge>
                     </div>
                     
-                    <div className="divide-y divide-zinc-900 border-t border-zinc-900 overflow-y-auto max-h-[220px] pr-1">
+                    <div className="min-h-0 flex-1 divide-y divide-zinc-900 overflow-y-auto border-t border-zinc-900 pr-1">
                       {metaData?.leads && metaData.leads.length > 0 ? (
                         metaData.leads.map((l: any) => {
                           const isWarmFirstTwo = warmLeads.slice(0, 2).some((wl: any) => wl.leadId === l.leadId);
@@ -1007,19 +1007,19 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    <div className="pt-2 border-t border-zinc-900">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.location.href = '/meta-portal/leads';
-                        }}
-                        className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
-                      >
-                        <span>See more</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
                   </div>
+                }
+                expandedFooter={
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = '/meta-portal/leads';
+                    }}
+                    className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
+                  >
+                    <span>See more</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1070,16 +1070,11 @@ export default function DashboardPage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full">
-                    <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-full min-h-0 flex-col">
+                    <div className="mb-4">
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Clients Portfolio (by Revenue)</h3>
-                      <Link href="/clients" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="outline" size="sm" className="h-7 text-[10px] border-zinc-800 text-zinc-300 font-semibold px-2 hover:text-white rounded-none">
-                          View All
-                        </Button>
-                      </Link>
                     </div>
-                    <div className="divide-y divide-zinc-900 border-t border-zinc-900 overflow-y-auto max-h-[300px]">
+                    <div className="min-h-0 flex-1 divide-y divide-zinc-900 overflow-y-auto border-t border-zinc-900">
                       {sortedClients.length > 0 ? (
                         sortedClients.map((client: any) => (
                           <div key={client.id} className="flex items-center justify-between py-4">
@@ -1102,6 +1097,13 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
+                }
+                expandedFooter={
+                  <Link href="/clients" onClick={(e) => e.stopPropagation()} className="w-full">
+                    <Button variant="outline" size="sm" className="h-7 w-full text-[10px] border-zinc-800 text-zinc-300 font-semibold px-2 hover:text-white rounded-none">
+                      View All
+                    </Button>
+                  </Link>
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1136,9 +1138,9 @@ export default function DashboardPage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full">
+                  <div className="flex h-full min-h-0 flex-col">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">All Priority Tasks</h3>
-                    <div className="divide-y divide-zinc-900 border-t border-zinc-900 overflow-y-auto max-h-[300px]">
+                    <div className="min-h-0 flex-1 divide-y divide-zinc-900 overflow-y-auto border-t border-zinc-900">
                       {priorityTasks.map((t: any) => (
                         <div key={t.id} className="flex items-center justify-between py-3">
                           <div className="truncate pr-4">
@@ -1151,14 +1153,14 @@ export default function DashboardPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-auto pt-4 flex justify-center">
-                      <Link href="/tasks" className="w-full">
-                        <Button className="w-full h-9 text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">
-                          See more
-                        </Button>
-                      </Link>
-                    </div>
                   </div>
+                }
+                expandedFooter={
+                  <Link href="/tasks" className="w-full">
+                    <Button className="w-full h-9 text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">
+                      See more
+                    </Button>
+                  </Link>
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1186,9 +1188,9 @@ export default function DashboardPage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full">
+                  <div className="flex h-full min-h-0 flex-col">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Today&apos;s Schedule</h3>
-                    <div className="divide-y divide-zinc-900 border-t border-zinc-900 overflow-y-auto max-h-[300px]">
+                    <div className="min-h-0 flex-1 divide-y divide-zinc-900 overflow-y-auto border-t border-zinc-900">
                       {todayEvents.map((ev: any) => {
                         const timeStr = ev.startTime ? new Date(ev.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
                         return (
@@ -1204,14 +1206,14 @@ export default function DashboardPage() {
                         );
                       })}
                     </div>
-                    <div className="mt-auto pt-4 flex justify-center">
-                      <Link href="/calendar" className="w-full">
-                        <Button className="w-full h-9 text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">
-                          See more
-                        </Button>
-                      </Link>
-                    </div>
                   </div>
+                }
+                expandedFooter={
+                  <Link href="/calendar" className="w-full">
+                    <Button className="w-full h-9 text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">
+                      See more
+                    </Button>
+                  </Link>
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">

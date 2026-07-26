@@ -562,6 +562,7 @@ model AgencyLead {
   collectionMethod String? // "Bulk Import", "Manual Entry"
   approachMethod   String?
   funnelName       String?
+  estimatedClientValue Float?
   createdTime      DateTime     @default(now())
   orgId            String
   organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)

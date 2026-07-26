@@ -3,6 +3,12 @@ import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser } from '@/lib/org';
 import { calculateLeadEconomics } from '@/lib/lead-economics';
 
+function parseEstimatedClientValue(value: unknown) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = typeof value === 'number' ? value : Number(String(value).replace(/[,\s]/g, ''));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
@@ -99,6 +105,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing required parameters: fullName, email, status' }, { status: 400 });
       }
 
+      const estimatedClientValue = parseEstimatedClientValue(body.estimatedClientValue);
+      if (body.estimatedClientValue !== undefined && body.estimatedClientValue !== '' && estimatedClientValue === null) {
+        return NextResponse.json({ error: 'Estimated client value must be a non-negative number' }, { status: 400 });
+      }
+
       const cleanStatus = status.toLowerCase();
       const newLead = await prisma.agencyLead.create({
         data: {
@@ -107,6 +118,7 @@ export async function POST(request: NextRequest) {
           phone: phone || null,
           status: cleanStatus,
           funnelName: funnelName || 'Manual Entry',
+          estimatedClientValue,
           approachMethod: approachMethod || 'Email',
           collectionMethod: 'Manual Entry',
           orgId: org.id
@@ -129,6 +141,8 @@ export async function POST(request: NextRequest) {
         if (!fullName || !email) continue; // Skip incomplete items
 
         const cleanStatus = (status || 'procured').toLowerCase();
+        const estimatedClientValue = parseEstimatedClientValue(lead.estimatedClientValue);
+        if (lead.estimatedClientValue !== undefined && lead.estimatedClientValue !== '' && estimatedClientValue === null) continue;
 
         const existing = await prisma.agencyLead.findFirst({ where: { orgId: org.id, email } });
         const created = existing ? await prisma.agencyLead.update({
@@ -139,6 +153,7 @@ export async function POST(request: NextRequest) {
             phone: phone || null,
             status: cleanStatus,
             funnelName: funnelName || 'Bulk Import',
+            estimatedClientValue,
             approachMethod: approachMethod || 'Email',
           }
         }) : await prisma.agencyLead.create({
@@ -148,6 +163,7 @@ export async function POST(request: NextRequest) {
             phone: phone || null,
             status: cleanStatus,
             funnelName: funnelName || 'Bulk Import',
+            estimatedClientValue,
             approachMethod: approachMethod || 'Email',
             collectionMethod: 'Bulk Import',
             orgId: org.id

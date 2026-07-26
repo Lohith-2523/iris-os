@@ -82,13 +82,6 @@ export async function GET() {
       integrations,
       counts: { reports: reportCount, prismSessions: prismSessionCount },
     });
-    response.cookies.set('crystal_theme', user.preferences?.theme === 'light' ? 'light' : 'dark', {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365,
-    });
     return response;
   } catch (error) {
     console.error('Failed to load workspace state:', error);
@@ -169,6 +162,11 @@ export async function PATCH(request: Request) {
     }
     return response;
   } catch (error) {
+    if (request.signal.aborted) {
+      // The browser disconnected before it could receive a response. This is
+      // expected for a navigation-interrupted preference update.
+      return new NextResponse(null, { status: 499 });
+    }
     console.error('Failed to update workspace state:', error);
     return NextResponse.json({ error: 'Unable to update workspace' }, { status: 500 });
   }

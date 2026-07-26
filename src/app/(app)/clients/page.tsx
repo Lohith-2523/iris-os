@@ -96,16 +96,7 @@ export default function ClientsPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Unable to delete client');
       }
-      // The mutation refreshes the temporary workspace cache before returning,
-      // so this resolves to the newly authoritative portfolio snapshot.
-      const refreshedClients = await fetch('/api/data?domain=clients');
-      if (refreshedClients.ok) {
-        setDbClients(await refreshedClients.json());
-      } else {
-        // The deletion has already succeeded. Keep the local UI correct if a
-        // transient read failure prevents the follow-up refresh.
-        setDbClients((current) => current.filter((client) => client.id !== clientPendingDeletion.id));
-      }
+      setDbClients((current) => current.filter((client) => client.id !== clientPendingDeletion.id));
       setClientPendingDeletion(null);
       setDeleteAcknowledged(false);
       setDeleteError('');

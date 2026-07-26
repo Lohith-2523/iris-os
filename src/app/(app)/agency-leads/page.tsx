@@ -38,6 +38,7 @@ interface AgencyLead {
   collectionMethod: string | null;
   approachMethod: string | null;
   funnelName: string | null;
+  estimatedClientValue: number | null;
   createdTime: string;
 }
 
@@ -69,6 +70,7 @@ export default function AgencyLeadsPage() {
     email: '',
     phone: '',
     funnelName: '',
+    estimatedClientValue: '',
     status: 'procured',
     approachMethod: 'Email'
   });
@@ -224,6 +226,7 @@ export default function AgencyLeadsPage() {
           email: '',
           phone: '',
           funnelName: '',
+          estimatedClientValue: '',
           status: 'procured',
           approachMethod: 'Email'
         });
@@ -241,7 +244,7 @@ export default function AgencyLeadsPage() {
 
   // --- TEMPLATE DOWNLOAD HANDLERS ---
   const downloadCsvTemplate = () => {
-    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Funnel Name,Status,Approach Method\nIRIS_OS_AGENCY_LEAD_IMPORT_v1,Vikram Patel,vikram@apex.co,+91 98765 43210,Enterprise Outreach,procured,Email\nIRIS_OS_AGENCY_LEAD_IMPORT_v1,Aditi Sharma,aditi@apex.co,+91 99887 76655,Direct Inbound,warm,LinkedIn";
+    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Funnel Name,Status,Approach Method,Estimated Client Value\nIRIS_OS_AGENCY_LEAD_IMPORT_v1,Vikram Patel,vikram@apex.co,+91 98765 43210,Enterprise Outreach,procured,Email,250000\nIRIS_OS_AGENCY_LEAD_IMPORT_v1,Aditi Sharma,aditi@apex.co,+91 99887 76655,Direct Inbound,warm,LinkedIn,120000";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -255,9 +258,9 @@ export default function AgencyLeadsPage() {
 
   const downloadXlsxTemplate = () => {
     const data = [
-      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Funnel Name", "Status", "Approach Method"],
-      ["IRIS_OS_AGENCY_LEAD_IMPORT_v1", "Vikram Patel", "vikram@apex.co", "+91 98765 43210", "Enterprise Outreach", "procured", "Email"],
-      ["IRIS_OS_AGENCY_LEAD_IMPORT_v1", "Aditi Sharma", "aditi@apex.co", "+91 99887 76655", "Direct Inbound", "warm", "LinkedIn"]
+      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Funnel Name", "Status", "Approach Method", "Estimated Client Value"],
+      ["IRIS_OS_AGENCY_LEAD_IMPORT_v1", "Vikram Patel", "vikram@apex.co", "+91 98765 43210", "Enterprise Outreach", "procured", "Email", 250000],
+      ["IRIS_OS_AGENCY_LEAD_IMPORT_v1", "Aditi Sharma", "aditi@apex.co", "+91 99887 76655", "Direct Inbound", "warm", "LinkedIn", 120000]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -296,7 +299,8 @@ export default function AgencyLeadsPage() {
                   phone: cols[3] || '',
                   funnelName: cols[4] || 'Bulk Import',
                   status: cols[5] || 'procured',
-                  approachMethod: cols[6] || 'Email'
+                  approachMethod: cols[6] || 'Email',
+                  estimatedClientValue: cols[7] || ''
                 });
               }
             }
@@ -348,7 +352,8 @@ export default function AgencyLeadsPage() {
                     phone: String(r[3] || ''),
                     funnelName: String(r[4] || 'Bulk Import'),
                     status: String(r[5] || 'procured'),
-                    approachMethod: String(r[6] || 'Email')
+                    approachMethod: String(r[6] || 'Email'),
+                    estimatedClientValue: r[7] === undefined || r[7] === null ? '' : String(r[7])
                   });
                 }
               }
@@ -732,6 +737,20 @@ export default function AgencyLeadsPage() {
                     />
                   </div>
 
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-550">Estimated Client Value</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-xs text-white placeholder-zinc-600 focus:border-zinc-700 focus:outline-none transition-all"
+                      placeholder="e.g. 250000"
+                      value={manualForm.estimatedClientValue}
+                      onChange={(e) => setManualForm(prev => ({ ...prev, estimatedClientValue: e.target.value }))}
+                    />
+                  </div>
+
                   <div className="grid gap-3 grid-cols-2">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-550">Pipeline Stage</label>
@@ -871,6 +890,7 @@ export default function AgencyLeadsPage() {
                             <TableHead className="text-[9px] uppercase font-bold text-zinc-550 h-8">Email</TableHead>
                             <TableHead className="text-[9px] uppercase font-bold text-zinc-550 h-8">Phone</TableHead>
                             <TableHead className="text-[9px] uppercase font-bold text-zinc-550 h-8">Funnel</TableHead>
+                            <TableHead className="text-[9px] uppercase font-bold text-zinc-550 h-8">Est. Value</TableHead>
                             <TableHead className="text-[9px] uppercase font-bold text-zinc-550 h-8">Stage</TableHead>
                             <TableHead className="text-[9px] uppercase font-bold text-zinc-550 h-8"></TableHead>
                           </TableRow>
@@ -908,6 +928,16 @@ export default function AgencyLeadsPage() {
                                   className="bg-transparent border-0 text-zinc-400 focus:outline-none focus:ring-0 w-24 text-[11px]"
                                   value={item.funnelName}
                                   onChange={(e) => handleStagedChange(idx, 'funnelName', e.target.value)}
+                                />
+                              </TableCell>
+                              <TableCell className="py-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  className="bg-transparent border-0 text-zinc-300 focus:outline-none focus:ring-0 w-24 text-[11px] font-mono"
+                                  value={item.estimatedClientValue ?? ''}
+                                  onChange={(e) => handleStagedChange(idx, 'estimatedClientValue', e.target.value)}
                                 />
                               </TableCell>
                               <TableCell className="py-1">
@@ -1031,6 +1061,12 @@ export default function AgencyLeadsPage() {
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Acquisition Date</span>
                   <span className="text-zinc-400 font-mono mt-0.5 block">{new Date(selectedLead.createdTime).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Estimated Client Value</span>
+                  <span className="text-zinc-300 font-mono mt-0.5 block">
+                    {selectedLead.estimatedClientValue === null ? 'Not set' : formatCurrency(selectedLead.estimatedClientValue)}
+                  </span>
                 </div>
               </div>
 

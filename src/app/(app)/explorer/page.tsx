@@ -29,7 +29,7 @@ import {
 const EMPTY_DATASETS = {
   capacity: {
     title: 'Operational Capacity & Monthly Billings',
-    description: 'Correlation between resource utilization and monthly billable revenue.',
+    description: 'Correlation between team capacity and monthly billable revenue.',
     yOptions: [
       { id: 'revenue', label: 'Gross Revenue', format: (v: number) => formatCurrency(v), unit: 'currency' },
       { id: 'capacity', label: 'Resource Capacity', format: (v: number) => `${v}%`, unit: '%' },
@@ -141,7 +141,7 @@ function generateAiInsight(report: string, frequency: string, primaryY: string) 
   const label = reportsMap[report] || report;
   
   if (report === 'capacity') {
-    return `Lohith, looking at the ${frequency} capacity analysis mapping ${primaryY}, we notice that capacity expansions show high efficiency ratios. During Q2 and early summer, billings scaled ahead of personnel utilization. However, a minor profit leak is present in contractor software subscriptions. I recommend stabilizing allocations near 82% to sustain profit margins while avoiding delivery team fatigue.`;
+    return `Lohith, looking at the ${frequency} capacity analysis mapping ${primaryY}, we notice that capacity expansions show high efficiency ratios. During Q2 and early summer, billings scaled ahead of delivery capacity. However, a minor profit leak is present in contractor software subscriptions. I recommend balancing project assignments to sustain profit margins while avoiding delivery team fatigue.`;
   } else if (report === 'billing') {
     return `Lohith, the ${frequency} billing projections show that net revenue is tracking safely above our core overhead levels. Note that in periods where ${primaryY} exhibits a visual dip (e.g. April MoM), our reserve multipliers absorbed the variance. Retaining a 35% margin buffer allows us to confidently take on 2 additional high-value accounts in Q3.`;
   } else {
@@ -180,9 +180,7 @@ function ExplorerContent() {
           campaigns = markData.campaigns || [];
         }
 
-        const avgCapacity = teamMembers.length > 0
-          ? Math.round(teamMembers.reduce((sum, m) => sum + (m.utilization || 0), 0) / teamMembers.length)
-          : 0;
+        const avgCapacity = teamMembers.length;
 
         const getMonthIndex = (dStr: string) => {
           const d = new Date(dStr);

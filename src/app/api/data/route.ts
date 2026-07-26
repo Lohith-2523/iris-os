@@ -376,7 +376,6 @@ export async function GET(request: NextRequest) {
           role: u.role,
           phone: u.phone || null,
           projects: '',
-          utilization: 0,
           status: '',
         }));
 

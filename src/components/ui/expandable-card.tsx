@@ -2,15 +2,15 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
 
 interface ExpandableCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   expandedContent?: React.ReactNode;
+  expandedFooter?: React.ReactNode;
   disableExpand?: boolean;
 }
 
-export function ExpandableCard({ children, className, expandedContent, disableExpand = false, ...props }: ExpandableCardProps) {
+export function ExpandableCard({ children, className, expandedContent, expandedFooter, disableExpand = false, ...props }: ExpandableCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isAnimating, setIsAnimating] = React.useState(false);
   const [isClosing, setIsClosing] = React.useState(false);
@@ -116,6 +116,7 @@ export function ExpandableCard({ children, className, expandedContent, disableEx
 
   const isPoppedOut = isExpanded || isAnimating;
   const showExpandedContent = isExpanded && !isClosing;
+  const hasExpandedFooter = Boolean(expandedFooter);
 
   return (
     <>
@@ -148,22 +149,26 @@ export function ExpandableCard({ children, className, expandedContent, disableEx
         }
         className={cn(
           "workspace-card transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] bg-zinc-900/90 border border-zinc-800/80 rounded-xl text-card-foreground shadow-sm relative",
-          !isPoppedOut ? "w-full h-full" : "bg-[#0d0e12] overflow-hidden p-6 md:p-8 shadow-[0_0_100px_rgba(0,0,0,0.85)]",
+          !isPoppedOut ? "w-full h-full" : "bg-[#0d0e12] overflow-hidden p-0 shadow-[0_0_100px_rgba(0,0,0,0.85)]",
           !isPoppedOut && !disableExpand ? "hover:ring-2 hover:ring-zinc-800/80 cursor-pointer hover:bg-zinc-900/100" : "",
           !isPoppedOut && className
         )}
       >
-        {showExpandedContent && !isAnimating && (
-          <button
-            className="absolute top-4 right-4 z-50 p-2 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
-            onClick={handleCollapse}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-        
-        <div className={cn("w-full h-full", showExpandedContent && "opacity-100 mt-2")}>
-          {showExpandedContent && expandedContent ? expandedContent : children}
+        <div
+          className={cn(
+            "h-full w-full",
+            showExpandedContent && hasExpandedFooter && "grid min-h-0 grid-rows-[minmax(0,9fr)_minmax(48px,1fr)] opacity-100"
+          )}
+        >
+          <div className={cn("h-full min-h-0", showExpandedContent && "overflow-y-auto p-6 md:p-8")}>
+            {showExpandedContent && expandedContent ? expandedContent : children}
+          </div>
+
+          {showExpandedContent && hasExpandedFooter && (
+            <div className="flex min-h-0 items-center border-t border-zinc-800 px-6 md:px-8">
+              {expandedFooter}
+            </div>
+          )}
         </div>
       </div>
 

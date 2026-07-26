@@ -151,10 +151,16 @@ export async function POST(request: NextRequest) {
           rejected: rejectedRows.slice(0, 20),
         }, { status: 400 });
       }
-      await prisma.transaction.createMany({ data: transactionData });
+      const createdTransactions = await prisma.transaction.createManyAndReturn({
+        data: transactionData,
+      });
       return NextResponse.json({
         success: true,
         count: transactionData.length,
+        transactions: createdTransactions.map((transaction) => ({
+          ...transaction,
+          client: transaction.clientId ? clientsById.get(transaction.clientId) ?? null : null,
+        })),
         rejected: rejectedRows.slice(0, 20),
         rejectedCount: rejectedRows.length,
       });

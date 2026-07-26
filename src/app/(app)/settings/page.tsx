@@ -141,6 +141,13 @@ export default function SettingsPage() {
       if (res.ok) {
         const data = await res.json();
         setIntegrations(data);
+        const savedMetaConnection = Array.isArray(data)
+          ? data.find((integration) => integration.provider === 'META')?.meta as MetaConnectionDetails | undefined
+          : undefined;
+        if (savedMetaConnection) {
+          setMetaConnection(savedMetaConnection);
+          setSelectedMetaAccountIds(savedMetaConnection.selectedAdAccountIds || []);
+        }
       }
     } catch (e) {
       console.error('Error fetching integrations:', e);
@@ -275,6 +282,14 @@ export default function SettingsPage() {
       setMetaConnectionStatus('idle');
     }
   };
+
+  const hasPendingMetaAccountChanges = Boolean(
+    metaConnection &&
+      (
+        selectedMetaAccountIds.length !== metaConnection.selectedAdAccountIds.length ||
+        selectedMetaAccountIds.some((accountId) => !metaConnection.selectedAdAccountIds.includes(accountId))
+      ),
+  );
 
 
   React.useEffect(() => {
@@ -567,7 +582,8 @@ export default function SettingsPage() {
                         <div
                           key={industry.id}
                           onClick={() => !isDisabled && handleToggleType(industry.name)}
-                          className={`group relative flex flex-col justify-between p-3.5 rounded border text-xs cursor-pointer select-none transition-all duration-200 ${
+                          data-selected={isSelected}
+                          className={`industry-specialization-card group relative flex flex-col justify-between p-3.5 rounded border text-xs cursor-pointer select-none transition-all duration-200 ${
                             isSelected
                               ? 'border-white bg-zinc-900/40 text-white shadow-lg'
                               : isDisabled
@@ -577,7 +593,7 @@ export default function SettingsPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-2.5">
-                              <div className={`h-7 w-7 rounded flex items-center justify-center shrink-0 transition-colors ${
+                              <div className={`industry-specialization-icon h-7 w-7 rounded flex items-center justify-center shrink-0 transition-colors ${
                                 isSelected ? 'bg-white text-zinc-950' : 'bg-zinc-900 text-zinc-400 group-hover:text-white'
                               }`}>
                                 <Icon className="h-4 w-4" />
@@ -585,12 +601,12 @@ export default function SettingsPage() {
                               <span className="font-semibold">{industry.name}</span>
                             </div>
                             {isSelected && (
-                              <div className="h-4 w-4 rounded-full bg-white flex items-center justify-center text-zinc-950 shrink-0">
+                              <div className="industry-specialization-check h-4 w-4 rounded-full bg-white flex items-center justify-center text-zinc-950 shrink-0">
                                 <Check className="h-3 w-3" />
                               </div>
                             )}
                           </div>
-                          <p className={`mt-2.5 text-[10px] leading-normal ${
+                          <p className={`industry-specialization-description mt-2.5 text-[10px] leading-normal ${
                             isSelected ? 'text-zinc-300' : isDisabled ? 'text-zinc-700' : 'text-zinc-500'
                           }`}>
                             {industry.description}
@@ -1159,6 +1175,30 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
           </Card>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-950/40 px-4 py-3">
+            <p className="text-xs text-zinc-500">
+              {hasPendingMetaAccountChanges
+                ? 'Meta account selection has unsaved changes.'
+                : 'Integration changes are saved from this tab.'}
+            </p>
+            <Button
+              type="button"
+              onClick={saveMetaAccountSelection}
+              disabled={
+                !hasPendingMetaAccountChanges ||
+                metaConnectionStatus === 'saving' ||
+                !metaConnection
+              }
+              className="bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-40"
+            >
+              {metaConnectionStatus === 'saving' ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-1.5 h-4 w-4" />
+              )}
+              Save integration changes
+            </Button>
+          </div>
           {metaConnectionError && !showMetaAccountPicker ? (
             <div className="flex items-start gap-2 rounded-lg border border-rose-900/60 bg-rose-950/20 px-4 py-3 text-xs text-rose-300">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />

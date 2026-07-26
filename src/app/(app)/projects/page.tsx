@@ -289,6 +289,8 @@ export default function ProjectsPage() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        setProjects((current) => [data.project, ...current.filter((project) => project.id !== data.project.id)]);
         setIsCreateOpen(false);
         setNewProjectForm({
           name: '',
@@ -309,7 +311,6 @@ export default function ProjectsPage() {
             { name: 'Optimization', startDate: '', endDate: '' },
           ]
         });
-        loadData();
       } else {
         const err = await res.json();
         setFormError(err.error || 'Failed to create project.');
@@ -347,8 +348,10 @@ export default function ProjectsPage() {
       if (res.ok) {
         const data = await res.json();
         setSelectedProject(data.project);
+        setProjects((current) => current.map((project) =>
+          project.id === data.project.id ? data.project : project
+        ));
         setIsEditing(false);
-        loadData();
       } else {
         alert('Failed to update project details.');
       }

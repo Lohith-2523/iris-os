@@ -1001,6 +1001,33 @@ h6,
   color: #e8e8e8 !important;
 }
 
+/* Keep date controls legible against the dark input surface. The native
+   indicator remains the click target, while a consistent white glyph is
+   rendered as the input background because browser icon colors vary. */
+html:root:not(.light) input[type='date'] {
+  position: relative;
+  color-scheme: dark !important;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='16'%20height='16'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M8%202v4M16%202v4M3%2010h18'/%3E%3Crect%20x='3'%20y='4'%20width='18'%20height='18'%20rx='2'/%3E%3C/svg%3E") !important;
+  background-position: right .8rem center !important;
+  background-repeat: no-repeat !important;
+  background-size: 1rem 1rem !important;
+  padding-right: 2.5rem !important;
+}
+
+html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 2.75rem;
+  height: auto;
+  margin: 0;
+  opacity: 0 !important;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .workspace-shell input:focus,
 .workspace-shell select:focus,
 .workspace-shell textarea:focus,
@@ -1929,4 +1956,233 @@ h6,
     #dfe4eb var(--task-progress),
     #dfe4eb 100%
   ) !important;
+}
+
+/* Hallmark · light-mode material pass · designed-as-app · contrast: pass (40–41)
+ * Pre-emit critique: Philosophy 5 · Hierarchy 4 · Execution 5 · Specificity 5 · Restraint 5 · Variety 3
+ * Typography, spacing, layout, and dark-mode styling are intentionally unchanged. */
+:root.light .workspace-shell {
+  --light-metal-button:
+    linear-gradient(145deg, #f8fafc 0%, #d8dee8 26%, #9aa6b7 49%, #eef2f7 72%, #b7c1cf 100%);
+  --light-metal-button-hover:
+    linear-gradient(145deg, #ffffff 0%, #e7ebf1 25%, #a8b3c2 50%, #f8fafc 73%, #c3ccd8 100%);
+  --light-metal-edge: #778397;
+  --light-metal-edge-hover: #5f6c80;
+  --light-metal-ink: #111827;
+  --light-metal-ink-hover: #070b12;
+  --light-metal-highlight: rgba(255, 255, 255, .92);
+  --light-metal-highlight-solid: #ffffff;
+  --light-metal-inset-edge: rgba(71, 85, 105, .2);
+  --light-metal-inset-edge-hover: rgba(71, 85, 105, .24);
+  --light-metal-inset-active: rgba(71, 85, 105, .3);
+  --light-metal-inset-active-highlight: rgba(255, 255, 255, .76);
+  --light-metal-shadow: rgba(71, 85, 105, .3);
+  --light-metal-shadow-hover: rgba(71, 85, 105, .34);
+  --light-metal-disabled-ink: #475569;
+  --light-label-highlight: rgba(255, 255, 255, .18);
+  --light-label-shadow: rgba(15, 23, 42, .16);
+
+  --light-label-neutral: #243b5a;
+  --light-label-neutral-border: #182a43;
+  --light-label-neutral-ink: #f8fafc;
+  --light-label-info: #1f4f78;
+  --light-label-info-border: #173b5a;
+  --light-label-info-ink: #eff8ff;
+  --light-label-success: #236044;
+  --light-label-success-border: #184832;
+  --light-label-success-ink: #ecfdf5;
+  --light-label-warning: #e5ae17;
+  --light-label-warning-border: #b78300;
+  --light-label-warning-ink: #111827;
+  --light-label-danger: #8a2940;
+  --light-label-danger-border: #681d30;
+  --light-label-danger-ink: #fff1f3;
+  --light-label-violet: #55427d;
+  --light-label-violet-border: #403060;
+  --light-label-violet-ink: #f7f2ff;
+}
+
+/* Brushed metal controls are limited to light mode and retain all existing
+   sizing and typography from the component classes. */
+:root.light .workspace-shell :is(
+  .workspace-button,
+  .workspace-icon-control,
+  .workspace-command-trigger,
+  .workspace-segmented-trigger
+) {
+  background: var(--light-metal-button) !important;
+  border: 1px solid var(--light-metal-edge) !important;
+  color: var(--light-metal-ink) !important;
+  text-shadow: 0 1px 0 var(--light-metal-highlight) !important;
+  box-shadow:
+    inset 0 1px 0 var(--light-metal-highlight),
+    inset 0 -1px 0 var(--light-metal-inset-edge),
+    0 3px 8px var(--light-metal-shadow) !important;
+}
+
+:root.light .workspace-shell :is(
+  .workspace-button,
+  .workspace-icon-control,
+  .workspace-command-trigger,
+  .workspace-segmented-trigger
+):hover {
+  background: var(--light-metal-button-hover) !important;
+  border-color: var(--light-metal-edge-hover) !important;
+  color: var(--light-metal-ink-hover) !important;
+  box-shadow:
+    inset 0 1px 0 var(--light-metal-highlight-solid),
+    inset 0 -1px 0 var(--light-metal-inset-edge-hover),
+    0 5px 12px var(--light-metal-shadow-hover) !important;
+}
+
+:root.light .workspace-shell :is(
+  .workspace-button,
+  .workspace-icon-control,
+  .workspace-command-trigger,
+  .workspace-segmented-trigger
+):active {
+  background: var(--light-metal-button) !important;
+  box-shadow:
+    inset 2px 2px 5px var(--light-metal-inset-active),
+    inset -2px -2px 5px var(--light-metal-inset-active-highlight) !important;
+}
+
+:root.light .workspace-shell :is(
+  .workspace-button,
+  .workspace-icon-control,
+  .workspace-command-trigger,
+  .workspace-segmented-trigger
+):disabled {
+  color: var(--light-metal-disabled-ink) !important;
+  opacity: .58;
+}
+
+/* Neutral text-only labels, including the fiscal-year badge, use a dark blue
+   enamel fill with white type instead of a blue outline on white. */
+:root.light .workspace-shell :is(.workspace-badge.badge-default, .workspace-badge.badge-secondary) {
+  background: var(--light-label-neutral) !important;
+  border-color: var(--light-label-neutral-border) !important;
+  color: var(--light-label-neutral-ink) !important;
+  box-shadow:
+    inset 0 1px 0 var(--light-label-highlight),
+    0 1px 2px var(--light-label-shadow);
+}
+
+:root.light .workspace-shell :is(.workspace-badge.badge-outline, .status-new) {
+  background: var(--light-label-info) !important;
+  border-color: var(--light-label-info-border) !important;
+  color: var(--light-label-info-ink) !important;
+}
+
+:root.light .workspace-shell :is(.workspace-badge.badge-risk-low, .status-closed, .meta-sdk-active, .team-alert-success),
+:root.light .workspace-shell :is(span, label)[class*="bg-emerald-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-green-"] {
+  background: var(--light-label-success) !important;
+  border-color: var(--light-label-success-border) !important;
+  color: var(--light-label-success-ink) !important;
+}
+
+:root.light .workspace-shell :is(.workspace-badge.badge-risk-medium, .status-cold-call, .sandbox-mode, .team-alert-warning),
+:root.light .workspace-shell :is(span, label)[class*="bg-amber-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-yellow-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-orange-"] {
+  background: var(--light-label-warning) !important;
+  border-color: var(--light-label-warning-border) !important;
+  color: var(--light-label-warning-ink) !important;
+}
+
+:root.light .workspace-shell :is(.workspace-badge.badge-risk-high, .status-unqualified, .team-alert-danger),
+:root.light .workspace-shell :is(span, label)[class*="bg-rose-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-red-"] {
+  background: var(--light-label-danger) !important;
+  border-color: var(--light-label-danger-border) !important;
+  color: var(--light-label-danger-ink) !important;
+}
+
+:root.light .workspace-shell :is(span, label)[class*="bg-blue-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-sky-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-cyan-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-indigo-"] {
+  background: var(--light-label-info) !important;
+  border-color: var(--light-label-info-border) !important;
+  color: var(--light-label-info-ink) !important;
+}
+
+:root.light .workspace-shell :is(span, label)[class*="bg-violet-"],
+:root.light .workspace-shell :is(span, label)[class*="bg-purple-"] {
+  background: var(--light-label-violet) !important;
+  border-color: var(--light-label-violet-border) !important;
+  color: var(--light-label-violet-ink) !important;
+}
+
+/* Selected agency specializations need a clear affirmative state in light mode. */
+:root.light .workspace-shell .industry-specialization-card[data-selected="true"] {
+  background: var(--light-label-neutral) !important;
+  border-color: var(--light-label-neutral-border) !important;
+  color: var(--light-label-neutral-ink) !important;
+  box-shadow:
+    inset 0 1px 0 var(--light-label-highlight),
+    0 2px 5px var(--light-label-shadow) !important;
+}
+
+:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-icon {
+  background: var(--light-label-highlight) !important;
+  color: var(--light-label-neutral-ink) !important;
+}
+
+:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-description {
+  color: var(--light-label-info-ink) !important;
+}
+
+:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-check {
+  background: var(--light-label-neutral-ink) !important;
+  color: var(--light-label-neutral-border) !important;
+}
+
+/* Workspace search is an input affordance, not a metallic action button. */
+.workspace-topbar-search-trigger {
+  background: #09090b;
+  border-color: #3f3f46;
+  box-shadow: none;
+}
+
+.workspace-topbar-search-trigger:hover {
+  background: #18181b;
+  border-color: #52525b;
+}
+
+.workspace-command-search-field {
+  background: #09090b;
+  border-color: #3f3f46;
+  box-shadow: none;
+}
+
+.workspace-command-search-field:focus-within {
+  border-color: #71717a;
+}
+
+.workspace-shell .workspace-command-search-input {
+  min-height: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.light .workspace-shell .workspace-topbar-search-trigger,
+:root.light .workspace-shell .workspace-command-search-field {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+:root.light .workspace-shell .workspace-topbar-search-trigger:hover,
+:root.light .workspace-shell .workspace-command-search-field:focus-within {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+:root.light .workspace-shell .workspace-command-search-input {
+  background: transparent !important;
+  box-shadow: none !important;
 }

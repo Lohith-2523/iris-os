@@ -7,6 +7,14 @@ import { Search, Sparkles, Command, Menu, X, BrainCircuit, Play, ArrowRight, Sun
 import { Button } from '../ui/button';
 import { formatUserMessage } from '@/lib/utils';
 import { PrismIcon } from '../ui/prism-icon';
+import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
+import {
+  applyWorkspaceTheme,
+  hasPersistedWorkspaceTheme,
+  persistWorkspaceTheme,
+  readWorkspaceTheme,
+  type WorkspaceTheme,
+} from '@/lib/workspace-theme';
 
 interface TopbarProps {
   onMenuToggle: () => void;
@@ -27,33 +35,55 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [prismQuery, setPrismQuery] = React.useState('');
   const [commandResults, setCommandResults] = React.useState<CommandItem[]>([]);
-  const [theme, setTheme] = React.useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = React.useState<WorkspaceTheme>('dark');
+  const hasOptimisticThemeRef = React.useRef(false);
 
   React.useEffect(() => {
-    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
-      if (workspace?.user?.preferences?.theme) setTheme(workspace.user.preferences.theme);
-    }).catch(() => undefined);
+    const cookieTheme = readWorkspaceTheme();
+    const hasThemeCookie = hasPersistedWorkspaceTheme();
+    setTheme(cookieTheme);
+    applyWorkspaceTheme(cookieTheme);
+
+    // The cookie is the immediate, client-owned source of truth. Only use the
+    // saved preference to establish it for a browser that does not have one.
+    // This prevents an older workspace read from racing a recent toggle.
+    if (hasThemeCookie) return;
+
+    let isCurrent = true;
+    void fetch('/api/workspace', { cache: 'no-store' })
+      .then((res) => res.ok ? res.json() : null)
+      .then((workspace) => {
+        const workspaceTheme = workspace?.user?.preferences?.theme;
+        if (!isCurrent || hasOptimisticThemeRef.current || (workspaceTheme !== 'dark' && workspaceTheme !== 'light')) return;
+        persistWorkspaceTheme(workspaceTheme);
+        setTheme(workspaceTheme);
+        applyWorkspaceTheme(workspaceTheme);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCurrent = false;
+    };
   }, []);
 
   React.useEffect(() => {
-    if (theme === 'light') {
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
-    }
+    applyWorkspaceTheme(theme);
   }, [theme]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    hasOptimisticThemeRef.current = true;
     setTheme(nextTheme);
+    applyWorkspaceTheme(nextTheme);
+    persistWorkspaceTheme(nextTheme);
     void fetch('/api/workspace', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user: { preferences: { theme: nextTheme } } }),
+      // Theme preferences are a tiny, independent update. Keep the request
+      // alive when a user immediately follows the toggle with navigation.
+      keepalive: true,
     });
-    window.dispatchEvent(new CustomEvent('theme-changed', { detail: nextTheme }));
   };
 
   // Keyboard shortcut Ctrl+K
@@ -73,6 +103,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     if (!prismQuery.trim()) return;
     
     // Redirect to prism chat with pre-filled query
+    prepareWorkspaceDataCacheForRouteChange('/prism');
     router.push(`/prism?q=${encodeURIComponent(prismQuery)}`);
     setPrismQuery('');
   };
@@ -107,6 +138,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     setSearchQuery('');
     setCommandResults([]);
     if (item.href) {
+      prepareWorkspaceDataCacheForRouteChange(item.href);
       router.push(item.href);
     } else if (item.action) {
       alert(formatUserMessage(`Lohith, triggering action: ${item.name}`));
@@ -133,7 +165,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
         {/* Center: Ask Prism Form */}
         {!isClient && (
           <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <form onSubmit={handlePrismSubmit} className="workspace-topbar-search flex items-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
+            <form onSubmit={handlePrismSubmit} className="workspace-topbar-search flex h-9 items-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
               <PrismIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
               <input
                 type="text"
@@ -141,7 +173,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                 placeholder="Ask Prism AI (e.g. summarize health, forecast)..."
                 value={prismQuery}
                 onChange={(e) => setPrismQuery(e.target.value)}
-                className="min-w-0 flex-1 bg-transparent py-2 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
+                className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
               />
               <button type="submit" className="hidden" />
             </form>
@@ -166,7 +198,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
               <button
                 type="button"
                 onClick={() => setIsCommandOpen(true)}
-                className="workspace-command-trigger flex h-9 w-40 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
+                className="workspace-topbar-search-trigger flex h-9 w-40 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
                 aria-label="Open workspace search"
               >
                 <div className="flex items-center gap-2">
@@ -202,16 +234,18 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             aria-modal="true"
             aria-label="Workspace command menu"
           >
-            <div className="flex items-center border-b border-zinc-800 px-4">
-              <Search className="h-4 w-4 text-zinc-500 mr-2" />
-              <input
-                type="text"
-                autoFocus
-                placeholder="Type a route command or action (e.g. dashboard, sync)..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="h-12 w-full bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
-              />
+            <div className="flex items-center gap-3 border-b border-zinc-800 p-3">
+              <div className="workspace-command-search-field flex h-10 min-w-0 flex-1 items-center rounded-lg border border-zinc-800 bg-zinc-950 px-3">
+                <Search className="mr-2 h-4 w-4 shrink-0 text-zinc-500" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Type a route command or action (e.g. dashboard, sync)..."
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  className="workspace-command-search-input !min-h-0 h-full w-full bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
+                />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -220,7 +254,8 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                   setSearchQuery('');
                   setCommandResults([]);
                 }}
-                className="h-8 w-8 text-zinc-500 hover:text-white"
+                className="h-8 w-8 shrink-0 text-zinc-500 hover:text-white"
+                aria-label="Close workspace search"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -270,6 +305,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                     <div
                       onClick={() => {
                         setIsCommandOpen(false);
+                        prepareWorkspaceDataCacheForRouteChange('/prism');
                         router.push('/prism');
                       }}
                       className="flex items-center justify-between rounded-md bg-zinc-900/40 border border-zinc-800/80 p-3 mx-1 hover:bg-zinc-900 cursor-pointer"

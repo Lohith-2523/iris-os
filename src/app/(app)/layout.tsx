@@ -11,7 +11,10 @@ import { setPrismAIWorkspaceScope } from '@/lib/prism-ai/service';
 import {
   configureWorkspaceDataCache,
   getWorkspaceDataLoadingSnapshot,
+  prepareWorkspaceDataCacheForRouteChange,
   prepareWorkspaceDataCacheForNavigation,
+  startWorkspaceDataBackgroundChecks,
+  stopWorkspaceDataBackgroundChecks,
   subscribeWorkspaceDataLoading,
   warmWorkspaceDataCache,
   workspaceFetch,
@@ -98,6 +101,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       window.removeEventListener('user-updated', fetchUser);
     };
   }, [fetchUser]);
+
+  React.useEffect(() => {
+    prepareWorkspaceDataCacheForRouteChange(pathname);
+  }, [pathname]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    startWorkspaceDataBackgroundChecks();
+    return stopWorkspaceDataBackgroundChecks;
+  }, [user]);
 
   const isClientGated = user?.role?.toLowerCase() === 'client' && 
     pathname !== '/client-dashboard' && 

@@ -22,6 +22,13 @@ describe('workspace cache policy', () => {
     });
   });
 
+  it('patches client collections instead of reloading the full portfolio', () => {
+    expect(workspaceMutationPlan('/api/clients?clientId=client-1', 'DELETE', null)).toEqual({
+      invalidateTags: ['clients', 'projects', 'tasks', 'retainers', 'finance', 'dashboard', 'leads'],
+      patchKind: 'clients',
+    });
+  });
+
   it('stales task-dependent views without refreshing unrelated finance data', () => {
     const plan = workspaceMutationPlan('/api/tasks', 'PATCH', {
       id: 'task-1',
@@ -39,7 +46,7 @@ describe('workspace cache policy', () => {
     expect(plan.invalidateTags).not.toContain('finance');
   });
 
-  it('does not treat a theme-only preference update as data mutation', () => {
+  it('refreshes only the workspace preference record after a theme-only update', () => {
     expect(workspaceMutationPlan('/api/workspace', 'PATCH', {
       user: {
         preferences: {
@@ -47,8 +54,7 @@ describe('workspace cache policy', () => {
         },
       },
     })).toEqual({
-      invalidateTags: [],
-      skip: true,
+      invalidateTags: ['workspace'],
     });
   });
 

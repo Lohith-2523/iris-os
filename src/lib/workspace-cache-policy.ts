@@ -20,6 +20,7 @@ export type WorkspaceCacheTag =
   | 'prism';
 
 export type WorkspacePatchKind =
+  | 'clients'
   | 'tasks'
   | 'projects'
   | 'transactions'
@@ -119,7 +120,7 @@ export function workspaceMutationPlan(
     return { invalidateTags: [], skip: true };
   }
   if (pathname === '/api/workspace' && normalizedMethod === 'PATCH' && isThemeOnlyWorkspaceMutation(body)) {
-    return { invalidateTags: [], skip: true };
+    return { invalidateTags: ['workspace'] };
   }
 
   if (pathname === '/api/transactions') {
@@ -155,6 +156,7 @@ export function workspaceMutationPlan(
   if (pathname === '/api/clients') {
     return {
       invalidateTags: ['clients', 'projects', 'tasks', 'retainers', 'finance', 'dashboard', 'leads'],
+      patchKind: 'clients',
     };
   }
   if (pathname === '/api/agency-leads') {

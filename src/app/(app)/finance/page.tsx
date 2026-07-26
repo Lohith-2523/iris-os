@@ -448,6 +448,11 @@ export default function FinancePage() {
       });
 
       if (res.ok) {
+        const transaction = await res.json();
+        setManualTransactions((current) =>
+          [transaction, ...current.filter((item) => item.id !== transaction.id)]
+            .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime())
+        );
         // Reset form
         setFormDetails('');
         setFormCategory('Expense');
@@ -456,8 +461,6 @@ export default function FinancePage() {
         setFormAmount('');
         setFormReferenceNumber('');
         setFormComments('');
-        // Reload transactions
-        await fetchManualTransactions();
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to save transaction.');
@@ -478,7 +481,7 @@ export default function FinancePage() {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error || 'Failed to remove transaction.');
       }
-      await fetchManualTransactions();
+      setManualTransactions((current) => current.filter((transaction) => transaction.id !== transactionId));
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to remove transaction.');
     }
@@ -659,11 +662,17 @@ export default function FinancePage() {
         
         if (response.ok) {
           const result = await response.json();
+          if (Array.isArray(result.transactions)) {
+            setManualTransactions((current) => {
+              const importedIds = new Set(result.transactions.map((transaction: any) => transaction.id));
+              return [...result.transactions, ...current.filter((transaction) => !importedIds.has(transaction.id))]
+                .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime());
+            });
+          }
           const skippedMessage = result.rejectedCount
             ? ` ${result.rejectedCount} row${result.rejectedCount === 1 ? '' : 's'} skipped: ${result.rejected?.map((item: { row: number | null; reason: string }) => `Row ${item.row ?? 'unknown'}: ${item.reason}`).join(' ')}`
             : '';
           alert(`Successfully imported ${result.count} transaction${result.count === 1 ? '' : 's'}.${skippedMessage}`);
-          await fetchManualTransactions();
         } else {
           const error = await response.json().catch(() => ({}));
           const firstRejected = Array.isArray(error.rejected) ? error.rejected[0] : null;
@@ -1460,7 +1469,7 @@ export default function FinancePage() {
             <ExpandableCard 
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
-                <div className="flex flex-col h-full space-y-4">
+                <div className="flex h-full min-h-0 flex-col gap-4">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider">Top Operating Expenses</h3>
                   <div className="h-[200px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1497,7 +1506,7 @@ export default function FinancePage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="border border-zinc-850 rounded-lg overflow-hidden max-h-[180px] overflow-y-auto">
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-850">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-zinc-800 hover:bg-transparent">
@@ -1611,7 +1620,7 @@ export default function FinancePage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full space-y-4">
+                  <div className="flex h-full min-h-0 flex-col gap-4">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Client Profit Breakdown</h3>
                     <div className="h-[200px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
@@ -1648,7 +1657,7 @@ export default function FinancePage() {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="border border-zinc-850 rounded-lg overflow-hidden max-h-[180px] overflow-y-auto">
+                    <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-850">
                       <Table>
                         <TableHeader>
                           <TableRow className="border-zinc-800 hover:bg-transparent">
@@ -1687,7 +1696,7 @@ export default function FinancePage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full space-y-4">
+                  <div className="flex h-full min-h-0 flex-col gap-4">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Client Profit Margin (%)</h3>
                     <div className="h-[200px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
@@ -1724,7 +1733,7 @@ export default function FinancePage() {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="border border-zinc-850 rounded-lg overflow-hidden max-h-[180px] overflow-y-auto">
+                    <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-zinc-850">
                       <Table>
                         <TableHeader>
                           <TableRow className="border-zinc-800 hover:bg-transparent">
@@ -1848,14 +1857,16 @@ export default function FinancePage() {
                         </select>
                       </div>
                     </div>
-                    <Button 
-                      onClick={() => generateCustomReport(reportXAxis, reportYAxis, reportTimeframe)}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-10 mt-auto flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      <span>Generate Report</span>
-                    </Button>
                   </div>
+                }
+                expandedFooter={
+                  <Button
+                    onClick={() => generateCustomReport(reportXAxis, reportYAxis, reportTimeframe)}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-10 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span>Generate Report</span>
+                  </Button>
                 }
               >
                 <CardHeader className="pb-2">

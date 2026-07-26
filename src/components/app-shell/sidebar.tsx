@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
 import { clearWorkspaceUiPreferences, readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { PrismIcon } from '@/components/ui/prism-icon';
+import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
 import {
   LayoutDashboard,
   Wallet,
@@ -223,7 +224,14 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       </button>
 
       <div className={cn("flex h-16 items-center border-b border-zinc-800", isCollapsed ? "justify-center px-2" : "justify-between px-6")}>
-        <Link href={user?.role?.toLowerCase() === 'client' ? '/client-dashboard' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard'} className="flex items-center gap-2" onClick={onCloseMobile}>
+        <Link
+          href={user?.role?.toLowerCase() === 'client' ? '/client-dashboard' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard'}
+          className="flex items-center gap-2"
+          onClick={() => {
+            prepareWorkspaceDataCacheForRouteChange(user?.role?.toLowerCase() === 'client' ? '/client-dashboard' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard');
+            onCloseMobile?.();
+          }}
+        >
           {isCollapsed ? (
             <img 
               src="/iris-logo-white-transparent.png" 
@@ -269,7 +277,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                onClick={onCloseMobile}
+                onClick={() => {
+                  prepareWorkspaceDataCacheForRouteChange(item.href);
+                  onCloseMobile?.();
+                }}
                 title={isCollapsed ? item.name : undefined}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(

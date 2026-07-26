@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  checkWorkspaceDataRevision,
   configureWorkspaceDataCache,
   invalidateWorkspaceDataCache,
+  prepareWorkspaceDataCacheForRouteChange,
   workspaceFetch,
 } from '@/lib/workspace-data-cache';
 
@@ -97,5 +99,57 @@ describe('workspace data cache', () => {
     expect(await cached.json()).toEqual([
       { id: 'task-1', title: 'Keep this task' },
     ]);
+  });
+
+  it('defers server-side changes until the user moves to another workspace page', async () => {
+    let revisionChecks = 0;
+    let taskReads = 0;
+    const networkFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url === '/api/workspace/revision') {
+        revisionChecks += 1;
+        return jsonResponse({ revision: revisionChecks === 1 ? 'revision-1' : 'revision-2' });
+      }
+      if (url === '/api/tasks') {
+        taskReads += 1;
+        return jsonResponse([{ id: 'task-1', title: `Task read ${taskReads}` }]);
+      }
+      return jsonResponse({});
+    });
+    vi.stubGlobal('fetch', networkFetch);
+
+    prepareWorkspaceDataCacheForRouteChange('/tasks');
+    await workspaceFetch('/api/tasks');
+    await checkWorkspaceDataRevision();
+    expect(await checkWorkspaceDataRevision()).toBe(true);
+
+    const beforeNavigation = await workspaceFetch('/api/tasks');
+    expect(taskReads).toBe(1);
+    expect(await beforeNavigation.json()).toEqual([{ id: 'task-1', title: 'Task read 1' }]);
+
+    expect(prepareWorkspaceDataCacheForRouteChange('/projects')).toBe(true);
+    const afterNavigation = await workspaceFetch('/api/tasks');
+    expect(taskReads).toBe(2);
+    expect(await afterNavigation.json()).toEqual([{ id: 'task-1', title: 'Task read 2' }]);
+  });
+
+  it('removes a client from an aggregate client cache from the delete response', async () => {
+    const networkFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if ((init?.method || 'GET').toUpperCase() === 'DELETE') {
+        return jsonResponse({ success: true });
+      }
+      return jsonResponse([
+        { id: 'client-1', name: 'Keep', revenue: 100 },
+        { id: 'client-2', name: 'Remove', revenue: 200 },
+      ]);
+    });
+    vi.stubGlobal('fetch', networkFetch);
+
+    await workspaceFetch('/api/data?domain=clients');
+    await workspaceFetch('/api/clients?clientId=client-2', { method: 'DELETE' });
+    const cached = await workspaceFetch('/api/data?domain=clients');
+
+    expect(networkFetch).toHaveBeenCalledTimes(2);
+    expect(await cached.json()).toEqual([{ id: 'client-1', name: 'Keep', revenue: 100 }]);
   });
 });

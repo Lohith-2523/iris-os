@@ -349,7 +349,7 @@ export default function TasksPage() {
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden font-sans text-xs">
       {/* Top Header Control Panel */}
-      <div className="w-full border-b border-zinc-800/50 pb-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+      <div className="w-full border-b border-zinc-800/50 pt-1 pb-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-6">
           <div>
             <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono">Control Desk</span>

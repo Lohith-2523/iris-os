@@ -1064,23 +1064,6 @@ export default function ClientOnboardPage() {
                               <div className="text-[10px] text-zinc-400 mt-0.5">{member.role}</div>
                               <div className="text-[9px] text-zinc-500 font-mono mt-1">{member.email}</div>
                               
-                              {/* Bandwidth / Utilization progress bar */}
-                              <div className="mt-3 space-y-1 w-full">
-                                <div className="flex justify-between text-[9px] font-medium text-zinc-500">
-                                  <span>Current Workload Utilization</span>
-                                  <span className={member.utilization >= 90 ? 'text-rose-400' : member.utilization >= 75 ? 'text-amber-400' : 'text-emerald-400'}>
-                                    {member.utilization}%
-                                  </span>
-                                </div>
-                                <div className="h-1 bg-zinc-900 overflow-hidden w-full">
-                                  <div
-                                    style={{ width: `${member.utilization}%` }}
-                                    className={`h-full ${
-                                      member.utilization >= 90 ? 'bg-rose-500' : member.utilization >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
-                                    }`}
-                                  />
-                                </div>
-                              </div>
                             </button>
                           );
                         })}

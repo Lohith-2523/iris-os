@@ -102,7 +102,6 @@ export default function TeamPage() {
     email: '',
     phone: '',
     role: 'Member Specialist',
-    utilization: 80,
     projects: ''
   });
   const [selectedAgencyTypes, setSelectedAgencyTypes] = React.useState<string[]>([]);
@@ -143,7 +142,6 @@ export default function TeamPage() {
   const [selectedExistingId, setSelectedExistingId] = React.useState('');
   const [existingForm, setExistingForm] = React.useState({
     role: '',
-    utilization: 80,
     projects: ''
   });
   const [existingError, setExistingError] = React.useState('');
@@ -156,15 +154,7 @@ export default function TeamPage() {
   const [errorMsg, setErrorMsg] = React.useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Dynamic calculations based on teamList
-  const averageUtilization = React.useMemo(() => {
-    if (teamList.length === 0) return '0.0';
-    const total = teamList.reduce((sum, t) => sum + t.utilization, 0);
-    return (total / teamList.length).toFixed(1);
-  }, [teamList]);
-
   const [showFilters, setShowFilters] = React.useState(false);
-  const [workloadFilter, setWorkloadFilter] = React.useState<string>('ALL');
   const [roleFilter, setRoleFilter] = React.useState<string>('ALL');
 
   const roles = React.useMemo(() => {
@@ -180,38 +170,20 @@ export default function TeamPage() {
       if (roleFilter !== 'ALL' && t.role !== roleFilter) {
         return false;
       }
-      if (workloadFilter !== 'ALL') {
-        const u = t.utilization;
-        if (workloadFilter === 'UNDER' && u >= 70) return false;
-        if (workloadFilter === 'OPTIMAL' && (u < 70 || u > 89)) return false;
-        if (workloadFilter === 'OVER' && u < 90) return false;
-      }
       return true;
     });
-  }, [teamList, roleFilter, workloadFilter]);
-
-  const optimalCount = React.useMemo(() => {
-    return teamList.filter(t => t.utilization >= 70 && t.utilization <= 85).length;
-  }, [teamList]);
-
-  const underallocatedCount = React.useMemo(() => {
-    return teamList.filter(t => t.utilization < 70).length;
-  }, [teamList]);
-
-  const overallocatedCount = React.useMemo(() => {
-    return teamList.filter(t => t.utilization > 90).length;
-  }, [teamList]);
+  }, [teamList, roleFilter]);
 
   // Reset modal state variables on close
   const closeModal = () => {
     setIsAddModalOpen(false);
     setActiveTab('single');
-    setSingleForm({ name: '', email: '', phone: '', role: 'Member Specialist', utilization: 80, projects: '' });
+    setSingleForm({ name: '', email: '', phone: '', role: 'Member Specialist', projects: '' });
     setSelectedAgencyTypes([]);
     setSelectedProjects([]);
     setOnboardSuccessData(null);
     setSelectedExistingId('');
-    setExistingForm({ role: '', utilization: 80, projects: '' });
+    setExistingForm({ role: '', projects: '' });
     setStagedUsers([]);
     setIsTemplateAligned(null);
     setUploadStatus('idle');
@@ -285,7 +257,6 @@ export default function TeamPage() {
     if (selected) {
       setExistingForm({
         role: selected.role,
-        utilization: selected.utilization,
         projects: selected.projects
       });
     }
@@ -313,8 +284,7 @@ export default function TeamPage() {
       name: specialist.name,
       role: existingForm.role || specialist.role,
       projects: existingForm.projects || specialist.projects,
-      utilization: Number(existingForm.utilization) || specialist.utilization,
-      status: existingForm.utilization >= 90 ? 'PEAK WORKLOAD' : 'EXCELLENT',
+      status: 'EXCELLENT',
       email: specialist.email,
       phone: specialist.phone
     };
@@ -325,7 +295,7 @@ export default function TeamPage() {
 
   // --- TEMPLATE DOWNLOAD HANDLERS ---
   const downloadCsvTemplate = () => {
-    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects,Utilization %\n";
+    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -339,7 +309,7 @@ export default function TeamPage() {
 
   const downloadXlsxTemplate = () => {
     const data = [
-      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects", "Utilization %"]
+      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -370,8 +340,7 @@ export default function TeamPage() {
             email: u.email || '',
             phone: u.phone || '',
             role: u.role || 'Specialist',
-            projects: u.projects || 'None',
-            utilization: Number(u.utilization) || 80
+            projects: u.projects || 'None'
           })));
           setIsTemplateAligned(false);
           setUploadStatus('success');
@@ -385,8 +354,8 @@ export default function TeamPage() {
       console.error(e);
       setErrorMsg("Prism AI could not parse the custom layout. Loaded local smart fallback users.");
       setStagedUsers([
-        { name: 'Kunal Verma', email: 'kunal@apex.co', phone: '+91 99887 76655', role: 'Solutions Architect', utilization: 85, projects: 'Integrations Phase 2' },
-        { name: 'Aditi Sharma', email: 'aditi@apex.co', phone: '+91 99887 76644', role: 'UI/UX Specialist', utilization: 75, projects: 'Canva Design Hub' }
+        { name: 'Kunal Verma', email: 'kunal@apex.co', phone: '+91 99887 76655', role: 'Solutions Architect', projects: 'Integrations Phase 2' },
+        { name: 'Aditi Sharma', email: 'aditi@apex.co', phone: '+91 99887 76644', role: 'UI/UX Specialist', projects: 'Canva Design Hub' }
       ]);
       setIsTemplateAligned(false);
       setUploadStatus('success');
@@ -426,14 +395,13 @@ export default function TeamPage() {
             // Skip header
             for (let i = 1; i < lines.length; i++) {
               const cols = lines[i].split(',').map(c => c.trim());
-              if (cols.length >= 7) {
+              if (cols.length >= 6) {
                 users.push({
                   name: cols[1] || 'Imported Member',
                   email: cols[2] || '',
                   phone: cols[3] || '',
                   role: cols[4] || 'Specialist',
-                  projects: cols[5] || 'None',
-                  utilization: parseInt(cols[6], 10) || 80
+                  projects: cols[5] || 'None'
                 });
               }
             }
@@ -476,14 +444,13 @@ export default function TeamPage() {
               const users = [];
               for (let i = 1; i < rows.length; i++) {
                 const r = rows[i];
-                if (r && r.length >= 7) {
+                if (r && r.length >= 6) {
                   users.push({
                     name: String(r[1] || 'Imported Member'),
                     email: String(r[2] || ''),
                     phone: String(r[3] || ''),
                     role: String(r[4] || 'Specialist'),
-                    projects: String(r[5] || 'None'),
-                    utilization: parseInt(String(r[6]), 10) || 80
+                    projects: String(r[5] || 'None')
                   });
                 }
               }
@@ -528,8 +495,7 @@ export default function TeamPage() {
       name: u.name || 'Imported Specialist',
       role: u.role || 'Specialist',
       projects: u.projects || 'None',
-      utilization: Number(u.utilization) || 80,
-      status: Number(u.utilization) >= 90 ? 'PEAK WORKLOAD' : 'EXCELLENT',
+      status: 'EXCELLENT',
       email: u.email || `imported-${i}@apex.co`,
       phone: u.phone || 'N/A'
     }));
@@ -544,7 +510,7 @@ export default function TeamPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Team & Resource Management</h1>
-          <p className="text-xs text-zinc-500">Monitor team member utilization, capacities, billable hours, and hiring recommendations.</p>
+          <p className="text-xs text-zinc-500">Manage team members, project assignments, and delivery responsibilities.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -572,7 +538,7 @@ export default function TeamPage() {
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card hoverEffect className="rounded-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Headcount</CardTitle>
@@ -586,67 +552,11 @@ export default function TeamPage() {
           </CardContent>
         </Card>
 
-        <Card hoverEffect className="rounded-md">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Average Utilization</CardTitle>
-            <Zap className="h-4 w-4 text-zinc-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">{averageUtilization}%</div>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-amber-400 font-semibold">
-              <Zap className="h-3 w-3" />
-              <span>High workload bandwidth threshold</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card hoverEffect className="rounded-md">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Billable Target</CardTitle>
-            <UserCheck className="h-4 w-4 text-zinc-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">{(teamList.length * 30)} hrs/wk</div>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
-              <Zap className="h-3 w-3" />
-              <span>Target cumulative client deliverability</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card hoverEffect className="rounded-md">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Hiring Status</CardTitle>
-            <Zap className="h-4 w-4 text-rose-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-rose-400">
-              {overallocatedCount > 1 ? `${overallocatedCount} Warnings` : 'Optimal'}
-            </div>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
-              <span>Based on resource limits</span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Filters Control Panel */}
       {showFilters && (
         <div className="flex flex-wrap gap-4 p-4 border border-zinc-850 bg-zinc-950/40 rounded-md text-xs font-sans">
-          <div className="space-y-1.5">
-            <label className="font-semibold text-zinc-400 block uppercase tracking-wider text-[9px]">Workload Status</label>
-            <select 
-              value={workloadFilter} 
-              onChange={(e) => setWorkloadFilter(e.target.value)}
-              className="rounded border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white focus:outline-none cursor-pointer text-xs"
-            >
-              <option value="ALL">All Workloads</option>
-              <option value="OVER">Peak Workload (&gt;= 90%)</option>
-              <option value="OPTIMAL">Optimal Workload (70% - 89%)</option>
-              <option value="UNDER">Under-allocated (&lt; 70%)</option>
-            </select>
-          </div>
-
           <div className="space-y-1.5">
             <label className="font-semibold text-zinc-400 block uppercase tracking-wider text-[9px]">Role / Title</label>
             <select 
@@ -662,11 +572,11 @@ export default function TeamPage() {
           </div>
 
           <div className="flex items-end">
-            {(workloadFilter !== 'ALL' || roleFilter !== 'ALL') && (
+            {roleFilter !== 'ALL' && (
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => { setWorkloadFilter('ALL'); setRoleFilter('ALL'); }}
+                onClick={() => setRoleFilter('ALL')}
                 className="text-zinc-400 hover:text-white h-[32px] font-medium"
               >
                 Clear Filters
@@ -677,9 +587,9 @@ export default function TeamPage() {
       )}
 
       {/* Main Grid Split */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div>
         {/* Team Table */}
-        <div className="md:col-span-2 space-y-4">
+        <div className="space-y-4">
           <Card className="rounded-md">
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Resource Allocation Matrix</CardTitle>
@@ -693,14 +603,13 @@ export default function TeamPage() {
                     <TableHead>Contact</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Assigned Projects</TableHead>
-                    <TableHead className="text-center">Utilization</TableHead>
                     <TableHead className="text-right">Tasks</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTeamList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-zinc-500">
+                      <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
                         No team members registered.
                       </TableCell>
                     </TableRow>
@@ -723,20 +632,6 @@ export default function TeamPage() {
                       <TableCell className="font-mono text-[10px] text-zinc-400">{t.email}</TableCell>
                       <TableCell>{t.role}</TableCell>
                       <TableCell className="text-zinc-400 max-w-[160px] truncate">{t.projects}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className="font-mono text-xs text-white font-semibold">{t.utilization}%</span>
-                          <div className="h-1.5 w-12 bg-zinc-800 rounded-full overflow-hidden">
-                            <div
-                              style={{ width: `${t.utilization}%` }}
-                              className={cn(
-                                'h-full',
-                                t.utilization >= 90 ? 'bg-rose-500' : t.utilization >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
-                              )}
-                            />
-                          </div>
-                        </div>
-                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           type="button"
@@ -760,38 +655,6 @@ export default function TeamPage() {
           </Card>
         </div>
 
-        {/* Sidebar Insights */}
-        <div className="space-y-6">
-          <InsightPanel
-            type="general"
-            title="Prism Team Capacity Alert"
-            score="88%"
-            scoreLabel="PEAK DESIGN WORKLOAD"
-            riskLevel="MEDIUM"
-          >
-            {formatUserMessage(`Lohith, our design team is currently working at high workloads. We have ${overallocatedCount} resources over-allocated (above 90% utilization threshold). Adding a resource or re-assigning roles will help reduce peak stress bounds.`)}
-          </InsightPanel>
-
-          <Card className="rounded-md">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold text-white">Utilization Thresholds</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">Optimal Range (70-85%)</span>
-                <span className="font-semibold text-emerald-400">{optimalCount} Members</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">Under-Utilized (&lt; 70%)</span>
-                <span className="font-semibold text-zinc-300">{underallocatedCount} Member</span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">Over-allocated (&gt; 90%)</span>
-                <span className="font-semibold text-rose-400">{overallocatedCount} Members</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       {/* --- ADD MEMBER SLIDE OVER / MODAL DIALOG --- */}
@@ -1076,18 +939,6 @@ export default function TeamPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Utilization Allocation ({existingForm.utilization}%)</label>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          step="5"
-                          value={existingForm.utilization}
-                          onChange={(e) => setExistingForm({ ...existingForm, utilization: Number(e.target.value) })}
-                          className="w-full bg-zinc-800 h-1 accent-white"
-                        />
-                      </div>
                     </div>
                   )}
 
@@ -1216,7 +1067,6 @@ export default function TeamPage() {
                                 <TableHead className="w-1/4">Name</TableHead>
                                 <TableHead className="w-1/4">Email</TableHead>
                                 <TableHead>Role</TableHead>
-                                <TableHead className="w-[100px]">Utilization</TableHead>
                                 <TableHead className="w-[120px]">Projects</TableHead>
                                 <TableHead className="text-right w-12"></TableHead>
                               </TableRow>
@@ -1246,14 +1096,6 @@ export default function TeamPage() {
                                       value={user.role}
                                       onChange={(e) => handleStagedChange(idx, 'role', e.target.value)}
                                       className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-md font-sans"
-                                    />
-                                  </TableCell>
-                                  <TableCell className="p-2">
-                                    <input
-                                      type="number"
-                                      value={user.utilization}
-                                      onChange={(e) => handleStagedChange(idx, 'utilization', Number(e.target.value))}
-                                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none rounded-md font-mono"
                                     />
                                   </TableCell>
                                   <TableCell className="p-2">

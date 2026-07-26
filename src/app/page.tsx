@@ -611,7 +611,7 @@ function About() {
             We created Iris OS because agency owners are tired of navigating a fragmented stack of disconnected applications. Creative firms lose margin and time juggling client communications, financial tracking, and campaign execution across isolated tools.
           </p>
           <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8 }}>
-            Iris OS acts as the operational iris of your firm — regulating the flow of information, aligning client expectations, and focusing contractor utilization. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
+            Iris OS acts as the operational iris of your firm — regulating the flow of information, aligning client expectations, and focusing delivery coordination. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
           </p>
         </div>
 

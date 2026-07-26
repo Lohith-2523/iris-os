@@ -24,22 +24,24 @@ type CachedResponse = {
 type JsonRecord = Record<string, unknown>;
 
 const STORAGE_PREFIX = 'crystal.workspace.data:v2';
-const ACTIVE_REVALIDATION_WINDOW_MS = 60_000;
-const REVALIDATION_DEBOUNCE_MS = 300;
+export const WORKSPACE_BACKGROUND_CHECK_INTERVAL_MS = 30 * 60 * 1_000;
+const REVISION_BASELINE_DEBOUNCE_MS = 1_000;
 
 const memoryCache = new Map<string, CachedResponse>();
 const inFlightReads = new Map<string, Promise<CachedResponse>>();
 const knownUrls = new Set<string>();
-const lastInteractiveAccess = new Map<string, number>();
 const urlGenerations = new Map<string, number>();
 const loadingListeners = new Set<() => void>();
-const queuedRevalidationUrls = new Set<string>();
 
 let activeScope = '';
 let activeNetworkReads = 0;
 let cacheGeneration = 0;
 let navigationPrepared = false;
-let revalidationTimer: ReturnType<typeof setTimeout> | null = null;
+let activePathname = '';
+let serverRevision: string | null = null;
+let deferredServerRefresh = false;
+let revisionBaselineTimer: ReturnType<typeof setTimeout> | null = null;
+let backgroundCheckTimer: ReturnType<typeof setInterval> | null = null;
 
 function notifyLoadingChange() {
   for (const listener of loadingListeners) listener();
@@ -156,10 +158,13 @@ function entityId(value: unknown) {
 }
 
 function mutationId(url: string, body: unknown, kind: WorkspacePatchKind) {
-  const queryId = new URL(url, 'http://workspace.local').searchParams.get('id');
+  const searchParams = new URL(url, 'http://workspace.local').searchParams;
+  const queryId = searchParams.get('id')
+    || (kind === 'clients' ? searchParams.get('clientId') : null);
   if (queryId) return queryId;
   if (!isRecord(body)) return null;
   if (typeof body.id === 'string') return body.id;
+  if (kind === 'clients' && typeof body.clientId === 'string') return body.clientId;
   if (kind === 'tasks' && typeof body.taskId === 'string') return body.taskId;
   if (kind === 'projects' && typeof body.projectId === 'string') return body.projectId;
   return null;
@@ -224,7 +229,10 @@ function upsertEntities(
   for (const entity of entities) {
     const id = entityId(entity);
     if (!id) continue;
-    if (entityMatchesList(kind, url, entity)) byId.set(id, entity);
+    if (entityMatchesList(kind, url, entity)) {
+      const existing = byId.get(id);
+      byId.set(id, isRecord(existing) ? { ...existing, ...entity } : entity);
+    }
     else byId.delete(id);
   }
   return sortEntities(kind, Array.from(byId.values()));
@@ -243,6 +251,7 @@ function normalizeReport(entity: JsonRecord) {
 
 function responseEntities(kind: WorkspacePatchKind, payload: unknown) {
   if (!isRecord(payload)) return [];
+  if (kind === 'clients' && isRecord(payload.client)) return [payload.client];
   if (kind === 'tasks' && isRecord(payload.task)) return [payload.task];
   if (kind === 'projects' && isRecord(payload.project)) return [payload.project];
   if (kind === 'leads') {
@@ -251,6 +260,9 @@ function responseEntities(kind: WorkspacePatchKind, payload: unknown) {
   }
   if (kind === 'calendar' && isRecord(payload.event)) return [payload.event];
   if (kind === 'reports' && entityId(payload)) return [normalizeReport(payload)];
+  if (kind === 'transactions' && Array.isArray(payload.transactions)) {
+    return payload.transactions.filter(isRecord);
+  }
   if (['transactions', 'subscriptions', 'retainers'].includes(kind) && entityId(payload)) return [payload];
   return [];
 }
@@ -429,33 +441,83 @@ async function readFromNetwork(
   }
 }
 
-function scheduleUrlRevalidation(urls: string[]) {
-  for (const url of urls) queuedRevalidationUrls.add(url);
-  if (revalidationTimer || queuedRevalidationUrls.size === 0) return;
-
-  revalidationTimer = setTimeout(() => {
-    const urlsToRefresh = Array.from(queuedRevalidationUrls);
-    queuedRevalidationUrls.clear();
-    revalidationTimer = null;
-    void Promise.allSettled(urlsToRefresh.map((url) =>
-      workspaceFetch(url, {
-        cache: 'no-store',
-        headers: { 'X-Workspace-Cache-Background': '1' },
-      }),
-    ));
-  }, REVALIDATION_DEBOUNCE_MS);
+async function fetchWorkspaceRevision() {
+  if (!activeScope) return null;
+  const response = await globalThis.fetch('/api/workspace/revision', {
+    cache: 'no-store',
+    headers: { 'X-Workspace-Cache-Background': '1' },
+  });
+  if (!response.ok) return null;
+  const payload = await response.json() as { revision?: unknown };
+  return typeof payload.revision === 'string' ? payload.revision : null;
 }
 
-function scheduleActiveTagRevalidation(tags: WorkspaceCacheTag[], excludedUrls = new Set<string>()) {
-  const now = Date.now();
-  const targetTags = new Set(tags);
-  const activeStaleUrls = Array.from(knownUrls).filter((url) => {
-    if (excludedUrls.has(url) || !tagsIntersect(workspaceReadTags(url), targetTags)) return false;
-    const accessedAt = lastInteractiveAccess.get(url) || 0;
-    const cached = readCachedResponse(cacheKey(url));
-    return now - accessedAt <= ACTIVE_REVALIDATION_WINDOW_MS && Boolean(cached?.stale);
-  });
-  scheduleUrlRevalidation(activeStaleUrls);
+async function establishWorkspaceRevisionBaseline() {
+  try {
+    const revision = await fetchWorkspaceRevision();
+    if (revision) serverRevision = revision;
+  } catch {
+    // Revision checks are opportunistic and must never interrupt workspace use.
+  }
+}
+
+function scheduleRevisionBaselineUpdate() {
+  if (revisionBaselineTimer) clearTimeout(revisionBaselineTimer);
+  revisionBaselineTimer = setTimeout(() => {
+    revisionBaselineTimer = null;
+    void establishWorkspaceRevisionBaseline();
+  }, REVISION_BASELINE_DEBOUNCE_MS);
+}
+
+export async function checkWorkspaceDataRevision() {
+  try {
+    const revision = await fetchWorkspaceRevision();
+    if (!revision) return false;
+    if (serverRevision === null) {
+      serverRevision = revision;
+      return false;
+    }
+    if (revision !== serverRevision) {
+      serverRevision = revision;
+      deferredServerRefresh = true;
+      return true;
+    }
+  } catch {
+    // Retry at the next scheduled interval.
+  }
+  return false;
+}
+
+export function startWorkspaceDataBackgroundChecks() {
+  if (typeof window === 'undefined') return () => undefined;
+  if (!backgroundCheckTimer) {
+    void establishWorkspaceRevisionBaseline();
+    backgroundCheckTimer = setInterval(() => {
+      void checkWorkspaceDataRevision();
+    }, WORKSPACE_BACKGROUND_CHECK_INTERVAL_MS);
+  }
+  return stopWorkspaceDataBackgroundChecks;
+}
+
+export function stopWorkspaceDataBackgroundChecks() {
+  if (backgroundCheckTimer) clearInterval(backgroundCheckTimer);
+  backgroundCheckTimer = null;
+}
+
+export function prepareWorkspaceDataCacheForRouteChange(nextPathname: string) {
+  if (!activePathname) {
+    activePathname = nextPathname;
+    return false;
+  }
+  if (nextPathname === activePathname) return false;
+  activePathname = nextPathname;
+  if (!deferredServerRefresh) return false;
+
+  deferredServerRefresh = false;
+  markTagsStale(Array.from(new Set(
+    Array.from(knownUrls).flatMap((url) => workspaceReadTags(url)),
+  )));
+  return true;
 }
 
 export function prepareWorkspaceDataCacheForNavigation() {
@@ -468,7 +530,6 @@ export function prepareWorkspaceDataCacheForNavigation() {
   if (isReload) {
     memoryCache.clear();
     knownUrls.clear();
-    lastInteractiveAccess.clear();
     urlGenerations.clear();
     cacheGeneration += 1;
     removeStoredEntries(`${STORAGE_PREFIX}:`);
@@ -480,31 +541,35 @@ export function configureWorkspaceDataCache(scope: WorkspaceCacheScope | null) {
   if (activeScope === nextScope) return;
   const previousScope = activeScope;
   activeScope = nextScope;
+  if (revisionBaselineTimer) clearTimeout(revisionBaselineTimer);
+  revisionBaselineTimer = null;
   memoryCache.clear();
   inFlightReads.clear();
   knownUrls.clear();
-  lastInteractiveAccess.clear();
   urlGenerations.clear();
-  queuedRevalidationUrls.clear();
+  activePathname = '';
+  serverRevision = null;
+  deferredServerRefresh = false;
   cacheGeneration += 1;
   if (previousScope) removeStoredEntries(scopePrefix(previousScope));
 }
 
 export function invalidateWorkspaceDataCache() {
+  if (revisionBaselineTimer) clearTimeout(revisionBaselineTimer);
+  revisionBaselineTimer = null;
   cacheGeneration += 1;
   memoryCache.clear();
   inFlightReads.clear();
   knownUrls.clear();
-  lastInteractiveAccess.clear();
   urlGenerations.clear();
-  queuedRevalidationUrls.clear();
+  activePathname = '';
+  serverRevision = null;
+  deferredServerRefresh = false;
   removeStoredEntries(scopePrefix());
 }
 
-export function invalidateWorkspaceDataTags(tags: WorkspaceCacheTag[], revalidateActive = true) {
-  const staleUrls = markTagsStale(tags);
-  if (revalidateActive) scheduleActiveTagRevalidation(tags);
-  return staleUrls;
+export function invalidateWorkspaceDataTags(tags: WorkspaceCacheTag[]) {
+  return markTagsStale(tags);
 }
 
 export function subscribeWorkspaceDataLoading(listener: () => void) {
@@ -552,8 +617,8 @@ export async function workspaceFetch(input: RequestInfo | URL, init?: RequestIni
       : [];
     const excludedUrls = new Set(patchedUrls);
     markTagsStale(plan.invalidateTags, excludedUrls);
-    scheduleActiveTagRevalidation(plan.invalidateTags, excludedUrls);
     notifyCacheUpdate(patchedUrls, plan.invalidateTags, 'patch');
+    scheduleRevisionBaselineUpdate();
     return response;
   }
 
@@ -565,8 +630,6 @@ export async function workspaceFetch(input: RequestInfo | URL, init?: RequestIni
   const isBackground = requestHeader(init, 'X-Workspace-Cache-Background') === '1';
   const forceRefresh = init?.cache === 'no-store' || init?.cache === 'reload';
   knownUrls.add(url);
-  if (!isPrefetch && !isBackground) lastInteractiveAccess.set(url, Date.now());
-
   const key = cacheKey(url);
   const cached = readCachedResponse(key);
   if (!forceRefresh && cached && !cached.stale) {

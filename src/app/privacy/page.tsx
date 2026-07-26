@@ -436,7 +436,7 @@ export default function PrivacyPolicyPage() {
                 { title: 'Identity & Account Metadata', desc: 'Corporate name, billing address, currency settings, administrator emails.' },
                 { title: 'Financial Data', desc: 'Internal ledgers, client invoices, amount totals, expenses, merchant names.' },
                 { title: 'Integration Telemetry & Access Tokens', desc: 'OAuth authorization tokens for Canva catalogs, Meta Ads metrics, and Google or Notion workspaces.' },
-                { title: 'Human Resources & Contractor Allocation Logs', desc: 'Contractor name initials, allocated deliverable hours, utilization metrics.' },
+                { title: 'Human Resources & Contractor Allocation Logs', desc: 'Contractor name initials and assigned deliverable hours.' },
                 { title: 'System Logs & Telemetry', desc: 'IP address, device headers, authentication timestamps.' }
               ].map((li, idx) => (
                 <li

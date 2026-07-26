@@ -226,9 +226,9 @@ function generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Claude', query: 
   ];
 
   const teamRoster = [
-    { name: 'David Kim', role: 'Senior Designer', utilization: 88 },
-    { name: 'Kunal Verma', role: 'Solutions Architect', utilization: 85 },
-    { name: 'Aditi Sharma', role: 'UI/UX Specialist', utilization: 75 }
+    { name: 'David Kim', role: 'Senior Designer' },
+    { name: 'Kunal Verma', role: 'Solutions Architect' },
+    { name: 'Aditi Sharma', role: 'UI/UX Specialist' }
   ];
 
   if (model === 'Gemini') {
@@ -249,8 +249,8 @@ I recommend shifting resources from lower-risk projects to assist with the Solar
     }
 
     if (q.includes('team') || q.includes('member') || q.includes('workload')) {
-      const members = teamRoster.map(t => `- **${t.name}** (${t.role}): Workload capacity at **${t.utilization}%**`).join('\n');
-      return `Lohith, here is the team utilization audit:
+      const members = teamRoster.map(t => `- **${t.name}** (${t.role})`).join('\n');
+      return `Lohith, here is the team capacity summary:
 ${members}
 
 The overall organizational workload stands at a peak **80% capacity**, primarily driven by designer allocation constraints on Solaria campaigns.`;
@@ -310,7 +310,7 @@ If these represent billable hours or contract rates, the projected direct impact
   if (q.includes('plan') || q.includes('checklist') || q.includes('setup') || q.includes('orchestrate')) {
     return `Lohith, here is the strategic execution checklist to orchestrate the **${entityTitle}** project plan:
 - \`[ ]\` **Phase 1: Creative Asset Review** — Audit brand kit color palettes and Canva templates contrast ratios.
-- \`[ ]\` **Phase 2: Contractor Realignment** — Verify utilization rates and reallocate milestones to senior designers.
+- \`[ ]\` **Phase 2: Contractor Realignment** — Review project assignments and reallocate milestones to senior designers.
 - \`[ ]\` **Phase 3: Integration Checks** — Ensure ledger webhook logs and Meta Ads API sync parameters are active.
 - \`[ ]\` **Phase 4: Risk Mitigation** — Prepare client-facing retrospectives to align delivery timelines.`;
   }
@@ -320,13 +320,13 @@ If these represent billable hours or contract rates, the projected direct impact
 * **Risk 1: Client Review Bottleneck** (High Probability / Medium Impact)
   * *Mitigation*: Establish daily automated notifications when creatives are moved to the Canva Approval Queue.
 * **Risk 2: Budget Leak on Contractor Rates** (Medium Probability / High Impact)
-  * *Mitigation*: Implement strict governance checks in the Add Member system for third-party contractor utilization.
+  * *Mitigation*: Implement strict governance checks in the Add Member system for third-party contractor assignments.
 * **Risk 3: Brand Compliance Drift** (Low Probability / Low Impact)
   * *Mitigation*: Run automatic lint audits using the Brand Governance kit before design exports.`;
   }
 
   return `Lohith, based on deep operational reasoning, the best strategic step is to optimize team allocation. 
-Currently, senior specialist utilization stands at **88%**, presenting a bottleneck for new client onboarding. I advise establishing a structured campaign checklist, auditing Vortex contract roles, and utilizing the Canva Template Autofills to accelerate deliverable pipelines.`;
+Currently, senior specialist capacity is constrained, presenting a bottleneck for new client onboarding. I advise establishing a structured campaign checklist, auditing Vortex contract roles, and using the Canva Template Autofills to accelerate deliverable pipelines.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -461,7 +461,6 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
               email,
               phone,
               role,
-              utilization: 80,
               projects: 'None'
             });
           }
@@ -754,11 +753,10 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         - email: email address (string, or empty string if not found)
         - phone: phone number (string, or empty string if not found)
         - role: role/title (string, or empty string if not found)
-        - utilization: utilization percentage (integer from 0 to 100, default 80 if not found)
         - projects: comma-separated list of projects or "None" (string, default "None" if not found)
         
         Example JSON output:
-        [{"name": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "role": "Senior Designer", "utilization": 80, "projects": "Pulse Media"}]`;
+        [{"name": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "role": "Senior Designer", "projects": "Pulse Media"}]`;
         const userPrompt = `Parse the following text content and extract user fields:\n${query}`;
         const output = await callChatGPT(systemPrompt, userPrompt);
         return NextResponse.json({ result: output, model: 'Prism AI' });

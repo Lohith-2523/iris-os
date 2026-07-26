@@ -4,6 +4,7 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/client';
 import { isWorkspaceThemePath } from '@/lib/theme-routes';
+import { applyWorkspaceTheme, readWorkspaceTheme } from '@/lib/workspace-theme';
 
 export function AuthSync() {
   const supabase = React.useMemo(() => createClient(), []);
@@ -11,17 +12,7 @@ export function AuthSync() {
   const bootstrapPromise = React.useRef<Promise<void> | null>(null);
 
   React.useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('light');
-    root.classList.add('dark');
-
-    if (!isWorkspaceThemePath(pathname)) return;
-
-    const theme = document.cookie.match(/(?:^|; )crystal_theme=(light|dark)(?:;|$)/);
-    if (theme?.[1] === 'light') {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    }
+    applyWorkspaceTheme(isWorkspaceThemePath(pathname) ? readWorkspaceTheme() : 'dark');
   }, [pathname]);
 
   React.useEffect(() => {
