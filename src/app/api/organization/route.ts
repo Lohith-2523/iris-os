@@ -28,7 +28,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, plan, hasAddon, agencyTypes, bankNames, currency, aiSharingConsent, username, billingEmail, preferences } = body;
+    const {
+      name,
+      legalEntityName,
+      billingAddressLine1,
+      billingAddressLine2,
+      billingCity,
+      billingState,
+      billingPostalCode,
+      billingCountry,
+      gstNumber,
+      plan,
+      hasAddon,
+      agencyTypes,
+      bankNames,
+      currency,
+      aiSharingConsent,
+      username,
+      billingEmail,
+      preferences,
+    } = body;
     const user = await getRequestUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -72,6 +91,14 @@ export async function POST(request: NextRequest) {
         where: { id: org.id },
         data: {
           name: name !== undefined ? name : org.name,
+          legalEntityName: typeof legalEntityName === 'string' ? legalEntityName.trim() || null : undefined,
+          billingAddressLine1: typeof billingAddressLine1 === 'string' ? billingAddressLine1.trim() || null : undefined,
+          billingAddressLine2: typeof billingAddressLine2 === 'string' ? billingAddressLine2.trim() || null : undefined,
+          billingCity: typeof billingCity === 'string' ? billingCity.trim() || null : undefined,
+          billingState: typeof billingState === 'string' ? billingState.trim() || null : undefined,
+          billingPostalCode: typeof billingPostalCode === 'string' ? billingPostalCode.trim() || null : undefined,
+          billingCountry: typeof billingCountry === 'string' ? billingCountry.trim() || null : undefined,
+          gstNumber: typeof gstNumber === 'string' ? gstNumber.trim().toUpperCase() || null : undefined,
           plan: plan !== undefined ? plan : org.plan,
           hasAddon: hasAddon !== undefined ? hasAddon : org.hasAddon,
           agencyTypes: agencyTypes !== undefined ? agencyTypes : org.agencyTypes,

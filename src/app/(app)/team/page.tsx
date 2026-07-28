@@ -230,9 +230,9 @@ export default function TeamPage() {
       if (res.ok) {
         const data = await res.json();
         setOnboardSuccessData({
-          simulatedEmail: data.simulatedEmail,
           token: data.invite.token,
           inviteUrl: data.inviteUrl,
+          emailSent: Boolean(data.emailSent),
         });
         
         // Reload team list
@@ -243,6 +243,14 @@ export default function TeamPage() {
         }
       } else {
         const err = await res.json();
+        if (err.inviteCreated && err.inviteUrl) {
+          setOnboardSuccessData({
+            inviteUrl: err.inviteUrl,
+            emailSent: false,
+            emailError: err.error || 'Email provider error',
+          });
+          return;
+        }
         setSingleFormError(err.error || 'Failed to onboard new specialist.');
       }
     } catch (e) {
@@ -720,15 +728,10 @@ export default function TeamPage() {
                         <span>Specialist Onboarding Initialized Successfully!</span>
                       </div>
                       <p className="text-zinc-400">
-                        An onboarding invitation email has been dispatch-logged. The member can use the secure link below to set their password or link their Google login credentials.
+                        {onboardSuccessData.emailSent
+                          ? 'The secure onboarding invitation was sent from noreply@irisos.app.'
+                          : `The invitation was created, but email delivery failed: ${onboardSuccessData.emailError}`}
                       </p>
-                    </div>
-
-                    <div className="border border-zinc-900 bg-zinc-950 p-4 space-y-2 rounded">
-                      <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono block">Simulated Outbox Message</span>
-                      <pre className="text-[10px] text-zinc-400 font-mono whitespace-pre-wrap leading-relaxed bg-zinc-900/40 p-3 border border-zinc-900 overflow-x-auto max-h-[250px]">
-                        {onboardSuccessData.simulatedEmail}
-                      </pre>
                     </div>
 
                     <div className="flex justify-between items-center pt-2">

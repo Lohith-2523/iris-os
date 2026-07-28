@@ -196,6 +196,14 @@ function entityMatchesList(kind: WorkspacePatchKind, url: string, entity: JsonRe
     const clientId = parsed.searchParams.get('clientId');
     return !clientId || entity.clientId === clientId;
   }
+  if (kind === 'invoices') {
+    const clientId = parsed.searchParams.get('clientId');
+    const projectId = parsed.searchParams.get('projectId');
+    const outstanding = parsed.searchParams.get('outstanding') === 'true';
+    return (!clientId || entity.clientId === clientId)
+      && (!projectId || entity.projectId === projectId)
+      && (!outstanding || entity.status === 'UNPAID' || entity.status === 'PARTIALLY_PAID');
+  }
   return true;
 }
 
@@ -208,7 +216,7 @@ function sortEntities(kind: WorkspacePatchKind, items: unknown[]) {
   };
   if (kind === 'calendar') sortable.sort((a, b) => time(a, 'startTime') - time(b, 'startTime'));
   if (kind === 'transactions') sortable.sort((a, b) => time(b, 'date') - time(a, 'date'));
-  if (kind === 'tasks' || kind === 'projects' || kind === 'reports') {
+  if (kind === 'tasks' || kind === 'projects' || kind === 'reports' || kind === 'invoices' || kind === 'strategies') {
     sortable.sort((a, b) => time(b, 'createdAt') - time(a, 'createdAt'));
   }
   return sortable;
@@ -254,16 +262,18 @@ function responseEntities(kind: WorkspacePatchKind, payload: unknown) {
   if (kind === 'clients' && isRecord(payload.client)) return [payload.client];
   if (kind === 'tasks' && isRecord(payload.task)) return [payload.task];
   if (kind === 'projects' && isRecord(payload.project)) return [payload.project];
+  if (kind === 'invoices' && isRecord(payload.invoice)) return [payload.invoice];
   if (kind === 'leads') {
     if (Array.isArray(payload.leads)) return payload.leads.filter(isRecord);
     if (isRecord(payload.lead)) return [payload.lead];
   }
   if (kind === 'calendar' && isRecord(payload.event)) return [payload.event];
   if (kind === 'reports' && entityId(payload)) return [normalizeReport(payload)];
+  if (kind === 'strategies' && isRecord(payload.strategy)) return [payload.strategy];
   if (kind === 'transactions' && Array.isArray(payload.transactions)) {
     return payload.transactions.filter(isRecord);
   }
-  if (['transactions', 'subscriptions', 'retainers'].includes(kind) && entityId(payload)) return [payload];
+  if (['transactions', 'subscriptions', 'retainers', 'invoices'].includes(kind) && entityId(payload)) return [payload];
   return [];
 }
 

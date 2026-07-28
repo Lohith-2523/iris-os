@@ -7,24 +7,33 @@ generator client {
 }
 
 model Organization {
-  id               String   @id @default(uuid())
-  name             String
-  plan             String   @default("BASIC")
-  hasAddon         Boolean  @default(false)
-  agencyTypes      String[] @default([])
-  bankNames        String[] @default([])
-  currency         String   @default("USD")
-  billingEmail     String?
-  preferences      Json?
-  aiSharingConsent Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  name                String
+  legalEntityName     String?
+  billingAddressLine1 String?
+  billingAddressLine2 String?
+  billingCity         String?
+  billingState        String?
+  billingPostalCode   String?
+  billingCountry      String?
+  gstNumber           String?
+  plan                String   @default("BASIC")
+  hasAddon            Boolean  @default(false)
+  agencyTypes         String[] @default([])
+  bankNames           String[] @default([])
+  currency            String   @default("USD")
+  billingEmail        String?
+  preferences         Json?
+  aiSharingConsent    Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   brands                    Brand[]
   users                     User[]
   clients                   Client[]
   projects                  Project[]
   invoices                  Invoice[]
+  strategies                Strategy[]
   expenses                  Expense[]
   automations               Automation[]
   integrations              IntegrationConnection[]
@@ -37,7 +46,7 @@ model Organization {
   transactions              Transaction[]
   calendarEvents            CalendarEvent[]
   recurringSubscriptions    RecurringSubscription[]
-  recurringRetainers        RecurringRetainer[]
+  recurringRetainers        RecurringRetainer[] // Legacy compatibility; new commercial terms live on Project.
   reports                   Report[]
   prismInsights             PrismInsight[]
   prismChatSessions         PrismChatSession[]
@@ -106,6 +115,7 @@ model User {
   prismChatSessions        PrismChatSession[]
   preferences              UserPreference?
   googleCalendarConnection GoogleCalendarConnection?
+  strategiesCreated        Strategy[]
 
   @@index([orgId])
   @@index([clientId])
@@ -134,6 +144,14 @@ model Client {
   upsellOpportunityValue Float        @default(0.0)
   agencyType             String?
   businessModel          String?
+  legalEntityName        String?
+  billingAddressLine1    String?
+  billingAddressLine2    String?
+  billingCity            String?
+  billingState           String?
+  billingPostalCode      String?
+  billingCountry         String?
+  gstNumber              String?
   metadata               Json?
   orgId                  String
   organization           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -152,7 +170,7 @@ model Client {
   tasks          ClientTask[]
   metaLeads      MetaLead[]
   transactions   Transaction[]
-  retainers      RecurringRetainer[]
+  retainers      RecurringRetainer[] // Legacy compatibility; do not create new client-level retainers.
 
   @@index([orgId])
 }
@@ -172,32 +190,40 @@ model Contact {
 }
 
 model Project {
-  id              String       @id @default(uuid())
-  name            String
-  status          String // NOT_STARTED, IN_PROGRESS, COMPLETED, ON_HOLD, OVERDUE
-  startDate       DateTime
-  endDate         DateTime?
-  progress        Int          @default(0) // 0-100
-  riskLevel       String // LOW, MEDIUM, HIGH
-  riskDescription String?
-  timeline        String?
-  serviceLine     String?
-  budget          Float?
-  orgId           String
-  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  clientId        String
-  client          Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                  String       @id @default(uuid())
+  name                String
+  status              String // NOT_STARTED, IN_PROGRESS, COMPLETED, ON_HOLD, OVERDUE
+  startDate           DateTime
+  endDate             DateTime?
+  progress            Int          @default(0) // 0-100
+  riskLevel           String // LOW, MEDIUM, HIGH
+  riskDescription     String?
+  timeline            String?
+  serviceLine         String?
+  budget              Float? // Internal delivery budget; client billing is stored below.
+  paymentType         String       @default("RETAINER") // RETAINER, ONE_TIME
+  paymentAmount       Float?
+  paymentFrequency    String? // monthly, quarterly, yearly; only used for retainers
+  paymentStartDate    DateTime?
+  paymentTerms        String? // DUE_ON_RECEIPT, NET_15, NET_30, NET_45, NET_60
+  autoGenerateInvoice Boolean      @default(false)
+  orgId               String
+  organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clientId            String
+  client              Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   milestones  Milestone[]
   allocations ResourceAllocation[]
   members     ProjectMember[]
   tasks       ClientTask[]
   stages      ProjectStage[]
+  invoices    Invoice[]
 
   @@index([orgId])
   @@index([clientId])
+  @@index([orgId, paymentType, paymentStartDate])
 }
 
 model ProjectMember {
@@ -241,22 +267,68 @@ model ResourceAllocation {
 }
 
 model Invoice {
-  id            String       @id @default(uuid())
-  invoiceNumber String
-  amount        Float
-  dueDate       DateTime
-  status        String // PAID, UNPAID, OVERDUE, DRAFT
-  orgId         String
-  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  clientId      String
-  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  issuedDate    DateTime     @default(now())
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id             String        @id @default(uuid())
+  invoiceNumber  String
+  description    String?
+  subtotal       Float         @default(0)
+  taxRate        Float         @default(0)
+  taxAmount      Float         @default(0)
+  amount         Float
+  paidAmount     Float         @default(0)
+  dueDate        DateTime
+  status         String        @default("UNPAID") // UNPAID, PARTIALLY_PAID, FULLY_PAID
+  source         String        @default("MANUAL") // MANUAL, PROJECT_INITIALIZATION
+  templateKey    String        @default("IRIS_PROFESSIONAL_V1")
+  sellerSnapshot Json?
+  buyerSnapshot  Json?
+  lineItems      Json?
+  downloadToken  String        @unique @default(uuid())
+  emailRecipient String?
+  deliveryStatus String        @default("PENDING") // PENDING, SENT, FAILED
+  deliveryError  String?
+  sentAt         DateTime?
+  pdfGeneratedAt DateTime?
+  automationKey  String?       @unique
+  orgId          String
+  organization   Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId      String
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  transactions   Transaction[]
+  issuedDate     DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@unique([orgId, invoiceNumber])
   @@index([orgId])
   @@index([clientId])
+  @@index([projectId])
+  @@index([orgId, status, dueDate])
+}
+
+model Strategy {
+  id              String       @id @default(uuid())
+  type            String // UPSELL, MARKETING, FINANCIAL
+  title           String
+  goal            String
+  timeline        String
+  targetAudience  String?
+  constraints     String?
+  additionalNotes String?
+  content         String
+  model           String
+  inputSnapshot   Json
+  contextSnapshot Json
+  orgId           String
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdById     String
+  createdBy       User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([orgId, type, createdAt])
+  @@index([createdById])
 }
 
 model Expense {
@@ -442,14 +514,16 @@ model PrismInsight {
 }
 
 model PrismChatSession {
-  id           String       @id @default(uuid())
-  title        String
-  userId       String
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orgId        String
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id            String       @id @default(uuid())
+  title         String
+  workflowType  String?
+  workflowState Json?
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId         String
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   messages AskPrismMessage[]
 
@@ -553,22 +627,22 @@ model MetaLead {
 }
 
 model AgencyLead {
-  id               String       @id @default(uuid())
-  leadId           String       @default(uuid())
-  fullName         String
-  email            String
-  phone            String?
-  status           String // procured, warm, cold, lost, closed
-  collectionMethod String? // "Bulk Import", "Manual Entry"
-  approachMethod   String?
-  funnelName       String?
+  id                   String       @id @default(uuid())
+  leadId               String       @default(uuid())
+  fullName             String
+  email                String
+  phone                String?
+  status               String // procured, warm, cold, lost, closed
+  collectionMethod     String? // "Bulk Import", "Manual Entry"
+  approachMethod       String?
+  funnelName           String?
   estimatedClientValue Float?
-  createdTime      DateTime     @default(now())
-  orgId            String
-  organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  convertedClient  Client?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdTime          DateTime     @default(now())
+  orgId                String
+  organization         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  convertedClient      Client?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   @@unique([orgId, leadId])
   @@index([orgId])
@@ -617,6 +691,8 @@ model Transaction {
   comments          String?
   clientId          String?
   client            Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  invoiceId         String?
+  invoice           Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   orgId             String
   organization      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdAt         DateTime     @default(now())
@@ -624,6 +700,7 @@ model Transaction {
 
   @@index([orgId])
   @@index([clientId])
+  @@index([invoiceId])
   @@index([orgId, date])
 }
 
@@ -767,6 +844,8 @@ model RecurringSubscription {
   @@index([orgId])
 }
 
+// Legacy storage retained to avoid destructive data loss during rollout.
+// New and edited client payment terms are stored directly on Project.
 model RecurringRetainer {
   id           String       @id @default(uuid())
   name         String

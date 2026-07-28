@@ -1,0 +1,119 @@
+import { PDFDocument } from 'pdf-lib';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('server-only', () => ({}));
+
+import { generateInvoicePdf } from './pdf';
+
+describe('invoice PDF', () => {
+  it('creates a valid one-page PDF with invoice metadata', async () => {
+    const pdf = await generateInvoicePdf({
+      invoiceNumber: 'INV-2026-TEST',
+      issuedDate: new Date('2026-07-28T00:00:00.000Z'),
+      dueDate: new Date('2026-08-27T00:00:00.000Z'),
+      currency: 'INR',
+      projectName: 'Iris OS implementation',
+      description: 'Enterprise operating system implementation and onboarding',
+      seller: {
+        name: 'Iris Studio',
+        legalEntityName: 'Iris Studio Private Limited',
+        email: 'noreply@irisos.app',
+        addressLine1: '100 Residency Road',
+        addressLine2: '',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postalCode: '560025',
+        country: 'India',
+        gstNumber: '29ABCDE1234F1Z5',
+      },
+      buyer: {
+        name: 'Aether Technologies',
+        legalEntityName: 'Aether Technologies Private Limited',
+        email: 'client@example.com',
+        addressLine1: '42 Market Street',
+        addressLine2: '',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postalCode: '560001',
+        country: 'India',
+        gstNumber: '',
+      },
+      lineItems: [{
+        description: 'Iris OS implementation',
+        quantity: 1,
+        unitPrice: 100000,
+        amount: 100000,
+      }],
+      subtotal: 100000,
+      taxRate: 18,
+      taxAmount: 18000,
+      total: 118000,
+      paidAmount: 25000,
+      status: 'PARTIALLY_PAID',
+    });
+
+    expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(pdf.length).toBeGreaterThan(3_000);
+    const parsed = await PDFDocument.load(Uint8Array.from(pdf));
+    expect(parsed.getPageCount()).toBe(1);
+    expect(parsed.getTitle()).toBe('Invoice INV-2026-TEST');
+
+    if (process.env.WRITE_SAMPLE_PDF === '1') {
+      const outputDirectory = path.join(process.cwd(), 'tmp', 'pdfs');
+      await mkdir(outputDirectory, { recursive: true });
+      await writeFile(path.join(outputDirectory, 'iris-os-sample-invoice.pdf'), pdf);
+    }
+
+    if (process.env.WRITE_INVOICE_TEMPLATE_PDF === '1') {
+      const template = await generateInvoicePdf({
+        invoiceNumber: 'INV-YYYY-0001',
+        issuedDate: new Date('2026-01-01T00:00:00.000Z'),
+        dueDate: new Date('2026-01-31T00:00:00.000Z'),
+        currency: 'INR',
+        projectName: 'Project name',
+        description: 'Project service, milestone, or billing period',
+        seller: {
+          name: 'Agency name',
+          legalEntityName: 'Agency legal entity name',
+          email: 'billing@agency.example',
+          addressLine1: 'Agency address line 1',
+          addressLine2: 'Agency address line 2',
+          city: 'City',
+          state: 'State',
+          postalCode: 'Postal code',
+          country: 'Country',
+          gstNumber: 'AGENCY GSTIN',
+        },
+        buyer: {
+          name: 'Client name',
+          legalEntityName: 'Client legal entity name',
+          email: 'billing@client.example',
+          addressLine1: 'Client address line 1',
+          addressLine2: 'Client address line 2',
+          city: 'City',
+          state: 'State',
+          postalCode: 'Postal code',
+          country: 'Country',
+          gstNumber: 'CLIENT GSTIN',
+        },
+        lineItems: [{
+          description: 'Project service or milestone',
+          quantity: 1,
+          unitPrice: 100000,
+          amount: 100000,
+        }],
+        subtotal: 100000,
+        taxRate: 18,
+        taxAmount: 18000,
+        total: 118000,
+        paidAmount: 0,
+        status: 'UNPAID',
+      });
+      const outputDirectory = path.join(process.cwd(), 'output', 'pdf');
+      await mkdir(outputDirectory, { recursive: true });
+      await writeFile(path.join(outputDirectory, 'iris-os-invoice-template.pdf'), template);
+    }
+  });
+});

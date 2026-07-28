@@ -120,6 +120,7 @@ export default function PrismPage() {
   };
 
   const suggestionPills = [
+    'Schedule a meeting with my client',
     'Summarize portfolio health scores',
     'Detect active project profit leaks',
     'Forecast revenue billing for Q3',
@@ -286,7 +287,7 @@ export default function PrismPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ask Prism about portfolio summaries, leaks, forecasts..."
+                placeholder="Ask Prism to schedule a meeting, summarize a portfolio, or forecast revenue..."
                 className="flex-1 rounded-none border border-zinc-800 bg-zinc-900/40 py-2 px-4 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-all font-sans"
               />
               <Button type="submit" disabled={isLoading || !query.trim()} className="h-9 w-9 px-0 bg-white hover:bg-zinc-200 text-zinc-950 shrink-0 rounded-none">

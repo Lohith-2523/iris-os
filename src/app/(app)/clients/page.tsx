@@ -5,21 +5,35 @@ import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { InsightPanel } from '@/components/ui/insight-panel';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { ShieldCheck, AlertTriangle, Plus, Filter, Search, UserCheck, Trash2, X } from 'lucide-react';
-import { PrismAIService } from '@/lib/prism-ai/service';
-import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
-import { formatCurrency, formatUserMessage } from '@/lib/utils';
+import { ArrowRight, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
-import { ClientRevenueChart } from '@/components/clients/client-revenue-chart';
+import { ClientPortfolioValueChart } from '@/components/clients/client-revenue-chart';
+
+type SavedStrategy = {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  createdAt: string;
+};
+
+function summarizeStrategy(content: string) {
+  const plainText = content
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/[*_`>|-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return plainText.length > 360 ? `${plainText.slice(0, 357).trimEnd()}...` : plainText;
+}
 
 export default function ClientsPage() {
   const [dbClients, setDbClients] = React.useState<any[]>([]);
   const [team, setTeam] = React.useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = React.useState<string | null>(null);
-  const [aiText, setAiText] = React.useState<string>(formatUserMessage('Lohith, compiling portfolio churn risks via Prism AI...'));
+  const [latestStrategy, setLatestStrategy] = React.useState<SavedStrategy | null>(null);
   const [canManageClients, setCanManageClients] = React.useState(false);
   const [clientPendingDeletion, setClientPendingDeletion] = React.useState<any | null>(null);
   const [deleteAcknowledged, setDeleteAcknowledged] = React.useState(false);
@@ -47,9 +61,10 @@ export default function ClientsPage() {
           setCanManageClients(currentUser.role?.toLowerCase() === 'admin');
         }
 
-        const churn = await PrismAIService.getChurnPredictions();
-        if (churn.length > 0) {
-          setAiText(formatUserMessage(`Lohith, Prism AI has flagged ${churn[0].clientName} as high risk (${churn[0].riskScore}%). Reasons: ${churn[0].reasons.join(', ')}. Recommendation: ${churn[0].recommendation}`));
+        const strategyRes = await fetch('/api/strategies');
+        if (strategyRes.ok) {
+          const strategyJson = await strategyRes.json();
+          setLatestStrategy(strategyJson.strategies?.[0] || null);
         }
       } catch (e) {
         console.error(e);
@@ -60,13 +75,13 @@ export default function ClientsPage() {
 
   const clients = dbClients;
 
-  const totalRevenue = clients.reduce((sum, c) => sum + (c.revenue || 0), 0);
+  const portfolioYear = clients[0]?.portfolioYear || new Date().getFullYear();
+  const totalPortfolioValue = clients.reduce((sum, c) => sum + (c.contractValue || 0), 0);
   const chartClients = clients.map(c => ({
     id: c.id,
     name: c.name,
-    revenue: c.revenue || 0,
-    percentage: totalRevenue > 0 ? Math.round(((c.revenue || 0) / totalRevenue) * 100) : 0
-  })).sort((a, b) => b.revenue - a.revenue);
+    portfolioValue: c.contractValue || 0,
+  })).sort((a, b) => b.portfolioValue - a.portfolioValue);
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
@@ -129,7 +144,7 @@ export default function ClientsPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Client Portfolio</h1>
-          <p className="text-xs text-zinc-500">Manage account relationships, contract values, upsell opportunities, and customer retention metrics.</p>
+          <p className="text-xs text-zinc-500">Review signed project contract values without annualization or revenue forecasting.</p>
         </div>
         <div className="flex items-center gap-3">
 
@@ -142,74 +157,16 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Metric Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card hoverEffect>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Average Portfolio Health</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-zinc-500" />
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{portfolioYear} Portfolio Value</CardTitle>
+            <span className="rounded border border-zinc-700 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500">Face value</span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">
-              {dbClients.length > 0
-                ? `${(dbClients.reduce((sum, c) => sum + c.healthScore, 0) / dbClients.length).toFixed(1)}/100`
-                : '—/100'}
-            </div>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
-              <span>{dbClients.length > 0 ? 'Stable based on recent CSAT audits' : 'No CSAT audits'}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card hoverEffect>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Accounts At Risk</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-rose-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-rose-400">
-              {dbClients.length > 0 ? dbClients.filter(c => c.healthScore < 50).length : 0} Accounts
-            </div>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400/80 font-medium">
-              <span>
-                {dbClients.length > 0
-                  ? dbClients.filter(c => c.healthScore < 50).map(c => c.name).join(' & ') || 'All accounts performing well'
-                  : 'No client risks'}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card hoverEffect>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Portfolio Value</CardTitle>
-            <UserCheck className="h-4 w-4 text-zinc-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">
-              {dbClients.length > 0
-                ? `${formatCurrency(dbClients.reduce((sum, c) => sum + (c.status === 'ACTIVE' ? c.upsellOpportunityValue : 0), 0))}/yr`
-                : `${formatCurrency(0)}/yr`}
-            </div>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
-              <span>{dbClients.length > 0 ? '+14.2% YoY contract additions' : '0% growth'}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card hoverEffect>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Upsell Pipeline</CardTitle>
-            <ShieldCheck className="h-4 w-4 text-zinc-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-mono tracking-tight text-white">
-              {dbClients.length > 0
-                ? formatCurrency(dbClients.reduce((sum, c) => sum + c.upsellOpportunityValue, 0))
-                : formatCurrency(0)}
-            </div>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
-              <span>Upgrade proposals pending review</span>
+            <div className="font-mono text-2xl font-bold tracking-tight text-white">{formatCurrency(totalPortfolioValue)}</div>
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-zinc-500">
+              <span>Only payments inside signed project contract periods are included.</span>
             </div>
           </CardContent>
         </Card>
@@ -220,7 +177,7 @@ export default function ClientsPage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Table of clients */}
         <div className="md:col-span-2 space-y-6">
-          <ClientRevenueChart clients={chartClients} />
+          <ClientPortfolioValueChart clients={chartClients} />
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Active Accounts List</CardTitle>
@@ -279,7 +236,7 @@ export default function ClientsPage() {
                           <TableCell className="text-center">
                             <span className="font-mono text-xs text-zinc-300 font-semibold">{c.churnRiskScore}%</span>
                           </TableCell>
-                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(c.upsellOpportunityValue || 0)}</TableCell>
+                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(c.contractValue || 0)}</TableCell>
                           {canManageClients && (
                             <TableCell className="text-right">
                               <Button
@@ -308,41 +265,39 @@ export default function ClientsPage() {
           </Card>
         </div>
 
-        {/* Sidebar Insights */}
+        {/* Strategy summary */}
         <div className="space-y-6">
-          <InsightPanel
-            type="churn"
-            title="Prism Client Churn Alert"
-            score="78%"
-            scoreLabel="PINNACLE HEALTH CHURN RISK"
-            riskLevel="HIGH"
-          >
-            <FormattedMarkdown text={aiText} />
-          </InsightPanel>
-
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-semibold text-white">Client Health Breakdown</CardTitle>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-200">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <CardTitle className="pt-3 text-sm font-semibold text-white">Prism AI Strategy</CardTitle>
+              <CardDescription>
+                {latestStrategy ? 'A concise view of your latest generated strategy.' : 'Generate a strategy from your client and project portfolio.'}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">Excellent Status (80-100)</span>
-                <span className="font-semibold text-white">
-                  {dbClients.filter(c => c.healthScore >= 80).length} Accounts
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">Good / Fair Status (50-79)</span>
-                <span className="font-semibold text-white">
-                  {dbClients.filter(c => c.healthScore >= 50 && c.healthScore < 80).length} Accounts
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400">High Risk Status (0-49)</span>
-                <span className="font-semibold text-white">
-                  {dbClients.filter(c => c.healthScore < 50).length} Accounts
-                </span>
-              </div>
+            <CardContent>
+              {latestStrategy ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">{latestStrategy.type.replaceAll('_', ' ')}</p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-200">{latestStrategy.title}</p>
+                    <p className="mt-2 text-xs leading-5 text-zinc-500">{summarizeStrategy(latestStrategy.content)}</p>
+                  </div>
+                  <Link href="/strategy">
+                    <Button variant="outline" size="sm" className="w-full gap-2">
+                      Open strategy <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <Link href="/strategy">
+                  <Button className="w-full gap-2">
+                    <Sparkles className="h-4 w-4" /> Create a strategy
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         </div>

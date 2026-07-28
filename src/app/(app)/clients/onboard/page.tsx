@@ -54,7 +54,7 @@ export default function ClientOnboardPage() {
   const [currencyState, setCurrencyState] = React.useState('USD');
 
   // Onboarding Wizard Steps
-  // 1: Company Profile, 2: Client Contact, 3: Commercial Details,
+  // 1: Company Profile, 2: Client Contact, 3: Client Connections,
   // 4: Initial Project, 5: Review
   const [step, setStep] = React.useState(1);
 
@@ -67,6 +67,13 @@ export default function ClientOnboardPage() {
     // Step 1: Universal details
     name: '',
     legalEntityName: '',
+    billingAddressLine1: '',
+    billingAddressLine2: '',
+    billingCity: '',
+    billingState: '',
+    billingPostalCode: '',
+    billingCountry: 'India',
+    gstNumber: '',
     description: '',
     // Step 2: Client Contact
     clientName: '',
@@ -100,17 +107,19 @@ export default function ClientOnboardPage() {
     metaEditingMood: '',
     metaDevScope: '',
     metaTechStack: '',
-    // Step 3: Commercial details
-    monthlyRetainer: '',
-    retainerStartDate: '',
-    paymentTerms: 'NET_30',
+    // Step 3: Client-level connections
     adAccountId: '',
-    assignedTeamMemberId: '',
     // Step 4: Initial Project Setup
     createProject: true,
     projectName: '',
     projectServiceLine: 'Paid Ads & CRO',
     projectBudget: '',
+    projectPaymentType: 'RETAINER',
+    projectPaymentAmount: '',
+    projectPaymentFrequency: 'monthly',
+    projectPaymentStartDate: new Date().toISOString().split('T')[0],
+    projectPaymentTerms: 'NET_30',
+    projectAutoGenerateInvoice: false,
     projectTimeline: '3 Months',
     projectStartDate: new Date().toISOString().split('T')[0],
     projectDeadline: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -128,6 +137,7 @@ export default function ClientOnboardPage() {
   const [closedLeadOptions, setClosedLeadOptions] = React.useState<ClosedLeadOption[]>([]);
 
   const [inviteUrl, setInviteUrl] = React.useState('');
+  const [inviteEmailSent, setInviteEmailSent] = React.useState(false);
 
   const [formError, setFormError] = React.useState('');
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -233,6 +243,14 @@ export default function ClientOnboardPage() {
       setFormError(formatUserMessage('Project Name is required to create an initial project.'));
       return;
     }
+    if (createProject && (!formData.projectPaymentAmount || Number(formData.projectPaymentAmount) <= 0)) {
+      setFormError(formatUserMessage('Enter a positive payment amount for the initial project.'));
+      return;
+    }
+    if (createProject && !formData.projectPaymentStartDate) {
+      setFormError(formatUserMessage('Select the project payment start date.'));
+      return;
+    }
 
     setFormData((prev) => ({ ...prev, createProject }));
     setStep(5);
@@ -246,14 +264,6 @@ export default function ClientOnboardPage() {
     }
     if (step === 2 && (!formData.clientName || !formData.clientEmail)) {
       setFormError(formatUserMessage('Client Name and Client Email are required.'));
-      return;
-    }
-    if (step === 3 && !formData.assignedTeamMemberId) {
-      setFormError(formatUserMessage('Please assign a team member to work with the client.'));
-      return;
-    }
-    if (step === 3 && formData.monthlyRetainer && !formData.retainerStartDate) {
-      setFormError(formatUserMessage('Please select the retainer start date.'));
       return;
     }
     if (step === 3) {
@@ -286,8 +296,6 @@ export default function ClientOnboardPage() {
           projectStartDate: projStart,
           projectDeadline: projEnd,
           projectName: prev.projectName || `${prev.name} Initial Campaign`,
-          projectBudget: prev.projectBudget || (prev.monthlyRetainer ? (parseFloat(prev.monthlyRetainer) * 3).toString() : ''),
-          projectMemberIds: prev.projectMemberIds.length > 0 ? prev.projectMemberIds : (prev.assignedTeamMemberId ? [prev.assignedTeamMemberId] : []),
           projectStages: updatedStages
         };
       });
@@ -312,13 +320,21 @@ export default function ClientOnboardPage() {
     try {
       const payload = {
         name: formData.name,
+        legalEntityName: formData.legalEntityName,
+        billingAddressLine1: formData.billingAddressLine1,
+        billingAddressLine2: formData.billingAddressLine2,
+        billingCity: formData.billingCity,
+        billingState: formData.billingState,
+        billingPostalCode: formData.billingPostalCode,
+        billingCountry: formData.billingCountry,
+        gstNumber: formData.gstNumber,
         domain: null,
         status: 'ACTIVE',
         healthScore: 100,
         healthStatus: 'EXCELLENT',
         churnRiskScore: 0,
         roiMetric: 0.0,
-        upsellOpportunityValue: parseFloat(formData.monthlyRetainer) * 12 || 0.0,
+        upsellOpportunityValue: 0.0,
         sourceLeadId: formData.sourceLeadId || null,
         adAccountId: formData.adAccountId || null,
         contact: {
@@ -330,19 +346,17 @@ export default function ClientOnboardPage() {
         metadata: {
           legalEntityName: formData.legalEntityName,
           description: formData.description,
-          paymentTerms: formData.paymentTerms,
-          assignedTeamMemberId: formData.assignedTeamMemberId || null,
         },
-        initialRetainer: formData.monthlyRetainer ? {
-          name: `${formData.name} Monthly Retainer`,
-          amount: formData.monthlyRetainer,
-          frequency: 'monthly',
-          startDate: formData.retainerStartDate,
-        } : null,
         initialProject: formData.createProject ? {
           name: formData.projectName,
           serviceLine: formData.projectServiceLine,
           budget: formData.projectBudget,
+          paymentType: formData.projectPaymentType,
+          paymentAmount: formData.projectPaymentAmount,
+          paymentFrequency: formData.projectPaymentType === 'RETAINER' ? formData.projectPaymentFrequency : null,
+          paymentStartDate: formData.projectPaymentStartDate,
+          paymentTerms: formData.projectPaymentTerms,
+          autoGenerateInvoice: formData.projectAutoGenerateInvoice,
           timeline: formData.projectTimeline,
           startDate: formData.projectStartDate,
           endDate: formData.projectDeadline || null,
@@ -363,9 +377,17 @@ export default function ClientOnboardPage() {
       if (res.ok) {
         const data = await res.json();
         setInviteUrl(data.inviteUrl || '');
+        setInviteEmailSent(Boolean(data.emailSent));
         setSubmitStatus('success');
       } else {
         const errData = await res.json();
+        if (errData.clientCreated && errData.inviteUrl) {
+          setInviteUrl(errData.inviteUrl);
+          setInviteEmailSent(false);
+          setFormError(formatUserMessage(`Client created, but the invitation email was not delivered: ${errData.error || 'Email provider error'}`));
+          setSubmitStatus('success');
+          return;
+        }
         setFormError(formatUserMessage(`Lohith, client creation failed: ${errData.error || 'Server error'}`));
         setSubmitStatus('error');
       }
@@ -800,8 +822,8 @@ export default function ClientOnboardPage() {
           {[
             { s: 1, name: 'Company Profile', desc: 'Universal business details' },
             { s: 2, name: 'Client Contact', desc: 'Primary client details' },
-            { s: 3, name: 'Commercial Details', desc: 'Retainer, terms, and owner' },
-            { s: 4, name: 'Project Setup', desc: 'Service, checklist, and delivery' },
+            { s: 3, name: 'Client Connections', desc: 'Client-owned account access' },
+            { s: 4, name: 'Project Setup', desc: 'Commercials, service, and delivery' },
             { s: 5, name: 'Review & Verify', desc: 'Complete onboarding' },
           ].map((item) => (
             <div
@@ -880,6 +902,45 @@ export default function ClientOnboardPage() {
                     </div>
                   </div>
 
+                  <div className="rounded border border-zinc-850 bg-zinc-950/30 p-4 space-y-4">
+                    <div>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Client billing profile</span>
+                      <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
+                        Optional during onboarding. Address fields are required before an invoice can be generated for this client; GSTIN remains optional.
+                      </span>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-semibold text-zinc-400 block">Address Line 1</label>
+                        <input type="text" name="billingAddressLine1" value={formData.billingAddressLine1} onChange={handleInputChange} placeholder="Street address" className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none" />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-semibold text-zinc-400 block">Address Line 2</label>
+                        <input type="text" name="billingAddressLine2" value={formData.billingAddressLine2} onChange={handleInputChange} placeholder="Suite, floor, locality (optional)" className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">City</label>
+                        <input type="text" name="billingCity" value={formData.billingCity} onChange={handleInputChange} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">State / Region</label>
+                        <input type="text" name="billingState" value={formData.billingState} onChange={handleInputChange} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Postal Code</label>
+                        <input type="text" name="billingPostalCode" value={formData.billingPostalCode} onChange={handleInputChange} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Country</label>
+                        <input type="text" name="billingCountry" value={formData.billingCountry} onChange={handleInputChange} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none" />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-semibold text-zinc-400 block">GST Number <span className="font-normal text-zinc-600">(optional)</span></label>
+                        <input type="text" name="gstNumber" value={formData.gstNumber} onChange={handleInputChange} placeholder="GSTIN" className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 font-mono uppercase text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none" />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5">
                     <label className="font-semibold text-zinc-400 block">Business Description</label>
                     <textarea
@@ -917,7 +978,7 @@ export default function ClientOnboardPage() {
                       ))}
                     </select>
                     <p className="text-[10px] text-zinc-600">
-                      Selecting a closed lead imports its name, email, and phone and attributes this client’s retainer to that conversion.
+                      Selecting a closed lead imports its name, email, and phone and attributes the new client to that conversion.
                     </p>
                   </div>
 
@@ -975,50 +1036,19 @@ export default function ClientOnboardPage() {
                 </div>
               )}
 
-              {/* Step 3: Commercial details */}
+              {/* Step 3: Client-level connections */}
               {step === 3 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-                    <Wallet className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Commercial Details</h2>
+                    <LayersIcon className="h-4 w-4 text-zinc-400" />
+                    <h2 className="text-sm font-semibold text-white">Client Connections</h2>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Monthly Retainer ({getCurrencySymbol(currencyState)} / month)</label>
-                      <input
-                        type="number"
-                        name="monthlyRetainer"
-                        placeholder="e.g. 5000"
-                        value={formData.monthlyRetainer}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Retainer Start Date</label>
-                      <input
-                        type="date"
-                        name="retainerStartDate"
-                        required={Boolean(formData.monthlyRetainer)}
-                        value={formData.retainerStartDate}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Commercial Payment Terms</label>
-                      <select
-                        name="paymentTerms"
-                        value={formData.paymentTerms}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                      >
-                        <option value="NET_15">Net 15 Days</option>
-                        <option value="NET_30">Net 30 Days</option>
-                        <option value="DUE_ON_RECEIPT">Due on Receipt</option>
-                      </select>
-                    </div>
+                  <p className="text-[11px] leading-relaxed text-zinc-500">
+                    Commercial terms now belong to each project, so the same client can have different retainers or one-time engagements.
+                  </p>
+
+                  <div className="max-w-xl">
                     <div className="space-y-1.5">
                       <label htmlFor="onboarding-meta-ad-account" className="font-semibold text-zinc-400 block">
                         Associated Meta Ad Account
@@ -1033,42 +1063,6 @@ export default function ClientOnboardPage() {
                       />
                     </div>
                   </div>
-
-                  {/* Assign Team Member */}
-                  <div className="space-y-3 pt-4 border-t border-zinc-900">
-                    <span className="font-semibold text-zinc-400 block">Assign Lead Specialist / Client Manager *</span>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {teamMembers
-                        .filter((t: any) => t.role?.toLowerCase() !== 'client') // Only team members
-                        .map((member: any) => {
-                          const isSelected = formData.assignedTeamMemberId === member.id;
-                          return (
-                            <button
-                              type="button"
-                              key={member.id}
-                              onClick={() => setFormData(prev => ({ ...prev, assignedTeamMemberId: member.id }))}
-                              className={`flex flex-col p-3 border transition-all text-left relative ${
-                                isSelected
-                                  ? 'border-white bg-zinc-900/60 shadow-lg'
-                                  : 'border-zinc-850 hover:border-zinc-700 bg-zinc-950/20'
-                              }`}
-                            >
-                              {/* Checkmark indicator */}
-                              {isSelected && (
-                                <div className="absolute top-2.5 right-2.5 h-4 w-4 rounded-full bg-white flex items-center justify-center">
-                                  <CheckCircle className="h-3 w-3 text-zinc-950 fill-zinc-950" />
-                                </div>
-                              )}
-                              
-                              <div className="font-semibold text-white text-xs">{member.name}</div>
-                              <div className="text-[10px] text-zinc-400 mt-0.5">{member.role}</div>
-                              <div className="text-[9px] text-zinc-500 font-mono mt-1">{member.email}</div>
-                              
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -1076,8 +1070,8 @@ export default function ClientOnboardPage() {
               {step === 4 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-                    <Layers className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Create Initial Project for Client</h2>
+                    <Wallet className="h-4 w-4 text-zinc-400" />
+                    <h2 className="text-sm font-semibold text-white">Create Initial Project & Commercials</h2>
                   </div>
 
                   <div className="space-y-4 pt-2 border-t border-zinc-900/60 animate-fadeIn">
@@ -1110,9 +1104,101 @@ export default function ClientOnboardPage() {
                         </div>
                       </div>
 
+                      <div className="space-y-3 border-y border-zinc-900/60 py-4">
+                        <div>
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Project Commercials</span>
+                          <span className="text-[10px] text-zinc-600">These terms apply only to this project.</span>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-zinc-400 block">Payment Type *</label>
+                            <select
+                              name="projectPaymentType"
+                              value={formData.projectPaymentType}
+                              onChange={handleInputChange}
+                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                            >
+                              <option value="RETAINER">Retainer</option>
+                              <option value="ONE_TIME">One-time payment</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-zinc-400 block">Client Payment ({getCurrencySymbol(currencyState)}) *</label>
+                            <input
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              name="projectPaymentAmount"
+                              placeholder="e.g. 5000"
+                              value={formData.projectPaymentAmount}
+                              onChange={handleInputChange}
+                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-zinc-400 block">Payment Frequency</label>
+                            <select
+                              name="projectPaymentFrequency"
+                              value={formData.projectPaymentFrequency}
+                              onChange={handleInputChange}
+                              disabled={formData.projectPaymentType === 'ONE_TIME'}
+                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+                            >
+                              <option value="monthly">Monthly</option>
+                              <option value="quarterly">Quarterly</option>
+                              <option value="yearly">Yearly</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-zinc-400 block">
+                              {formData.projectPaymentType === 'ONE_TIME' ? 'Payment Date *' : 'Retainer Start Date *'}
+                            </label>
+                            <input
+                              type="date"
+                              name="projectPaymentStartDate"
+                              value={formData.projectPaymentStartDate}
+                              onChange={handleInputChange}
+                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-mono"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-zinc-400 block">Payment Terms</label>
+                            <select
+                              name="projectPaymentTerms"
+                              value={formData.projectPaymentTerms}
+                              onChange={handleInputChange}
+                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
+                            >
+                              <option value="DUE_ON_RECEIPT">Due on Receipt</option>
+                              <option value="NET_15">Net 15 Days</option>
+                              <option value="NET_30">Net 30 Days</option>
+                              <option value="NET_45">Net 45 Days</option>
+                              <option value="NET_60">Net 60 Days</option>
+                            </select>
+                          </div>
+                        </div>
+                        <label className="flex cursor-pointer items-start gap-3 rounded border border-zinc-850 bg-zinc-950/45 p-3">
+                          <input
+                            type="checkbox"
+                            checked={formData.projectAutoGenerateInvoice}
+                            onChange={(event) => setFormData((current) => ({
+                              ...current,
+                              projectAutoGenerateInvoice: event.target.checked,
+                            }))}
+                            className="mt-0.5 h-3.5 w-3.5 accent-white"
+                          />
+                          <span>
+                            <span className="block text-[11px] font-semibold text-white">Generate and email the first invoice when this project is initialized</span>
+                            <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
+                              Requires completed agency and client billing addresses. The finalized PDF will be attached and linked in the client email.
+                            </span>
+                          </span>
+                        </label>
+                      </div>
+
                       <div className="grid gap-4 sm:grid-cols-4">
                         <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Project Budget Allocation ({getCurrencySymbol(currencyState)})</label>
+                          <label className="font-semibold text-zinc-400 block">Internal Delivery Budget ({getCurrencySymbol(currencyState)})</label>
                           <input
                             type="number"
                             name="projectBudget"
@@ -1357,33 +1443,9 @@ export default function ClientOnboardPage() {
                     </div>
                   </div>
 
-                  <div className="rounded border border-zinc-900 p-3 space-y-2 bg-zinc-950/20 text-[11px]">
-                    <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Commercial Summary</span>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Assigned Specialist:</span>
-                      <span className="font-semibold text-white">
-                        {teamMembers.find(t => t.id === formData.assignedTeamMemberId)?.name || 'None'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t border-zinc-900 pt-2">
-                      <span className="text-zinc-400">Retainer Value:</span>
-                      <span className="font-bold text-white font-mono">
-                        {formData.monthlyRetainer ? `${formatCurrency(Number(formData.monthlyRetainer), 2)}/mo` : `${formatCurrency(0)}/mo`}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Retainer Starts:</span>
-                      <span className="font-medium text-zinc-300">
-                        {formData.retainerStartDate
-                          ? new Date(`${formData.retainerStartDate}T00:00:00`).toLocaleDateString()
-                          : 'Not configured'}
-                      </span>
-                    </div>
-                  </div>
-
                   {formData.createProject && (
                     <div className="rounded border border-zinc-900 p-3 space-y-2 bg-zinc-950/20 text-[11px]">
-                      <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Initial Project & Development Stages</span>
+                      <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Initial Project, Commercials & Development Stages</span>
                       <div className="flex justify-between">
                         <span className="text-zinc-400">Project Name:</span>
                         <span className="font-semibold text-white">{formData.projectName}</span>
@@ -1393,7 +1455,27 @@ export default function ClientOnboardPage() {
                         <span className="text-zinc-300">{formData.projectServiceLine}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Timeline / Budget:</span>
+                        <span className="text-zinc-400">Payment Type:</span>
+                        <span className="font-semibold text-white">
+                          {formData.projectPaymentType === 'ONE_TIME' ? 'One-time payment' : `Retainer · ${formData.projectPaymentFrequency}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Client Payment:</span>
+                        <span className="font-bold text-white font-mono">
+                          {formatCurrency(Number(formData.projectPaymentAmount || 0), 2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Payment Starts:</span>
+                        <span className="text-zinc-300 font-mono">{formData.projectPaymentStartDate}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Terms:</span>
+                        <span className="text-zinc-300">{formData.projectPaymentTerms.replaceAll('_', ' ')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Timeline / Internal Budget:</span>
                         <span className="text-zinc-300 font-mono">{formData.projectTimeline} ({formatCurrency(parseFloat(formData.projectBudget || '0'), 2)})</span>
                       </div>
                       <div className="mt-2 pt-2 border-t border-zinc-900/65 space-y-1">
@@ -1412,7 +1494,11 @@ export default function ClientOnboardPage() {
                     <div className="space-y-4 mt-6">
                       <div className="flex gap-2.5 rounded border border-emerald-900/30 bg-emerald-950/10 p-3.5 text-emerald-400 font-semibold items-center justify-center">
                         <CheckCircle className="h-4 w-4 shrink-0" />
-                        <span>Client Onboarding Success! Invite link generated.</span>
+                        <span>
+                          {inviteEmailSent
+                            ? 'Client onboarding complete. The invitation email was sent.'
+                            : 'Client onboarding complete. The secure invite link is available below.'}
+                        </span>
                       </div>
                       
                       {inviteUrl && (
@@ -1422,12 +1508,12 @@ export default function ClientOnboardPage() {
                             <input
                               type="text"
                               readOnly
-                              value={`${window.location.origin}${inviteUrl}`}
+                              value={inviteUrl.startsWith('http') ? inviteUrl : `${window.location.origin}${inviteUrl}`}
                               className="flex-1 rounded border border-zinc-800 bg-zinc-950 p-2 text-[10px] text-zinc-300 font-mono focus:outline-none"
                             />
                             <Button
                               onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}${inviteUrl}`);
+                                navigator.clipboard.writeText(inviteUrl.startsWith('http') ? inviteUrl : `${window.location.origin}${inviteUrl}`);
                                 alert('Invite link copied to clipboard!');
                               }}
                               className="h-8 bg-zinc-100 text-zinc-950 hover:bg-white text-[10px]"
@@ -1436,21 +1522,12 @@ export default function ClientOnboardPage() {
                             </Button>
                           </div>
                           <span className="block text-[9px] text-zinc-500">
-                            Provide this link to the client for account activation. An invitation email was also automatically dispatched to {formData.clientEmail}.
+                            {inviteEmailSent
+                              ? `An Iris OS invitation was sent from noreply@irisos.app to ${formData.clientEmail}.`
+                              : 'Copy this link to deliver it manually after resolving the email provider issue.'}
                           </span>
                         </div>
                       )}
-
-                      <div className="rounded border border-zinc-900 bg-zinc-950/40 p-4 space-y-2.5 text-[10px]">
-                        <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[8px]">Simulated Welcome Email Dispatch</span>
-                        <div className="border-t border-zinc-900 pt-2 space-y-1 text-zinc-400">
-                          <div><span className="font-semibold text-zinc-300">To:</span> {formData.clientEmail}</div>
-                          <div><span className="font-semibold text-zinc-300">Subject:</span> Welcome to Iris OS - Set Up Your Client Account</div>
-                          <div className="pt-2 leading-relaxed italic text-zinc-500 bg-zinc-900/20 p-2.5 rounded">
-                            &quot;Hello {formData.clientName},\n\nWelcome to Iris OS! You have been invited to register your client portal account. Visit: {window.location.origin}{inviteUrl} to set up your password.&quot;
-                          </div>
-                        </div>
-                      </div>
 
                       <div className="pt-2">
                         <Button
@@ -1534,7 +1611,7 @@ export default function ClientOnboardPage() {
                   </div>
                   <h2 className="mt-4 text-sm font-semibold text-white">Creating client workspace</h2>
                   <p className="mt-2 text-xs leading-5 text-zinc-400">
-                    Saving the company profile, client contact, retainer, and initial project. This can take a moment.
+                    Saving the company profile, client contact, and project-level commercial terms. This can take a moment.
                   </p>
                   <div className="mt-5 h-1 overflow-hidden rounded-full bg-zinc-800">
                     <div className="h-full w-1/2 animate-pulse rounded-full bg-zinc-300" />

@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { z } from 'zod';
+import {
+  extractMeetingDetailsWithGemini,
+  GeminiMeetingError,
+} from '@/lib/prism-ai/gemini-meetings';
+import {
+  isMeetingRequest,
+  meetingConfirmationMessage,
+  mergeMeetingWorkflow,
+  missingMeetingFields,
+  validTimeZone,
+  zonedLocalDateTimeToUtc,
+  type MeetingWorkflowState,
+} from '@/lib/prism-ai/meeting-workflow';
+import { createPrismMeeting } from '@/lib/calendar/create-prism-meeting';
+import { GoogleCalendarIntegrationError } from '@/lib/google-calendar';
+import { IrisEmailDeliveryError } from '@/lib/email/iris-email';
 
 const AUTOMATIC_INSIGHT_TTL_MS = 30 * 60 * 1000;
 const CHAT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -65,6 +82,23 @@ function cachedInsightResponse(key: string) {
     return null;
   }
   return cached.payload;
+}
+
+function localDateTimeForPrompt(timeZone: string) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date())
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
 // Security injection scanning
@@ -612,6 +646,152 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
 
       // 3. High-Level Strategy AI: Claude (strategy, Ask Prism, complex reasoning)
       case 'ask-prism': {
+        const meetingSession = sessionId
+          ? await prisma.prismChatSession.findFirst({
+              where: { id: sessionId, userId: user.id, orgId: user.orgId },
+              select: {
+                id: true,
+                workflowType: true,
+                workflowState: true,
+              },
+            })
+          : null;
+        if (sessionId && !meetingSession) {
+          return NextResponse.json({ error: 'Chat session not found' }, { status: 404 });
+        }
+
+        const meetingWorkflowActive = meetingSession?.workflowType === 'MEETING';
+        if (meetingWorkflowActive || isMeetingRequest(query)) {
+          const currentState = meetingWorkflowActive
+            ? meetingSession.workflowState as Partial<MeetingWorkflowState> | null
+            : null;
+          const timeZone = validTimeZone(currentState?.timeZone || context?.timeZone);
+          const [teamDirectory, clientDirectory] = await Promise.all([
+            prisma.user.findMany({
+              where: { orgId: user.orgId },
+              select: { name: true, email: true },
+              orderBy: { name: 'asc' },
+            }),
+            prisma.contact.findMany({
+              where: { client: { orgId: user.orgId } },
+              select: { name: true, email: true },
+              orderBy: { name: 'asc' },
+            }),
+          ]);
+
+          const geminiResult = await extractMeetingDetailsWithGemini({
+            query,
+            currentState,
+            timeZone,
+            currentLocalDateTime: localDateTimeForPrompt(timeZone),
+            directory: [
+              ...teamDirectory.map((entry) => ({ ...entry, kind: 'team' as const })),
+              ...clientDirectory.map((entry) => ({ ...entry, kind: 'client' as const })),
+            ],
+          });
+          let workflowState = mergeMeetingWorkflow(currentState, geminiResult, timeZone);
+          const missingFields = missingMeetingFields(workflowState);
+          let output: string;
+          let createdMeeting: Awaited<ReturnType<typeof createPrismMeeting>> | null = null;
+          let workflowComplete = false;
+
+          if (geminiResult.action === 'CANCEL') {
+            output = 'Meeting setup cancelled. No calendar event or invitations were created.';
+            workflowComplete = true;
+          } else if (
+            geminiResult.action === 'CONFIRM'
+            && currentState?.awaitingConfirmation
+            && missingFields.length === 0
+          ) {
+            const startTime = zonedLocalDateTimeToUtc(workflowState.startLocal, workflowState.timeZone);
+            if (startTime.getTime() <= Date.now()) {
+              workflowState = { ...workflowState, startLocal: '', awaitingConfirmation: false };
+              output = 'That meeting time is in the past. What future date and time should I use?';
+            } else {
+              const endTime = new Date(startTime.getTime() + workflowState.durationMinutes * 60_000);
+              createdMeeting = await createPrismMeeting({
+                orgId: user.orgId,
+                userId: user.id,
+                organizerEmail: user.email,
+                organizerName: user.name,
+                organizationName: user.organization.name,
+                title: workflowState.title,
+                attendees: workflowState.attendees,
+                startTime,
+                endTime,
+                timeZone: workflowState.timeZone,
+              });
+              const emailNote = createdMeeting.email.failedRecipients.length > 0
+                ? ` The Google invitations were sent, but the Iris OS email could not reach: ${createdMeeting.email.failedRecipients.join(', ')}.`
+                : ` Iris OS invitation emails were sent from noreply@irisos.app to ${createdMeeting.email.sent} attendee${createdMeeting.email.sent === 1 ? '' : 's'}.`;
+              const conflictNote = createdMeeting.conflictTitle
+                ? ` Note: this overlaps with "${createdMeeting.conflictTitle}".`
+                : '';
+              output = [
+                `Meeting created: **${workflowState.title}**.`,
+                '',
+                `**Google Meet:** ${createdMeeting.event.meetLink}`,
+                `**Attendees:** ${workflowState.attendees.join(', ')}`,
+                `**Time:** ${workflowState.startLocal.replace('T', ' ')} (${workflowState.timeZone})`,
+                '',
+                `${emailNote}${conflictNote}`.trim(),
+              ].join('\n');
+              workflowComplete = true;
+            }
+          } else if (missingFields.length === 0) {
+            workflowState = { ...workflowState, awaitingConfirmation: true };
+            output = meetingConfirmationMessage(workflowState);
+          } else {
+            workflowState = { ...workflowState, awaitingConfirmation: false };
+            output = geminiResult.reply
+              || `Please provide the ${missingFields.join(', ')}.`;
+          }
+
+          const persistedSessionId = await prisma.$transaction(async (tx) => {
+            let persistedId = sessionId;
+            if (!persistedId) {
+              const title = workflowState.title
+                ? `Meeting: ${workflowState.title}`.slice(0, 80)
+                : 'Schedule a meeting';
+              const session = await tx.prismChatSession.create({
+                data: {
+                  title,
+                  workflowType: workflowComplete ? null : 'MEETING',
+                  workflowState: workflowComplete ? undefined : workflowState,
+                  userId: user.id,
+                  orgId: user.orgId,
+                },
+              });
+              persistedId = session.id;
+            } else {
+              await tx.prismChatSession.update({
+                where: { id: persistedId },
+                data: {
+                  workflowType: workflowComplete ? null : 'MEETING',
+                  workflowState: workflowComplete ? Prisma.JsonNull : workflowState,
+                  updatedAt: new Date(),
+                },
+              });
+            }
+
+            await tx.askPrismMessage.createMany({
+              data: [
+                { role: 'user', content: query, userId: user.id, orgId: user.orgId, sessionId: persistedId },
+                { role: 'assistant', content: output, userId: user.id, orgId: user.orgId, sessionId: persistedId },
+              ],
+            });
+            return persistedId;
+          });
+
+          return NextResponse.json({
+            result: output,
+            model: 'Prism AI · Gemini Meetings',
+            sessionId: persistedSessionId,
+            persisted: true,
+            meeting: createdMeeting?.event || null,
+          });
+        }
+
         let delegatedModel: 'Gemini' | 'ChatGPT' | 'Claude' = 'Claude';
         
         // Attempt dynamically calling classification model (using Gemini as router)
@@ -767,6 +947,13 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
     }
   } catch (error: any) {
     console.error('Error in Prism AI routing handler:', error);
+    if (
+      error instanceof GeminiMeetingError
+      || error instanceof GoogleCalendarIntegrationError
+      || error instanceof IrisEmailDeliveryError
+    ) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }

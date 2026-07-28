@@ -5,6 +5,18 @@ import {
   MetaAdAccountAssignmentError,
   resolveAssignableMetaAdAccountId,
 } from '@/lib/meta-ad-accounts';
+import { parseProjectCommercials } from '@/lib/projects/commercial';
+import {
+  assertIrisEmailConfigured,
+  IrisEmailDeliveryError,
+  sendIrisEmail,
+} from '@/lib/email/iris-email';
+import { clientOnboardingEmail } from '@/lib/email/iris-templates';
+import {
+  createAndSendProjectInvoice,
+  InvoiceServiceError,
+} from '@/lib/invoices/service';
+import { publicAppUrl } from '@/lib/app-url';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -60,11 +72,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    const adAccountId = await resolveAssignableMetaAdAccountId(
-      user.orgId,
-      body.adAccountId,
-    );
-    if (adAccountId) {
+    const hasAdAccountUpdate = Object.prototype.hasOwnProperty.call(body, 'adAccountId');
+    const adAccountId = hasAdAccountUpdate
+      ? await resolveAssignableMetaAdAccountId(user.orgId, body.adAccountId)
+      : undefined;
+    if (hasAdAccountUpdate && adAccountId) {
       const assignedClient = await prisma.client.findFirst({
         where: {
           orgId: user.orgId,
@@ -84,13 +96,36 @@ export async function PATCH(request: NextRequest) {
     const updatedClient = await prisma.$transaction(async (tx) => {
       const client = await tx.client.update({
         where: { id: existingClient.id },
-        data: { adAccountId },
-        select: { id: true, adAccountId: true },
+        data: {
+          adAccountId: hasAdAccountUpdate ? adAccountId : undefined,
+          legalEntityName: typeof body.legalEntityName === 'string' ? body.legalEntityName.trim() || null : undefined,
+          billingAddressLine1: typeof body.billingAddressLine1 === 'string' ? body.billingAddressLine1.trim() || null : undefined,
+          billingAddressLine2: typeof body.billingAddressLine2 === 'string' ? body.billingAddressLine2.trim() || null : undefined,
+          billingCity: typeof body.billingCity === 'string' ? body.billingCity.trim() || null : undefined,
+          billingState: typeof body.billingState === 'string' ? body.billingState.trim() || null : undefined,
+          billingPostalCode: typeof body.billingPostalCode === 'string' ? body.billingPostalCode.trim() || null : undefined,
+          billingCountry: typeof body.billingCountry === 'string' ? body.billingCountry.trim() || null : undefined,
+          gstNumber: typeof body.gstNumber === 'string' ? body.gstNumber.trim().toUpperCase() || null : undefined,
+        },
+        select: {
+          id: true,
+          adAccountId: true,
+          legalEntityName: true,
+          billingAddressLine1: true,
+          billingAddressLine2: true,
+          billingCity: true,
+          billingState: true,
+          billingPostalCode: true,
+          billingCountry: true,
+          gstNumber: true,
+        },
       });
-      await tx.clientInvite.updateMany({
-        where: { clientId: existingClient.id },
-        data: { adAccountId },
-      });
+      if (hasAdAccountUpdate) {
+        await tx.clientInvite.updateMany({
+          where: { clientId: existingClient.id },
+          data: { adAccountId },
+        });
+      }
       return client;
     });
 
@@ -118,12 +153,19 @@ export async function POST(request: NextRequest) {
       upsellOpportunityValue,
       agencyType,
       businessModel,
+      legalEntityName,
+      billingAddressLine1,
+      billingAddressLine2,
+      billingCity,
+      billingState,
+      billingPostalCode,
+      billingCountry,
+      gstNumber,
       metadata,
       contact,
       sourceLeadId,
       adAccountId,
       initialProject,
-      initialRetainer,
     } = body;
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -183,22 +225,25 @@ export async function POST(request: NextRequest) {
     if (projectBudget !== null && !Number.isFinite(projectBudget)) {
       return NextResponse.json({ error: 'Initial project budget must be a number' }, { status: 400 });
     }
-    const retainerAmount = initialRetainer ? Number(initialRetainer.amount) : null;
-    const retainerStartDate = initialRetainer ? new Date(initialRetainer.startDate) : null;
-    if (initialRetainer && (
-      !Number.isFinite(retainerAmount) ||
-      Number(retainerAmount) <= 0 ||
-      !retainerStartDate ||
-      Number.isNaN(retainerStartDate.getTime())
-    )) {
-      return NextResponse.json({ error: 'A positive retainer amount and valid start date are required' }, { status: 400 });
+    const projectCommercials = parseProjectCommercials({
+      paymentType: initialProject?.paymentType,
+      paymentAmount: initialProject?.paymentAmount,
+      paymentFrequency: initialProject?.paymentFrequency,
+      paymentStartDate: initialProject?.paymentStartDate || initialProject?.startDate,
+      paymentTerms: initialProject?.paymentTerms,
+    });
+    if (projectCommercials.error) {
+      return NextResponse.json({ error: projectCommercials.error }, { status: 400 });
     }
+    assertIrisEmailConfigured();
 
     const token = crypto.randomUUID();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
     const inviteEmail = contact?.email || `contact@${domain || 'example.com'}`;
     const inviteName = contact?.name || `${name} Contact`;
+    const inviteUrl = new URL('/invite', publicAppUrl(request));
+    inviteUrl.searchParams.set('token', token);
 
     // A client onboarding submission is one unit of work: an incomplete client
     // record must never be committed if its requested initial project fails.
@@ -215,6 +260,14 @@ export async function POST(request: NextRequest) {
           upsellOpportunityValue: upsellOpportunityValue !== undefined ? upsellOpportunityValue : 0.0,
           agencyType: agencyType || null,
           businessModel: businessModel || null,
+          legalEntityName: typeof legalEntityName === 'string' ? legalEntityName.trim() || null : null,
+          billingAddressLine1: typeof billingAddressLine1 === 'string' ? billingAddressLine1.trim() || null : null,
+          billingAddressLine2: typeof billingAddressLine2 === 'string' ? billingAddressLine2.trim() || null : null,
+          billingCity: typeof billingCity === 'string' ? billingCity.trim() || null : null,
+          billingState: typeof billingState === 'string' ? billingState.trim() || null : null,
+          billingPostalCode: typeof billingPostalCode === 'string' ? billingPostalCode.trim() || null : null,
+          billingCountry: typeof billingCountry === 'string' ? billingCountry.trim() || null : null,
+          gstNumber: typeof gstNumber === 'string' ? gstNumber.trim().toUpperCase() || null : null,
           metadata: metadata || {},
           adAccountId: validatedAdAccountId,
           sourceLeadId: sourceLead?.id || null,
@@ -242,20 +295,6 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      let retainer = null;
-      if (initialRetainer && retainerAmount && retainerStartDate) {
-        retainer = await tx.recurringRetainer.create({
-          data: {
-            name: String(initialRetainer.name || `${name} Monthly Retainer`).trim(),
-            amount: retainerAmount,
-            frequency: 'monthly',
-            startDate: retainerStartDate,
-            clientId: newClient.id,
-            orgId: org.id,
-          },
-        });
-      }
-
       let project: { id: string; name: string } | null = null;
       if (initialProject) {
         const projectStart = initialProject.startDate ? new Date(initialProject.startDate) : new Date();
@@ -271,6 +310,8 @@ export async function POST(request: NextRequest) {
             timeline: initialProject.timeline || null,
             serviceLine: initialProject.serviceLine || null,
             budget: projectBudget,
+            ...projectCommercials.data,
+            autoGenerateInvoice: Boolean(initialProject.autoGenerateInvoice),
             orgId: org.id,
             clientId: newClient.id,
           }
@@ -334,28 +375,68 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return { newClient, project, retainer };
+      return { newClient, project };
     });
 
-    // Simulate sending welcome email in console logs
-    console.log('\n==================================================');
-    console.log(`✉️ WELCOME EMAIL SIMULATED FOR CLIENT: ${name}`);
-    console.log('SUBJECT: Welcome to Iris OS - Set Up Your Client Account');
-    console.log('BODY:');
-    console.log('This invite token will expire in 7 days.');
-    console.log('Best regards,\nIris OS Automation Engine');
-    console.log('==================================================\n');
+    const email = clientOnboardingEmail({
+      recipientName: inviteName,
+      organizationName: org.name,
+      inviteUrl: inviteUrl.toString(),
+      expiresAt,
+    });
+    try {
+      await sendIrisEmail({
+        to: [inviteEmail],
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        idempotencyKey: `client-invite-${token}`,
+        tags: [{ name: 'category', value: 'client_onboarding' }],
+      });
+    } catch (error) {
+      if (error instanceof IrisEmailDeliveryError) {
+        return NextResponse.json({
+          error: error.message,
+          clientCreated: true,
+          inviteUrl: inviteUrl.toString(),
+        }, { status: error.status });
+      }
+      throw error;
+    }
+
+    let invoice = null;
+    let invoiceWarning: string | null = null;
+    if (result.project && initialProject?.autoGenerateInvoice) {
+      try {
+        invoice = await createAndSendProjectInvoice({
+          projectId: result.project.id,
+          orgId: org.id,
+          baseUrl: publicAppUrl(request),
+          automationKey: `project-initialization:${result.project.id}`,
+          source: 'PROJECT_INITIALIZATION',
+        });
+      } catch (error) {
+        invoiceWarning = error instanceof InvoiceServiceError
+          ? error.message
+          : 'The client and project were created, but the automatic invoice could not be generated.';
+      }
+    }
 
     return NextResponse.json({
       success: true,
       client: result.newClient,
       project: result.project,
-      retainer: result.retainer,
-      inviteUrl: `/invite?token=${token}`
+      invoice,
+      invoiceWarning,
+      emailSent: true,
+      inviteUrl: inviteUrl.toString(),
     });
   } catch (error: any) {
     if (error instanceof MetaAdAccountAssignmentError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error instanceof IrisEmailDeliveryError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('Error onboarding client:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

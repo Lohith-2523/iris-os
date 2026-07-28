@@ -1,4 +1,7 @@
-import { workspaceFetch } from '@/lib/workspace-data-cache';
+import {
+  invalidateWorkspaceDataTags,
+  workspaceFetch,
+} from '@/lib/workspace-data-cache';
 
 export interface AgencyHealthScore {
   score: number;
@@ -112,11 +115,16 @@ async function fetchPrismAI(action: string, bodyData: Record<string, unknown> = 
   }
 
   const request = (async () => {
-    const res = await workspaceFetch('/api/prism-ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, ...bodyData })
-    });
+    let res: Response;
+    try {
+      res = await workspaceFetch('/api/prism-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...bodyData })
+      });
+    } catch {
+      throw new PrismAIRequestError(AI_UNAVAILABLE);
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new PrismAIRequestError(
@@ -201,9 +209,18 @@ export const PrismAIService = {
     if (typeof window === 'undefined') {
       throw new PrismAIRequestError('Prism chat is only available in the browser.');
     }
-    const data = await fetchPrismAI('ask-prism', { query, context, sessionId });
+    const meetingContext = {
+      ...(context || {}),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+      locale: navigator.language,
+      clientDateTime: new Date().toISOString(),
+    };
+    const data = await fetchPrismAI('ask-prism', { query, context: meetingContext, sessionId });
     if (!data.persisted || typeof data.sessionId !== 'string' || !data.result) {
       throw new PrismAIRequestError('Prism replied, but the chat could not be saved. Please retry.');
+    }
+    if (data.meeting) {
+      invalidateWorkspaceDataTags(['calendar', 'dashboard']);
     }
     return {
       result: data.result,

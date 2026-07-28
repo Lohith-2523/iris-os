@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatPercent, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
+import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import {
   ArrowLeft,
   Plus,
@@ -35,7 +35,10 @@ import {
   BarChart3,
   X,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Save,
+  Download,
+  FileText,
 } from 'lucide-react';
 
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -76,6 +79,196 @@ interface ClientDetailDashboardProps {
   onClientUpdated: (client: any) => void;
 }
 
+function ClientBillingPanel({
+  client,
+  onClientUpdated,
+}: {
+  client: any;
+  onClientUpdated: (client: any) => void;
+}) {
+  const [form, setForm] = React.useState({
+    legalEntityName: client.legalEntityName || '',
+    billingAddressLine1: client.billingAddressLine1 || '',
+    billingAddressLine2: client.billingAddressLine2 || '',
+    billingCity: client.billingCity || '',
+    billingState: client.billingState || '',
+    billingPostalCode: client.billingPostalCode || '',
+    billingCountry: client.billingCountry || 'India',
+    gstNumber: client.gstNumber || '',
+  });
+  const [invoices, setInvoices] = React.useState<any[]>(client.invoices || []);
+  const [saving, setSaving] = React.useState(false);
+  const [message, setMessage] = React.useState('');
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch(`/api/invoices?clientId=${encodeURIComponent(client.id)}`)
+      .then((response) => response.ok ? response.json() : [])
+      .then(setInvoices)
+      .catch(() => setInvoices(client.invoices || []));
+  }, [client.id, client.invoices]);
+
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage('');
+    try {
+      const response = await fetch('/api/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, ...form }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Unable to save billing profile.');
+      onClientUpdated(result.client);
+      setMessage('Billing profile saved.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to save billing profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const requiredComplete = Boolean(
+    form.billingAddressLine1
+    && form.billingCity
+    && form.billingState
+    && form.billingPostalCode
+    && form.billingCountry,
+  );
+
+  const downloadInvoice = async (invoice: any) => {
+    if (downloadingInvoiceId) return;
+    setDownloadingInvoiceId(invoice.id);
+    setMessage('');
+    try {
+      // PDF responses are binary and must bypass the workspace JSON cache.
+      const response = await globalThis.fetch(invoice.downloadUrl || `/api/invoices/${invoice.id}/pdf`, { cache: 'no-store' });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || 'Unable to download this invoice.');
+      }
+      const contentType = response.headers.get('content-type') || '';
+      const blob = await response.blob();
+      if (!contentType.includes('application/pdf') || blob.size < 500) {
+        throw new Error('The server returned an invalid or empty invoice PDF.');
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${invoice.invoiceNumber || 'invoice'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to download this invoice.');
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold text-white">Client invoice profile</CardTitle>
+          <CardDescription>
+            Address fields are required for invoice creation. Legal entity and GSTIN are optional.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={save} className="space-y-4">
+            <div className={`rounded border p-3 text-[10px] leading-relaxed ${requiredComplete ? 'border-zinc-850 bg-zinc-950/35 text-zinc-500' : 'border-amber-900/40 bg-amber-950/15 text-amber-300'}`}>
+              {requiredComplete
+                ? 'Invoice address complete. This client is ready for invoice generation.'
+                : 'Invoice creation is blocked until address line 1, city, state, postal code, and country are completed.'}
+            </div>
+            <div className="space-y-1.5">
+              <label className="font-semibold text-zinc-400">Legal Entity Name</label>
+              <input value={form.legalEntityName} onChange={(event) => setForm({ ...form, legalEntityName: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="font-semibold text-zinc-400">Address Line 1 *</label>
+                <input value={form.billingAddressLine1} onChange={(event) => setForm({ ...form, billingAddressLine1: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="font-semibold text-zinc-400">Address Line 2</label>
+                <input value={form.billingAddressLine2} onChange={(event) => setForm({ ...form, billingAddressLine2: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="font-semibold text-zinc-400">City *</label>
+                <input value={form.billingCity} onChange={(event) => setForm({ ...form, billingCity: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="font-semibold text-zinc-400">State / Region *</label>
+                <input value={form.billingState} onChange={(event) => setForm({ ...form, billingState: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="font-semibold text-zinc-400">Postal Code *</label>
+                <input value={form.billingPostalCode} onChange={(event) => setForm({ ...form, billingPostalCode: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="font-semibold text-zinc-400">Country *</label>
+                <input value={form.billingCountry} onChange={(event) => setForm({ ...form, billingCountry: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="font-semibold text-zinc-400">GST Number <span className="font-normal text-zinc-600">(optional)</span></label>
+                <input value={form.gstNumber} onChange={(event) => setForm({ ...form, gstNumber: event.target.value.toUpperCase() })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 font-mono uppercase text-white outline-none focus:border-zinc-700" />
+              </div>
+            </div>
+            {message && <p className="text-[10px] text-zinc-400">{message}</p>}
+            <Button type="submit" disabled={saving} className="gap-2">
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {saving ? 'Saving...' : 'Save invoice profile'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white">
+            <FileText className="h-4 w-4 text-zinc-500" /> Client invoices
+          </CardTitle>
+          <CardDescription>Project-bound PDFs available to the agency administrator.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
+                <TableHead className="text-right">PDF</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="py-12 text-center text-zinc-500">No invoices for this client.</TableCell></TableRow>
+              ) : invoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell className="font-mono font-semibold text-white">{invoice.invoiceNumber}</TableCell>
+                  <TableCell className="text-zinc-400">{invoice.project?.name}</TableCell>
+                  <TableCell><Badge className="border-zinc-800 bg-zinc-900 text-zinc-300">{invoice.status.replaceAll('_', ' ')}</Badge></TableCell>
+                  <TableCell className="text-right font-mono text-zinc-300">{formatCurrency(invoice.balanceDue)}</TableCell>
+                  <TableCell className="text-right">
+                    <button type="button" onClick={() => downloadInvoice(invoice)} disabled={downloadingInvoiceId === invoice.id} className="inline-flex h-8 items-center gap-1 border border-zinc-800 px-2 text-[10px] font-semibold text-zinc-300 hover:text-white">
+                      {downloadingInvoiceId === invoice.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} PDF
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ClientDetailDashboard({
   client,
   teamMembers,
@@ -83,17 +276,12 @@ export default function ClientDetailDashboard({
   canManageMetaAccounts,
   onClientUpdated,
 }: ClientDetailDashboardProps) {
-  const [currencyState, setCurrencyState] = React.useState('USD');
-  React.useEffect(() => {
-    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
-      if (workspace?.organization?.currency) setCurrencyState(workspace.organization.currency);
-    }).catch(() => undefined);
-  }, []);
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [metaCampaigns, setMetaCampaigns] = React.useState<any[]>([]);
   const [metaLeads, setMetaLeads] = React.useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = React.useState(true);
   const [loadingMeta, setLoadingMeta] = React.useState(true);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<'overview' | 'billing'>('overview');
 
   // Meta Portal Relocated States
   const [isLeadsModalOpen, setIsLeadsModalOpen] = React.useState(false);
@@ -392,26 +580,34 @@ export default function ClientDetailDashboard({
         </div>
       </div>
 
+      <div className="flex gap-5 border-b border-zinc-850">
+        <button type="button" onClick={() => setActiveWorkspaceTab('overview')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'overview' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
+          Operations overview
+        </button>
+        <button type="button" onClick={() => setActiveWorkspaceTab('billing')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'billing' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
+          Billing & invoices
+        </button>
+      </div>
+
+      {activeWorkspaceTab === 'billing' && (
+        <ClientBillingPanel client={client} onClientUpdated={onClientUpdated} />
+      )}
+
       {/* Main Splits */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Left Column: Commercials, Team and Tasks */}
+      <div className={activeWorkspaceTab === 'overview' ? 'grid gap-6 md:grid-cols-3' : 'hidden'}>
+        {/* Left Column: Account, Team and Tasks */}
         <div className="md:col-span-1 space-y-6">
           
-          {/* General Commercials Card */}
+          {/* Client Account Card */}
           <Card>
             <CardHeader className="pb-3 border-b border-zinc-900">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Account Details</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-400 flex items-center gap-1.5">
-                      <span className="font-bold text-zinc-500 w-3.5 text-center text-xs select-none">{getCurrencySymbol(currencyState)}</span>
-                      <span>Retainer Value</span>
-                    </span>
-                    <span className="font-bold text-white font-mono">
-                      {client.upsellOpportunityValue ? `${formatCurrency(client.upsellOpportunityValue)}/yr` : `${formatCurrency(20000)}/yr`}
-                    </span>
-                  </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-zinc-400 flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-zinc-500" /> Domain</span>
+                <span className="font-semibold text-zinc-300">{client.domain || 'Not configured'}</span>
+              </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400 flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-zinc-500" /> Agency Service</span>
                 <span className="font-semibold text-zinc-300">{client.agencyType || 'Digital Marketing'}</span>
@@ -809,7 +1005,7 @@ export default function ClientDetailDashboard({
                 ) : (
                   <Card>
                     <CardContent className="p-6 text-center text-xs text-zinc-500">
-                      No Meta performance data has been synchronized for this account. Use "Sync Account Metrics" to pull delivery data from Meta.
+                      No Meta performance data has been synchronized for this account. Use &ldquo;Sync Account Metrics&rdquo; to pull delivery data from Meta.
                     </CardContent>
                   </Card>
                 )}

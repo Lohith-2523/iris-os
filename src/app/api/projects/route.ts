@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { parseProjectCommercials } from '@/lib/projects/commercial';
+import {
+  createAndSendProjectInvoice,
+  InvoiceServiceError,
+} from '@/lib/invoices/service';
+import { publicAppUrl } from '@/lib/app-url';
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,6 +83,12 @@ export async function POST(request: NextRequest) {
       timeline,
       serviceLine,
       budget,
+      paymentType,
+      paymentAmount,
+      paymentFrequency,
+      paymentStartDate,
+      paymentTerms,
+      autoGenerateInvoice,
       clientId,
       memberIds, // array of User IDs
       deliverables, // array of strings for initial tasks
@@ -85,6 +97,17 @@ export async function POST(request: NextRequest) {
 
     if (!name || !clientId) {
       return NextResponse.json({ error: 'Missing name or clientId' }, { status: 400 });
+    }
+
+    const commercials = parseProjectCommercials({
+      paymentType,
+      paymentAmount,
+      paymentFrequency,
+      paymentStartDate: paymentStartDate || startDate,
+      paymentTerms,
+    });
+    if (commercials.error) {
+      return NextResponse.json({ error: commercials.error }, { status: 400 });
     }
 
     // Resolve organization ID from the client
@@ -114,6 +137,8 @@ export async function POST(request: NextRequest) {
         timeline: timeline || null,
         serviceLine: serviceLine || null,
         budget: budget !== undefined && budget !== '' ? parseFloat(budget) : null,
+        ...commercials.data,
+        autoGenerateInvoice: Boolean(autoGenerateInvoice),
         orgId,
         clientId,
       }
@@ -200,7 +225,30 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ success: true, project: projectWithRelations });
+    let invoice = null;
+    let invoiceWarning: string | null = null;
+    if (newProject.autoGenerateInvoice) {
+      try {
+        invoice = await createAndSendProjectInvoice({
+          projectId: newProject.id,
+          orgId,
+          baseUrl: publicAppUrl(request),
+          automationKey: `project-initialization:${newProject.id}`,
+          source: 'PROJECT_INITIALIZATION',
+        });
+      } catch (error) {
+        invoiceWarning = error instanceof InvoiceServiceError
+          ? error.message
+          : 'The project was created, but its automatic invoice could not be generated.';
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      project: projectWithRelations,
+      invoice,
+      invoiceWarning,
+    });
   } catch (error: any) {
     console.error('Error creating project:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
@@ -226,12 +274,29 @@ export async function PUT(request: NextRequest) {
       timeline,
       serviceLine,
       budget,
+      paymentType,
+      paymentAmount,
+      paymentFrequency,
+      paymentStartDate,
+      paymentTerms,
+      autoGenerateInvoice,
       memberIds,
       stages // Array<{ id?: string, name: string, startDate?: string, endDate?: string }>
     } = body;
 
     if (!projectId) {
       return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
+    }
+
+    const commercials = parseProjectCommercials({
+      paymentType,
+      paymentAmount,
+      paymentFrequency,
+      paymentStartDate,
+      paymentTerms,
+    }, { partial: true });
+    if (commercials.error) {
+      return NextResponse.json({ error: commercials.error }, { status: 400 });
     }
 
     const currentProject = await prisma.project.findUnique({
@@ -259,6 +324,8 @@ export async function PUT(request: NextRequest) {
         timeline: timeline !== undefined ? timeline : undefined,
         serviceLine: serviceLine !== undefined ? serviceLine : undefined,
         budget: budget !== undefined ? (budget === '' || budget === null ? null : parseFloat(budget)) : undefined,
+        ...commercials.data,
+        autoGenerateInvoice: autoGenerateInvoice !== undefined ? Boolean(autoGenerateInvoice) : undefined,
       }
     });
 

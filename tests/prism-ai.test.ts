@@ -14,8 +14,8 @@ describe('PrismAIService safe server fallbacks', () => {
   });
 
   it('does not invent financial leakage when the service is unavailable', async () => {
-    const answer = await PrismAIService.askPrism('Highlight profit leaks');
-    expect(answer.result).toContain('unavailable');
-    expect(answer.result).toContain('No synthetic organization data');
+    await expect(PrismAIService.askPrism('Highlight profit leaks')).rejects.toThrow(
+      'Prism AI is currently unavailable. No synthetic organization data was returned.',
+    );
   });
 });

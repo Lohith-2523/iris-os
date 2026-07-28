@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
-import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
+import { ledgerRevenueEntries, sumLedgerRevenue } from '@/lib/finance/ledger-revenue';
+import { clientPortfolioValueForYear } from '@/lib/clients/portfolio-value';
 
 type RevenueTransaction = {
   amount: number;
@@ -10,44 +11,19 @@ type RevenueTransaction = {
   client: { id: string; name: string; domain: string | null } | null;
 };
 
-type Retainer = {
-  amount: number;
-  frequency: string;
-  startDate: Date;
-  client: { id: string; name: string; domain: string | null };
-};
-
 function getFinanceMetrics(
-  invoices: Array<{ amount: number; status: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } }>,
+  invoices: Array<{ amount: number; paidAmount: number; status: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } }>,
   expenses: Array<{ amount: number }>,
   transactions: RevenueTransaction[] = [],
-  retainers: Retainer[] = [],
 ) {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-  const paidInvoices = invoices.filter((invoice) => invoice.status === 'PAID');
-  const transactionRevenue = transactions.filter((transaction) =>
-    transaction.category === 'Revenue' && transaction.amount > 0
-  );
-  const retainerRevenue = retainers.flatMap((retainer) =>
-    generateRecurringOccurrences(retainer.startDate, retainer.amount, retainer.frequency)
-      .map((occurrence) => ({ ...occurrence, client: retainer.client }))
-  );
+  const transactionRevenue = ledgerRevenueEntries(transactions);
   const revenueForMonth = (year: number, month: number) => {
-    const invoiceRevenue = paidInvoices
-      .filter((invoice) => {
-        const issued = new Date(invoice.issuedDate);
-        return issued.getFullYear() === year && issued.getMonth() === month;
-      })
-      .reduce((sum, invoice) => sum + invoice.amount, 0);
-    const oneTimeRevenue = transactionRevenue
+    return transactionRevenue
       .filter((transaction) => transaction.date.getFullYear() === year && transaction.date.getMonth() === month)
       .reduce((sum, transaction) => sum + transaction.amount, 0);
-    const recurringRevenue = retainerRevenue
-      .filter((occurrence) => occurrence.date.getFullYear() === year && occurrence.date.getMonth() === month)
-      .reduce((sum, occurrence) => sum + occurrence.amount, 0);
-    return invoiceRevenue + oneTimeRevenue + recurringRevenue;
   };
   const previousDate = new Date(currentYear, currentMonth - 1, 1);
   const currentMonthRevenue = revenueForMonth(currentYear, currentMonth);
@@ -57,16 +33,6 @@ function getFinanceMetrics(
     : null;
 
   const byClient = new Map<string, { id: string; name: string; domain: string; revenue: number }>();
-  for (const invoice of paidInvoices) {
-    const current = byClient.get(invoice.client.id) || {
-      id: invoice.client.id,
-      name: invoice.client.name,
-      domain: invoice.client.domain || '',
-      revenue: 0,
-    };
-    current.revenue += invoice.amount;
-    byClient.set(invoice.client.id, current);
-  }
   for (const transaction of transactionRevenue) {
     if (!transaction.client) continue;
     const current = byClient.get(transaction.client.id) || {
@@ -77,16 +43,6 @@ function getFinanceMetrics(
     };
     current.revenue += transaction.amount;
     byClient.set(transaction.client.id, current);
-  }
-  for (const occurrence of retainerRevenue) {
-    const current = byClient.get(occurrence.client.id) || {
-      id: occurrence.client.id,
-      name: occurrence.client.name,
-      domain: occurrence.client.domain || '',
-      revenue: 0,
-    };
-    current.revenue += occurrence.amount;
-    byClient.set(occurrence.client.id, current);
   }
   const totalClientRevenue = [...byClient.values()].reduce((sum, client) => sum + client.revenue, 0);
   const revenueByClient = [...byClient.values()]
@@ -108,11 +64,12 @@ function getFinanceMetrics(
   });
 
   return {
-    invoiceGrossBillings: invoices.reduce((sum, invoice) => sum + invoice.amount, 0),
-    grossBillings: invoices.reduce((sum, invoice) => sum + invoice.amount, 0)
-      + transactionRevenue.reduce((sum, transaction) => sum + transaction.amount, 0)
-      + retainerRevenue.reduce((sum, occurrence) => sum + occurrence.amount, 0),
-    outstandingAmount: invoices.filter((invoice) => invoice.status === 'UNPAID' || invoice.status === 'OVERDUE').reduce((sum, invoice) => sum + invoice.amount, 0),
+    // Ledger entries are the sole source of recognized revenue. Invoices only
+    // represent receivables and therefore contribute to outstanding balances.
+    grossBillings: sumLedgerRevenue(transactionRevenue),
+    outstandingAmount: invoices
+      .filter((invoice) => invoice.status === 'UNPAID' || invoice.status === 'PARTIALLY_PAID')
+      .reduce((sum, invoice) => sum + Math.max(0, invoice.amount - invoice.paidAmount), 0),
     totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
     currentMonthRevenue,
     previousMonthRevenue,
@@ -152,7 +109,7 @@ export async function GET(request: NextRequest) {
       case 'dashboard': {
         // Compute dashboard executive metrics
         const revenueClientScope = user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {};
-        const [clients, allClients, projects, invoices, expenses, transactions, retainers] = await Promise.all([
+        const [clients, allClients, projects, invoices, expenses, transactions] = await Promise.all([
           prisma.client.findMany({ where: { orgId, status: 'ACTIVE', ...clientScope } }),
           prisma.client.findMany({ where: { orgId, ...clientScope } }),
           prisma.project.findMany({
@@ -163,10 +120,6 @@ export async function GET(request: NextRequest) {
           user.role.toLowerCase() === 'client' ? Promise.resolve([]) : prisma.expense.findMany({ where: { orgId } }),
           prisma.transaction.findMany({
             where: { orgId, category: 'Revenue', amount: { gt: 0 }, ...revenueClientScope },
-            include: { client: true },
-          }),
-          prisma.recurringRetainer.findMany({
-            where: { orgId, ...revenueClientScope },
             include: { client: true },
           }),
         ]);
@@ -185,7 +138,7 @@ export async function GET(request: NextRequest) {
           }));
         const activeProjectsCount = activeProjects.length;
         
-        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions, retainers);
+        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions);
 
         const projectRisks = projects
           .filter(p => p.riskLevel === 'HIGH' || p.riskLevel === 'MEDIUM')
@@ -208,7 +161,7 @@ export async function GET(request: NextRequest) {
 
       case 'finance': {
         const revenueClientScope = user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {};
-        const [invoices, expenses, transactions, retainers] = await Promise.all([
+        const [invoices, expenses, transactions] = await Promise.all([
           prisma.invoice.findMany({
             where: { orgId, ...revenueClientScope },
             orderBy: { issuedDate: 'desc' },
@@ -224,13 +177,9 @@ export async function GET(request: NextRequest) {
             where: { orgId, category: 'Revenue', amount: { gt: 0 }, ...revenueClientScope },
             include: { client: true },
           }),
-          prisma.recurringRetainer.findMany({
-            where: { orgId, ...revenueClientScope },
-            include: { client: true },
-          }),
         ]);
 
-        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions, retainers);
+        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions);
 
         const recentInvoices = invoices.slice(0, 10).map(inv => ({
           id: inv.id,
@@ -264,58 +213,29 @@ export async function GET(request: NextRequest) {
               : {})
           },
           include: {
-            invoices: true,
+            projects: {
+              select: {
+                startDate: true,
+                endDate: true,
+                paymentType: true,
+                paymentAmount: true,
+                paymentFrequency: true,
+                paymentStartDate: true,
+              },
+            },
+            invoices: {
+              include: {
+                project: { select: { id: true, name: true } },
+              },
+              orderBy: { issuedDate: 'desc' },
+            },
           },
           orderBy: { name: 'asc' }
         });
 
-        // Query financial records from their owning models instead of relying on
-        // generated reverse relations on Client. This keeps the endpoint safe
-        // across Prisma client refreshes and scopes every record to this org.
-        const clientIds = clients.map((client) => client.id);
-        const [revenueTransactions, retainers] = clientIds.length > 0
-          ? await Promise.all([
-              prisma.transaction.findMany({
-                where: {
-                  orgId,
-                  clientId: { in: clientIds },
-                  category: 'Revenue',
-                  amount: { gt: 0 },
-                },
-                select: { clientId: true, amount: true },
-              }),
-              prisma.recurringRetainer.findMany({
-                where: { orgId, clientId: { in: clientIds } },
-                select: { clientId: true, amount: true, frequency: true, startDate: true },
-              }),
-            ])
-          : [[], []] as const;
-
-        const revenueByClientId = new Map<string, number>();
-        for (const transaction of revenueTransactions) {
-          if (!transaction.clientId) continue;
-          revenueByClientId.set(
-            transaction.clientId,
-            (revenueByClientId.get(transaction.clientId) ?? 0) + transaction.amount,
-          );
-        }
-        for (const retainer of retainers) {
-          const recurringRevenue = generateRecurringOccurrences(
-            retainer.startDate,
-            retainer.amount,
-            retainer.frequency,
-          ).reduce((sum, occurrence) => sum + occurrence.amount, 0);
-          revenueByClientId.set(
-            retainer.clientId,
-            (revenueByClientId.get(retainer.clientId) ?? 0) + recurringRevenue,
-          );
-        }
-
+        const portfolioYear = new Date().getUTCFullYear();
         const formattedClients = clients.map(c => {
-          const revenue = c.invoices
-            .filter(inv => inv.status === 'PAID')
-            .reduce((sum, inv) => sum + inv.amount, 0)
-            + (revenueByClientId.get(c.id) ?? 0);
+          const contractValue = clientPortfolioValueForYear(c.projects, portfolioYear);
 
           return {
             id: c.id,
@@ -330,9 +250,31 @@ export async function GET(request: NextRequest) {
             upsellOpportunityValue: c.upsellOpportunityValue,
             agencyType: c.agencyType,
             businessModel: c.businessModel,
+            legalEntityName: c.legalEntityName,
+            billingAddressLine1: c.billingAddressLine1,
+            billingAddressLine2: c.billingAddressLine2,
+            billingCity: c.billingCity,
+            billingState: c.billingState,
+            billingPostalCode: c.billingPostalCode,
+            billingCountry: c.billingCountry,
+            gstNumber: c.gstNumber,
             adAccountId: c.adAccountId,
             metadata: c.metadata || null,
-            revenue
+            invoices: c.invoices.map((invoice) => ({
+              id: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              amount: invoice.amount,
+              paidAmount: invoice.paidAmount,
+              balanceDue: Math.max(0, invoice.amount - invoice.paidAmount),
+              status: invoice.status,
+              dueDate: invoice.dueDate,
+              issuedDate: invoice.issuedDate,
+              deliveryStatus: invoice.deliveryStatus,
+              project: invoice.project,
+              downloadUrl: `/api/invoices/${invoice.id}/pdf`,
+            })),
+            contractValue,
+            portfolioYear,
           };
         });
 

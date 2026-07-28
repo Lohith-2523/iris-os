@@ -39,6 +39,11 @@ export default function ProjectsPage() {
     name: '',
     serviceLine: 'Paid Ads & CRO',
     budget: '',
+    paymentType: 'RETAINER',
+    paymentAmount: '',
+    paymentFrequency: 'monthly',
+    paymentStartDate: '',
+    paymentTerms: 'NET_30',
     timeline: '',
     startDate: '',
     endDate: '',
@@ -59,6 +64,12 @@ export default function ProjectsPage() {
     startDate: new Date().toISOString().split('T')[0],
     deadline: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     budget: '',
+    paymentType: 'RETAINER',
+    paymentAmount: '',
+    paymentFrequency: 'monthly',
+    paymentStartDate: new Date().toISOString().split('T')[0],
+    paymentTerms: 'NET_30',
+    autoGenerateInvoice: false,
     status: 'IN_PROGRESS',
     riskLevel: 'LOW',
     memberIds: [] as string[],
@@ -141,6 +152,13 @@ export default function ProjectsPage() {
         name: selectedProject.name || '',
         serviceLine: selectedProject.serviceLine || 'Paid Ads & CRO',
         budget: selectedProject.budget ? selectedProject.budget.toString() : '',
+        paymentType: selectedProject.paymentType || 'RETAINER',
+        paymentAmount: selectedProject.paymentAmount ? selectedProject.paymentAmount.toString() : '',
+        paymentFrequency: selectedProject.paymentFrequency || 'monthly',
+        paymentStartDate: selectedProject.paymentStartDate
+          ? selectedProject.paymentStartDate.split('T')[0]
+          : (selectedProject.startDate ? selectedProject.startDate.split('T')[0] : ''),
+        paymentTerms: selectedProject.paymentTerms || 'NET_30',
         timeline: selectedProject.timeline || '',
         startDate: selectedProject.startDate ? selectedProject.startDate.split('T')[0] : '',
         endDate: selectedProject.endDate ? selectedProject.endDate.split('T')[0] : '',
@@ -156,7 +174,7 @@ export default function ProjectsPage() {
   // Input change handler for creation form with stage auto-division
   const handleCreationInputChange = (name: string, value: any) => {
     setNewProjectForm(prev => {
-      let nextData = { ...prev, [name]: value };
+      const nextData = { ...prev, [name]: value };
       if (name === 'startDate' || name === 'deadline') {
         const start = name === 'startDate' ? value : prev.startDate;
         const end = name === 'deadline' ? value : prev.deadline;
@@ -207,7 +225,7 @@ export default function ProjectsPage() {
   // Input change handler for edit form with stage auto-division
   const handleEditInputChange = (name: string, value: any) => {
     setEditForm((prev: any) => {
-      let nextData = { ...prev, [name]: value };
+      const nextData = { ...prev, [name]: value };
       if (name === 'startDate' || name === 'endDate') {
         const start = name === 'startDate' ? value : prev.startDate;
         const end = name === 'endDate' ? value : prev.endDate;
@@ -259,10 +277,14 @@ export default function ProjectsPage() {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
-    const { name, clientId, budget } = newProjectForm;
+    const { name, clientId, budget, paymentAmount, paymentStartDate } = newProjectForm;
 
     if (!name || !clientId) {
       setFormError('Project Name and Client Association are required.');
+      return;
+    }
+    if (!paymentAmount || Number(paymentAmount) <= 0 || !paymentStartDate) {
+      setFormError('A positive client payment and payment start date are required.');
       return;
     }
 
@@ -278,6 +300,12 @@ export default function ProjectsPage() {
           startDate: newProjectForm.startDate,
           endDate: newProjectForm.deadline || null,
           budget: budget ? parseFloat(budget) : null,
+          paymentType: newProjectForm.paymentType,
+          paymentAmount: Number(newProjectForm.paymentAmount),
+          paymentFrequency: newProjectForm.paymentType === 'RETAINER' ? newProjectForm.paymentFrequency : null,
+          paymentStartDate: newProjectForm.paymentStartDate,
+          paymentTerms: newProjectForm.paymentTerms,
+          autoGenerateInvoice: newProjectForm.autoGenerateInvoice,
           status: newProjectForm.status,
           riskLevel: newProjectForm.riskLevel,
           memberIds: newProjectForm.memberIds,
@@ -291,6 +319,9 @@ export default function ProjectsPage() {
       if (res.ok) {
         const data = await res.json();
         setProjects((current) => [data.project, ...current.filter((project) => project.id !== data.project.id)]);
+        if (data.invoiceWarning) {
+          alert(data.invoiceWarning);
+        }
         setIsCreateOpen(false);
         setNewProjectForm({
           name: '',
@@ -300,6 +331,12 @@ export default function ProjectsPage() {
           startDate: new Date().toISOString().split('T')[0],
           deadline: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           budget: '',
+          paymentType: 'RETAINER',
+          paymentAmount: '',
+          paymentFrequency: 'monthly',
+          paymentStartDate: new Date().toISOString().split('T')[0],
+          paymentTerms: 'NET_30',
+          autoGenerateInvoice: false,
           status: 'IN_PROGRESS',
           riskLevel: 'LOW',
           memberIds: [],
@@ -335,6 +372,11 @@ export default function ProjectsPage() {
           name: editForm.name,
           serviceLine: editForm.serviceLine,
           budget: editForm.budget,
+          paymentType: editForm.paymentType,
+          paymentAmount: editForm.paymentAmount,
+          paymentFrequency: editForm.paymentType === 'RETAINER' ? editForm.paymentFrequency : null,
+          paymentStartDate: editForm.paymentStartDate,
+          paymentTerms: editForm.paymentTerms,
           timeline: editForm.timeline,
           startDate: editForm.startDate,
           endDate: editForm.endDate || null,
@@ -365,10 +407,10 @@ export default function ProjectsPage() {
     const total = projects.length;
     const active = projects.filter(p => p.status === 'IN_PROGRESS').length;
     const hold = projects.filter(p => p.status === 'ON_HOLD').length;
-    const budgetSum = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
+    const contractedValue = projects.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
     const highRisk = projects.filter(p => p.riskLevel === 'HIGH').length;
 
-    return { total, active, hold, budgetSum, highRisk };
+    return { total, active, hold, contractedValue, highRisk };
   }, [projects]);
 
   const getAccentColorStyle = React.useCallback((clientId: string) => {
@@ -468,10 +510,10 @@ export default function ProjectsPage() {
 
         <Card>
           <CardHeader className="pb-1.5">
-            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Committed Portfolio Budget</CardTitle>
+            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Project Contract Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold font-mono tracking-tight text-white">{formatCurrency(stats.budgetSum)}</div>
+            <div className="text-xl font-bold font-mono tracking-tight text-white">{formatCurrency(stats.contractedValue)}</div>
           </CardContent>
         </Card>
 
@@ -496,7 +538,7 @@ export default function ProjectsPage() {
         </div>
       ) : clients.length === 0 ? (
         <div className="p-12 border border-dashed border-zinc-850 text-center text-zinc-650 italic rounded-xl">
-          No clients onboarded. Click "New Project" or onboard clients first.
+          No clients onboarded. Click &ldquo;New Project&rdquo; or onboard clients first.
         </div>
       ) : (
         <div ref={gridRef} className="grid gap-4 grid-cols-1 md:grid-cols-3">
@@ -549,7 +591,7 @@ export default function ProjectsPage() {
                     <div className="space-y-3.5 flex-1 overflow-y-auto pr-2 mt-4 scrollbar-none">
                       {clientProjects.length === 0 ? (
                         <div className="py-12 border border-dashed border-zinc-850 text-center text-zinc-650 italic rounded-xl bg-zinc-900/10">
-                          No campaigns/projects initiated yet. Click "New Project" to create one.
+                          No campaigns/projects initiated yet. Click &ldquo;New Project&rdquo; to create one.
                         </div>
                       ) : (
                         clientProjects.map((proj) => {
@@ -575,8 +617,13 @@ export default function ProjectsPage() {
                                     <span className="font-semibold text-zinc-300">{proj.serviceLine || 'Paid Ads'}</span>
                                   </div>
                                   <div>
-                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">Retainer Info</span>
-                                    <span className="font-mono text-zinc-300 font-semibold">{formatCurrency(proj.budget || 0)}</span>
+                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">
+                                      {proj.paymentType === 'ONE_TIME' ? 'One-time Payment' : 'Retainer'}
+                                    </span>
+                                    <span className="font-mono text-zinc-300 font-semibold">
+                                      {formatCurrency(proj.paymentAmount || 0)}
+                                      {proj.paymentType !== 'ONE_TIME' && proj.paymentFrequency ? ` / ${proj.paymentFrequency}` : ''}
+                                    </span>
                                   </div>
                                   <div>
                                     <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">Timeline</span>
@@ -763,9 +810,95 @@ export default function ProjectsPage() {
                 </div>
               </div>
 
+              <div className="space-y-3 border-y border-zinc-900 py-4">
+                <div>
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Project Commercials</span>
+                  <span className="text-[9px] text-zinc-600">Client billing is configured independently for every project.</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Payment Type *</label>
+                    <select
+                      value={newProjectForm.paymentType}
+                      onChange={(e) => handleCreationInputChange('paymentType', e.target.value)}
+                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700"
+                    >
+                      <option value="RETAINER">Retainer</option>
+                      <option value="ONE_TIME">One-time payment</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Client Payment ({getCurrencySymbol(currencyState)}) *</label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      placeholder="e.g. 5000"
+                      value={newProjectForm.paymentAmount}
+                      onChange={(e) => handleCreationInputChange('paymentAmount', e.target.value)}
+                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Frequency</label>
+                    <select
+                      value={newProjectForm.paymentFrequency}
+                      onChange={(e) => handleCreationInputChange('paymentFrequency', e.target.value)}
+                      disabled={newProjectForm.paymentType === 'ONE_TIME'}
+                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">
+                      {newProjectForm.paymentType === 'ONE_TIME' ? 'Payment Date *' : 'Retainer Start Date *'}
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={newProjectForm.paymentStartDate}
+                      onChange={(e) => handleCreationInputChange('paymentStartDate', e.target.value)}
+                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Payment Terms</label>
+                    <select
+                      value={newProjectForm.paymentTerms}
+                      onChange={(e) => handleCreationInputChange('paymentTerms', e.target.value)}
+                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700"
+                    >
+                      <option value="DUE_ON_RECEIPT">Due on Receipt</option>
+                      <option value="NET_15">Net 15 Days</option>
+                      <option value="NET_30">Net 30 Days</option>
+                      <option value="NET_45">Net 45 Days</option>
+                      <option value="NET_60">Net 60 Days</option>
+                    </select>
+                  </div>
+                </div>
+                <label className="flex cursor-pointer items-start gap-3 border border-zinc-850 bg-zinc-950/50 p-3">
+                  <input
+                    type="checkbox"
+                    checked={newProjectForm.autoGenerateInvoice}
+                    onChange={(event) => handleCreationInputChange('autoGenerateInvoice', event.target.checked)}
+                    className="mt-0.5 h-3.5 w-3.5 accent-white"
+                  />
+                  <span>
+                    <span className="block text-[11px] font-semibold text-white">Generate and send the initial invoice automatically</span>
+                    <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">
+                      Uses this project&apos;s payment amount and terms. Agency and client billing addresses must be complete.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Budget ({getCurrencySymbol(currencyState)})</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Internal Budget ({getCurrencySymbol(currencyState)})</label>
                   <input
                     type="number"
                     placeholder="e.g. 20000"
@@ -1032,13 +1165,81 @@ export default function ProjectsPage() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Retainer Allocation ({getCurrencySymbol(currencyState)})</label>
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Internal Delivery Budget ({getCurrencySymbol(currencyState)})</label>
                       <input
                         type="number"
                         value={editForm.budget}
                         onChange={(e) => handleEditInputChange('budget', e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-white outline-none font-mono"
                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 border-y border-zinc-900 py-3">
+                    <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Project Commercials</label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-semibold text-zinc-500">Payment Type</label>
+                        <select
+                          value={editForm.paymentType}
+                          onChange={(e) => handleEditInputChange('paymentType', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-white outline-none"
+                        >
+                          <option value="RETAINER">Retainer</option>
+                          <option value="ONE_TIME">One-time payment</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-semibold text-zinc-500">Client Payment ({getCurrencySymbol(currencyState)})</label>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          required
+                          value={editForm.paymentAmount}
+                          onChange={(e) => handleEditInputChange('paymentAmount', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-white outline-none font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-semibold text-zinc-500">Frequency</label>
+                        <select
+                          value={editForm.paymentFrequency}
+                          onChange={(e) => handleEditInputChange('paymentFrequency', e.target.value)}
+                          disabled={editForm.paymentType === 'ONE_TIME'}
+                          className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-white outline-none disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="yearly">Yearly</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-semibold text-zinc-500">
+                          {editForm.paymentType === 'ONE_TIME' ? 'Payment Date' : 'Retainer Start Date'}
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={editForm.paymentStartDate}
+                          onChange={(e) => handleEditInputChange('paymentStartDate', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-white outline-none font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-[9px] font-semibold text-zinc-500">Payment Terms</label>
+                        <select
+                          value={editForm.paymentTerms}
+                          onChange={(e) => handleEditInputChange('paymentTerms', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-white outline-none"
+                        >
+                          <option value="DUE_ON_RECEIPT">Due on Receipt</option>
+                          <option value="NET_15">Net 15 Days</option>
+                          <option value="NET_30">Net 30 Days</option>
+                          <option value="NET_45">Net 45 Days</option>
+                          <option value="NET_60">Net 60 Days</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -1247,10 +1448,21 @@ export default function ProjectsPage() {
               /* VIEW MODE */
               <div className="space-y-5 flex-1">
                 {/* Commercial stats */}
-                <div className="grid gap-3 grid-cols-3 bg-zinc-950/20 p-3 border border-zinc-900">
+                <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 bg-zinc-950/20 p-3 border border-zinc-900">
                   <div>
-                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Retainer / Budget</span>
-                    <span className="font-mono font-bold text-white text-xs">{formatCurrency(selectedProject.budget || 0)}</span>
+                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Payment Type</span>
+                    <span className="font-bold text-white text-xs">
+                      {selectedProject.paymentType === 'ONE_TIME' ? 'One-time' : 'Retainer'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Client Payment</span>
+                    <span className="font-mono font-bold text-white text-xs">
+                      {formatCurrency(selectedProject.paymentAmount || 0)}
+                      {selectedProject.paymentType !== 'ONE_TIME' && selectedProject.paymentFrequency
+                        ? ` / ${selectedProject.paymentFrequency}`
+                        : ''}
+                    </span>
                   </div>
                   <div>
                     <span className="block text-[8px] text-zinc-650 uppercase font-bold">Service Line</span>
@@ -1259,6 +1471,23 @@ export default function ProjectsPage() {
                   <div>
                     <span className="block text-[8px] text-zinc-650 uppercase font-bold">Status Badge</span>
                     <span className="font-bold text-white uppercase">{selectedProject.status}</span>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 grid-cols-2 border border-zinc-900 bg-zinc-950/20 p-3">
+                  <div>
+                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Payment Date</span>
+                    <span className="font-mono text-[10px] font-semibold text-zinc-300">
+                      {selectedProject.paymentStartDate
+                        ? new Date(selectedProject.paymentStartDate).toLocaleDateString()
+                        : 'Not configured'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Payment Terms</span>
+                    <span className="text-[10px] font-semibold text-zinc-300">
+                      {selectedProject.paymentTerms?.replaceAll('_', ' ') || 'Not configured'}
+                    </span>
                   </div>
                 </div>
 

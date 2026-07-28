@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const [leads, expenseTransactions, closedLeadCount, sourcedRetainers] = await Promise.all([
+    const [leads, expenseTransactions, closedLeadCount, sourcedProjectPayments] = await Promise.all([
       prisma.agencyLead.findMany({
         where: { orgId: user.orgId },
         orderBy: { createdTime: 'desc' },
@@ -37,9 +37,10 @@ export async function GET(request: NextRequest) {
           status: { equals: 'closed', mode: 'insensitive' },
         },
       }),
-      prisma.recurringRetainer.findMany({
+      prisma.project.findMany({
         where: {
           orgId: user.orgId,
+          paymentAmount: { gt: 0 },
           client: {
             sourceLead: {
               is: {
@@ -48,14 +49,17 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        select: { amount: true },
+        select: { paymentAmount: true },
       }),
     ]);
 
     const metrics = calculateLeadEconomics({
       expenseTransactions,
       closedLeadCount,
-      sourcedRetainerRevenue: sourcedRetainers.reduce((total, retainer) => total + retainer.amount, 0),
+      sourcedRetainerRevenue: sourcedProjectPayments.reduce(
+        (total, project) => total + (project.paymentAmount || 0),
+        0,
+      ),
     });
 
     return NextResponse.json({

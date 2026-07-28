@@ -17,15 +17,23 @@ describe('workspace cache policy', () => {
       amount: 1_000,
       type: 'revenue',
     })).toEqual({
-      invalidateTags: ['transactions', 'finance', 'dashboard', 'clients', 'leads'],
+      invalidateTags: ['transactions', 'invoices', 'finance', 'dashboard', 'clients', 'leads'],
       patchKind: 'transactions',
     });
   });
 
   it('patches client collections instead of reloading the full portfolio', () => {
     expect(workspaceMutationPlan('/api/clients?clientId=client-1', 'DELETE', null)).toEqual({
-      invalidateTags: ['clients', 'projects', 'tasks', 'retainers', 'finance', 'dashboard', 'leads'],
+      invalidateTags: ['clients', 'projects', 'tasks', 'retainers', 'invoices', 'finance', 'dashboard', 'leads'],
       patchKind: 'clients',
+    });
+  });
+
+  it('invalidates invoice dependants after a project invoice is created', () => {
+    expect(workspaceReadTags('/api/invoices?outstanding=true')).toEqual(['invoices']);
+    expect(workspaceMutationPlan('/api/invoices', 'POST', { projectId: 'project-1' })).toEqual({
+      invalidateTags: ['invoices', 'finance', 'dashboard', 'clients', 'projects'],
+      patchKind: 'invoices',
     });
   });
 

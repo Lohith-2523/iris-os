@@ -98,6 +98,14 @@ const AGENCY_INDUSTRIES = [
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
   const [orgName, setOrgName] = React.useState('Apex Creative Group');
+  const [legalEntityName, setLegalEntityName] = React.useState('');
+  const [billingAddressLine1, setBillingAddressLine1] = React.useState('');
+  const [billingAddressLine2, setBillingAddressLine2] = React.useState('');
+  const [billingCity, setBillingCity] = React.useState('');
+  const [billingState, setBillingState] = React.useState('');
+  const [billingPostalCode, setBillingPostalCode] = React.useState('');
+  const [billingCountry, setBillingCountry] = React.useState('India');
+  const [gstNumber, setGstNumber] = React.useState('');
   const [billingEmail, setBillingEmail] = React.useState('billing@apex.co');
   const [currency, setCurrency] = React.useState('USD');
   const [hasFinancialData, setHasFinancialData] = React.useState(false);
@@ -326,6 +334,14 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json();
           setOrgName(data.name);
+          setLegalEntityName(data.legalEntityName || '');
+          setBillingAddressLine1(data.billingAddressLine1 || '');
+          setBillingAddressLine2(data.billingAddressLine2 || '');
+          setBillingCity(data.billingCity || '');
+          setBillingState(data.billingState || '');
+          setBillingPostalCode(data.billingPostalCode || '');
+          setBillingCountry(data.billingCountry || 'India');
+          setGstNumber(data.gstNumber || '');
           setPlan(data.plan || 'BASIC');
           setHasAddon(data.hasAddon || false);
           setSelectedTypes(data.agencyTypes || []);
@@ -392,6 +408,14 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: orgName,
+          legalEntityName,
+          billingAddressLine1,
+          billingAddressLine2,
+          billingCity,
+          billingState,
+          billingPostalCode,
+          billingCountry,
+          gstNumber,
           plan,
           hasAddon,
           agencyTypes: selectedTypes,
@@ -506,6 +530,93 @@ export default function SettingsPage() {
                       onChange={(e) => setOrgName(e.target.value)}
                       className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none focus:ring-0 transition-all"
                     />
+                  </div>
+
+                  <div className="rounded border border-zinc-850 bg-zinc-950/35 p-4 space-y-4">
+                    <div>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Agency invoice identity</span>
+                      <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
+                        Legal entity and address fields are required before Iris OS can create a project invoice. GSTIN is optional.
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-zinc-400 block">Legal Entity Name</label>
+                      <input
+                        type="text"
+                        value={legalEntityName}
+                        onChange={(event) => setLegalEntityName(event.target.value)}
+                        placeholder="e.g. Iris Operations Private Limited"
+                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                      />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-semibold text-zinc-400 block">Address Line 1</label>
+                        <input
+                          type="text"
+                          value={billingAddressLine1}
+                          onChange={(event) => setBillingAddressLine1(event.target.value)}
+                          placeholder="Street address"
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-semibold text-zinc-400 block">Address Line 2</label>
+                        <input
+                          type="text"
+                          value={billingAddressLine2}
+                          onChange={(event) => setBillingAddressLine2(event.target.value)}
+                          placeholder="Suite, floor, locality (optional)"
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">City</label>
+                        <input
+                          type="text"
+                          value={billingCity}
+                          onChange={(event) => setBillingCity(event.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">State / Region</label>
+                        <input
+                          type="text"
+                          value={billingState}
+                          onChange={(event) => setBillingState(event.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Postal Code</label>
+                        <input
+                          type="text"
+                          value={billingPostalCode}
+                          onChange={(event) => setBillingPostalCode(event.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-zinc-400 block">Country</label>
+                        <input
+                          type="text"
+                          value={billingCountry}
+                          onChange={(event) => setBillingCountry(event.target.value)}
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="font-semibold text-zinc-400 block">GST Number <span className="font-normal text-zinc-600">(optional)</span></label>
+                        <input
+                          type="text"
+                          value={gstNumber}
+                          onChange={(event) => setGstNumber(event.target.value.toUpperCase())}
+                          placeholder="GSTIN"
+                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 font-mono uppercase text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">

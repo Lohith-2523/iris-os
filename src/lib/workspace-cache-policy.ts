@@ -12,11 +12,13 @@ export type WorkspaceCacheTag =
   | 'transactions'
   | 'subscriptions'
   | 'retainers'
+  | 'invoices'
   | 'leads'
   | 'calendar'
   | 'meta'
   | 'integrations'
   | 'reports'
+  | 'strategies'
   | 'prism';
 
 export type WorkspacePatchKind =
@@ -26,9 +28,11 @@ export type WorkspacePatchKind =
   | 'transactions'
   | 'subscriptions'
   | 'retainers'
+  | 'invoices'
   | 'leads'
   | 'calendar'
-  | 'reports';
+  | 'reports'
+  | 'strategies';
 
 export type WorkspaceMutationPlan = {
   invalidateTags: WorkspaceCacheTag[];
@@ -50,11 +54,13 @@ const ALL_DATA_TAGS: WorkspaceCacheTag[] = [
   'transactions',
   'subscriptions',
   'retainers',
+  'invoices',
   'leads',
   'calendar',
   'meta',
   'integrations',
   'reports',
+  'strategies',
 ];
 
 function pathnameAndSearch(url: string) {
@@ -82,11 +88,13 @@ export function workspaceReadTags(url: string): WorkspaceCacheTag[] {
   if (pathname === '/api/transactions') return ['transactions'];
   if (pathname === '/api/subscriptions') return ['subscriptions'];
   if (pathname === '/api/retainers') return ['retainers'];
+  if (pathname === '/api/invoices') return ['invoices'];
   if (pathname === '/api/agency-leads') return ['leads'];
   if (pathname === '/api/calendar') return ['calendar'];
   if (pathname === '/api/meta-portal') return ['meta'];
   if (pathname === '/api/integrations') return ['integrations'];
   if (pathname === '/api/reports') return ['reports', 'reporting'];
+  if (pathname === '/api/strategies') return ['strategies'];
   if (pathname.startsWith('/api/prism-ai')) return ['prism'];
   return [];
 }
@@ -125,7 +133,7 @@ export function workspaceMutationPlan(
 
   if (pathname === '/api/transactions') {
     return {
-      invalidateTags: ['transactions', 'finance', 'dashboard', 'clients', 'leads'],
+      invalidateTags: ['transactions', 'invoices', 'finance', 'dashboard', 'clients', 'leads'],
       patchKind: 'transactions',
     };
   }
@@ -141,6 +149,12 @@ export function workspaceMutationPlan(
       patchKind: 'retainers',
     };
   }
+  if (pathname === '/api/invoices') {
+    return {
+      invalidateTags: ['invoices', 'finance', 'dashboard', 'clients', 'projects'],
+      patchKind: 'invoices',
+    };
+  }
   if (pathname === '/api/tasks') {
     return {
       invalidateTags: ['tasks', 'projects', 'team', 'dashboard', 'operations'],
@@ -149,13 +163,13 @@ export function workspaceMutationPlan(
   }
   if (pathname === '/api/projects') {
     return {
-      invalidateTags: ['projects', 'tasks', 'clients', 'team', 'dashboard', 'operations'],
+      invalidateTags: ['projects', 'tasks', 'clients', 'invoices', 'finance', 'team', 'dashboard', 'operations'],
       patchKind: 'projects',
     };
   }
   if (pathname === '/api/clients') {
     return {
-      invalidateTags: ['clients', 'projects', 'tasks', 'retainers', 'finance', 'dashboard', 'leads'],
+      invalidateTags: ['clients', 'projects', 'tasks', 'retainers', 'invoices', 'finance', 'dashboard', 'leads'],
       patchKind: 'clients',
     };
   }
@@ -173,6 +187,9 @@ export function workspaceMutationPlan(
       invalidateTags: ['reports', 'reporting', 'dashboard'],
       patchKind: 'reports',
     };
+  }
+  if (pathname === '/api/strategies') {
+    return { invalidateTags: ['strategies'], patchKind: 'strategies' };
   }
   if (pathname === '/api/member' || pathname === '/api/invite') {
     return { invalidateTags: ['team', 'projects', 'tasks', 'workspace'] };

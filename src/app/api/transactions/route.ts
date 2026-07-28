@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { invoicePaymentStatus } from '@/lib/invoices/billing-profile';
 
 function parseImportedDate(value: unknown) {
   if (value instanceof Date) return value;
@@ -30,7 +31,18 @@ export async function GET(request: NextRequest) {
     const transactions = await prisma.transaction.findMany({
       where: { orgId: org.id },
       orderBy: { date: 'desc' },
-      include: { client: { select: { id: true, name: true } } },
+      include: {
+        client: { select: { id: true, name: true } },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            amount: true,
+            paidAmount: true,
+            status: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json(transactions);
@@ -166,7 +178,19 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Single transaction
-      const { date, details, category, type, transactorAccount, yourAccount, amount, referenceNumber, comments, clientId } = body;
+      const {
+        date,
+        details,
+        category,
+        type,
+        transactorAccount,
+        yourAccount,
+        amount,
+        referenceNumber,
+        comments,
+        clientId,
+        invoiceId,
+      } = body;
 
       const parsedAmount = parseFloat(amount);
       if (isNaN(parsedAmount)) {
@@ -192,21 +216,72 @@ export async function POST(request: NextRequest) {
         finalAmount = Math.abs(parsedAmount);
       }
 
-      const newTx = await prisma.transaction.create({
-        data: {
-          date: new Date(date || new Date()),
-          details: details || 'Manual Entry',
-          category: targetCategory,
-          type: targetType,
-          transactorAccount: transactorAccount || '',
-          yourAccount: targetAccount,
-          amount: finalAmount,
-          referenceNumber: referenceNumber || null,
-          comments: comments || null,
-          clientId: targetCategory === 'Revenue' ? resolveClientId(clientId, null) : null,
-          orgId: org.id,
-        },
-        include: { client: { select: { id: true, name: true } } },
+      const selectedInvoice = targetCategory === 'Revenue' && typeof invoiceId === 'string' && invoiceId
+        ? await prisma.invoice.findFirst({
+            where: {
+              id: invoiceId,
+              orgId: org.id,
+              status: { in: ['UNPAID', 'PARTIALLY_PAID'] },
+            },
+            select: { id: true, clientId: true },
+          })
+        : null;
+      if (invoiceId && targetCategory === 'Revenue' && !selectedInvoice) {
+        return NextResponse.json({ error: 'Select a valid unpaid or partially paid invoice.' }, { status: 400 });
+      }
+
+      const newTx = await prisma.$transaction(async (tx) => {
+        let updatedInvoice: {
+          id: string;
+          invoiceNumber: string;
+          amount: number;
+          paidAmount: number;
+          status: string;
+        } | null = null;
+        if (selectedInvoice) {
+          const updated = await tx.invoice.updateManyAndReturn({
+            where: {
+              id: selectedInvoice.id,
+              orgId: org.id,
+              status: { in: ['UNPAID', 'PARTIALLY_PAID'] },
+            },
+            data: { paidAmount: { increment: finalAmount } },
+          });
+          const invoice = updated[0];
+          if (!invoice) throw new Error('Invoice payment state changed. Refresh and try again.');
+          const status = invoicePaymentStatus(invoice.amount, invoice.paidAmount);
+          updatedInvoice = await tx.invoice.update({
+            where: { id: invoice.id },
+            data: { status },
+            select: {
+              id: true,
+              invoiceNumber: true,
+              amount: true,
+              paidAmount: true,
+              status: true,
+            },
+          });
+        }
+
+        return tx.transaction.create({
+          data: {
+            date: new Date(date || new Date()),
+            details: details || 'Manual Entry',
+            category: targetCategory,
+            type: targetType,
+            transactorAccount: transactorAccount || '',
+            yourAccount: targetAccount,
+            amount: finalAmount,
+            referenceNumber: referenceNumber || null,
+            comments: comments || null,
+            clientId: targetCategory === 'Revenue'
+              ? selectedInvoice?.clientId || resolveClientId(clientId, null)
+              : null,
+            invoiceId: selectedInvoice?.id || null,
+            orgId: org.id,
+          },
+          include: { client: { select: { id: true, name: true } } },
+        }).then((transaction) => ({ ...transaction, invoice: updatedInvoice }));
       });
 
       return NextResponse.json(newTx);
@@ -228,8 +303,28 @@ export async function DELETE(request: NextRequest) {
     const id = new URL(request.url).searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'Transaction id is required' }, { status: 400 });
 
-    const result = await prisma.transaction.deleteMany({ where: { id, orgId: org.id } });
-    if (result.count === 0) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+    const target = await prisma.transaction.findFirst({
+      where: { id, orgId: org.id },
+      select: { id: true, invoiceId: true, amount: true },
+    });
+    if (!target) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+    await prisma.$transaction(async (tx) => {
+      await tx.transaction.delete({ where: { id: target.id } });
+      if (target.invoiceId) {
+        const invoice = await tx.invoice.update({
+          where: { id: target.invoiceId },
+          data: { paidAmount: { decrement: Math.max(0, target.amount) } },
+          select: { id: true, amount: true, paidAmount: true },
+        });
+        await tx.invoice.update({
+          where: { id: invoice.id },
+          data: {
+            paidAmount: Math.max(0, invoice.paidAmount),
+            status: invoicePaymentStatus(invoice.amount, invoice.paidAmount),
+          },
+        });
+      }
+    });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting transaction:', error);

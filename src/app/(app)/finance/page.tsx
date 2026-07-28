@@ -64,6 +64,7 @@ export default function FinancePage() {
   const [isImportingTransactions, setIsImportingTransactions] = React.useState(false);
   const [bankNames, setBankNames] = React.useState<string[]>([]);
   const [clients, setClients] = React.useState<any[]>([]);
+  const [outstandingInvoices, setOutstandingInvoices] = React.useState<any[]>([]);
 
   // Form states
   const [formDate, setFormDate] = React.useState('');
@@ -76,6 +77,7 @@ export default function FinancePage() {
   const [formComments, setFormComments] = React.useState('');
   const [formCategory, setFormCategory] = React.useState('Expense');
   const [formClientId, setFormClientId] = React.useState('');
+  const [formInvoiceId, setFormInvoiceId] = React.useState('');
   const [timeFrame, setTimeFrame] = React.useState('All Time');
 
   const formatLedgerDate = (value: unknown) => {
@@ -102,14 +104,9 @@ export default function FinancePage() {
   const [editAmount, setEditAmount] = React.useState('');
   const [editFrequency, setEditFrequency] = React.useState('monthly');
 
-  // Recurring Client Retainer States
+  // Project payment states
   const [retainers, setRetainers] = React.useState<any[]>([]);
   const [loadingRetainers, setLoadingRetainers] = React.useState(false);
-  const [retainerClientId, setRetainerClientId] = React.useState('');
-  const [retainerName, setRetainerName] = React.useState('');
-  const [retainerAmount, setRetainerAmount] = React.useState('');
-  const [retainerFrequency, setRetainerFrequency] = React.useState('monthly');
-  const [retainerStartDate, setRetainerStartDate] = React.useState('');
   const [editingRetainer, setEditingRetainer] = React.useState<any | null>(null);
   const [editRetainerAmount, setEditRetainerAmount] = React.useState('');
   const [editRetainerFrequency, setEditRetainerFrequency] = React.useState('monthly');
@@ -223,36 +220,6 @@ export default function FinancePage() {
     }
   }, []);
 
-  const handleRetainerSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!retainerClientId || !retainerName || !retainerAmount || !retainerStartDate) {
-      alert('Please complete all retainer fields.');
-      return;
-    }
-    const response = await fetch('/api/retainers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clientId: retainerClientId,
-        name: retainerName,
-        amount: Number(retainerAmount),
-        frequency: retainerFrequency,
-        startDate: retainerStartDate,
-      }),
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      alert(error.error || 'Failed to save retainer.');
-      return;
-    }
-    setRetainerClientId('');
-    setRetainerName('');
-    setRetainerAmount('');
-    setRetainerFrequency('monthly');
-    setRetainerStartDate('');
-    await fetchRetainers();
-  };
-
   const handleRetainerEdit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editingRetainer) return;
@@ -261,8 +228,9 @@ export default function FinancePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: editingRetainer.id,
+        paymentType: editingRetainer.paymentType,
         amount: Number(editRetainerAmount),
-        frequency: editRetainerFrequency,
+        frequency: editingRetainer.paymentType === 'ONE_TIME' ? null : editRetainerFrequency,
         startDate: editRetainerStartDate,
       }),
     });
@@ -276,7 +244,7 @@ export default function FinancePage() {
   };
 
   const handleRetainerDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this recurring client retainer?')) return;
+    if (!confirm('Clear the commercial payment details from this project?')) return;
     const response = await fetch(`/api/retainers?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -310,24 +278,6 @@ export default function FinancePage() {
     });
     return list;
   }, [subscriptions, generateOccurrences]);
-
-  const retainerTransactions = React.useMemo(() => {
-    return retainers.flatMap((retainer) =>
-      generateRecurringOccurrences(retainer.startDate, Number(retainer.amount), retainer.frequency).map(({ date }) => ({
-        id: `${retainer.id}-${date.toISOString().slice(0, 10)}`.slice(0, 12),
-        transactionId: null,
-        source: 'Retainer Ledger',
-        customer: retainer.client?.name || 'Unknown Client',
-        clientId: retainer.clientId,
-        date: date.toISOString(),
-        amountUSD: Number(retainer.amount),
-        status: 'succeeded',
-        rawStatus: 'INCOME',
-        category: 'Revenue',
-        details: retainer.name,
-      }))
-    );
-  }, [retainers]);
 
   // Custom report states
   const [reportXAxis, setReportXAxis] = React.useState('Client');
@@ -407,6 +357,15 @@ export default function FinancePage() {
     }
   }, []);
 
+  const fetchOutstandingInvoices = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/invoices?outstanding=true');
+      if (response.ok) setOutstandingInvoices(await response.json());
+    } catch (error) {
+      console.error('Error loading outstanding invoices:', error);
+    }
+  }, []);
+
   React.useEffect(() => {
     if (bankNames.length > 0 && !formYourAccount) {
       setFormYourAccount(bankNames[0]);
@@ -444,6 +403,7 @@ export default function FinancePage() {
           referenceNumber: formReferenceNumber || null,
           comments: formComments || null,
           clientId: formCategory === 'Revenue' ? formClientId || null : null,
+          invoiceId: formCategory === 'Revenue' ? formInvoiceId || null : null,
         }),
       });
 
@@ -457,10 +417,12 @@ export default function FinancePage() {
         setFormDetails('');
         setFormCategory('Expense');
         setFormClientId('');
+        setFormInvoiceId('');
         setFormTransactorAccount('');
         setFormAmount('');
         setFormReferenceNumber('');
         setFormComments('');
+        fetchOutstandingInvoices();
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to save transaction.');
@@ -482,6 +444,7 @@ export default function FinancePage() {
         throw new Error(error.error || 'Failed to remove transaction.');
       }
       setManualTransactions((current) => current.filter((transaction) => transaction.id !== transactionId));
+      fetchOutstandingInvoices();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to remove transaction.');
     }
@@ -779,9 +742,10 @@ export default function FinancePage() {
     fetchManualTransactions();
     fetchOrgBanks();
     fetchClients();
+    fetchOutstandingInvoices();
     fetchSubscriptions();
     fetchRetainers();
-  }, [fetchClients, fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchRetainers, fetchSubscriptions]);
+  }, [fetchClients, fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchOutstandingInvoices, fetchRetainers, fetchSubscriptions]);
 
   const isStripeConnected = React.useMemo(() => {
     return integrations.some((i) => i.provider === 'STRIPE' && i.status === 'CONNECTED');
@@ -819,47 +783,8 @@ export default function FinancePage() {
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {
-    let scale = 1;
-    if (timeFrame === 'Monthly') scale = 1/12;
-    if (timeFrame === 'Quarterly') scale = 3/12;
-
-    const baseGross = (dbData?.invoiceGrossBillings ?? 0) * scale;
-    const baseOutstanding = (dbData?.outstandingAmount ?? 0) * scale;
-    const baseExpenses = (dbData?.totalExpenses ?? 0) * scale;
-
-    let stripeGross = 0;
-    let stripeExpenses = 0;
-    let stripeOutstanding = 0;
-    if (isStripeConnected && stripeData?.payments) {
-      stripeData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
-        stripeGross += p.amount;
-        if (p.status === 'failed') stripeOutstanding += p.amount;
-      });
-      stripeExpenses = stripeGross * 0.029;
-    }
-
-    let paypalGross = 0;
-    let paypalExpenses = 0;
-    let paypalOutstanding = 0;
-    if (isPaypalConnected && paypalData?.payments) {
-      paypalData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
-        paypalGross += p.amount;
-        if (p.status === 'failed') paypalOutstanding += p.amount;
-      });
-      paypalExpenses = paypalGross * 0.033;
-    }
-
-    let razorpayGross = 0;
-    let razorpayExpenses = 0;
-    let razorpayOutstanding = 0;
-    if (isRazorpayConnected && razorpayData?.payments) {
-      razorpayData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
-        const amt = p.amount / 83.5;
-        razorpayGross += amt;
-        if (p.status === 'failed') razorpayOutstanding += amt;
-      });
-      razorpayExpenses = razorpayGross * 0.02;
-    }
+    const baseOutstanding = dbData?.outstandingAmount ?? 0;
+    const baseExpenses = dbData?.totalExpenses ?? 0;
 
     let manualGross = 0;
     let manualExpenses = 0;
@@ -882,13 +807,10 @@ export default function FinancePage() {
         aiSubscriptionCosts += amt;
       }
     });
-    retainerTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach((tx: any) => {
-      manualGross += tx.amountUSD;
-    });
-
-    const totalGross = baseGross + stripeGross + paypalGross + razorpayGross + manualGross;
-    const totalExpenses = baseExpenses + stripeExpenses + paypalExpenses + razorpayExpenses + manualExpenses;
-    const totalOutstanding = baseOutstanding + stripeOutstanding + paypalOutstanding + razorpayOutstanding;
+    // Revenue is recognized exclusively from positive Revenue entries in the ledger.
+    const totalGross = manualGross;
+    const totalExpenses = baseExpenses + manualExpenses;
+    const totalOutstanding = baseOutstanding;
     const profitMargin = totalGross > 0 ? ((totalGross - totalExpenses) / totalGross) * 100 : 0;
 
     return {
@@ -898,10 +820,10 @@ export default function FinancePage() {
       netProfitMargin: profitMargin,
       aiSubscriptionCosts
     };
-  }, [dbData, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, manualTransactions, subscriptionTransactions, retainerTransactions, isInTimeFrame, timeFrame]);
+  }, [dbData, manualTransactions, subscriptionTransactions, isInTimeFrame, timeFrame]);
 
   const expenseBreakdownData = React.useMemo(() => {
-    let aiCosts = combinedMetrics.aiSubscriptionCosts;
+    const aiCosts = combinedMetrics.aiSubscriptionCosts;
     let baseOps = combinedMetrics.totalExpenses - aiCosts;
     if (baseOps < 0) baseOps = 0;
     return [
@@ -952,7 +874,7 @@ export default function FinancePage() {
       });
     });
 
-    list.push(...subscriptionTransactions, ...retainerTransactions);
+    list.push(...subscriptionTransactions);
 
     // Sort newest first
     return list.sort((a, b) => {
@@ -960,7 +882,7 @@ export default function FinancePage() {
       const dateB = new Date(b.date).getTime() || 0;
       return dateB - dateA;
     });
-  }, [manualTransactions, retainerTransactions, subscriptionTransactions]);
+  }, [manualTransactions, subscriptionTransactions]);
 
   const revenueLineData = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -1200,7 +1122,7 @@ export default function FinancePage() {
     const summary = workbook.addWorksheet('Summary', { views: [{ state: 'frozen', ySplit: 3 }] });
     const ledger = workbook.addWorksheet('Ledger', { views: [{ state: 'frozen', ySplit: 1 }] });
     const recurring = workbook.addWorksheet('Recurring Subscriptions', { views: [{ state: 'frozen', ySplit: 1 }] });
-    const retainersSheet = workbook.addWorksheet('Retainers', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const retainersSheet = workbook.addWorksheet('Project Payments', { views: [{ state: 'frozen', ySplit: 1 }] });
 
     const styleHeader = (row: any) => {
       row.height = 24;
@@ -1232,7 +1154,13 @@ export default function FinancePage() {
         client: transaction.customer || '',
         date: new Date(transaction.date),
         category: transaction.category || (transaction.amountUSD >= 0 ? 'Revenue' : 'Expense'),
-        type: transaction.type || (transaction.source === 'Retainer Ledger' ? 'Recurring Retainer' : 'Recurring'),
+        type: transaction.type || (
+          transaction.source === 'Retainer Ledger'
+            ? 'Recurring Retainer'
+            : transaction.source === 'Project Payment Ledger'
+              ? 'One-time Project Payment'
+              : 'Recurring'
+        ),
         bank: transaction.yourAccount || '',
         amount: transaction.amountUSD,
         reference: transaction.referenceNumber || '',
@@ -1262,25 +1190,23 @@ export default function FinancePage() {
 
     retainersSheet.columns = [
       { header: 'Client', key: 'client', width: 28 },
-      { header: 'Retainer Name', key: 'name', width: 34 },
+      { header: 'Project', key: 'name', width: 34 },
+      { header: 'Payment Type', key: 'paymentType', width: 20 },
       { header: 'Frequency', key: 'frequency', width: 16 },
-      { header: 'Start Date', key: 'startDate', width: 16 },
+      { header: 'Payment Date', key: 'startDate', width: 16 },
       { header: `Amount (${currencyState})`, key: 'amount', width: 18 },
-      { header: 'Recognized Revenue To Date', key: 'recognized', width: 28 },
     ];
     styleHeader(retainersSheet.getRow(1));
     retainers.forEach((retainer) => retainersSheet.addRow({
       client: retainer.client?.name || '',
       name: retainer.name,
-      frequency: retainer.frequency,
+      paymentType: retainer.paymentType === 'ONE_TIME' ? 'One-time' : 'Retainer',
+      frequency: retainer.paymentType === 'ONE_TIME' ? '' : retainer.frequency,
       startDate: new Date(retainer.startDate),
       amount: retainer.amount,
-      recognized: generateRecurringOccurrences(retainer.startDate, retainer.amount, retainer.frequency)
-        .reduce((sum, occurrence) => sum + occurrence.amount, 0),
     }));
     retainersSheet.getColumn('startDate').numFmt = 'yyyy-mm-dd';
     retainersSheet.getColumn('amount').numFmt = '#,##0.00';
-    retainersSheet.getColumn('recognized').numFmt = '#,##0.00';
     retainersSheet.autoFilter = { from: 'A1', to: 'F1' };
 
     const ledgerLastRow = Math.max(2, ledger.rowCount);
@@ -1394,7 +1320,7 @@ export default function FinancePage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Financial Ledger</h1>
-          <p className="text-xs text-zinc-500">Track combined agency revenue, invoice statuses, and integrated gateway payouts.</p>
+          <p className="text-xs text-zinc-500">Track ledger-recognized revenue, invoice statuses, and gateway connection activity.</p>
         </div>
         <div className="flex items-center gap-3">
           <select
@@ -1798,7 +1724,7 @@ export default function FinancePage() {
                 <RevenueLineChart
                   data={revenueLineData}
                   title="Revenue vs Time"
-                  description="Tracking overall gross revenue across integrations."
+                  description="Tracking recognized revenue from ledger receipts."
                   currencyRate={1}
                   className="h-full min-h-[560px] w-full"
                   contentClassName="h-[430px] md:h-[452px]"
@@ -2202,27 +2128,28 @@ export default function FinancePage() {
                 </CardContent>
               </Card>
               
-              {/* Recurring Client Retainers Section */}
+              {/* Project Commercials Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm font-semibold text-white">Recurring Client Retainers</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-white">Project Payment Schedule</CardTitle>
                   <CardDescription>
-                    Recognize recurring client revenue from each retainer start date and include it in client revenue reporting.
+                    Project commercial terms define invoice schedules. Revenue is recognized only after a ledger receipt is entered.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                       {loadingRetainers ? (
-                        <div className="py-6 text-center font-mono text-zinc-500">Loading client retainers...</div>
+                        <div className="py-6 text-center font-mono text-zinc-500">Loading project payments...</div>
                       ) : (
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Client</TableHead>
-                              <TableHead>Retainer</TableHead>
+                              <TableHead>Project</TableHead>
+                              <TableHead>Type</TableHead>
                               <TableHead>Frequency</TableHead>
-                              <TableHead>Start Date</TableHead>
+                              <TableHead>Payment Date</TableHead>
                               <TableHead className="text-right">Amount</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -2230,15 +2157,20 @@ export default function FinancePage() {
                           <TableBody>
                             {retainers.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={6} className="py-6 text-center text-zinc-500">
-                                  No recurring client retainers configured.
+                                <TableCell colSpan={7} className="py-6 text-center text-zinc-500">
+                                  No project payment terms configured.
                                 </TableCell>
                               </TableRow>
                             ) : retainers.map((retainer) => (
                               <TableRow key={retainer.id}>
                                 <TableCell className="font-semibold text-white">{retainer.client?.name}</TableCell>
                                 <TableCell className="text-zinc-300">{retainer.name}</TableCell>
-                                <TableCell className="capitalize text-zinc-400">{retainer.frequency}</TableCell>
+                                <TableCell className="text-zinc-400">
+                                  {retainer.paymentType === 'ONE_TIME' ? 'One-time' : 'Retainer'}
+                                </TableCell>
+                                <TableCell className="capitalize text-zinc-400">
+                                  {retainer.paymentType === 'ONE_TIME' ? '—' : retainer.frequency}
+                                </TableCell>
                                 <TableCell className="text-zinc-400">
                                   {new Date(retainer.startDate).toLocaleDateString()}
                                 </TableCell>
@@ -2273,74 +2205,16 @@ export default function FinancePage() {
                       )}
                     </div>
                     <div className="space-y-4 rounded border border-zinc-900 bg-zinc-900/10 p-4">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-white">Add Client Retainer</h4>
-                      <form onSubmit={handleRetainerSubmit} className="space-y-3 font-sans text-xs">
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Client</label>
-                          <select
-                            required
-                            value={retainerClientId}
-                            onChange={(event) => {
-                              setRetainerClientId(event.target.value);
-                              const client = clients.find((item) => item.id === event.target.value);
-                              if (client && !retainerName) setRetainerName(`${client.name} Retainer`);
-                            }}
-                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                          >
-                            <option value="">Select client...</option>
-                            {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Name</label>
-                          <input
-                            required
-                            value={retainerName}
-                            onChange={(event) => setRetainerName(event.target.value)}
-                            placeholder="Monthly strategy retainer"
-                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Amount</label>
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="0.01"
-                              required
-                              value={retainerAmount}
-                              onChange={(event) => setRetainerAmount(event.target.value)}
-                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Frequency</label>
-                            <select
-                              value={retainerFrequency}
-                              onChange={(event) => setRetainerFrequency(event.target.value)}
-                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                            >
-                              <option value="monthly">Monthly</option>
-                              <option value="quarterly">Quarterly</option>
-                              <option value="yearly">Yearly</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Start Date</label>
-                          <input
-                            type="date"
-                            required
-                            value={retainerStartDate}
-                            onChange={(event) => setRetainerStartDate(event.target.value)}
-                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                          />
-                        </div>
-                        <Button type="submit" className="h-9 w-full bg-white text-xs font-bold text-zinc-950 hover:bg-zinc-200">
-                          Add Retainer
-                        </Button>
-                      </form>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-white">Commercial Ownership</h4>
+                      <p className="text-[11px] leading-relaxed text-zinc-500">
+                        Payment type, amount, frequency, date, and terms are managed with the project so every engagement can be billed independently.
+                      </p>
+                      <a
+                        href="/projects"
+                        className="flex h-9 w-full items-center justify-center bg-white px-4 text-xs font-bold text-zinc-950 transition-colors hover:bg-zinc-200"
+                      >
+                        Manage Project Commercials
+                      </a>
                     </div>
                   </div>
                 </CardContent>
@@ -2384,7 +2258,13 @@ export default function FinancePage() {
                       <label className="font-semibold text-zinc-400 block">Category</label>
                       <select
                         value={formCategory}
-                        onChange={(e) => setFormCategory(e.target.value)}
+                        onChange={(e) => {
+                          setFormCategory(e.target.value);
+                          if (e.target.value !== 'Revenue') {
+                            setFormInvoiceId('');
+                            setFormClientId('');
+                          }
+                        }}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                       >
                         <option value="Revenue">Revenue</option>
@@ -2394,21 +2274,47 @@ export default function FinancePage() {
                     </div>
 
                     {formCategory === 'Revenue' && (
-                      <div className="space-y-1.5">
-                        <label className="font-semibold text-zinc-400 block">Client</label>
-                        <select
-                          value={formClientId}
-                          onChange={(e) => setFormClientId(e.target.value)}
-                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                        >
-                          <option value="">General / non-client revenue</option>
-                          {clients.map((client) => (
-                            <option key={client.id} value={client.id}>{client.name}</option>
-                          ))}
-                        </select>
-                        <span className="block text-[10px] text-zinc-500">
-                          Selecting a client includes this payment in that client&apos;s revenue breakdown.
-                        </span>
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Outstanding Invoice</label>
+                          <select
+                            value={formInvoiceId}
+                            onChange={(event) => {
+                              const invoiceId = event.target.value;
+                              setFormInvoiceId(invoiceId);
+                              const invoice = outstandingInvoices.find((item) => item.id === invoiceId);
+                              if (invoice) setFormClientId(invoice.clientId);
+                            }}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                          >
+                            <option value="">General revenue / no invoice</option>
+                            {outstandingInvoices.map((invoice) => (
+                              <option key={invoice.id} value={invoice.id}>
+                                {invoice.invoiceNumber} - {invoice.client?.name} - {invoice.project?.name} ({formatCurrency(invoice.balanceDue)})
+                              </option>
+                            ))}
+                          </select>
+                          <span className="block text-[10px] leading-relaxed text-zinc-500">
+                            Selecting an invoice links this receipt to it. Enter the received amount manually below; it is never filled automatically.
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Client</label>
+                          <select
+                            value={formClientId}
+                            disabled={Boolean(formInvoiceId)}
+                            onChange={(e) => setFormClientId(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <option value="">General / non-client revenue</option>
+                            {clients.map((client) => (
+                              <option key={client.id} value={client.id}>{client.name}</option>
+                            ))}
+                          </select>
+                          <span className="block text-[10px] text-zinc-500">
+                            Invoice-linked revenue automatically uses the invoice&apos;s client.
+                          </span>
+                        </div>
                       </div>
                     )}
 
@@ -2635,8 +2541,8 @@ export default function FinancePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 text-xs backdrop-blur-sm">
           <Card className="w-full max-w-sm border-zinc-800 bg-[#0d0e12] p-2 shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-sm font-bold uppercase text-white">Edit Client Retainer</CardTitle>
-              <CardDescription>Update recurring revenue timing for {editingRetainer.client?.name}.</CardDescription>
+              <CardTitle className="text-sm font-bold uppercase text-white">Edit Project Payment</CardTitle>
+              <CardDescription>Update the commercial schedule for {editingRetainer.name}.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRetainerEdit} className="space-y-4 font-sans">
@@ -2652,7 +2558,7 @@ export default function FinancePage() {
                     className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
                   />
                 </div>
-                <div className="space-y-1.5">
+                {editingRetainer.paymentType !== 'ONE_TIME' && <div className="space-y-1.5">
                   <label className="block text-[10px] font-semibold uppercase text-zinc-400">Frequency</label>
                   <select
                     value={editRetainerFrequency}
@@ -2663,9 +2569,11 @@ export default function FinancePage() {
                     <option value="quarterly">Quarterly</option>
                     <option value="yearly">Yearly</option>
                   </select>
-                </div>
+                </div>}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-semibold uppercase text-zinc-400">Start Date</label>
+                  <label className="block text-[10px] font-semibold uppercase text-zinc-400">
+                    {editingRetainer.paymentType === 'ONE_TIME' ? 'Payment Date' : 'Retainer Start Date'}
+                  </label>
                   <input
                     type="date"
                     required

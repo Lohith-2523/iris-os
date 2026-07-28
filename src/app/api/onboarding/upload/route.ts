@@ -56,33 +56,101 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          // Create Invoice
-          await prisma.invoice.create({
+          let project = await prisma.project.findFirst({
+            where: { orgId: org.id, clientId: client.id },
+            orderBy: { createdAt: 'asc' },
+          });
+          if (!project) {
+            project = await prisma.project.create({
+              data: {
+                orgId: org.id,
+                clientId: client.id,
+                name: `${client.name} — Imported billing`,
+                status: 'COMPLETED',
+                riskLevel: 'LOW',
+                startDate: date,
+                endDate: date,
+                paymentType: 'ONE_TIME',
+                paymentAmount: Math.abs(amount),
+                paymentTerms: 'NET_30',
+              },
+            });
+          }
+
+          const normalizedStatus = status === 'UNPAID'
+            ? 'UNPAID'
+            : status === 'PARTIALLY_PAID'
+              ? 'PARTIALLY_PAID'
+              : 'FULLY_PAID';
+          const paidAmount = normalizedStatus === 'FULLY_PAID' ? Math.abs(amount) : 0;
+
+          // Historical imports remain project-bound and can use the same PDF/download flow.
+          const invoice = await prisma.invoice.create({
             data: {
               orgId: org.id,
               clientId: client.id,
-              invoiceNumber: identifier,
-              amount: amount,
+              projectId: project.id,
+              invoiceNumber: identifier || `IMPORT-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+              description: project.name,
+              subtotal: Math.abs(amount),
+              amount: Math.abs(amount),
+              paidAmount,
               dueDate: new Date(date.getTime() + 30 * 24 * 60 * 60 * 1000), // Due in 30 days
               issuedDate: date,
-              status: status || 'PAID',
+              status: normalizedStatus,
+              source: 'IMPORTED',
+              deliveryStatus: 'SENT',
+              sentAt: date,
+              sellerSnapshot: {
+                name: org.name,
+                legalEntityName: org.legalEntityName || org.name,
+                email: org.billingEmail || '',
+                addressLine1: org.billingAddressLine1 || '',
+                addressLine2: org.billingAddressLine2 || '',
+                city: org.billingCity || '',
+                state: org.billingState || '',
+                postalCode: org.billingPostalCode || '',
+                country: org.billingCountry || '',
+                gstNumber: org.gstNumber || '',
+              },
+              buyerSnapshot: {
+                name: client.name,
+                legalEntityName: client.legalEntityName || client.name,
+                email: '',
+                addressLine1: client.billingAddressLine1 || '',
+                addressLine2: client.billingAddressLine2 || '',
+                city: client.billingCity || '',
+                state: client.billingState || '',
+                postalCode: client.billingPostalCode || '',
+                country: client.billingCountry || '',
+                gstNumber: client.gstNumber || '',
+              },
+              lineItems: [{
+                description: project.name,
+                quantity: 1,
+                unitPrice: Math.abs(amount),
+                amount: Math.abs(amount),
+              }],
             }
           });
 
-          // Create Transaction
-          await prisma.transaction.create({
-            data: {
-              orgId: org.id,
-              date: date,
-              details: `Invoice Payment: ${identifier}`,
-              category: 'Revenue',
-              type: 'Others',
-              transactorAccount: name,
-              yourAccount: 'Main Account',
-              amount: Math.abs(amount),
-              referenceNumber: identifier || null,
-            }
-          });
+          if (paidAmount > 0) {
+            await prisma.transaction.create({
+              data: {
+                orgId: org.id,
+                clientId: client.id,
+                invoiceId: invoice.id,
+                date: date,
+                details: `Invoice Payment: ${invoice.invoiceNumber}`,
+                category: 'Revenue',
+                type: 'Others',
+                transactorAccount: name,
+                yourAccount: 'Main Account',
+                amount: paidAmount,
+                referenceNumber: identifier || null,
+              }
+            });
+          }
 
           invoiceCount++;
         } else if (rowType === 'EXPENSE') {

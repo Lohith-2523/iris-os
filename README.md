@@ -59,7 +59,26 @@ Create a `.env` file in the root directory and define the following keys (see `.
 DATABASE_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public"
 AUTH_SECRET="your-auth-secret"
 META_WEBHOOK_VERIFY_TOKEN="irisos_meta_verify_token"
+GEMINI_API_KEY="your-google-ai-api-key"
+GOOGLE_OAUTH_CLIENT_ID="your-google-oauth-client-id"
+GOOGLE_OAUTH_CLIENT_SECRET="your-google-oauth-client-secret"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_REQUIRE_TLS="true"
+SMTP_USER="noreply@irisos.app"
+SMTP_PASSWORD="your-google-app-password"
+APP_URL="https://irisos.app"
 ```
+
+Transactional onboarding and meeting email is delivered over Gmail SMTP or
+Google Workspace SMTP Relay as `Iris OS <noreply@irisos.app>`. For Gmail SMTP,
+use `smtp.gmail.com`, port `587`, and an app password. For Google SMTP Relay,
+use `smtp-relay.gmail.com` with the port, TLS mode, authentication, and allowed-IP
+settings configured in Google Workspace. `SMTP_USER` and `SMTP_PASSWORD` may be
+omitted together when the relay authorizes the deployment server by IP. Prism
+meeting coordination always uses Gemini; the creating user must also connect
+Google Calendar with event-management access.
 
 ### 4. Initialize Database
 Initialize the database schemas and populate the mock enterprise seed data:

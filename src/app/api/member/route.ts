@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import * as crypto from 'crypto';
 import { getAuthenticatedIdentity, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import {
+  assertIrisEmailConfigured,
+  IrisEmailDeliveryError,
+  sendIrisEmail,
+} from '@/lib/email/iris-email';
+import { memberOnboardingEmail } from '@/lib/email/iris-templates';
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,6 +57,7 @@ export async function POST(request: NextRequest) {
       if (!name || !email || !agencyTypes || !Array.isArray(agencyTypes) || agencyTypes.length === 0) {
         return NextResponse.json({ error: 'Missing required parameters. Name, Email, and at least one Agency Type are mandatory.' }, { status: 400 });
       }
+      assertIrisEmailConfigured();
 
       // Check if user already exists
       const existingUser = await prisma.user.findUnique({
@@ -87,30 +94,38 @@ export async function POST(request: NextRequest) {
       const inviteUrl = new URL('/onboarding/member', request.nextUrl.origin);
       inviteUrl.searchParams.set('token', token);
 
-      // Simulated email text
-      const simulatedEmail = `
-Subject: Complete your Iris OS Specialist Onboarding
-To: ${email}
-
-Hi ${name},
-
-Welcome to ${requestingUser.organization.name}! You have been onboarded as a team specialist in Iris OS and assigned to the following agency disciplines:
-${agencyTypes.map(t => `- ${t}`).join('\n')}
-
-To activate your workspace access and set up your credentials, please click the secure link below:
-${inviteUrl.toString()}
-
-You can set your account password or link your Google login credentials immediately.
-
-Best regards,
-The Iris OS Operations Team
-      `.trim();
+      const emailMessage = memberOnboardingEmail({
+        recipientName: name,
+        organizationName: requestingUser.organization.name,
+        agencyTypes,
+        inviteUrl: inviteUrl.toString(),
+        expiresAt,
+      });
+      try {
+        await sendIrisEmail({
+          to: [normalizedEmail],
+          subject: emailMessage.subject,
+          html: emailMessage.html,
+          text: emailMessage.text,
+          idempotencyKey: `member-invite-${token}`,
+          tags: [{ name: 'category', value: 'team_onboarding' }],
+        });
+      } catch (error) {
+        if (error instanceof IrisEmailDeliveryError) {
+          return NextResponse.json({
+            error: error.message,
+            inviteCreated: true,
+            inviteUrl: inviteUrl.toString(),
+          }, { status: error.status });
+        }
+        throw error;
+      }
 
       return NextResponse.json({
         success: true,
         invite,
         inviteUrl: inviteUrl.toString(),
-        simulatedEmail
+        emailSent: true,
       });
     }
 
@@ -186,6 +201,9 @@ The Iris OS Operations Team
     return NextResponse.json({ error: 'Invalid action specified' }, { status: 400 });
   } catch (error: any) {
     console.error('Error processing member route request:', error);
+    if (error instanceof IrisEmailDeliveryError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }

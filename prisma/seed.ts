@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Client } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -55,6 +55,13 @@ async function main() {
       hasAddon: false,
       agencyTypes: ['Digital Marketing Agency', 'SEO Agency'],
       billingEmail: 'billing@apex.co',
+      legalEntityName: 'Apex Creative Group Private Limited',
+      billingAddressLine1: '100 Residency Road',
+      billingCity: 'Bengaluru',
+      billingState: 'Karnataka',
+      billingPostalCode: '560025',
+      billingCountry: 'India',
+      gstNumber: '29ABCDE1234F1Z5',
       preferences: { dateFormat: 'MMM d, yyyy', timezone: 'Asia/Calcutta' },
       onboardingState: { create: { needsOnboarding: false, completedAt: new Date() } },
     },
@@ -210,8 +217,9 @@ async function main() {
     { name: 'Horizon Automotive', domain: 'horizonauto.com', status: 'LEAD', healthScore: 0, healthStatus: 'FAIR', churnRiskScore: 0, roiMetric: 0.0 },
   ];
 
-  const clients = [];
+  const clients: Client[] = [];
   for (const c of clientNames) {
+    const clientIndex: number = clients.length;
     const renewalDate = new Date();
     renewalDate.setMonth(renewalDate.getMonth() + Math.floor(Math.random() * 8) + 1);
     
@@ -226,6 +234,12 @@ async function main() {
         roiMetric: c.roiMetric,
         renewalDate: c.status === 'ACTIVE' ? renewalDate : null,
         upsellOpportunityValue: c.status === 'ACTIVE' ? Math.floor(Math.random() * 50000) : 0,
+        legalEntityName: c.name,
+        billingAddressLine1: `${100 + clientIndex} Market Street`,
+        billingCity: 'Bengaluru',
+        billingState: 'Karnataka',
+        billingPostalCode: `5600${String(10 + clientIndex).padStart(2, '0')}`,
+        billingCountry: 'India',
         orgId: org.id,
         adAccountId: c.name === 'Aether Technologies' ? 'act_109283741' : null,
         metadata: {
@@ -347,6 +361,7 @@ async function main() {
     startDate.setMonth(startDate.getMonth() - 2);
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 2);
+    const isOneTimePayment = i % 4 === 0;
 
     const project = await prisma.project.create({
       data: {
@@ -357,6 +372,12 @@ async function main() {
         progress: template.progress,
         riskLevel: template.riskLevel,
         riskDescription: template.riskDescription || null,
+        budget: 4000 + (i * 250),
+        paymentType: isOneTimePayment ? 'ONE_TIME' : 'RETAINER',
+        paymentAmount: isOneTimePayment ? 12000 + (i * 500) : 3500 + (i * 175),
+        paymentFrequency: isOneTimePayment ? null : 'monthly',
+        paymentStartDate: startDate,
+        paymentTerms: isOneTimePayment ? 'DUE_ON_RECEIPT' : 'NET_30',
         orgId: org.id,
         clientId: client.id,
       },
@@ -404,14 +425,50 @@ async function main() {
     // Seed 3 invoices per month
     for (let j = 0; j < 3; j++) {
       const client = clients[j % clients.length];
+      const project = projects.find((candidate) => candidate.clientId === client.id)!;
+      const amount = monthlyRevenues[m] / 3;
+      const paidAmount = m === 0 ? 0 : amount;
       await prisma.invoice.create({
         data: {
           invoiceNumber: `INV-2026-${m}-${j}`,
-          amount: monthlyRevenues[m] / 3,
+          description: project.name,
+          subtotal: amount,
+          amount,
+          paidAmount,
           dueDate: date,
-          status: m === 0 ? 'UNPAID' : 'PAID',
+          status: m === 0 ? 'UNPAID' : 'FULLY_PAID',
+          deliveryStatus: 'SENT',
+          sentAt: date,
+          pdfGeneratedAt: date,
+          emailRecipient: `contact@${client.domain || 'example.com'}`,
+          sellerSnapshot: {
+            name: org.name,
+            legalEntityName: org.legalEntityName,
+            email: org.billingEmail,
+            addressLine1: org.billingAddressLine1,
+            addressLine2: '',
+            city: org.billingCity,
+            state: org.billingState,
+            postalCode: org.billingPostalCode,
+            country: org.billingCountry,
+            gstNumber: org.gstNumber,
+          },
+          buyerSnapshot: {
+            name: client.name,
+            legalEntityName: client.legalEntityName,
+            email: `contact@${client.domain || 'example.com'}`,
+            addressLine1: client.billingAddressLine1,
+            addressLine2: '',
+            city: client.billingCity,
+            state: client.billingState,
+            postalCode: client.billingPostalCode,
+            country: client.billingCountry,
+            gstNumber: '',
+          },
+          lineItems: [{ description: project.name, quantity: 1, unitPrice: amount, amount }],
           orgId: org.id,
           clientId: client.id,
+          projectId: project.id,
           issuedDate: date,
         },
       });

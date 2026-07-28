@@ -27,6 +27,8 @@ export async function GET(request: NextRequest) {
     UNION ALL
     SELECT 'invoices', COUNT(*), MAX("updatedAt") FROM "Invoice" WHERE "orgId" = ${user.orgId}
     UNION ALL
+    SELECT 'strategies', COUNT(*), MAX("updatedAt") FROM "Strategy" WHERE "orgId" = ${user.orgId}
+    UNION ALL
     SELECT 'expenses', COUNT(*), MAX("updatedAt") FROM "Expense" WHERE "orgId" = ${user.orgId}
     UNION ALL
     SELECT 'reports', COUNT(*), MAX("updatedAt") FROM "Report" WHERE "orgId" = ${user.orgId}
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
     UNION ALL
     SELECT 'subscriptions', COUNT(*), MAX("updatedAt") FROM "RecurringSubscription" WHERE "orgId" = ${user.orgId}
     UNION ALL
-    SELECT 'retainers', COUNT(*), MAX("updatedAt") FROM "RecurringRetainer" WHERE "orgId" = ${user.orgId}
+    SELECT 'retainers', COUNT(*), MAX("updatedAt") FROM "Project" WHERE "orgId" = ${user.orgId} AND "paymentAmount" IS NOT NULL
   `;
 
   const signature = rows

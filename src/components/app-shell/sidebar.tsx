@@ -16,24 +16,33 @@ import {
   FolderKanban,
   UserCheck,
   FileText,
-  BarChart3,
-  Sparkles,
-  Zap,
   TrendingUp,
   Activity,
-  Blocks,
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Megaphone,
   Calendar,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ReceiptText
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   onCloseMobile?: () => void;
 }
+
+type NavigationItem = {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  highlight?: boolean;
+  badge?: string;
+};
+
+type NavigationGroup = {
+  label: string;
+  items: NavigationItem[];
+};
 
 export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   const pathname = usePathname();
@@ -148,41 +157,71 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     router.refresh();
   };
 
-  const navigationItems = React.useMemo(() => [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
-    { name: 'Finance', href: '/finance', icon: Wallet },
-    { name: 'Clients', href: '/clients', icon: Users },
-    { name: 'Projects', href: '/projects', icon: FolderKanban },
-    { name: 'Tasks', href: '/tasks', icon: Activity },
-    { name: 'Calendar', href: '/calendar', icon: Calendar },
-    { name: 'Team', href: '/team', icon: UserCheck },
-    { name: 'Reporting', href: '/reporting', icon: FileText },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Prism AI', href: '/prism', icon: PrismIcon, highlight: true },
-    { name: 'Settings', href: '/settings', icon: Settings },
+  const navigationGroups = React.useMemo<NavigationGroup[]>(() => [
+    {
+      label: 'Relationships',
+      items: [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
+        { name: 'Clients', href: '/clients', icon: Users },
+      ],
+    },
+    {
+      label: 'Finance',
+      items: [
+        { name: 'Finance', href: '/finance', icon: Wallet },
+        { name: 'Invoices', href: '/invoices', icon: ReceiptText },
+      ],
+    },
+    {
+      label: 'Delivery',
+      items: [
+        { name: 'Projects', href: '/projects', icon: FolderKanban },
+        { name: 'Tasks', href: '/tasks', icon: Activity },
+        { name: 'Team', href: '/team', icon: UserCheck },
+        { name: 'Calendar', href: '/calendar', icon: Calendar },
+      ],
+    },
+    {
+      label: 'Intelligence',
+      items: [
+        { name: 'Reporting', href: '/reporting', icon: FileText },
+        { name: 'Strategy', href: '/strategy', icon: TrendingUp },
+        { name: 'Prism AI', href: '/prism', icon: PrismIcon, highlight: true },
+      ],
+    },
   ], []);
 
-  const visibleItems = React.useMemo(() => {
+  const visibleGroups = React.useMemo<NavigationGroup[]>(() => {
     const roleLower = user?.role?.toLowerCase();
     if (roleLower === 'client') {
-      return [
-        { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
-        ...(user?.hasMetaAccount
-          ? [{ name: 'Leads', href: '/client-leads', icon: FileSpreadsheet }]
-          : []),
-        { name: 'Calendar', href: '/calendar', icon: Calendar }
-      ];
+      return [{
+        label: 'Workspace',
+        items: [
+          { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
+          ...(user?.hasMetaAccount
+            ? [{ name: 'Leads', href: '/client-leads', icon: FileSpreadsheet }]
+            : []),
+          { name: 'Calendar', href: '/calendar', icon: Calendar },
+        ],
+      }];
     }
     if (roleLower === 'member') {
-      return [
-        { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard },
-        { name: 'Tasks', href: '/tasks', icon: Activity },
-        { name: 'Calendar', href: '/calendar', icon: Calendar },
-      ];
+      return [{
+        label: 'Workspace',
+        items: [
+          { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard },
+          { name: 'Tasks', href: '/tasks', icon: Activity },
+          { name: 'Calendar', href: '/calendar', icon: Calendar },
+        ],
+      }];
     }
-    return navigationItems;
-  }, [user, navigationItems]);
+    return navigationGroups;
+  }, [user, navigationGroups]);
+
+  const settingsItem: NavigationItem | null = user?.role?.toLowerCase() === 'admin'
+    ? { name: 'Settings', href: '/settings', icon: Settings }
+    : null;
 
   const initials = React.useMemo(() => {
     return orgName
@@ -268,8 +307,16 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
       {/* Navigation List */}
       <div className="flex-1 overflow-y-auto px-2 py-4">
-        <nav className="space-y-1">
-          {visibleItems.map((item) => {
+        <nav className="space-y-4">
+          {visibleGroups.map((group) => (
+            <div key={group.label} className="space-y-1">
+              {!isCollapsed && (
+                <p className="px-3 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+                  {group.label}
+                </p>
+              )}
+              {isCollapsed && <div className="mx-3 mb-2 border-t border-zinc-900" aria-hidden="true" />}
+              {group.items.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
             const Icon = item.icon;
 
@@ -316,7 +363,33 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
                 )}
               </Link>
             );
-          })}
+              })}
+            </div>
+          ))}
+          {settingsItem && (
+            <div className="border-t border-zinc-900 pt-3">
+              <Link
+                href={settingsItem.href}
+                onClick={() => {
+                  prepareWorkspaceDataCacheForRouteChange(settingsItem.href);
+                  onCloseMobile?.();
+                }}
+                title={isCollapsed ? settingsItem.name : undefined}
+                aria-current={pathname?.startsWith('/settings') ? 'page' : undefined}
+                className={cn(
+                  'workspace-nav-link group flex items-center rounded-xl transition-[transform,background-color,color,box-shadow,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500',
+                  isCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 text-xs font-medium',
+                  pathname?.startsWith('/settings')
+                    ? 'bg-zinc-900 text-white border-l-2 border-l-white'
+                    : 'hover:bg-zinc-950 hover:text-zinc-200',
+                  isCollapsed && pathname?.startsWith('/settings') && 'border-l-0',
+                )}
+              >
+                <Settings className={cn('h-4 w-4 shrink-0', pathname?.startsWith('/settings') ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300')} />
+                {!isCollapsed && <span className="ml-2.5">{settingsItem.name}</span>}
+              </Link>
+            </div>
+          )}
         </nav>
       </div>
 

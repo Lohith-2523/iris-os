@@ -30,7 +30,7 @@ const prismaModelSignature = JSON.stringify(
       .sort((left, right) => left.name.localeCompare(right.name)),
   },
 );
-const requiredModelDelegates = ['recurringRetainer'] as const;
+const requiredModelDelegates = ['project'] as const;
 
 function hasRequiredModelDelegates(client: PrismaClient) {
   const delegates = client as unknown as Record<string, unknown>;

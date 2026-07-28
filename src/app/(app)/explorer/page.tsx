@@ -159,18 +159,21 @@ function ExplorerContent() {
     async function loadExplorerData() {
       try {
         const financeRes = await fetch('/api/data?domain=finance');
+        const ledgerRes = await fetch('/api/transactions');
         const teamRes = await fetch('/api/data?domain=team');
         const marketingRes = await fetch('/api/data?domain=client-dashboard');
 
-        let invoices: any[] = [];
+        let ledgerTransactions: any[] = [];
         let expenses: any[] = [];
         let teamMembers: any[] = [];
         let campaigns: any[] = [];
 
         if (financeRes.ok) {
           const finData = await financeRes.json();
-          invoices = finData.recentInvoices || [];
           expenses = finData.expenses || [];
+        }
+        if (ledgerRes.ok) {
+          ledgerTransactions = await ledgerRes.json();
         }
         if (teamRes.ok) {
           teamMembers = await teamRes.json() || [];
@@ -204,10 +207,10 @@ function ExplorerContent() {
         const monthlySpend = Array(12).fill(0);
         const monthlyAttributed = Array(12).fill(0);
 
-        invoices.forEach(inv => {
-          if (inv.status === 'PAID') {
-            const m = getMonthIndex(inv.date);
-            monthlyRev[m] += inv.amount;
+        ledgerTransactions.forEach(transaction => {
+          if (transaction.category === 'Revenue' && transaction.amount > 0) {
+            const m = getMonthIndex(transaction.date);
+            monthlyRev[m] += transaction.amount;
           }
         });
         expenses.forEach(exp => {
@@ -249,10 +252,10 @@ function ExplorerContent() {
         const quarterlySpend = Array(4).fill(0);
         const quarterlyAttributed = Array(4).fill(0);
 
-        invoices.forEach(inv => {
-          if (inv.status === 'PAID') {
-            const q = getQuarterIndex(inv.date);
-            quarterlyRev[q] += inv.amount;
+        ledgerTransactions.forEach(transaction => {
+          if (transaction.category === 'Revenue' && transaction.amount > 0) {
+            const q = getQuarterIndex(transaction.date);
+            quarterlyRev[q] += transaction.amount;
           }
         });
         expenses.forEach(exp => {
@@ -294,10 +297,10 @@ function ExplorerContent() {
         const yearlySpend = Array(3).fill(0);
         const yearlyAttributed = Array(3).fill(0);
 
-        invoices.forEach(inv => {
-          if (inv.status === 'PAID') {
-            const y = getYearIndex(inv.date);
-            yearlyRev[y] += inv.amount;
+        ledgerTransactions.forEach(transaction => {
+          if (transaction.category === 'Revenue' && transaction.amount > 0) {
+            const y = getYearIndex(transaction.date);
+            yearlyRev[y] += transaction.amount;
           }
         });
         expenses.forEach(exp => {
