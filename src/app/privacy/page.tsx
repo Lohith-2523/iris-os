@@ -282,7 +282,7 @@ export default function PrivacyPolicyPage() {
               margin: 0,
             }}
           >
-            Last Updated: June 27, 2026 • GDPR & DPDP Compliant • Shards Media
+            Last Updated: July 28, 2026 • GDPR & DPDP Compliant • Shards Media
           </p>
         </div>
       </section>
@@ -330,7 +330,7 @@ export default function PrivacyPolicyPage() {
                 { id: 'controller', label: '1. Data Controller' },
                 { id: 'data-collection', label: '2. Personal Data We Collect' },
                 { id: 'purpose', label: '3. Purpose & Legal Basis' },
-                { id: 'integrations', label: '4. Google & Notion APIs' },
+                { id: 'integrations', label: '4. Google Data & Gemini' },
                 { id: 'retention', label: '5. Retention & Erasure' },
                 { id: 'user-rights', label: '6. GDPR & DPDP Act Rights' },
                 { id: 'transfers', label: '7. International Transfers' },
@@ -436,6 +436,7 @@ export default function PrivacyPolicyPage() {
                 { title: 'Identity & Account Metadata', desc: 'Corporate name, billing address, currency settings, administrator emails.' },
                 { title: 'Financial Data', desc: 'Internal ledgers, client invoices, amount totals, expenses, merchant names.' },
                 { title: 'Integration Telemetry & Access Tokens', desc: 'OAuth authorization tokens for Canva catalogs, Meta Ads metrics, and Google or Notion workspaces.' },
+                { title: 'Google Account & Calendar Data', desc: 'Google account email and profile information, calendar identifiers, and event information such as titles, descriptions, dates, times, attendees, RSVP status, recurrence, locations, and Google Meet links, when you connect Google Calendar.' },
                 { title: 'Human Resources & Contractor Allocation Logs', desc: 'Contractor name initials and assigned deliverable hours.' },
                 { title: 'System Logs & Telemetry', desc: 'IP address, device headers, authentication timestamps.' }
               ].map((li, idx) => (
@@ -493,7 +494,7 @@ export default function PrivacyPolicyPage() {
             <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
               {[
                 { title: 'Contractual Performance (Art. 6.1.b)', desc: 'To deploy settings, calculate invoices, sync project milestones, and authorize client logins.' },
-                { title: 'Explicit Consent (Art. 6.1.a)', desc: 'To connect Canva, Google, Notion, and Meta APIs, and to securely analyze financial ledgers and lead pipeline data using Prism AI models (which is optional and can be declined or revoked in settings at any time).' },
+                { title: 'Explicit Consent (Art. 6.1.a)', desc: 'To connect Canva, Google, Notion, and Meta APIs; synchronize and manage Google Calendar events; use Google Gemini models exclusively for AI-assisted call scheduling; and securely analyze financial ledgers and lead pipeline data using Prism AI models. Connected integrations and AI-assisted scheduling are optional and can be declined or revoked in settings at any time.' },
                 { title: 'Legitimate Interests (Art. 6.1.f)', desc: 'To execute Prism AI heuristics, identify contractor profit leaks, and detect anomalous security activity.' }
               ].map((li, idx) => (
                 <li
@@ -546,7 +547,7 @@ export default function PrivacyPolicyPage() {
                 margin: 0,
               }}
             >
-              4. Google and Notion Authentication APIs & Data Scope
+              4. Google API Data, Google Calendar, and Gemini-Assisted Scheduling
             </h2>
             <p
               style={{
@@ -557,11 +558,16 @@ export default function PrivacyPolicyPage() {
                 margin: 0,
               }}
             >
-              Our Platform utilizes Google Authentication and Notion Authentication to enable single-sign-on (SSO) and database integrations:
+              Iris OS accesses Google user data only after you expressly connect your Google account and grant the requested permissions. We use
+              that data to provide the Google Calendar features you request, including calendar synchronization, availability and conflict checks,
+              call scheduling, event creation and updates, attendee invitations, RSVP status, and Google Meet links.
             </p>
             <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
               {[
-                { title: 'Google Authentication', desc: 'We access your Google user profile data (email address, profile picture) and authorization tokens. We do not access, scan, or read your emails, documents, or photos unless explicit, additional drive permissions are granted.' },
+                { title: 'Google Account Data', desc: 'We access the verified email address and basic account information returned by Google to identify the connected account and maintain the integration. Iris OS does not request access to Gmail, Google Drive, documents, or photos as part of the Google Calendar integration.' },
+                { title: 'Google Calendar Data', desc: 'With your permission, Iris OS reads calendar lists and future calendar events and may store event titles, descriptions, start and end times, recurrence details, attendee email addresses, RSVP status, event identifiers, locations, and Google Meet links. Iris OS also sends the meeting title, date, time, attendee email addresses, and conferencing request to Google when you ask it to create or update an event.' },
+                { title: 'Gemini-Only AI Scheduling', desc: 'Google Gemini is the only AI model family used to interpret requests to schedule calls. For this workflow, Gemini may process only the information reasonably necessary to understand the scheduling request, such as the meeting title, attendee names or email addresses, requested date and time, time zone, and current scheduling state. Iris OS does not send Google OAuth access or refresh tokens to Gemini, and it does not use OpenAI, Anthropic, or any other AI provider to process Google Calendar data for call scheduling.' },
+                { title: 'Purpose Limitation', desc: 'Google user data is used only to provide or improve the user-facing calendar and scheduling features you request. It is not sold, used for advertising, or used to build advertising profiles. Access is limited to the connected user and their authorized Iris OS workspace.' },
                 { title: 'Notion Authentication', desc: 'We retrieve authorized database schema read/write tokens. This scope is strictly confined to workspace databases you explicitly select for project reporting.' }
               ].map((li, idx) => (
                 <li
@@ -589,8 +595,12 @@ export default function PrivacyPolicyPage() {
                 borderRadius: '16px',
               }}
             >
-              Tokens retrieved via Google and Notion APIs are encrypted using industry-standard AES-256 algorithms and are stored securely. 
-              You can revoke permissions at any time from your Google or Notion security consoles.
+              Google and Notion OAuth credentials are encrypted at rest and stored securely. Google OAuth credentials are used by Iris OS servers
+              to communicate with Google APIs and are not included in prompts sent to Gemini. You can disconnect Google Calendar in Iris OS or
+              revoke access at any time from your Google Account security settings. On disconnection or a valid deletion request, Iris OS removes
+              the stored Google credentials and synchronized Google Calendar data associated with the connection, subject only to legal retention
+              obligations. Our use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy,
+              including its Limited Use requirements.
             </div>
           </section>
 
