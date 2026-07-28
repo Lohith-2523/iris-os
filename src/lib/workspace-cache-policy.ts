@@ -124,8 +124,13 @@ export function workspaceMutationPlan(
   if (normalizedMethod === 'GET' || normalizedMethod === 'HEAD' || normalizedMethod === 'OPTIONS') {
     return { invalidateTags: [], skip: true };
   }
-  if (pathname.startsWith('/api/auth/') || pathname.startsWith('/api/prism-ai')) {
+  if (pathname.startsWith('/api/auth/')) {
     return { invalidateTags: [], skip: true };
+  }
+  if (pathname.startsWith('/api/prism-ai')) {
+    // Ask Prism writes the session and its messages in the same request. Refresh
+    // the history list and any open conversation immediately after that write.
+    return { invalidateTags: ['prism'] };
   }
   if (pathname === '/api/workspace' && normalizedMethod === 'PATCH' && isThemeOnlyWorkspaceMutation(body)) {
     return { invalidateTags: ['workspace'] };

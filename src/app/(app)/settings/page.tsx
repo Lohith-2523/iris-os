@@ -106,6 +106,8 @@ export default function SettingsPage() {
   const [billingPostalCode, setBillingPostalCode] = React.useState('');
   const [billingCountry, setBillingCountry] = React.useState('India');
   const [gstNumber, setGstNumber] = React.useState('');
+  const [invoiceLogoDataUrl, setInvoiceLogoDataUrl] = React.useState('');
+  const [invoiceBrandColor, setInvoiceBrandColor] = React.useState('#09090B');
   const [billingEmail, setBillingEmail] = React.useState('billing@apex.co');
   const [currency, setCurrency] = React.useState('USD');
   const [hasFinancialData, setHasFinancialData] = React.useState(false);
@@ -342,6 +344,8 @@ export default function SettingsPage() {
           setBillingPostalCode(data.billingPostalCode || '');
           setBillingCountry(data.billingCountry || 'India');
           setGstNumber(data.gstNumber || '');
+          setInvoiceLogoDataUrl(data.invoiceLogoDataUrl || '');
+          setInvoiceBrandColor(data.invoiceBrandColor || '#09090B');
           setPlan(data.plan || 'BASIC');
           setHasAddon(data.hasAddon || false);
           setSelectedTypes(data.agencyTypes || []);
@@ -416,6 +420,8 @@ export default function SettingsPage() {
           billingPostalCode,
           billingCountry,
           gstNumber,
+          invoiceLogoDataUrl: invoiceLogoDataUrl || null,
+          invoiceBrandColor,
           plan,
           hasAddon,
           agencyTypes: selectedTypes,
@@ -548,6 +554,73 @@ export default function SettingsPage() {
                         placeholder="e.g. Iris Operations Private Limited"
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
                       />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
+                      <div className="space-y-2">
+                        <label className="font-semibold text-zinc-400 block">Invoice Logo <span className="font-normal text-zinc-600">(optional)</span></label>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <label className="inline-flex h-9 cursor-pointer items-center rounded border border-zinc-750 bg-zinc-900 px-3 text-[10px] font-semibold text-zinc-300 hover:text-white">
+                            Upload PNG or JPEG
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg"
+                              className="sr-only"
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                event.target.value = '';
+                                if (!file) return;
+                                if (!['image/png', 'image/jpeg'].includes(file.type)) {
+                                  setErrorMessage('Invoice logo must be a PNG or JPEG image.');
+                                  return;
+                                }
+                                if (file.size > 512 * 1024) {
+                                  setErrorMessage('Invoice logo must be 512 KB or smaller.');
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  if (typeof reader.result === 'string') {
+                                    setInvoiceLogoDataUrl(reader.result);
+                                    setErrorMessage('');
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                          </label>
+                          {invoiceLogoDataUrl && (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setInvoiceLogoDataUrl('')}>
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-[9px] leading-relaxed text-zinc-600">Maximum 512 KB. The logo is embedded into newly generated invoice PDFs.</p>
+                      </div>
+                      <div className="flex min-h-24 items-center justify-center rounded border border-zinc-800 bg-white p-3">
+                        {invoiceLogoDataUrl
+                          ? <img src={invoiceLogoDataUrl} alt="Invoice logo preview" className="max-h-16 max-w-full object-contain" />
+                          : <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Logo preview</span>}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="font-semibold text-zinc-400 block">Invoice Brand Colour</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={invoiceBrandColor}
+                          onChange={(event) => setInvoiceBrandColor(event.target.value.toUpperCase())}
+                          className="h-10 w-14 cursor-pointer rounded border border-zinc-750 bg-zinc-900 p-1"
+                        />
+                        <input
+                          type="text"
+                          value={invoiceBrandColor}
+                          onChange={(event) => setInvoiceBrandColor(event.target.value.toUpperCase())}
+                          pattern="^#[0-9A-Fa-f]{6}$"
+                          maxLength={7}
+                          className="w-32 rounded border border-zinc-850 bg-zinc-900/40 p-2.5 font-mono uppercase text-white focus:border-zinc-750 focus:outline-none"
+                        />
+                        <div className="h-9 flex-1 rounded border border-zinc-700" style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(invoiceBrandColor) ? invoiceBrandColor : '#09090B' }} />
+                      </div>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5 sm:col-span-2">

@@ -725,7 +725,7 @@ export default function TeamPage() {
                     <div className="bg-emerald-950/30 border border-emerald-900/50 p-4 rounded text-xs space-y-3">
                       <div className="flex items-center gap-2 text-emerald-400 font-bold">
                         <Check className="h-5 w-5" />
-                        <span>Specialist Onboarding Initialized Successfully!</span>
+                        <span>Team Member Added Successfully!</span>
                       </div>
                       <p className="text-zinc-400">
                         {onboardSuccessData.emailSent
@@ -885,7 +885,7 @@ export default function TeamPage() {
                         type="submit" 
                         className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-md text-xs font-semibold px-6 cursor-pointer"
                       >
-                        Initialize Onboarding On Team Member
+                        Onboard Team member
                       </Button>
                     </div>
                   </form>

@@ -78,17 +78,43 @@ export async function POST(request: NextRequest) {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
 
-      const invite = await prisma.memberInvite.create({
-        data: {
-          name,
-          email: normalizedEmail,
-          phone: phone || null,
-          agencyTypes,
-          projects: projects || [],
-          token,
-          expiresAt,
-          orgId: requestingUser.orgId,
+      const { invite, member } = await prisma.$transaction(async (tx) => {
+        const member = await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            name,
+            role: 'member',
+            phone: phone || null,
+            agencyTypes,
+            orgId: requestingUser.orgId,
+            preferences: { create: {} },
+          },
+        });
+
+        const assignedProjectIds = Array.isArray(projects) ? projects.filter((projectId) => typeof projectId === 'string') : [];
+        if (assignedProjectIds.length > 0) {
+          const validProjects = await tx.project.findMany({
+            where: { id: { in: assignedProjectIds }, orgId: requestingUser.orgId },
+            select: { id: true },
+          });
+          for (const project of validProjects) {
+            await tx.projectMember.create({ data: { projectId: project.id, userId: member.id } });
+          }
         }
+
+        const invite = await tx.memberInvite.create({
+          data: {
+            name,
+            email: normalizedEmail,
+            phone: phone || null,
+            agencyTypes,
+            projects: assignedProjectIds,
+            token,
+            expiresAt,
+            orgId: requestingUser.orgId,
+          },
+        });
+        return { invite, member };
       });
 
       const inviteUrl = new URL('/onboarding/member', request.nextUrl.origin);
@@ -124,6 +150,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         invite,
+        member: { id: member.id, name: member.name, email: member.email },
         inviteUrl: inviteUrl.toString(),
         emailSent: true,
       });
@@ -150,23 +177,38 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Authenticate with the invited email before continuing.' }, { status: 401 });
       }
 
-      // 1. Create the Member User in the DB
-      const newUser = await prisma.user.create({
-        data: {
-          email: invite.email,
-          authUserId: identity.id,
-          name: invite.name,
-          role: 'member',
-          phone: invite.phone,
-          agencyTypes: invite.agencyTypes,
-          orgId: invite.orgId,
-          preferences: { create: {} },
-        }
+      // Members created with the invitation are activated here. The create fallback
+      // keeps invitations issued before this workflow compatible.
+      let newUser = await prisma.user.findFirst({
+        where: { email: invite.email, orgId: invite.orgId, role: 'member' },
       });
+      if (newUser) {
+        newUser = await prisma.user.update({
+          where: { id: newUser.id },
+          data: {
+            authUserId: identity.id,
+            name: invite.name,
+            phone: invite.phone,
+            agencyTypes: invite.agencyTypes,
+          },
+        });
+      } else {
+        newUser = await prisma.user.create({
+          data: {
+            email: invite.email,
+            authUserId: identity.id,
+            name: invite.name,
+            role: 'member',
+            phone: invite.phone,
+            agencyTypes: invite.agencyTypes,
+            orgId: invite.orgId,
+            preferences: { create: {} },
+          },
+        });
 
-      // 2. Assign to selected projects
-      if (invite.projects && invite.projects.length > 0) {
-        for (const projectId of invite.projects) {
+        // Legacy invitations did not create an agency member until completion.
+        if (invite.projects && invite.projects.length > 0) {
+          for (const projectId of invite.projects) {
           try {
             const project = await prisma.project.findFirst({ where: { id: projectId, orgId: invite.orgId }, select: { id: true } });
             if (!project) continue;
@@ -180,9 +222,10 @@ export async function POST(request: NextRequest) {
             console.error(`Failed to assign member to project ${projectId}:`, err);
           }
         }
+        }
       }
 
-      // 3. Mark invite as used
+      // Mark invite as used after the agency member has been activated.
       await prisma.memberInvite.update({
         where: { token },
         data: { used: true }

@@ -1,7 +1,5 @@
 import 'server-only';
 
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import {
   PDFDocument,
   StandardFonts,
@@ -15,10 +13,37 @@ const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
 const MARGIN = 48;
 const BLACK = rgb(0.035, 0.039, 0.047);
-const GRAPHITE = rgb(0.12, 0.13, 0.15);
 const SILVER = rgb(0.68, 0.7, 0.73);
 const LIGHT = rgb(0.94, 0.945, 0.95);
 const WHITE = rgb(1, 1, 1);
+
+function colorFromHex(value: string | undefined) {
+  const match = String(value || '').match(/^#([0-9A-Fa-f]{6})$/);
+  if (!match) return BLACK;
+  const number = Number.parseInt(match[1], 16);
+  return rgb(
+    ((number >> 16) & 255) / 255,
+    ((number >> 8) & 255) / 255,
+    (number & 255) / 255,
+  );
+}
+
+function contrastingText(value: string | undefined) {
+  const match = String(value || '').match(/^#([0-9A-Fa-f]{6})$/);
+  if (!match) return WHITE;
+  const number = Number.parseInt(match[1], 16);
+  const red = (number >> 16) & 255;
+  const green = (number >> 8) & 255;
+  const blue = number & 255;
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+  return luminance > 0.62 ? BLACK : WHITE;
+}
+
+function logoBytes(dataUrl: string | undefined) {
+  const match = String(dataUrl || '').match(/^data:(image\/(?:png|jpeg));base64,(.+)$/);
+  if (!match) return null;
+  return { mimeType: match[1], bytes: Uint8Array.from(Buffer.from(match[2], 'base64')) };
+}
 
 function safeText(value: unknown) {
   return String(value ?? '')
@@ -103,43 +128,52 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   const page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const font = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
+  const brand = colorFromHex(input.seller.brandColor);
+  const brandText = contrastingText(input.seller.brandColor);
 
   // Draw an explicit opaque page background. PDF pages are implicitly white,
   // but some browser and OS previewers render transparent pages incorrectly.
   page.drawRectangle({ x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT, color: WHITE });
-  page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 112, width: PAGE_WIDTH, height: 112, color: BLACK });
+  page.drawRectangle({ x: 0, y: PAGE_HEIGHT - 112, width: PAGE_WIDTH, height: 112, color: brand });
+  let companyNameX = MARGIN;
   try {
-    const logoBytes = await readFile(path.join(process.cwd(), 'public', 'iris-logo-white-transparent.png'));
-    const logo = await document.embedPng(Uint8Array.from(logoBytes));
-    const scaled = logo.scaleToFit(120, 46);
+    const source = logoBytes(input.seller.logoDataUrl);
+    if (!source) throw new Error('No agency logo');
+    const logo = source.mimeType === 'image/png'
+      ? await document.embedPng(source.bytes)
+      : await document.embedJpg(source.bytes);
+    const scaled = logo.scaleToFit(72, 42);
     page.drawImage(logo, {
       x: MARGIN,
-      y: PAGE_HEIGHT - 82,
+      y: PAGE_HEIGHT - 78,
       width: scaled.width,
       height: scaled.height,
     });
-  } catch {
-    page.drawText('IRIS OS', {
-      x: MARGIN,
-      y: PAGE_HEIGHT - 68,
-      size: 18,
+    companyNameX += scaled.width + 14;
+  } catch {}
+  const companyName = input.seller.displayName || input.seller.legalEntityName || input.seller.name;
+  wrapText(companyName, bold, 13.5, 245 - (companyNameX - MARGIN)).slice(0, 2).forEach((line, index) => {
+    page.drawText(line, {
+      x: companyNameX,
+      y: PAGE_HEIGHT - 57 - index * 16,
+      size: 13.5,
       font: bold,
-      color: WHITE,
+      color: brandText,
     });
-  }
+  });
   page.drawText('INVOICE', {
     x: PAGE_WIDTH - MARGIN - 116,
     y: PAGE_HEIGHT - 64,
     size: 27,
     font: bold,
-    color: WHITE,
+    color: brandText,
   });
   page.drawText(safeText(input.invoiceNumber), {
     x: PAGE_WIDTH - MARGIN - 116,
     y: PAGE_HEIGHT - 84,
     size: 9,
     font,
-    color: SILVER,
+    color: brandText,
   });
 
   page.drawText('FROM', { x: MARGIN, y: 699, size: 8, font: bold, color: SILVER });
@@ -170,11 +204,11 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   });
 
   const tableTop = 468;
-  page.drawRectangle({ x: MARGIN, y: tableTop, width: PAGE_WIDTH - MARGIN * 2, height: 30, color: GRAPHITE });
-  page.drawText('DESCRIPTION', { x: MARGIN + 12, y: tableTop + 10, size: 8, font: bold, color: WHITE });
-  page.drawText('QTY', { x: 365, y: tableTop + 10, size: 8, font: bold, color: WHITE });
-  page.drawText('RATE', { x: 411, y: tableTop + 10, size: 8, font: bold, color: WHITE });
-  page.drawText('AMOUNT', { x: 486, y: tableTop + 10, size: 8, font: bold, color: WHITE });
+  page.drawRectangle({ x: MARGIN, y: tableTop, width: PAGE_WIDTH - MARGIN * 2, height: 30, color: brand });
+  page.drawText('DESCRIPTION', { x: MARGIN + 12, y: tableTop + 10, size: 8, font: bold, color: brandText });
+  page.drawText('QTY', { x: 365, y: tableTop + 10, size: 8, font: bold, color: brandText });
+  page.drawText('RATE', { x: 411, y: tableTop + 10, size: 8, font: bold, color: brandText });
+  page.drawText('AMOUNT', { x: 486, y: tableTop + 10, size: 8, font: bold, color: brandText });
 
   let rowY = tableTop - 31;
   for (const [itemIndex, item] of input.lineItems.slice(0, 8).entries()) {
@@ -206,7 +240,9 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   const totalsY = Math.max(160, rowY - 24);
   const totals = [
     ['Subtotal', formatMoney(input.subtotal, input.currency)],
-    [`GST (${input.taxRate.toFixed(2)}%)`, formatMoney(input.taxAmount, input.currency)],
+    ...(input.taxRate > 0
+      ? [[`GST (${input.taxRate.toFixed(2)}%)`, formatMoney(input.taxAmount, input.currency)]]
+      : []),
     ['Paid', formatMoney(input.paidAmount, input.currency)],
   ];
   totals.forEach(([label, value], index) => {
@@ -220,15 +256,16 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
       color: BLACK,
     });
   });
-  page.drawRectangle({ x: totalsX, y: totalsY - 90, width: 197, height: 38, color: BLACK });
-  page.drawText('BALANCE DUE', { x: totalsX + 12, y: totalsY - 76, size: 8.5, font: bold, color: SILVER });
+  const balanceBoxY = totalsY - totals.length * 22 - 24;
+  page.drawRectangle({ x: totalsX, y: balanceBoxY, width: 197, height: 38, color: brand });
+  page.drawText('BALANCE DUE', { x: totalsX + 12, y: balanceBoxY + 14, size: 8.5, font: bold, color: brandText });
   const balance = formatMoney(Math.max(0, input.total - input.paidAmount), input.currency);
   page.drawText(balance, {
     x: PAGE_WIDTH - MARGIN - 12 - bold.widthOfTextAtSize(balance, 11),
-    y: totalsY - 78,
+    y: balanceBoxY + 12,
     size: 11,
     font: bold,
-    color: WHITE,
+    color: brandText,
   });
 
   page.drawText('Payment terms', { x: MARGIN, y: 116, size: 8, font: bold, color: BLACK });

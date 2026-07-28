@@ -17,6 +17,8 @@ model Organization {
   billingPostalCode   String?
   billingCountry      String?
   gstNumber           String?
+  invoiceLogoDataUrl  String?
+  invoiceBrandColor   String   @default("#09090B")
   plan                String   @default("BASIC")
   hasAddon            Boolean  @default(false)
   agencyTypes         String[] @default([])

@@ -12,6 +12,11 @@ import {
 } from './billing-profile';
 import { generateInvoicePdf } from './pdf';
 import type { InvoiceLineItem, InvoicePartySnapshot } from './types';
+import {
+  DEFAULT_INVOICE_BRAND_COLOR,
+  inclusiveGstBreakdown,
+  normalizeInvoiceBrandColor,
+} from './branding';
 
 export class InvoiceServiceError extends Error {
   constructor(message: string, readonly status = 400, readonly invoiceId?: string) {
@@ -46,8 +51,17 @@ export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnTy
   // Older invoices predate immutable billing snapshots. Reconstructing a PDF
   // from the current billing profiles keeps their admin download available,
   // while invoices issued through the new workflow always use their snapshots.
-  const seller = invoice.sellerSnapshot as InvoicePartySnapshot | null
+  const savedSeller = invoice.sellerSnapshot as InvoicePartySnapshot | null;
+  const sellerBase = savedSeller
     || billingSnapshot(invoice.organization, invoice.organization.billingEmail || '');
+  const seller: InvoicePartySnapshot = {
+    ...sellerBase,
+    displayName: sellerBase.displayName || invoice.organization.legalEntityName || invoice.organization.name,
+    logoDataUrl: sellerBase.logoDataUrl || invoice.organization.invoiceLogoDataUrl || '',
+    brandColor: normalizeInvoiceBrandColor(
+      sellerBase.brandColor || invoice.organization.invoiceBrandColor || DEFAULT_INVOICE_BRAND_COLOR,
+    ),
+  };
   const buyer = invoice.buyerSnapshot as InvoicePartySnapshot | null
     || billingSnapshot(invoice.client, invoice.emailRecipient || '');
   const savedLineItems = Array.isArray(invoice.lineItems)
@@ -84,8 +98,6 @@ export async function createAndSendProjectInvoice(input: {
   projectId: string;
   orgId: string;
   baseUrl: string;
-  amount?: number;
-  taxRate?: number;
   description?: string;
   automationKey?: string;
   source?: 'MANUAL' | 'PROJECT_INITIALIZATION';
@@ -123,22 +135,25 @@ export async function createAndSendProjectInvoice(input: {
     throw new InvoiceServiceError(`Invoice creation requires: ${missing.join(', ')}.`);
   }
 
-  const subtotal = roundMoney(input.amount ?? project.paymentAmount ?? 0);
-  if (!Number.isFinite(subtotal) || subtotal <= 0) {
+  const configuredAmount = roundMoney(project.paymentAmount ?? 0);
+  if (!Number.isFinite(configuredAmount) || configuredAmount <= 0) {
     throw new InvoiceServiceError('The project needs a positive client payment amount before invoicing.');
   }
-  const taxRate = roundMoney(input.taxRate ?? 0);
-  if (taxRate < 0 || taxRate > 100) {
-    throw new InvoiceServiceError('GST rate must be between 0 and 100.');
-  }
-  const taxAmount = roundMoney(subtotal * taxRate / 100);
-  const total = roundMoney(subtotal + taxAmount);
+  const { subtotal, taxRate, taxAmount, total } = inclusiveGstBreakdown(
+    configuredAmount,
+    Boolean(project.organization.gstNumber?.trim()),
+  );
   const issuedDate = new Date();
   const dueDate = invoiceDueDate(issuedDate, project.paymentTerms);
-  const seller = billingSnapshot(
-    project.organization,
-    project.organization.billingEmail || '',
-  );
+  const seller: InvoicePartySnapshot = {
+    ...billingSnapshot(
+      project.organization,
+      project.organization.billingEmail || '',
+    ),
+    displayName: project.organization.legalEntityName || project.organization.name,
+    logoDataUrl: project.organization.invoiceLogoDataUrl || '',
+    brandColor: normalizeInvoiceBrandColor(project.organization.invoiceBrandColor),
+  };
   const buyer = billingSnapshot(project.client, recipient.email);
   const description = input.description?.trim() || project.serviceLine || project.name;
   const lineItems: InvoiceLineItem[] = [{

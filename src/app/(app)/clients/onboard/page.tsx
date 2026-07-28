@@ -51,6 +51,8 @@ interface ClosedLeadOption {
 
 export default function ClientOnboardPage() {
   const router = useRouter();
+  const [preselectedLeadId, setPreselectedLeadId] = React.useState<string | null>(null);
+  const appliedPreselectedLeadId = React.useRef<string | null>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
 
   // Onboarding Wizard Steps
@@ -142,6 +144,10 @@ export default function ClientOnboardPage() {
   const [formError, setFormError] = React.useState('');
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
+  React.useEffect(() => {
+    setPreselectedLeadId(new URLSearchParams(window.location.search).get('leadId'));
+  }, []);
+
   // Load and authenticate active user role
   const checkRole = async () => {
     setAuthLoading(true);
@@ -185,15 +191,29 @@ export default function ClientOnboardPage() {
         const res = await fetch('/api/agency-leads');
         if (!res.ok) return;
         const data = await res.json();
-        setClosedLeadOptions((data.leads || []).filter((lead: ClosedLeadOption) =>
+        const availableLeads = (data.leads || []).filter((lead: ClosedLeadOption) =>
           lead.status?.toLowerCase() === 'closed' && !lead.convertedClient
-        ));
+        );
+        setClosedLeadOptions(availableLeads);
+        if (preselectedLeadId && appliedPreselectedLeadId.current !== preselectedLeadId) {
+          const selectedLead = availableLeads.find((lead: ClosedLeadOption) => lead.id === preselectedLeadId);
+          if (selectedLead) {
+            setFormData((prev) => ({
+              ...prev,
+              sourceLeadId: selectedLead.id,
+              clientName: selectedLead.fullName,
+              clientEmail: selectedLead.email,
+              clientPhone: selectedLead.phone || '',
+            }));
+            appliedPreselectedLeadId.current = preselectedLeadId;
+          }
+        }
       } catch (e) {
         console.error('Error fetching closed leads:', e);
       }
     }
     fetchClosedLeads();
-  }, []);
+  }, [preselectedLeadId]);
 
   const recalculateStages = (stagesList: any[], startDateStr: string, endDateStr: string) => {
     const start = startDateStr ? new Date(startDateStr) : new Date();

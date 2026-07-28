@@ -246,7 +246,10 @@ export const PrismAIService = {
 
   async getSessions() {
     if (typeof window === 'undefined') return [];
-    const res = await workspaceFetch('/api/prism-ai/sessions');
+    // Chat history must reflect completed Prism writes immediately. Unlike
+    // dashboard reads, a stale session list makes a persisted conversation look
+    // as though it was lost.
+    const res = await workspaceFetch('/api/prism-ai/sessions', { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.sessions || [];
@@ -254,7 +257,7 @@ export const PrismAIService = {
 
   async getSessionMessages(id: string) {
     if (typeof window === 'undefined') return null;
-    const res = await workspaceFetch(`/api/prism-ai/sessions/${id}`);
+    const res = await workspaceFetch(`/api/prism-ai/sessions/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
     return await res.json();
   },

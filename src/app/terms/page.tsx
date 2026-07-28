@@ -613,7 +613,7 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              Iris OS contains AI-powered analysis features (&quot;Prism AI&quot;) that utilize external language models (including Google Gemini, OpenAI ChatGPT, and Claude) to analyze your manual cost ledgers and agency leads.
+              Iris OS contains AI-powered analysis features (&quot;Prism AI&quot;) that utilize approved language-model capabilities to analyze your manual cost ledgers and agency leads.
             </p>
             <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
               {[

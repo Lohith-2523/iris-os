@@ -1450,7 +1450,7 @@ async function main() {
         },
         {
           date: new Date('2026-06-18'),
-          details: 'Anthropic Claude Team Seat',
+          details: 'Prism AI Team Seat',
           category: 'AI Subscription',
           type: 'Others',
           transactorAccount: 'anthropic-billing@anthropic.com',

@@ -67,21 +67,12 @@ export async function POST(request: NextRequest) {
       select: { id: true, name: true },
     });
     const clientsById = new Map(clients.map((client) => [client.id, client]));
-    const clientsByName = new Map(clients.map((client) => [client.name.trim().toLowerCase(), client]));
-    const allowedCategories = new Set(['Revenue', 'Expense', 'AI Subscription']);
+    const allowedCategories = new Set(['Revenue', 'Expense']);
     const allowedTypes = new Set(['UPI', 'IMPS', 'NEFT', 'Cash', 'Others']);
-    const resolveClientId = (value: unknown, nameValue: unknown) => {
-      const id = typeof value === 'string' ? value : '';
-      if (id && clientsById.has(id)) return id;
-      const name = typeof nameValue === 'string' ? nameValue.trim().toLowerCase() : '';
-      return name ? clientsByName.get(name)?.id ?? null : null;
-    };
-
     if (body.bulk && Array.isArray(body.transactions)) {
       const categoryByLabel = new Map([
         ['revenue', 'Revenue'],
         ['expense', 'Expense'],
-        ['ai subscription', 'AI Subscription'],
       ]);
       const typeByLabel = new Map([
         ['upi', 'UPI'],
@@ -93,7 +84,32 @@ export async function POST(request: NextRequest) {
       const configuredBankAccounts = new Map(
         org.bankNames.map((account) => [account.trim().toLocaleLowerCase(), account]),
       );
-      const transactionData = [];
+      const outstandingInvoices = await prisma.invoice.findMany({
+        where: { orgId: org.id, status: { in: ['UNPAID', 'PARTIALLY_PAID'] } },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          description: true,
+          clientId: true,
+        },
+      });
+      const invoicesByNumber = new Map(
+        outstandingInvoices.map((invoice) => [invoice.invoiceNumber.trim().toLocaleLowerCase(), invoice]),
+      );
+      const transactionData: Array<{
+        date: Date;
+        details: string;
+        category: string;
+        type: string;
+        transactorAccount: string;
+        yourAccount: string;
+        amount: number;
+        referenceNumber: string | null;
+        comments: string | null;
+        clientId: string | null;
+        invoiceId: string | null;
+        orgId: string;
+      }> = [];
       const rejectedRows: Array<{ row: number | null; reason: string }> = [];
 
       for (const t of body.transactions) {
@@ -111,7 +127,7 @@ export async function POST(request: NextRequest) {
           ? categoryByLabel.get(rawCategory.toLocaleLowerCase())
           : (amount >= 0 ? 'Revenue' : 'Expense');
         if (!category || !allowedCategories.has(category)) {
-          rejectedRows.push({ row, reason: 'Category must be Revenue, Expense, or AI Subscription.' });
+          rejectedRows.push({ row, reason: 'Category must be Revenue or Expense.' });
           continue;
         }
         const rawType = String(t.type || '').trim();
@@ -127,33 +143,47 @@ export async function POST(request: NextRequest) {
           continue;
         }
         let finalAmount = amount;
-        if (category === 'Expense' || category === 'AI Subscription') {
+        if (category === 'Expense') {
           finalAmount = -Math.abs(amount);
         } else if (category === 'Revenue') {
           finalAmount = Math.abs(amount);
         }
 
-        const date = parseImportedDate(t.date || new Date());
+        if (!t.date) {
+          rejectedRows.push({ row, reason: 'Date is required.' });
+          continue;
+        }
+        const date = parseImportedDate(t.date);
         if (Number.isNaN(date.getTime())) {
           rejectedRows.push({ row, reason: 'Date is invalid.' });
           continue;
         }
-        const clientId = category === 'Revenue' ? resolveClientId(t.clientId, t.client) : null;
-        if (category === 'Revenue' && t.client && !clientId) {
-          rejectedRows.push({ row, reason: 'Revenue client was not found in this organization.' });
+        const invoiceNumber = String(t.invoiceNumber || '').trim();
+        const selectedInvoice = category === 'Revenue'
+          ? invoicesByNumber.get(invoiceNumber.toLocaleLowerCase()) || null
+          : null;
+        if (category === 'Revenue' && !selectedInvoice) {
+          rejectedRows.push({ row, reason: 'Select a current unpaid or partially paid invoice number.' });
+          continue;
+        }
+        if (category === 'Revenue' && !yourAccount) {
+          rejectedRows.push({ row, reason: 'Bank account is required for revenue.' });
           continue;
         }
         transactionData.push({
           date,
-          details: t.details || 'Imported Transaction',
+          details: category === 'Revenue'
+            ? selectedInvoice?.description?.trim() || `Invoice ${selectedInvoice?.invoiceNumber || ''}`.trim()
+            : t.details || 'Imported Transaction',
           category,
           type: transactionType,
-          transactorAccount: t.transactorAccount || '',
+          transactorAccount: '',
           yourAccount,
           amount: finalAmount,
-          referenceNumber: t.referenceNumber || null,
-          comments: t.comments || null,
-          clientId,
+          referenceNumber: null,
+          comments: category === 'Revenue' ? null : t.comments || null,
+          clientId: category === 'Revenue' ? selectedInvoice?.clientId || null : null,
+          invoiceId: selectedInvoice?.id || null,
           orgId: org.id,
         });
       }
@@ -163,8 +193,23 @@ export async function POST(request: NextRequest) {
           rejected: rejectedRows.slice(0, 20),
         }, { status: 400 });
       }
-      const createdTransactions = await prisma.transaction.createManyAndReturn({
-        data: transactionData,
+      const createdTransactions = await prisma.$transaction(async (tx) => {
+        const created = [];
+        for (const transaction of transactionData) {
+          if (transaction.invoiceId) {
+            const invoice = await tx.invoice.update({
+              where: { id: transaction.invoiceId },
+              data: { paidAmount: { increment: transaction.amount } },
+              select: { id: true, amount: true, paidAmount: true },
+            });
+            await tx.invoice.update({
+              where: { id: invoice.id },
+              data: { status: invoicePaymentStatus(invoice.amount, invoice.paidAmount) },
+            });
+          }
+          created.push(await tx.transaction.create({ data: transaction }));
+        }
+        return created;
       });
       return NextResponse.json({
         success: true,
@@ -183,12 +228,9 @@ export async function POST(request: NextRequest) {
         details,
         category,
         type,
-        transactorAccount,
         yourAccount,
         amount,
-        referenceNumber,
         comments,
-        clientId,
         invoiceId,
       } = body;
 
@@ -201,21 +243,34 @@ export async function POST(request: NextRequest) {
       if (!allowedCategories.has(targetCategory)) {
         return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
       }
+      if (!date) {
+        return NextResponse.json({ error: 'Transaction date is required' }, { status: 400 });
+      }
+      const transactionDate = new Date(date);
+      if (Number.isNaN(transactionDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid transaction date' }, { status: 400 });
+      }
       const targetType = String(type || 'Others');
       if (!allowedTypes.has(targetType)) {
         return NextResponse.json({ error: 'Invalid transaction type' }, { status: 400 });
       }
       const targetAccount = String(yourAccount || '');
+      if (targetCategory === 'Revenue' && !targetAccount.trim()) {
+        return NextResponse.json({ error: 'Select the bank account that received this payment.' }, { status: 400 });
+      }
       if (org.bankNames.length > 0 && !org.bankNames.includes(targetAccount)) {
         return NextResponse.json({ error: 'Select a configured bank account' }, { status: 400 });
       }
       let finalAmount = parsedAmount;
-      if (targetCategory === 'Expense' || targetCategory === 'AI Subscription') {
+      if (targetCategory === 'Expense') {
         finalAmount = -Math.abs(parsedAmount);
       } else if (targetCategory === 'Revenue') {
         finalAmount = Math.abs(parsedAmount);
       }
 
+      if (targetCategory === 'Revenue' && (!invoiceId || typeof invoiceId !== 'string')) {
+        return NextResponse.json({ error: 'Select an unpaid or partially paid invoice for revenue.' }, { status: 400 });
+      }
       const selectedInvoice = targetCategory === 'Revenue' && typeof invoiceId === 'string' && invoiceId
         ? await prisma.invoice.findFirst({
             where: {
@@ -223,7 +278,7 @@ export async function POST(request: NextRequest) {
               orgId: org.id,
               status: { in: ['UNPAID', 'PARTIALLY_PAID'] },
             },
-            select: { id: true, clientId: true },
+            select: { id: true, clientId: true, invoiceNumber: true, description: true },
           })
         : null;
       if (invoiceId && targetCategory === 'Revenue' && !selectedInvoice) {
@@ -265,17 +320,19 @@ export async function POST(request: NextRequest) {
 
         return tx.transaction.create({
           data: {
-            date: new Date(date || new Date()),
-            details: details || 'Manual Entry',
+            date: transactionDate,
+            details: targetCategory === 'Revenue'
+              ? selectedInvoice?.description?.trim() || `Invoice ${selectedInvoice?.invoiceNumber || ''}`.trim()
+              : details || 'Manual Entry',
             category: targetCategory,
             type: targetType,
-            transactorAccount: transactorAccount || '',
+            transactorAccount: '',
             yourAccount: targetAccount,
             amount: finalAmount,
-            referenceNumber: referenceNumber || null,
-            comments: comments || null,
+            referenceNumber: null,
+            comments: targetCategory === 'Revenue' ? null : comments || null,
             clientId: targetCategory === 'Revenue'
-              ? selectedInvoice?.clientId || resolveClientId(clientId, null)
+              ? selectedInvoice?.clientId || null
               : null,
             invoiceId: selectedInvoice?.id || null,
             orgId: org.id,

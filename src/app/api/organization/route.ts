@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import {
+  normalizeInvoiceBrandColor,
+  validateInvoiceLogoDataUrl,
+} from '@/lib/invoices/branding';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,6 +42,8 @@ export async function POST(request: NextRequest) {
       billingPostalCode,
       billingCountry,
       gstNumber,
+      invoiceLogoDataUrl,
+      invoiceBrandColor,
       plan,
       hasAddon,
       agencyTypes,
@@ -51,6 +57,18 @@ export async function POST(request: NextRequest) {
     const user = await getRequestUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const logoResult = invoiceLogoDataUrl !== undefined
+      ? validateInvoiceLogoDataUrl(invoiceLogoDataUrl)
+      : null;
+    if (logoResult?.error) {
+      return NextResponse.json({ error: logoResult.error }, { status: 400 });
+    }
+    if (
+      invoiceBrandColor !== undefined
+      && !/^#[0-9A-Fa-f]{6}$/.test(String(invoiceBrandColor).trim())
+    ) {
+      return NextResponse.json({ error: 'Invoice brand colour must be a six-digit hex colour.' }, { status: 400 });
+    }
 
     let org: any = user.organization;
     {
@@ -99,6 +117,10 @@ export async function POST(request: NextRequest) {
           billingPostalCode: typeof billingPostalCode === 'string' ? billingPostalCode.trim() || null : undefined,
           billingCountry: typeof billingCountry === 'string' ? billingCountry.trim() || null : undefined,
           gstNumber: typeof gstNumber === 'string' ? gstNumber.trim().toUpperCase() || null : undefined,
+          invoiceLogoDataUrl: logoResult ? logoResult.value : undefined,
+          invoiceBrandColor: invoiceBrandColor !== undefined
+            ? normalizeInvoiceBrandColor(invoiceBrandColor)
+            : undefined,
           plan: plan !== undefined ? plan : org.plan,
           hasAddon: hasAddon !== undefined ? hasAddon : org.hasAddon,
           agencyTypes: agencyTypes !== undefined ? agencyTypes : org.agencyTypes,

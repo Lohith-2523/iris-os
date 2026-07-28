@@ -13,7 +13,7 @@ Iris OS is an enterprise-grade SaaS operating system designed for creative agenc
 * **Proactive Intelligence**: Built-in risk detection, cost-leak signals, and actionable operations recommendations.
 
 ### 2. Prism AI Engine
-* **Multi-Model Support**: Leverages custom integrations with Gemini, ChatGPT, and Claude to delegate intelligence queries based on complexity.
+* **Prism AI Intelligence**: Leverages Prism AI with Gemini and ChatGPT capabilities to delegate intelligence queries based on complexity.
 * **Contextual Features**: Powers SaaS cost audits, rolling cash flow forecasting, strategy checklist generation, and direct conversational database querying.
 
 ### 3. Meta Ads & Leads Manager

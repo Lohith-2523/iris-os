@@ -82,9 +82,11 @@ interface ClientDetailDashboardProps {
 function ClientBillingPanel({
   client,
   onClientUpdated,
+  canGenerateInvoices,
 }: {
   client: any;
   onClientUpdated: (client: any) => void;
+  canGenerateInvoices: boolean;
 }) {
   const [form, setForm] = React.useState({
     legalEntityName: client.legalEntityName || '',
@@ -97,16 +99,50 @@ function ClientBillingPanel({
     gstNumber: client.gstNumber || '',
   });
   const [invoices, setInvoices] = React.useState<any[]>(client.invoices || []);
+  const [projects, setProjects] = React.useState<any[]>([]);
+  const [loadingProjects, setLoadingProjects] = React.useState(true);
+  const [generatingProjectId, setGeneratingProjectId] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [message, setMessage] = React.useState('');
   const [downloadingInvoiceId, setDownloadingInvoiceId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    fetch(`/api/invoices?clientId=${encodeURIComponent(client.id)}`)
-      .then((response) => response.ok ? response.json() : [])
-      .then(setInvoices)
-      .catch(() => setInvoices(client.invoices || []));
+    Promise.all([
+      fetch(`/api/invoices?clientId=${encodeURIComponent(client.id)}`),
+      fetch(`/api/projects?clientId=${encodeURIComponent(client.id)}`),
+    ])
+      .then(async ([invoiceResponse, projectResponse]) => {
+        setInvoices(invoiceResponse.ok ? await invoiceResponse.json() : client.invoices || []);
+        setProjects(projectResponse.ok ? await projectResponse.json() : []);
+      })
+      .catch(() => {
+        setInvoices(client.invoices || []);
+        setProjects([]);
+      })
+      .finally(() => setLoadingProjects(false));
   }, [client.id, client.invoices]);
+
+  const generateInvoice = async (projectId: string) => {
+    if (generatingProjectId) return;
+    setGeneratingProjectId(projectId);
+    setMessage('');
+    try {
+      const response = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Unable to generate this invoice.');
+      const invoiceResponse = await fetch(`/api/invoices?clientId=${encodeURIComponent(client.id)}`);
+      if (invoiceResponse.ok) setInvoices(await invoiceResponse.json());
+      setMessage(`Invoice ${result.invoice?.invoiceNumber || ''} generated and sent.`.trim());
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to generate this invoice.');
+    } finally {
+      setGeneratingProjectId(null);
+    }
+  };
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -170,6 +206,70 @@ function ClientBillingPanel({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
+      <Card className="lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white">
+            <FileText className="h-4 w-4 text-zinc-500" /> Generate project invoice
+          </CardTitle>
+          <CardDescription>
+            Invoice values come directly from each project&apos;s retainer or one-time payment setup.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead>Payment setup</TableHead>
+                <TableHead className="text-right">Invoice value</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingProjects ? (
+                <TableRow><TableCell colSpan={4} className="py-10 text-center text-zinc-500"><Loader2 className="mr-2 inline h-3.5 w-3.5 animate-spin" /> Loading projects...</TableCell></TableRow>
+              ) : projects.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="py-10 text-center text-zinc-500">No projects are available for this client.</TableCell></TableRow>
+              ) : projects.map((project) => {
+                const hasAmount = Number(project.paymentAmount || 0) > 0;
+                return (
+                  <TableRow key={project.id}>
+                    <TableCell>
+                      <span className="block font-semibold text-white">{project.name}</span>
+                      <span className="mt-1 block text-[9px] uppercase tracking-wider text-zinc-600">{project.status.replaceAll('_', ' ')}</span>
+                    </TableCell>
+                    <TableCell className="text-zinc-400">
+                      {project.paymentType === 'ONE_TIME'
+                        ? 'One-time payment'
+                        : `Retainer${project.paymentFrequency ? ` · ${project.paymentFrequency}` : ''}`}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-zinc-300">
+                      {hasAmount ? formatCurrency(project.paymentAmount) : 'Not configured'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {canGenerateInvoices && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={!hasAmount || Boolean(generatingProjectId)}
+                          onClick={() => generateInvoice(project.id)}
+                          className="gap-2"
+                        >
+                          {generatingProjectId === project.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          Generate Invoice
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {message && <p className="border-t border-zinc-850 px-4 py-3 text-[10px] text-zinc-400">{message}</p>}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold text-white">Client invoice profile</CardTitle>
@@ -590,7 +690,11 @@ export default function ClientDetailDashboard({
       </div>
 
       {activeWorkspaceTab === 'billing' && (
-        <ClientBillingPanel client={client} onClientUpdated={onClientUpdated} />
+        <ClientBillingPanel
+          client={client}
+          onClientUpdated={onClientUpdated}
+          canGenerateInvoices={canManageMetaAccounts}
+        />
       )}
 
       {/* Main Splits */}

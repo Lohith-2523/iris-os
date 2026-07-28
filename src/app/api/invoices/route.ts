@@ -65,25 +65,10 @@ export async function POST(request: NextRequest) {
     if (!projectId) {
       return NextResponse.json({ error: 'A project is required for every invoice.' }, { status: 400 });
     }
-    const amount = body.amount === undefined || body.amount === ''
-      ? undefined
-      : Number(body.amount);
-    const taxRate = body.taxRate === undefined || body.taxRate === ''
-      ? 0
-      : Number(body.taxRate);
-    if (amount !== undefined && (!Number.isFinite(amount) || amount <= 0)) {
-      return NextResponse.json({ error: 'Invoice amount must be positive.' }, { status: 400 });
-    }
-    if (!Number.isFinite(taxRate)) {
-      return NextResponse.json({ error: 'GST rate must be a number.' }, { status: 400 });
-    }
-
     const invoice = await createAndSendProjectInvoice({
       projectId,
       orgId: user.orgId,
       baseUrl: publicAppUrl(request),
-      amount,
-      taxRate,
       description: typeof body.description === 'string' ? body.description : undefined,
       source: 'MANUAL',
     });

@@ -9,6 +9,9 @@ export type InvoicePartySnapshot = {
   postalCode: string;
   country: string;
   gstNumber: string;
+  displayName?: string;
+  logoDataUrl?: string;
+  brandColor?: string;
 };
 
 export type InvoiceLineItem = {

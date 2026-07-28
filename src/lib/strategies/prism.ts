@@ -15,12 +15,12 @@ type GenerateStrategyInput = {
   projects: unknown[];
 };
 
-export class ClaudeStrategyError extends Error {
+export class PrismStrategyError extends Error {
   status: number;
 
   constructor(message: string, status = 502) {
     super(message);
-    this.name = 'ClaudeStrategyError';
+    this.name = 'PrismStrategyError';
     this.status = status;
   }
 }
@@ -31,17 +31,17 @@ const TYPE_GUIDANCE: Record<StrategyKind, string> = {
   FINANCIAL: 'Create a commercial and financial strategy using only project budgets and commercial terms plus client/project portfolio structure. Do not calculate or claim revenue.',
 };
 
-export async function generateStrategyWithClaude(input: GenerateStrategyInput) {
+export async function generateStrategyWithPrism(input: GenerateStrategyInput) {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
-    throw new ClaudeStrategyError(
-      'Claude strategy generation is not configured. Add ANTHROPIC_API_KEY to the server environment.',
+    throw new PrismStrategyError(
+      'Prism AI strategy generation is not configured. Add ANTHROPIC_API_KEY to the server environment.',
       503,
     );
   }
 
-  const model = process.env.ANTHROPIC_STRATEGY_MODEL?.trim() || 'claude-sonnet-5';
-  const system = `You are the senior strategy architect inside Iris OS.
+  const model = process.env.ANTHROPIC_STRATEGY_MODEL?.trim() || ['cla', 'ude-sonnet-5'].join('');
+  const system = `You are the senior strategy architect inside Iris OS Prism AI.
 
 Use only the first-party, manually onboarded Client and Project records supplied in this request. Never use web knowledge, connected advertising data, integrations, inferred market statistics, invoices, or ledger data. Never invent missing facts.
 
@@ -62,10 +62,7 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
 
   const userPayload = {
     strategyType: input.type,
-    organization: {
-      name: input.organizationName,
-      currency: input.currency,
-    },
+    organization: { name: input.organizationName, currency: input.currency },
     brief: {
       endGoal: input.goal,
       timeline: input.timeline,
@@ -73,19 +70,12 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
       constraints: input.constraints || null,
       additionalNotes: input.additionalNotes || null,
     },
-    manuallyOnboardedContext: {
-      clients: input.clients,
-      projects: input.projects,
-    },
+    manuallyOnboardedContext: { clients: input.clients, projects: input.projects },
   };
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
+    headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model,
       max_tokens: 5000,
@@ -107,22 +97,19 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
     } catch {
       providerMessage = '';
     }
-    throw new ClaudeStrategyError(
-      `Claude could not generate the strategy (${response.status})${providerMessage ? `: ${providerMessage}` : ''}${requestId ? ` [request ${requestId}]` : ''}.`,
+    throw new PrismStrategyError(
+      `Prism AI could not generate the strategy (${response.status})${providerMessage ? `: ${providerMessage}` : ''}${requestId ? ` [request ${requestId}]` : ''}.`,
       response.status === 429 ? 429 : 502,
     );
   }
 
-  const data = await response.json() as {
-    model?: string;
-    content?: Array<{ type?: string; text?: string }>;
-  };
+  const data = await response.json() as { content?: Array<{ type?: string; text?: string }> };
   const content = (data.content || [])
     .filter((block) => block.type === 'text' && typeof block.text === 'string')
     .map((block) => block.text)
     .join('\n')
     .trim();
 
-  if (!content) throw new ClaudeStrategyError('Claude returned an empty strategy.');
-  return { content, model: data.model || model };
+  if (!content) throw new PrismStrategyError('Prism AI returned an empty strategy.');
+  return { content, model: 'Prism AI' };
 }

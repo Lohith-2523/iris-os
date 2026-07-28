@@ -75,7 +75,7 @@ export default function SignupPage() {
           <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-10 object-contain mb-4" />
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Create Workspace</CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
-            Deploy an isolated enterprise operating console (Supabase Secured)
+            Deploy an isolated enterprise operating console
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-8 space-y-6">

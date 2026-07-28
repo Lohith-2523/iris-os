@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import * as XLSX from 'xlsx';
+import { useRouter } from 'next/navigation';
 
 interface AgencyLead {
   id: string;
@@ -40,6 +41,7 @@ interface AgencyLead {
   funnelName: string | null;
   estimatedClientValue: number | null;
   createdTime: string;
+  convertedClient?: { id: string; name: string } | null;
 }
 
 interface LeadMetrics {
@@ -51,6 +53,7 @@ interface LeadMetrics {
 }
 
 export default function AgencyLeadsPage() {
+  const router = useRouter();
   const [leads, setLeads] = React.useState<AgencyLead[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
@@ -220,7 +223,6 @@ export default function AgencyLeadsPage() {
 
       if (res.ok) {
         await loadData();
-        setFormSuccess(true);
         setManualForm({
           fullName: '',
           email: '',
@@ -230,6 +232,8 @@ export default function AgencyLeadsPage() {
           status: 'procured',
           approachMethod: 'Email'
         });
+        // Return to the live pipeline as soon as the new lead is saved.
+        setActiveTab('pipeline');
       } else {
         const err = await res.json();
         setFormError(err.error || 'Failed to create lead.');
@@ -478,24 +482,26 @@ export default function AgencyLeadsPage() {
         </div>
         <div className="flex items-center gap-3">
           {/* Tab Selection */}
-          <div className="workspace-segmented-control flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-lg">
+          <div className="agency-leads-tabs workspace-segmented-control flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-lg">
             <button
               onClick={() => setActiveTab('pipeline')}
+              aria-pressed={activeTab === 'pipeline'}
               className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'pipeline' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >
               <Award className="h-3.5 w-3.5" />
-              <span>Pipeline Board</span>
+              <span>Leads Pipeline</span>
             </button>
             <button
               onClick={() => setActiveTab('entry')}
+              aria-pressed={activeTab === 'entry'}
               className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeTab === 'entry' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >
               <Upload className="h-3.5 w-3.5" />
-              <span>Import & Forms</span>
+              <span>Add Leads</span>
             </button>
           </div>
           <Button
@@ -657,6 +663,20 @@ export default function AgencyLeadsPage() {
                             <span className="text-[9px] text-zinc-600 font-sans block mt-2 border-t border-zinc-900 pt-1.5 truncate">
                               Funnel: {lead.funnelName}
                             </span>
+                          )}
+                          {col.id === 'closed' && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={Boolean(lead.convertedClient)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                router.push(`/clients/onboard?leadId=${encodeURIComponent(lead.id)}`);
+                              }}
+                              className="mt-3 h-7 w-full rounded-md bg-white px-2 text-[10px] font-semibold text-zinc-950 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+                            >
+                              {lead.convertedClient ? 'Client Onboarded' : 'Onboard Client'}
+                            </Button>
                           )}
                         </div>
                       ))

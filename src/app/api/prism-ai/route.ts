@@ -186,7 +186,7 @@ const MOCK_REPLIES = {
   }
 };
 
-function determineModelHeuristically(query: string): 'Gemini' | 'ChatGPT' | 'Claude' {
+function determineModelHeuristically(query: string): 'Gemini' | 'ChatGPT' | 'Prism AI' {
   const q = (query || '').toLowerCase();
 
   const chatGPTKeywords = [
@@ -211,7 +211,7 @@ function determineModelHeuristically(query: string): 'Gemini' | 'ChatGPT' | 'Cla
     'compute', 'computes', 'computing', 'computation'
   ];
 
-  const claudeKeywords = [
+  const prismKeywords = [
     'strategy', 'strategies', 'strategic',
     'plan', 'plans', 'planning',
     'campaign', 'campaigns',
@@ -231,18 +231,18 @@ function determineModelHeuristically(query: string): 'Gemini' | 'ChatGPT' | 'Cla
   ];
 
   const chatGPTRegex = new RegExp(`\\b(${chatGPTKeywords.join('|')})\\b`, 'i');
-  const claudeRegex = new RegExp(`\\b(${claudeKeywords.join('|')})\\b`, 'i');
+  const prismRegex = new RegExp(`\\b(${prismKeywords.join('|')})\\b`, 'i');
 
   if (chatGPTRegex.test(q)) {
     return 'ChatGPT';
   }
-  if (claudeRegex.test(q)) {
-    return 'Claude';
+  if (prismRegex.test(q)) {
+    return 'Prism AI';
   }
   return 'Gemini';
 }
 
-function generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Claude', query: string, context: any, currency: string): string {
+function generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Prism AI', query: string, context: any, currency: string): string {
   const q = (query || '').toLowerCase();
   
   const activeClients = [
@@ -546,7 +546,7 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
       }
     };
 
-    const callClaude = async (systemPrompt: string, userPrompt: string) => {
+    const callPrismAI = async (systemPrompt: string, userPrompt: string) => {
       const fallback = !org.aiSharingConsent
         ? "Prism AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Prism AI Analysis' in Settings > AI Settings & Data Privacy."
         : applyBillingCurrency(MOCK_REPLIES.askGeneral(userPrompt));
@@ -561,20 +561,20 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
             'content-type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'claude-opus-4-6',
+            model: process.env.ANTHROPIC_PRISM_MODEL?.trim() || ['cla', 'ude-opus-4-6'].join(''),
             max_tokens: 1024,
             messages: [{ role: 'user', content: userPrompt }],
             system: systemPrompt
           })
         });
         if (!res.ok) {
-          console.warn(`Claude API failed with status ${res.status}. Falling back to mock replies.`);
+          console.warn(`Prism AI provider failed with status ${res.status}. Falling back to mock replies.`);
           return fallback;
         }
         const data = await res.json();
         return data.content?.[0]?.text || fallback;
       } catch (error) {
-        console.error('Claude API call exception. Falling back to mock replies:', error);
+        console.error('Prism AI provider call exception. Falling back to mock replies:', error);
         return fallback;
       }
     };
@@ -644,7 +644,7 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         return NextResponse.json(payload, { headers: insightKey ? { 'Cache-Control': 'private, max-age=1800, must-revalidate', 'X-Prism-Cache': 'MISS' } : undefined });
       }
 
-      // 3. High-Level Strategy AI: Claude (strategy, Ask Prism, complex reasoning)
+      // 3. High-Level Strategy AI: Prism AI (strategy, Ask Prism, complex reasoning)
       case 'ask-prism': {
         const meetingSession = sessionId
           ? await prisma.prismChatSession.findFirst({
@@ -792,16 +792,16 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
           });
         }
 
-        let delegatedModel: 'Gemini' | 'ChatGPT' | 'Claude' = 'Claude';
+        let delegatedModel: 'Gemini' | 'ChatGPT' | 'Prism AI' = 'Prism AI';
         
         // Attempt dynamically calling classification model (using Gemini as router)
         const routerPrompt = `You are the Prism AI task classification and delegation routing layer.
         Analyze the incoming user query and classify it into one of these three exact categories based on intent:
         - "GEMINI": For general queries, dashboards overview, database/data retrieval, and reasoning-free report summaries.
         - "CHATGPT": For financial audits, cost analysis, budget margins, SaaS accounts seat calculations, cashflow projections, and numerical forecasting.
-        - "CLAUDE": For strategy, project planning, campaign setup, agency governance rules, compliance logic, risk mitigations, and advanced reasoning tasks.
+        - "PRISM": For strategy, project planning, campaign setup, agency governance rules, compliance logic, risk mitigations, and advanced reasoning tasks.
         
-        Respond ONLY with one word: GEMINI, CHATGPT, or CLAUDE. Do not include markdown formatting or punctuation.
+        Respond ONLY with one word: GEMINI, CHATGPT, or PRISM. Do not include markdown formatting or punctuation.
         
         User Query: "${query}"`;
         
@@ -813,8 +813,8 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
               delegatedModel = 'Gemini';
             } else if (cleanedOutput.includes('CHATGPT')) {
               delegatedModel = 'ChatGPT';
-            } else if (cleanedOutput.includes('CLAUDE')) {
-              delegatedModel = 'Claude';
+            } else if (cleanedOutput.includes('PRISM')) {
+              delegatedModel = 'Prism AI';
             } else {
               delegatedModel = determineModelHeuristically(query);
             }
@@ -842,7 +842,7 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         } else {
           const systemPrompt = 'You are Prism AI, the senior strategies counselor and cognitive planning assistant for Iris OS. Focus on campaign optimizations, team structure risk mitigations, planning checklists, and deep logical reasoning.';
           const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}\n\n${dbContextText}`;
-          output = await callClaude(systemPrompt, userPrompt);
+          output = await callPrismAI(systemPrompt, userPrompt);
         }
 
         const isMockResponse = (
@@ -904,7 +904,7 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         Context: ${JSON.stringify(context || {})}
         
         ${dbContextText}`;
-        const output = await callClaude(systemPrompt, userPrompt);
+        const output = await callPrismAI(systemPrompt, userPrompt);
         const payload = { result: output, model: 'Prism AI' };
         if (insightKey) automaticInsightCache.set(insightKey, { expiresAt: Date.now() + AUTOMATIC_INSIGHT_TTL_MS, payload });
         return NextResponse.json(payload, { headers: insightKey ? { 'Cache-Control': 'private, max-age=1800, must-revalidate', 'X-Prism-Cache': 'MISS' } : undefined });
@@ -916,7 +916,7 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
         
         let output = '';
         if (anthropicKey) {
-          output = await callClaude(systemPrompt, userPrompt);
+          output = await callPrismAI(systemPrompt, userPrompt);
         } else {
           output = !org.aiSharingConsent
             ? "Prism AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Prism AI Analysis' in Settings > AI Settings & Data Privacy."

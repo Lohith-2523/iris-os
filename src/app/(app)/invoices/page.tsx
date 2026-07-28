@@ -30,8 +30,6 @@ export default function InvoicesPage() {
   const [downloadingInvoiceId, setDownloadingInvoiceId] = React.useState<string | null>(null);
   const [form, setForm] = React.useState({
     projectId: '',
-    amount: '',
-    taxRate: '0',
     description: '',
   });
 
@@ -69,7 +67,7 @@ export default function InvoicesPage() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || 'Unable to create invoice.');
-      setForm({ projectId: '', amount: '', taxRate: '0', description: '' });
+      setForm({ projectId: '', description: '' });
       await load();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Unable to create invoice.');
@@ -220,7 +218,7 @@ export default function InvoicesPage() {
             <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white">
               <FileText className="h-4 w-4 text-zinc-500" /> Create invoice
             </CardTitle>
-            <CardDescription>The invoice PDF is emailed to the project client immediately.</CardDescription>
+            <CardDescription>The project&apos;s configured payment value is used and the PDF is emailed immediately.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={createInvoice} className="space-y-4 text-xs">
@@ -237,30 +235,6 @@ export default function InvoicesPage() {
                     <option key={project.id} value={project.id}>{project.client?.name} - {project.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400">Amount</label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={form.amount}
-                  onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
-                  placeholder="Use project amount"
-                  className="w-full border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none placeholder:text-zinc-650 focus:border-zinc-700"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400">GST rate (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={form.taxRate}
-                  onChange={(event) => setForm((current) => ({ ...current, taxRate: event.target.value }))}
-                  className="w-full border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700"
-                />
               </div>
               <div className="space-y-1.5">
                 <label className="font-semibold text-zinc-400">Line-item description</label>

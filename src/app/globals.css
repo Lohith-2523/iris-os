@@ -1142,6 +1142,32 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
   box-shadow: 0 2px 8px rgba(71,85,105,.2), inset 0 1px 0 rgba(255,255,255,.85);
 }
 
+/* Leads workflow selector: keep the selected surface legible in light mode,
+   independent of utility-class order. */
+:root.light .workspace-shell .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true'] {
+  position: relative;
+  background: linear-gradient(145deg, #3b4657, #1b222d) !important;
+  border-color: #202a38 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 9px rgba(51, 65, 85, .32), inset 0 1px 0 rgba(255, 255, 255, .2) !important;
+}
+
+:root.light .workspace-shell .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  right: 7px;
+  top: 6px;
+  height: 4px;
+  width: 4px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 5px rgba(255, 255, 255, .72);
+}
+
+:root.light .workspace-shell .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true'] :is(svg, span) {
+  color: #ffffff !important;
+}
+
 :root.light .workspace-shell .bg-\[\#0d0e12\].border,
 :root.light .workspace-shell .bg-\[\#0b0c10\].border {
   background: linear-gradient(145deg, #ffffff 0%, #f1f5fa 100%) !important;
@@ -1907,6 +1933,32 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
 :root.light .workspace-sidebar .bg-zinc-900 .text-white,
 :root.light .workspace-sidebar .bg-zinc-900\/50 .text-white {
   color: #f4f4f5 !important;
+}
+
+/* Keep the current location unmistakable when the workspace uses its light
+   theme. The sidebar remains graphite for contrast, so use a silver rail and
+   a raised surface rather than relying on the dark-theme background shift. */
+:root.light .workspace-sidebar .workspace-nav-link[aria-current='page'] {
+  position: relative;
+  border-color: rgba(226, 232, 240, .42) !important;
+  background: linear-gradient(145deg, #353b46, #20242b) !important;
+  box-shadow: 0 7px 16px rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255, 255, 255, .18) !important;
+}
+
+:root.light .workspace-sidebar .workspace-nav-link[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, #ffffff, #aab5c5);
+  box-shadow: 0 0 8px rgba(255, 255, 255, .42);
+}
+
+:root.light .workspace-sidebar .workspace-nav-link[aria-current='page'] :is(svg, span) {
+  color: #ffffff !important;
 }
 
 :root.light .workspace-shell .bg-zinc-800,

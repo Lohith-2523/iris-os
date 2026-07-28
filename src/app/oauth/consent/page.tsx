@@ -63,7 +63,7 @@ function ConsentContent() {
         </div>
         <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">OAuth Connection Consent</CardTitle>
         <CardDescription className="text-xs text-zinc-500 mt-1">
-          Supabase Secured Gateway
+          Secure Gateway
         </CardDescription>
       </CardHeader>
       

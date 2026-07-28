@@ -3,10 +3,10 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import {
-  ClaudeStrategyError,
-  generateStrategyWithClaude,
+  PrismStrategyError,
+  generateStrategyWithPrism,
   type StrategyKind,
-} from '@/lib/strategies/claude';
+} from '@/lib/strategies/prism';
 
 export const runtime = 'nodejs';
 
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     if (!user.organization.aiSharingConsent) {
       return NextResponse.json({
-        error: 'Enable Prism AI Analysis in Settings > AI Settings & Data Privacy before sending workspace records to Claude.',
+        error: 'Enable Prism AI Analysis in Settings > AI Settings & Data Privacy before sending workspace records to Prism AI.',
       }, { status: 403 });
     }
 
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'One or more selected projects are unavailable.' }, { status: 400 });
     }
 
-    const generated = await generateStrategyWithClaude({
+    const generated = await generateStrategyWithPrism({
       type,
       goal,
       timeline,
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ strategy }, { status: 201 });
   } catch (error) {
-    if (error instanceof ClaudeStrategyError) {
+    if (error instanceof PrismStrategyError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('Unable to create strategy:', error);

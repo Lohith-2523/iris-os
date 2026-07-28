@@ -87,7 +87,7 @@ export default function LoginPage() {
           <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-10 object-contain mb-4" />
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Sign In</CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
-            Enterprise Agency & Creative Workspace Monolith (Supabase Secured)
+            Enterprise Agency & Creative Workspace Monolith
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-8 space-y-6">

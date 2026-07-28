@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,7 @@ import { generateInvoicePdf } from './pdf';
 
 describe('invoice PDF', () => {
   it('creates a valid one-page PDF with invoice metadata', async () => {
+    const logoDataUrl = `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public', 'iris-logo-white-transparent.png'))).toString('base64')}`;
     const pdf = await generateInvoicePdf({
       invoiceNumber: 'INV-2026-TEST',
       issuedDate: new Date('2026-07-28T00:00:00.000Z'),
@@ -27,6 +28,9 @@ describe('invoice PDF', () => {
         postalCode: '560025',
         country: 'India',
         gstNumber: '29ABCDE1234F1Z5',
+        displayName: 'Iris Studio Private Limited',
+        logoDataUrl,
+        brandColor: '#5B3F8C',
       },
       buyer: {
         name: 'Aether Technologies',
@@ -85,6 +89,9 @@ describe('invoice PDF', () => {
           postalCode: 'Postal code',
           country: 'Country',
           gstNumber: 'AGENCY GSTIN',
+          displayName: 'Agency legal entity name',
+          logoDataUrl,
+          brandColor: '#5B3F8C',
         },
         buyer: {
           name: 'Client name',

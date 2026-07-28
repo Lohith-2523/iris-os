@@ -63,20 +63,16 @@ export default function FinancePage() {
   const [isSavingTransaction, setIsSavingTransaction] = React.useState(false);
   const [isImportingTransactions, setIsImportingTransactions] = React.useState(false);
   const [bankNames, setBankNames] = React.useState<string[]>([]);
-  const [clients, setClients] = React.useState<any[]>([]);
   const [outstandingInvoices, setOutstandingInvoices] = React.useState<any[]>([]);
 
   // Form states
   const [formDate, setFormDate] = React.useState('');
   const [formDetails, setFormDetails] = React.useState('');
   const [formType, setFormType] = React.useState('UPI');
-  const [formTransactorAccount, setFormTransactorAccount] = React.useState('');
   const [formYourAccount, setFormYourAccount] = React.useState('');
   const [formAmount, setFormAmount] = React.useState('');
-  const [formReferenceNumber, setFormReferenceNumber] = React.useState('');
   const [formComments, setFormComments] = React.useState('');
-  const [formCategory, setFormCategory] = React.useState('Expense');
-  const [formClientId, setFormClientId] = React.useState('');
+  const [formCategory, setFormCategory] = React.useState('Revenue');
   const [formInvoiceId, setFormInvoiceId] = React.useState('');
   const [timeFrame, setTimeFrame] = React.useState('All Time');
 
@@ -348,15 +344,6 @@ export default function FinancePage() {
     }
   }, []);
 
-  const fetchClients = React.useCallback(async () => {
-    try {
-      const response = await fetch('/api/data?domain=clients');
-      if (response.ok) setClients(await response.json());
-    } catch (error) {
-      console.error('Error loading clients:', error);
-    }
-  }, []);
-
   const fetchOutstandingInvoices = React.useCallback(async () => {
     try {
       const response = await fetch('/api/invoices?outstanding=true');
@@ -375,12 +362,17 @@ export default function FinancePage() {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSavingTransaction) return;
-    if (!formDate || !formDetails || !formType || !formTransactorAccount || (!formYourAccount && bankNames.length > 0) || !formAmount) {
+    const isRevenue = formCategory === 'Revenue';
+    const missingRevenueFields = isRevenue && (!formDate || !formInvoiceId || !formYourAccount || !formAmount);
+    const missingOtherFields = !isRevenue && (
+      !formDate || !formDetails || !formType || !formYourAccount || !formAmount
+    );
+    if (missingRevenueFields || missingOtherFields) {
       alert('Please fill out all required fields.');
       return;
     }
 
-    if (formType === 'Others' && !formComments.trim()) {
+    if (!isRevenue && formType === 'Others' && !formComments.trim()) {
       alert('Please add the transaction type in the comments.');
       return;
     }
@@ -393,17 +385,18 @@ export default function FinancePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date: formDate,
-          details: formDetails,
           category: formCategory,
-          type: formType,
-          transactorAccount: formTransactorAccount,
           yourAccount: formYourAccount || 'Manual Entry',
           amount: parseFloat(formAmount),
-          referenceNumber: formReferenceNumber || null,
-          comments: formComments || null,
-          clientId: formCategory === 'Revenue' ? formClientId || null : null,
-          invoiceId: formCategory === 'Revenue' ? formInvoiceId || null : null,
+          ...(isRevenue ? {
+            date: formDate,
+            invoiceId: formInvoiceId,
+          } : {
+            date: formDate,
+            details: formDetails,
+            type: formType,
+            comments: formComments || null,
+          }),
         }),
       });
 
@@ -415,12 +408,9 @@ export default function FinancePage() {
         );
         // Reset form
         setFormDetails('');
-        setFormCategory('Expense');
-        setFormClientId('');
+        setFormCategory('Revenue');
         setFormInvoiceId('');
-        setFormTransactorAccount('');
         setFormAmount('');
-        setFormReferenceNumber('');
         setFormComments('');
         fetchOutstandingInvoices();
       } else {
@@ -465,63 +455,104 @@ export default function FinancePage() {
 
   const downloadTemplate = async () => {
     const ExcelJS = await import('exceljs');
+    const [invoiceResponse, organizationResponse] = await Promise.all([
+      fetch('/api/invoices?outstanding=true'),
+      fetch('/api/organization'),
+    ]);
+    const liveInvoices = invoiceResponse.ok ? await invoiceResponse.json() : outstandingInvoices;
+    const liveBankNames = organizationResponse.ok
+      ? ((await organizationResponse.json()).bankNames || [])
+      : bankNames;
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Iris OS';
-    const ledger = workbook.addWorksheet('Ledger Import', { views: [{ state: 'frozen', ySplit: 1 }] });
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    const instructions = workbook.addWorksheet('Instructions');
+    const revenue = workbook.addWorksheet('Revenue', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const expenses = workbook.addWorksheet('Expenses', { views: [{ state: 'frozen', ySplit: 1 }] });
     const lists = workbook.addWorksheet('Validation Lists');
     lists.state = 'veryHidden';
 
-    const headers = [
-      'Date',
-      'Transaction details',
-      'Category',
-      'Transaction type',
-      'Client',
-      'UPI ID/Account No. of transactor',
-      'Bank account',
-      'Amount',
-      'Reference Number',
-      'Comments',
-    ];
-    ledger.addRow(headers);
-    ledger.columns = [
-      { width: 15 }, { width: 32 }, { width: 20 }, { width: 20 }, { width: 28 },
-      { width: 30 }, { width: 25 }, { width: 16 }, { width: 22 }, { width: 36 },
-    ];
-    ledger.getRow(1).height = 26;
-    ledger.getRow(1).eachCell((cell: any) => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
-      cell.alignment = { vertical: 'middle' };
-    });
-    ledger.autoFilter = { from: 'A1', to: 'J1' };
+    const styleHeader = (sheet: any, range: string) => {
+      sheet.getRow(1).height = 26;
+      sheet.getRow(1).eachCell((cell: any) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+        cell.alignment = { vertical: 'middle' };
+      });
+      sheet.autoFilter = { from: range.split(':')[0], to: range.split(':')[1] };
+    };
 
-    const categories = ['Revenue', 'Expense', 'AI Subscription'];
+    instructions.columns = [{ width: 24 }, { width: 100 }];
+    instructions.mergeCells('A1:B1');
+    instructions.getCell('A1').value = 'IRIS OS · FINANCIAL LEDGER IMPORT';
+    instructions.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    instructions.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+    instructions.getCell('A1').alignment = { vertical: 'middle' };
+    instructions.getRow(1).height = 30;
+    instructions.addRows([
+      ['How to use this workbook', 'Use the Revenue and Expenses sheets only. Keep the header row unchanged and enter one transaction per row. Upload this same XLSX file back to Iris OS when ready.'],
+      ['Revenue sheet', 'Required columns: Date, Invoice Number, Bank Account, Amount. Choose the invoice number and bank account from their dropdowns. The invoice description and client are applied automatically; the received amount is entered manually and may be a partial payment.'],
+      ['Expenses sheet', 'Required columns: Date, Transaction Details, Payment Method, Bank Account, Amount. Comments are optional.'],
+      ['Invoice Number dropdown', 'Shows every currently unpaid or partially paid invoice when this workbook is downloaded. Download a fresh template after creating an invoice so its number is included.'],
+      ['Bank Account dropdown', 'Shows bank accounts configured in Iris OS Settings at the time this workbook is downloaded. Add bank accounts in Settings, then download a fresh workbook if the list changes.'],
+      ['Payment Method dropdown', 'UPI, IMPS, NEFT, Cash, or Others. If you select Others, use Comments to clarify the method.'],
+      ['Amounts', 'Enter positive amounts. Iris OS records Revenue as income and Expenses as an expense automatically. Do not change sheet names or column headings.'],
+    ]);
+    for (let row = 2; row <= 8; row += 1) {
+      const labelCell = instructions.getCell(`A${row}`);
+      labelCell.font = { bold: true, color: { argb: 'FF27272A' } };
+      for (const column of ['A', 'B']) {
+        const cell = instructions.getCell(`${column}${row}`);
+        cell.alignment = { vertical: 'top', wrapText: true };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FFE4E4E7' } } };
+      }
+      instructions.getRow(row).height = 42;
+    }
+
+    const revenueHeaders = ['Date', 'Invoice Number', 'Bank Account', 'Amount'];
+    revenue.addRow(revenueHeaders);
+    revenue.columns = [{ width: 15 }, { width: 26 }, { width: 28 }, { width: 18 }];
+    styleHeader(revenue, 'A1:D1');
+
+    const expenseHeaders = ['Date', 'Transaction Details', 'Payment Method', 'Bank Account', 'Amount', 'Comments'];
+    expenses.addRow(expenseHeaders);
+    expenses.columns = [{ width: 15 }, { width: 32 }, { width: 20 }, { width: 25 }, { width: 16 }, { width: 36 }];
+    styleHeader(expenses, 'A1:F1');
+
     const transactionTypes = ['UPI', 'IMPS', 'NEFT', 'Cash', 'Others'];
-    lists.getColumn(1).values = ['Categories', ...categories];
-    lists.getColumn(2).values = ['Transaction Types', ...transactionTypes];
-    lists.getColumn(3).values = ['Clients', ...clients.map((client) => client.name)];
-    lists.getColumn(4).values = ['Bank Accounts', ...bankNames];
+    const invoiceNumbers = liveInvoices.map((invoice: any) => invoice.invoiceNumber).filter(Boolean);
+    lists.getColumn(1).values = ['Invoice Numbers', ...invoiceNumbers];
+    lists.getColumn(2).values = ['Bank Accounts', ...liveBankNames];
+    lists.getColumn(3).values = ['Payment Methods', ...transactionTypes];
 
     for (let row = 2; row <= 501; row += 1) {
-      ledger.getCell(`A${row}`).numFmt = 'yyyy-mm-dd';
-      ledger.getCell(`C${row}`).dataValidation = {
-        type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$A$2:$A$${categories.length + 1}`],
-      };
-      ledger.getCell(`D${row}`).dataValidation = {
-        type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$B$2:$B$${transactionTypes.length + 1}`],
-      };
-      if (clients.length > 0) {
-        ledger.getCell(`E${row}`).dataValidation = {
-          type: 'list', allowBlank: true, formulae: [`'Validation Lists'!$C$2:$C$${clients.length + 1}`],
+      if (invoiceNumbers.length > 0) {
+        revenue.getCell(`B${row}`).dataValidation = {
+          type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$A$2:$A$${invoiceNumbers.length + 1}`],
         };
       }
-      if (bankNames.length > 0) {
-        ledger.getCell(`G${row}`).dataValidation = {
-          type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$D$2:$D$${bankNames.length + 1}`],
+      if (liveBankNames.length > 0) {
+        revenue.getCell(`C${row}`).dataValidation = {
+          type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$B$2:$B$${liveBankNames.length + 1}`],
+        };
+        expenses.getCell(`D${row}`).dataValidation = {
+          type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$B$2:$B$${liveBankNames.length + 1}`],
         };
       }
-      ledger.getCell(`H${row}`).numFmt = '#,##0.00';
+      revenue.getCell(`A${row}`).numFmt = 'yyyy-mm-dd';
+      revenue.getCell(`D${row}`).numFmt = '#,##0.00';
+      expenses.getCell(`A${row}`).numFmt = 'yyyy-mm-dd';
+      expenses.getCell(`C${row}`).dataValidation = {
+        type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$C$2:$C$${transactionTypes.length + 1}`],
+      };
+      expenses.getCell(`E${row}`).numFmt = '#,##0.00';
+    }
+
+    for (const sheet of [revenue, expenses]) {
+      sheet.getRow(2).eachCell((cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF4F4F5' } };
+      });
     }
 
     await saveWorkbook(workbook, 'iris_os_financial_ledger_template.xlsx');
@@ -542,12 +573,11 @@ export default function FinancePage() {
       const ExcelJS = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
       await workbook.xlsx.load(await file.arrayBuffer());
-      const sheet = workbook.getWorksheet('Ledger Import') || workbook.worksheets[0];
-      if (!sheet) throw new Error('Ledger Import sheet is missing.');
-      const expectedHeaders = [
-        'Date', 'Transaction details', 'Category', 'Transaction type', 'Client',
-        'UPI ID/Account No. of transactor', 'Bank account', 'Amount', 'Reference Number', 'Comments',
-      ];
+      const revenueSheet = workbook.getWorksheet('Revenue');
+      const expensesSheet = workbook.getWorksheet('Expenses');
+      if (!revenueSheet || !expensesSheet) {
+        throw new Error('Revenue and Expenses sheets are required. Please use the latest Iris OS ledger template.');
+      }
       const getCellValue = (cell: any): unknown => {
         const value = cell.value;
         if (value === null || value === undefined) return '';
@@ -562,10 +592,16 @@ export default function FinancePage() {
         .replace(/^\uFEFF/, '')
         .replace(/\s+/g, ' ')
         .trim();
-      const headers = expectedHeaders.map((_, index) => normalizeText(getCellValue(sheet.getRow(1).getCell(index + 1))));
-      if (!expectedHeaders.every((header, index) => header.toLowerCase() === headers[index]?.toLowerCase())) {
-        throw new Error('The workbook columns do not match the Iris OS ledger template.');
-      }
+      const validateHeaders = (sheet: any, expectedHeaders: string[]) => {
+        const headers = expectedHeaders.map((_, index) => normalizeText(getCellValue(sheet.getRow(1).getCell(index + 1))));
+        if (!expectedHeaders.every((header, index) => header.toLowerCase() === headers[index]?.toLowerCase())) {
+          throw new Error(`The ${sheet.name} sheet columns do not match the Iris OS ledger template.`);
+        }
+      };
+      const revenueHeaders = ['Date', 'Invoice Number', 'Bank Account', 'Amount'];
+      const expenseHeaders = ['Date', 'Transaction Details', 'Payment Method', 'Bank Account', 'Amount', 'Comments'];
+      validateHeaders(revenueSheet, revenueHeaders);
+      validateHeaders(expensesSheet, expenseHeaders);
 
       const txs: any[] = [];
       const invalidRows: string[] = [];
@@ -587,30 +623,48 @@ export default function FinancePage() {
         }
         return text;
       };
-      sheet.eachRow((row: any, rowNumber: number) => {
+      revenueSheet.eachRow((row: any, rowNumber: number) => {
         if (rowNumber === 1) return;
-        const values = expectedHeaders.map((_, index) => getCellValue(row.getCell(index + 1)));
+        const values = revenueHeaders.map((_, index) => getCellValue(row.getCell(index + 1)));
         if (!values.some((value) => normalizeText(value) !== '')) return;
 
-        const dateValue = toImportDate(values[0]);
-        const rawAmount = normalizeText(values[7]);
+        const rawAmount = normalizeText(values[3]);
         const amount = Number(rawAmount.replace(/[,\s₹$€£]/g, '').replace(/^\((.*)\)$/, '-$1'));
         if (!Number.isFinite(amount)) {
-          invalidRows.push(`Row ${rowNumber}: Amount must be a number.`);
+          invalidRows.push(`Revenue row ${rowNumber}: Amount must be a number.`);
           return;
         }
         txs.push({
-          date: dateValue,
-          details: normalizeText(values[1]),
-          category: normalizeText(values[2]),
-          type: normalizeText(values[3]),
-          client: normalizeText(values[4]),
-          transactorAccount: normalizeText(values[5]),
-          yourAccount: normalizeText(values[6]),
+          category: 'Revenue',
+          date: toImportDate(values[0]),
+          invoiceNumber: normalizeText(values[1]),
+          yourAccount: normalizeText(values[2]),
           amount,
-          referenceNumber: normalizeText(values[8]) || null,
-          comments: normalizeText(values[9]) || null,
           sourceRow: rowNumber,
+          sourceSheet: 'Revenue',
+        });
+      });
+      expensesSheet.eachRow((row: any, rowNumber: number) => {
+        if (rowNumber === 1) return;
+        const values = expenseHeaders.map((_, index) => getCellValue(row.getCell(index + 1)));
+        if (!values.some((value) => normalizeText(value) !== '')) return;
+
+        const rawAmount = normalizeText(values[4]);
+        const amount = Number(rawAmount.replace(/[,\sâ‚¹$â‚¬Â£]/g, '').replace(/^\((.*)\)$/, '-$1'));
+        if (!Number.isFinite(amount)) {
+          invalidRows.push(`Expenses row ${rowNumber}: Amount must be a number.`);
+          return;
+        }
+        txs.push({
+          date: toImportDate(values[0]),
+          details: normalizeText(values[1]),
+          category: 'Expense',
+          type: normalizeText(values[2]),
+          yourAccount: normalizeText(values[3]),
+          amount,
+          comments: normalizeText(values[5]) || null,
+          sourceRow: rowNumber,
+          sourceSheet: 'Expenses',
         });
       });
       if (txs.length === 0) {
@@ -741,11 +795,10 @@ export default function FinancePage() {
     fetchIntegrations();
     fetchManualTransactions();
     fetchOrgBanks();
-    fetchClients();
     fetchOutstandingInvoices();
     fetchSubscriptions();
     fetchRetainers();
-  }, [fetchClients, fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchOutstandingInvoices, fetchRetainers, fetchSubscriptions]);
+  }, [fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchOutstandingInvoices, fetchRetainers, fetchSubscriptions]);
 
   const isStripeConnected = React.useMemo(() => {
     return integrations.some((i) => i.provider === 'STRIPE' && i.status === 'CONNECTED');
@@ -855,10 +908,10 @@ export default function FinancePage() {
     // Add manual transactions
     manualTransactions.forEach(tx => {
       list.push({
-        id: tx.referenceNumber || tx.id.slice(0, 8),
+        id: tx.id.slice(0, 8),
         transactionId: tx.id,
         source: 'Manual Ledger',
-        customer: tx.client?.name || tx.transactorAccount || 'N/A',
+        customer: tx.client?.name || 'N/A',
         clientId: tx.clientId || null,
         date: tx.date,
         amountUSD: tx.amount,
@@ -867,9 +920,7 @@ export default function FinancePage() {
         details: tx.details,
         category: tx.category,
         type: tx.type,
-        transactorAccount: tx.transactorAccount,
         yourAccount: tx.yourAccount,
-        referenceNumber: tx.referenceNumber,
         comments: tx.comments,
       });
     });
@@ -1142,7 +1193,6 @@ export default function FinancePage() {
       { header: 'Transaction Type', key: 'type', width: 20 },
       { header: 'Bank Account', key: 'bank', width: 24 },
       { header: `Amount (${currencyState})`, key: 'amount', width: 18 },
-      { header: 'Reference Number', key: 'reference', width: 22 },
       { header: 'Details', key: 'details', width: 36 },
       { header: 'Comments', key: 'comments', width: 40 },
     ];
@@ -1163,14 +1213,13 @@ export default function FinancePage() {
         ),
         bank: transaction.yourAccount || '',
         amount: transaction.amountUSD,
-        reference: transaction.referenceNumber || '',
         details: transaction.details || '',
         comments: transaction.comments || '',
       });
     });
     ledger.getColumn('date').numFmt = 'yyyy-mm-dd';
     ledger.getColumn('amount').numFmt = '#,##0.00;[Red](#,##0.00);-';
-    ledger.autoFilter = { from: 'A1', to: 'K1' };
+    ledger.autoFilter = { from: 'A1', to: 'J1' };
 
     recurring.columns = [
       { header: 'Name', key: 'name', width: 32 },
@@ -2242,52 +2291,50 @@ export default function FinancePage() {
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Transaction Details</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Retainer Payment"
-                        value={formDetails}
-                        onChange={(e) => setFormDetails(e.target.value)}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                      />
-                    </div>
+                    {formCategory !== 'Revenue' && (
+                      <>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Transaction Details</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Retainer Payment"
+                            value={formDetails}
+                            onChange={(e) => setFormDetails(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                          />
+                        </div>
+                      </>
+                    )}
 
                                         <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Category</label>
+                      <label className="font-semibold text-zinc-400 block">Transaction Type</label>
                       <select
                         value={formCategory}
                         onChange={(e) => {
                           setFormCategory(e.target.value);
                           if (e.target.value !== 'Revenue') {
                             setFormInvoiceId('');
-                            setFormClientId('');
                           }
                         }}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                       >
                         <option value="Revenue">Revenue</option>
                         <option value="Expense">Expense</option>
-                        <option value="AI Subscription">AI Subscription</option>
                       </select>
                     </div>
 
                     {formCategory === 'Revenue' && (
                       <div className="space-y-4">
                         <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Outstanding Invoice</label>
+                          <label className="font-semibold text-zinc-400 block">Invoice Number</label>
                           <select
+                            required
                             value={formInvoiceId}
-                            onChange={(event) => {
-                              const invoiceId = event.target.value;
-                              setFormInvoiceId(invoiceId);
-                              const invoice = outstandingInvoices.find((item) => item.id === invoiceId);
-                              if (invoice) setFormClientId(invoice.clientId);
-                            }}
+                            onChange={(event) => setFormInvoiceId(event.target.value)}
                             className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                           >
-                            <option value="">General revenue / no invoice</option>
+                            <option value="">Select invoice number...</option>
                             {outstandingInvoices.map((invoice) => (
                               <option key={invoice.id} value={invoice.id}>
                                 {invoice.invoiceNumber} - {invoice.client?.name} - {invoice.project?.name} ({formatCurrency(invoice.balanceDue)})
@@ -2295,63 +2342,39 @@ export default function FinancePage() {
                             ))}
                           </select>
                           <span className="block text-[10px] leading-relaxed text-zinc-500">
-                            Selecting an invoice links this receipt to it. Enter the received amount manually below; it is never filled automatically.
-                          </span>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Client</label>
-                          <select
-                            value={formClientId}
-                            disabled={Boolean(formInvoiceId)}
-                            onChange={(e) => setFormClientId(e.target.value)}
-                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <option value="">General / non-client revenue</option>
-                            {clients.map((client) => (
-                              <option key={client.id} value={client.id}>{client.name}</option>
-                            ))}
-                          </select>
-                          <span className="block text-[10px] text-zinc-500">
-                            Invoice-linked revenue automatically uses the invoice&apos;s client.
+                            The invoice description and client are applied automatically. Enter the received amount manually below; it is never filled automatically.
                           </span>
                         </div>
                       </div>
                     )}
 
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Transaction Type</label>
-                      <select
-                        value={formType}
-                        onChange={(e) => setFormType(e.target.value)}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                      >
-                        <option value="UPI">UPI</option>
-                        <option value="IMPS">IMPS</option>
-                        <option value="NEFT">NEFT</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Others">Others</option>
-                      </select>
-                      {formType === 'Others' && (
-                        <div className="p-2 bg-amber-950/15 border border-amber-900/30 text-amber-400 rounded text-[10px] leading-relaxed">
-                          Note: Please specify the transaction type details in the comments field.
+                    {formCategory !== 'Revenue' && (
+                      <>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Payment Method</label>
+                          <select
+                            value={formType}
+                            onChange={(e) => setFormType(e.target.value)}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
+                          >
+                            <option value="UPI">UPI</option>
+                            <option value="IMPS">IMPS</option>
+                            <option value="NEFT">NEFT</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Others">Others</option>
+                          </select>
+                          {formType === 'Others' && (
+                            <div className="p-2 bg-amber-950/15 border border-amber-900/30 text-amber-400 rounded text-[10px] leading-relaxed">
+                              Note: Please specify the transaction type details in the comments field.
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+
+                      </>
+                    )}
 
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Transactor Account / UPI ID</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. transactor@upi"
-                        value={formTransactorAccount}
-                        onChange={(e) => setFormTransactorAccount(e.target.value)}
-                        className="w-full rounded border border-zinc-800 bg-zinc-900/40 p-2 text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900 focus:outline-none transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Your Account</label>
+                      <label className="font-semibold text-zinc-400 block">Bank</label>
                       {bankNames.length > 0 ? (
                         <select
                           value={formYourAccount}
@@ -2403,18 +2426,7 @@ export default function FinancePage() {
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Reference Number</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. REF98765"
-                        value={formReferenceNumber}
-                        onChange={(e) => setFormReferenceNumber(e.target.value)}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
+                    {formCategory !== 'Revenue' && <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Comments</label>
                       <textarea
                         placeholder="Transaction notes..."
@@ -2422,7 +2434,7 @@ export default function FinancePage() {
                         onChange={(e) => setFormComments(e.target.value)}
                         className="w-full h-16 rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all font-sans text-xs resize-none"
                       />
-                    </div>
+                    </div>}
 
                     <Button
                       type="submit"
