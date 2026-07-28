@@ -282,7 +282,7 @@ export default function PrivacyPolicyPage() {
               margin: 0,
             }}
           >
-            Last Updated: July 28, 2026 • GDPR & DPDP Compliant • Shards Media
+            Last Updated: July 28, 2026 • GDPR & DPDP Compliant • Iris OS
           </p>
         </div>
       </section>
@@ -389,7 +389,7 @@ export default function PrivacyPolicyPage() {
                 margin: 0,
               }}
             >
-              Shards Media (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is the Data Controller responsible for the processing of your personal data 
+              Iris OS (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is the Data Controller responsible for the processing of your personal data 
               on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR) and acts as the Data Fiduciary 
               under Section 3 of the Digital Personal Data Protection (DPDP) Act of India.
             </p>
@@ -567,8 +567,118 @@ export default function PrivacyPolicyPage() {
                 { title: 'Google Account Data', desc: 'We access the verified email address and basic account information returned by Google to identify the connected account and maintain the integration. Iris OS does not request access to Gmail, Google Drive, documents, or photos as part of the Google Calendar integration.' },
                 { title: 'Google Calendar Data', desc: 'With your permission, Iris OS reads calendar lists and future calendar events and may store event titles, descriptions, start and end times, recurrence details, attendee email addresses, RSVP status, event identifiers, locations, and Google Meet links. Iris OS also sends the meeting title, date, time, attendee email addresses, and conferencing request to Google when you ask it to create or update an event.' },
                 { title: 'Gemini-Only AI Scheduling', desc: 'Google Gemini is the only AI model family used to interpret requests to schedule calls. For this workflow, Gemini may process only the information reasonably necessary to understand the scheduling request, such as the meeting title, attendee names or email addresses, requested date and time, time zone, and current scheduling state. Iris OS does not send Google OAuth access or refresh tokens to Gemini, and it does not use OpenAI, Anthropic, or any other AI provider to process Google Calendar data for call scheduling.' },
-                { title: 'Purpose Limitation', desc: 'Google user data is used only to provide or improve the user-facing calendar and scheduling features you request. It is not sold, used for advertising, or used to build advertising profiles. Access is limited to the connected user and their authorized Iris OS workspace.' },
                 { title: 'Notion Authentication', desc: 'We retrieve authorized database schema read/write tokens. This scope is strictly confined to workspace databases you explicitly select for project reporting.' }
+              ].map((li, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  <strong style={{ color: '#e8e8e8' }}>{li.title}:</strong> {li.desc}
+                </li>
+              ))}
+            </ul>
+            <h3
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '15px',
+                color: '#e8e8e8',
+                margin: '8px 0 0',
+              }}
+            >
+              Limited AI Use and Google Workspace API Compliance
+            </h3>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              Iris OS uses Google Workspace data only to provide or improve the visible calendar and call-scheduling features requested by the
+              connected user. Google Workspace data is not sold, used for advertising, used to determine creditworthiness, or used to create,
+              train, or improve a generalized or shared machine-learning or artificial-intelligence model. It is not used to build advertising
+              profiles or retained as a permanent dataset for model training. The use and transfer of information received from Google Workspace
+              APIs by Iris OS adheres to the{' '}
+              <a
+                href="https://developers.google.com/workspace/workspace-api-user-data-developer-policy"
+                target="_blank"
+                rel="noreferrer"
+                className="text-zinc-200 underline underline-offset-4 hover:text-white"
+              >
+                Google Workspace API User Data and Developer Policy
+              </a>
+              , including its Limited Use requirements.
+            </p>
+            <h3
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '15px',
+                color: '#e8e8e8',
+                margin: '8px 0 0',
+              }}
+            >
+              Sharing, Transfer, and Disclosure of Google User Data
+            </h3>
+            <p
+              style={{
+                fontFamily: BODY,
+                fontSize: '14px',
+                color: 'rgba(232,232,232,0.65)',
+                lineHeight: 1.7,
+                margin: 0,
+              }}
+            >
+              Iris OS does not sell Google user data. We share, transfer, or disclose it only to the following recipients and only to the extent
+              necessary for the stated purpose:
+            </p>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                { title: 'Google', desc: 'Google Calendar APIs receive event details and conferencing requests to synchronize calendars, create events, invite attendees, record responses, and provision Google Meet links. Google Gemini receives the limited scheduling inputs described above solely to interpret the user-requested scheduling workflow.' },
+                { title: 'Authorized Workspace Users and Meeting Participants', desc: 'Calendar information is visible to authorized members of the connected Iris OS workspace as permitted by their role. Event titles, times, attendee details, and meeting links may be disclosed to people whom the user chooses to invite.' },
+                { title: 'Infrastructure and Delivery Service Providers', desc: 'Vetted hosting, database, authentication, and transactional-email providers may process the minimum Google user data necessary to operate, secure, store, or deliver the calendar and invitation features on our behalf. They act under contractual confidentiality, security, and purpose-limitation obligations and may not use the data for their own advertising or unrelated purposes.' },
+                { title: 'Security and Legal Disclosures', desc: 'Data may be disclosed when reasonably necessary to investigate abuse or a security incident, or when required to comply with applicable law, regulation, court order, or lawful government request.' },
+                { title: 'Corporate Transaction', desc: 'Google user data may be transferred as part of a merger, acquisition, or sale of assets only after obtaining the user’s explicit prior consent, as required by the Google Workspace Limited Use requirements.' },
+              ].map((li, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    fontFamily: BODY,
+                    fontSize: '14px',
+                    color: 'rgba(232,232,232,0.65)',
+                    lineHeight: 1.7,
+                  }}
+                >
+                  <strong style={{ color: '#e8e8e8' }}>{li.title}:</strong> {li.desc}
+                </li>
+              ))}
+            </ul>
+            <h3
+              style={{
+                fontFamily: DISPLAY,
+                fontWeight: 700,
+                fontSize: '15px',
+                color: '#e8e8e8',
+                margin: '8px 0 0',
+              }}
+            >
+              Data Protection Mechanisms for Sensitive Google Data
+            </h3>
+            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
+              {[
+                { title: 'Encryption', desc: 'Google user data is transmitted over HTTPS/TLS. Google OAuth access and refresh tokens are encrypted at rest using AES-256-GCM, and encryption keys are stored separately from encrypted credentials.' },
+                { title: 'Least-Privilege Access', desc: 'Iris OS requests only the Google OAuth scopes needed to read calendars and manage events. Authentication, workspace authorization, and user-specific ownership controls restrict access to connected-account data.' },
+                { title: 'AI Data Minimization', desc: 'Only the minimum scheduling inputs are sent to Gemini. OAuth credentials are never placed in AI prompts, and synchronized calendar contents are not provided to other AI providers for call scheduling.' },
+                { title: 'Retention and Deletion Controls', desc: 'Google data is retained only while needed to provide the connected feature or meet applicable legal obligations. Disconnecting Google Calendar deletes the stored connection credentials and synchronized events associated with that connection; users may also revoke Iris OS access from their Google Account.' },
+                { title: 'Operational Safeguards', desc: 'Iris OS applies access controls, input validation, security monitoring, and restricted administrative access designed to prevent unauthorized access, alteration, loss, or disclosure. Human access to Google user data is prohibited except with specific user consent or when necessary for security or legal compliance.' },
               ].map((li, idx) => (
                 <li
                   key={idx}
@@ -599,8 +709,7 @@ export default function PrivacyPolicyPage() {
               to communicate with Google APIs and are not included in prompts sent to Gemini. You can disconnect Google Calendar in Iris OS or
               revoke access at any time from your Google Account security settings. On disconnection or a valid deletion request, Iris OS removes
               the stored Google credentials and synchronized Google Calendar data associated with the connection, subject only to legal retention
-              obligations. Our use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy,
-              including its Limited Use requirements.
+              obligations.
             </div>
           </section>
 
@@ -768,7 +877,7 @@ export default function PrivacyPolicyPage() {
               }}
             >
               Personal data collected under these policies is processed in secure servers located within the United States, 
-              the EEA, and India. To facilitate cross-border transfers from the EEA, Shards Media relies on Standard Contractual 
+              the EEA, and India. To facilitate cross-border transfers from the EEA, Iris OS relies on Standard Contractual 
               Clauses (SCCs) approved by the European Commission. Transfers under the DPDP Act are executed in full compliance 
               with cross-border guidelines established by the Government of India.
             </p>
@@ -824,9 +933,9 @@ export default function PrivacyPolicyPage() {
                 borderRadius: '16px',
               }}
             >
-              <div><strong style={{ color: '#e8e8e8' }}>Fiduciary:</strong> Shards Media</div>
-              <div><strong style={{ color: '#e8e8e8' }}>Data Protection Officer:</strong> Privacy Compliance Department</div>
-              <div><strong style={{ color: '#e8e8e8' }}>Email:</strong> studio@shardsmedia.com</div>
+              <div><strong style={{ color: '#e8e8e8' }}>Fiduciary:</strong> Iris OS</div>
+              <div><strong style={{ color: '#e8e8e8' }}>Data Protection Officer:</strong> Iris OS Privacy &amp; Compliance</div>
+              <div><strong style={{ color: '#e8e8e8' }}>Email:</strong> cto.admin@irisos.app</div>
               <div><strong style={{ color: '#e8e8e8' }}>Subject Header:</strong> PRIVACY: DATA RIGHTS EXERCISE</div>
             </div>
           </section>
