@@ -2,13 +2,6 @@ import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
 
 export const PROJECT_PAYMENT_TYPES = ['RETAINER', 'ONE_TIME'] as const;
 export const PROJECT_PAYMENT_FREQUENCIES = ['monthly', 'quarterly', 'yearly'] as const;
-export const PROJECT_PAYMENT_TERMS = [
-  'DUE_ON_RECEIPT',
-  'NET_15',
-  'NET_30',
-  'NET_45',
-  'NET_60',
-] as const;
 
 export type ProjectPaymentType = (typeof PROJECT_PAYMENT_TYPES)[number];
 
@@ -75,18 +68,18 @@ export function parseProjectCommercials(
     } else {
       const paymentStartDate = new Date(String(input.paymentStartDate));
       if (Number.isNaN(paymentStartDate.getTime())) {
-        return { error: 'Project payment start date is invalid' };
+        return { error: 'Project invoice date is invalid' };
       }
       data.paymentStartDate = paymentStartDate;
     }
   }
 
   if (input.paymentTerms !== undefined || !partial) {
-    const terms = normalizedEnum(input.paymentTerms || 'NET_30');
-    if (!PROJECT_PAYMENT_TERMS.includes(terms as (typeof PROJECT_PAYMENT_TERMS)[number])) {
-      return { error: 'Project payment terms are invalid' };
+    const terms = String(input.paymentTerms ?? '').trim();
+    if (terms.length > 1_000) {
+      return { error: 'Project payment terms must be 1,000 characters or fewer' };
     }
-    data.paymentTerms = terms;
+    data.paymentTerms = terms || null;
   }
 
   const resolvedType = data.paymentType;

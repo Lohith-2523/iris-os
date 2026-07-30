@@ -120,11 +120,10 @@ export default function ClientOnboardPage() {
     projectPaymentAmount: '',
     projectPaymentFrequency: 'monthly',
     projectPaymentStartDate: new Date().toISOString().split('T')[0],
-    projectPaymentTerms: 'NET_30',
+    projectPaymentTerms: '',
     projectAutoGenerateInvoice: false,
-    projectTimeline: '3 Months',
     projectStartDate: new Date().toISOString().split('T')[0],
-    projectDeadline: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    projectDeadline: '',
     projectDeliverables: 'Design banner ads, Launch campaign, Optimize conversion metrics',
     projectMemberIds: [] as string[],
     projectStages: [
@@ -216,8 +215,11 @@ export default function ClientOnboardPage() {
   }, [preselectedLeadId]);
 
   const recalculateStages = (stagesList: any[], startDateStr: string, endDateStr: string) => {
-    const start = startDateStr ? new Date(startDateStr) : new Date();
-    const end = endDateStr ? new Date(endDateStr) : new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
+    if (!startDateStr || !endDateStr) {
+      return stagesList.map((stage) => ({ ...stage, startDate: '', endDate: '' }));
+    }
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
     const totalMs = end.getTime() - start.getTime();
     const msPerStage = totalMs / Math.max(stagesList.length, 1);
 
@@ -268,7 +270,11 @@ export default function ClientOnboardPage() {
       return;
     }
     if (createProject && !formData.projectPaymentStartDate) {
-      setFormError(formatUserMessage('Select the project payment start date.'));
+      setFormError(formatUserMessage('Select the invoice date.'));
+      return;
+    }
+    if (createProject && !formData.projectStartDate) {
+      setFormError(formatUserMessage('Select the project start date.'));
       return;
     }
 
@@ -288,28 +294,18 @@ export default function ClientOnboardPage() {
     }
     if (step === 3) {
       const start = new Date();
-      const end = new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
       const defaultStartStr = start.toISOString().split('T')[0];
-      const defaultEndStr = end.toISOString().split('T')[0];
 
       // Auto-initialize project defaults when proceeding to project setup step
       setFormData(prev => {
         const projStart = prev.projectStartDate || defaultStartStr;
-        const projEnd = prev.projectDeadline || defaultEndStr;
+        const projEnd = prev.projectDeadline;
         const baseStages = prev.projectStages.map(s => s.name);
-        
-        // Recalculate stage timelines
-        const totalMs = new Date(projEnd).getTime() - new Date(projStart).getTime();
-        const msPerStage = totalMs / Math.max(baseStages.length, 1);
-        const updatedStages = baseStages.map((name, i) => {
-          const sStart = new Date(new Date(projStart).getTime() + i * msPerStage);
-          const sEnd = new Date(new Date(projStart).getTime() + (i + 1) * msPerStage);
-          return {
-            name,
-            startDate: sStart.toISOString().split('T')[0],
-            endDate: sEnd.toISOString().split('T')[0]
-          };
-        });
+        const updatedStages = recalculateStages(
+          baseStages.map((name) => ({ name, startDate: '', endDate: '' })),
+          projStart,
+          projEnd,
+        );
 
         return {
           ...prev,
@@ -377,7 +373,6 @@ export default function ClientOnboardPage() {
           paymentStartDate: formData.projectPaymentStartDate,
           paymentTerms: formData.projectPaymentTerms,
           autoGenerateInvoice: formData.projectAutoGenerateInvoice,
-          timeline: formData.projectTimeline,
           startDate: formData.projectStartDate,
           endDate: formData.projectDeadline || null,
           memberIds: formData.projectMemberIds,
@@ -1170,9 +1165,7 @@ export default function ClientOnboardPage() {
                             </select>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="font-semibold text-zinc-400 block">
-                              {formData.projectPaymentType === 'ONE_TIME' ? 'Payment Date *' : 'Retainer Start Date *'}
-                            </label>
+                            <label className="font-semibold text-zinc-400 block">Invoice Date *</label>
                             <input
                               type="date"
                               name="projectPaymentStartDate"
@@ -1182,20 +1175,23 @@ export default function ClientOnboardPage() {
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <label className="font-semibold text-zinc-400 block">Payment Terms</label>
-                            <select
-                              name="projectPaymentTerms"
-                              value={formData.projectPaymentTerms}
-                              onChange={handleInputChange}
-                              className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
-                            >
-                              <option value="DUE_ON_RECEIPT">Due on Receipt</option>
-                              <option value="NET_15">Net 15 Days</option>
-                              <option value="NET_30">Net 30 Days</option>
-                              <option value="NET_45">Net 45 Days</option>
-                              <option value="NET_60">Net 60 Days</option>
-                            </select>
+                            <label className="font-semibold text-zinc-400 block">Payment Due</label>
+                            <div className="rounded border border-zinc-850 bg-zinc-950/45 p-2 text-zinc-300">
+                              14 days after the invoice date
+                            </div>
                           </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-semibold text-zinc-400 block">Terms and Conditions <span className="font-normal text-zinc-600">(optional)</span></label>
+                          <textarea
+                            rows={2}
+                            maxLength={1000}
+                            name="projectPaymentTerms"
+                            placeholder="e.g. Payment is due within 30 days of the invoice date."
+                            value={formData.projectPaymentTerms}
+                            onChange={handleInputChange}
+                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
+                          />
                         </div>
                         <label className="flex cursor-pointer items-start gap-3 rounded border border-zinc-850 bg-zinc-950/45 p-3">
                           <input
@@ -1208,15 +1204,15 @@ export default function ClientOnboardPage() {
                             className="mt-0.5 h-3.5 w-3.5 accent-white"
                           />
                           <span>
-                            <span className="block text-[11px] font-semibold text-white">Generate and email the first invoice when this project is initialized</span>
+                            <span className="block text-[11px] font-semibold text-white">Email the automatically generated invoice to the client</span>
                             <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
-                              Requires completed agency and client billing addresses. The finalized PDF will be attached and linked in the client email.
+                              The invoice is generated for the selected invoice date either way. Tick this only to send the finalized PDF to the client.
                             </span>
                           </span>
                         </label>
                       </div>
 
-                      <div className="grid gap-4 sm:grid-cols-4">
+                      <div className="grid gap-4 sm:grid-cols-3">
                         <div className="space-y-1.5">
                           <label className="font-semibold text-zinc-400 block">Internal Delivery Budget ({getCurrencySymbol(currencyState)})</label>
                           <input
@@ -1229,20 +1225,10 @@ export default function ClientOnboardPage() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Project Timeline Range</label>
-                          <input
-                            type="text"
-                            name="projectTimeline"
-                            placeholder="e.g. 3 Months, Jul - Sep"
-                            value={formData.projectTimeline}
-                            onChange={handleInputChange}
-                            className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-650 focus:border-zinc-750 focus:outline-none"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Start Date</label>
+                          <label className="font-semibold text-zinc-400 block">Start Date *</label>
                           <input
                             type="date"
+                            required
                             name="projectStartDate"
                             value={formData.projectStartDate}
                             onChange={handleInputChange}
@@ -1487,23 +1473,25 @@ export default function ClientOnboardPage() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Payment Starts:</span>
+                        <span className="text-zinc-400">Invoice Date:</span>
                         <span className="text-zinc-300 font-mono">{formData.projectPaymentStartDate}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Terms:</span>
-                        <span className="text-zinc-300">{formData.projectPaymentTerms.replaceAll('_', ' ')}</span>
+                        <span className="text-zinc-400">Payment Due:</span>
+                        <span className="text-zinc-300">14 days after invoice date</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Timeline / Internal Budget:</span>
-                        <span className="text-zinc-300 font-mono">{formData.projectTimeline} ({formatCurrency(parseFloat(formData.projectBudget || '0'), 2)})</span>
+                        <span className="text-zinc-400">Start Date / Internal Budget:</span>
+                        <span className="text-zinc-300 font-mono">{formData.projectStartDate} ({formatCurrency(parseFloat(formData.projectBudget || '0'), 2)})</span>
                       </div>
                       <div className="mt-2 pt-2 border-t border-zinc-900/65 space-y-1">
                         <span className="block text-[8px] text-zinc-500 uppercase font-bold">Planned Development Stages:</span>
                         {formData.projectStages.map((stage, idx) => (
                           <div key={idx} className="flex justify-between text-[10px]">
                             <span className="text-zinc-300">{idx + 1}. {stage.name}</span>
-                            <span className="text-zinc-500 font-mono">{stage.startDate} to {stage.endDate}</span>
+                            <span className="text-zinc-500 font-mono">
+                              {stage.startDate && stage.endDate ? `${stage.startDate} to ${stage.endDate}` : 'Dates not scheduled'}
+                            </span>
                           </div>
                         ))}
                       </div>

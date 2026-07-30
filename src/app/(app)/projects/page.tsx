@@ -43,7 +43,7 @@ export default function ProjectsPage() {
     paymentAmount: '',
     paymentFrequency: 'monthly',
     paymentStartDate: '',
-    paymentTerms: 'NET_30',
+    paymentTerms: '',
     timeline: '',
     startDate: '',
     endDate: '',
@@ -68,7 +68,7 @@ export default function ProjectsPage() {
     paymentAmount: '',
     paymentFrequency: 'monthly',
     paymentStartDate: new Date().toISOString().split('T')[0],
-    paymentTerms: 'NET_30',
+    paymentTerms: '',
     autoGenerateInvoice: false,
     status: 'IN_PROGRESS',
     riskLevel: 'LOW',
@@ -158,7 +158,7 @@ export default function ProjectsPage() {
         paymentStartDate: selectedProject.paymentStartDate
           ? selectedProject.paymentStartDate.split('T')[0]
           : (selectedProject.startDate ? selectedProject.startDate.split('T')[0] : ''),
-        paymentTerms: selectedProject.paymentTerms || 'NET_30',
+        paymentTerms: selectedProject.paymentTerms || '',
         timeline: selectedProject.timeline || '',
         startDate: selectedProject.startDate ? selectedProject.startDate.split('T')[0] : '',
         endDate: selectedProject.endDate ? selectedProject.endDate.split('T')[0] : '',
@@ -284,7 +284,7 @@ export default function ProjectsPage() {
       return;
     }
     if (!paymentAmount || Number(paymentAmount) <= 0 || !paymentStartDate) {
-      setFormError('A positive client payment and payment start date are required.');
+      setFormError('A positive client payment and invoice date are required.');
       return;
     }
 
@@ -335,7 +335,7 @@ export default function ProjectsPage() {
           paymentAmount: '',
           paymentFrequency: 'monthly',
           paymentStartDate: new Date().toISOString().split('T')[0],
-          paymentTerms: 'NET_30',
+          paymentTerms: '',
           autoGenerateInvoice: false,
           status: 'IN_PROGRESS',
           riskLevel: 'LOW',
@@ -738,7 +738,7 @@ export default function ProjectsPage() {
       {/* --- CREATE PROJECT MODAL --- */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-850 w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-zinc-950 border border-zinc-850 w-full max-w-4xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">Initialize Program Project</h3>
               <button onClick={() => setIsCreateOpen(false)} className="text-zinc-500 hover:text-white">
@@ -854,9 +854,7 @@ export default function ProjectsPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">
-                      {newProjectForm.paymentType === 'ONE_TIME' ? 'Payment Date *' : 'Retainer Start Date *'}
-                    </label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Invoice Date *</label>
                     <input
                       type="date"
                       required
@@ -866,18 +864,21 @@ export default function ProjectsPage() {
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Payment Terms</label>
-                    <select
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Payment Due</label>
+                    <div className="border border-zinc-850 bg-zinc-950/50 px-3 py-2 text-xs text-zinc-300">
+                      14 days after the invoice date
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Terms and Conditions <span className="normal-case font-medium">(optional)</span></label>
+                    <textarea
+                      rows={2}
+                      maxLength={1000}
+                      placeholder="e.g. Payment is due within 30 days of the invoice date."
                       value={newProjectForm.paymentTerms}
                       onChange={(e) => handleCreationInputChange('paymentTerms', e.target.value)}
-                      className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700"
-                    >
-                      <option value="DUE_ON_RECEIPT">Due on Receipt</option>
-                      <option value="NET_15">Net 15 Days</option>
-                      <option value="NET_30">Net 30 Days</option>
-                      <option value="NET_45">Net 45 Days</option>
-                      <option value="NET_60">Net 60 Days</option>
-                    </select>
+                      className="w-full text-xs bg-zinc-900 border border-zinc-800 p-2.5 text-white outline-none rounded-none focus:border-zinc-700"
+                    />
                   </div>
                 </div>
                 <label className="flex cursor-pointer items-start gap-3 border border-zinc-850 bg-zinc-950/50 p-3">
@@ -888,9 +889,9 @@ export default function ProjectsPage() {
                     className="mt-0.5 h-3.5 w-3.5 accent-white"
                   />
                   <span>
-                    <span className="block text-[11px] font-semibold text-white">Generate and send the initial invoice automatically</span>
+                    <span className="block text-[11px] font-semibold text-white">Email the automatically generated invoice to the client</span>
                     <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">
-                      Uses this project&apos;s payment amount and terms. Agency and client billing addresses must be complete.
+                      The invoice is generated for the selected invoice date either way. Tick this only to send it to the client.
                     </span>
                   </span>
                 </label>
@@ -1215,9 +1216,7 @@ export default function ProjectsPage() {
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-semibold text-zinc-500">
-                          {editForm.paymentType === 'ONE_TIME' ? 'Payment Date' : 'Retainer Start Date'}
-                        </label>
+                        <label className="text-[9px] font-semibold text-zinc-500">Invoice Date</label>
                         <input
                           type="date"
                           required
@@ -1227,18 +1226,21 @@ export default function ProjectsPage() {
                         />
                       </div>
                       <div className="space-y-1.5 sm:col-span-2">
-                        <label className="text-[9px] font-semibold text-zinc-500">Payment Terms</label>
-                        <select
+                        <label className="text-[9px] font-semibold text-zinc-500">Payment Due</label>
+                        <div className="border border-zinc-800 bg-zinc-950/50 px-3 py-1.5 text-zinc-300">
+                          14 days after the invoice date
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-[9px] font-semibold text-zinc-500">Terms and Conditions <span className="font-medium">(optional)</span></label>
+                        <textarea
+                          rows={2}
+                          maxLength={1000}
+                          placeholder="e.g. Payment is due within 30 days of the invoice date."
                           value={editForm.paymentTerms}
                           onChange={(e) => handleEditInputChange('paymentTerms', e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-white outline-none"
-                        >
-                          <option value="DUE_ON_RECEIPT">Due on Receipt</option>
-                          <option value="NET_15">Net 15 Days</option>
-                          <option value="NET_30">Net 30 Days</option>
-                          <option value="NET_45">Net 45 Days</option>
-                          <option value="NET_60">Net 60 Days</option>
-                        </select>
+                          className="w-full bg-zinc-900 border border-zinc-800 p-2 text-white outline-none"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1476,7 +1478,7 @@ export default function ProjectsPage() {
 
                 <div className="grid gap-3 grid-cols-2 border border-zinc-900 bg-zinc-950/20 p-3">
                   <div>
-                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Payment Date</span>
+                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Invoice Date</span>
                     <span className="font-mono text-[10px] font-semibold text-zinc-300">
                       {selectedProject.paymentStartDate
                         ? new Date(selectedProject.paymentStartDate).toLocaleDateString()
@@ -1484,9 +1486,9 @@ export default function ProjectsPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Payment Terms</span>
+                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Payment Due</span>
                     <span className="text-[10px] font-semibold text-zinc-300">
-                      {selectedProject.paymentTerms?.replaceAll('_', ' ') || 'Not configured'}
+                      14 days after invoice date
                     </span>
                   </div>
                 </div>

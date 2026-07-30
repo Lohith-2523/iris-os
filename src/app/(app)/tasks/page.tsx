@@ -29,6 +29,26 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
+import { normalizeTaskStatusProgress, TASK_STATUS_OPTIONS } from '@/lib/tasks/status-progress';
+
+type TaskInlineChanges = {
+  status?: string;
+  progress?: number;
+  stageId?: string | null;
+};
+
+function taskStatusLabelClass(status: string) {
+  switch (status) {
+    case 'COMPLETED':
+      return 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200';
+    case 'BLOCKED':
+      return 'border-rose-400/30 bg-rose-400/10 text-rose-200';
+    case 'IN_PROGRESS':
+      return 'border-indigo-400/30 bg-indigo-400/10 text-indigo-200';
+    default:
+      return 'border-zinc-700 bg-zinc-900 text-zinc-300';
+  }
+}
 
 function taskEditorValues(task: any) {
   return {
@@ -57,6 +77,8 @@ export default function TasksPage() {
   const [viewMode, setViewMode] = React.useState<'kanban' | 'list'>('list');
   const [kanbanGrouping, setKanbanGrouping] = React.useState<'status' | 'stage'>('status');
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
+  const [updatingTaskIds, setUpdatingTaskIds] = React.useState<Set<string>>(new Set());
+  const [inlineTaskError, setInlineTaskError] = React.useState('');
 
   // Selected Task Detail Modal State
   const [selectedTask, setSelectedTask] = React.useState<any | null>(null);
@@ -321,6 +343,58 @@ export default function TasksPage() {
     }
   };
 
+  const canEditTaskInline = React.useCallback((task: any) => Boolean(
+    currentUser && (
+      currentUser.role?.toLowerCase() === 'admin' ||
+      (currentUser.role?.toLowerCase() === 'member' && task.assignedToId === currentUser.id)
+    )
+  ), [currentUser]);
+
+  const handleInlineTaskUpdate = React.useCallback(async (task: any, changes: TaskInlineChanges) => {
+    if (!canEditTaskInline(task) || updatingTaskIds.has(task.id)) return;
+
+    const statusProgress = normalizeTaskStatusProgress(task, changes);
+    const patch = {
+      ...changes,
+      ...(changes.status !== undefined || changes.progress !== undefined ? statusProgress : {}),
+    };
+    const optimisticTask = { ...task, ...patch };
+
+    setInlineTaskError('');
+    setUpdatingTaskIds((current) => new Set(current).add(task.id));
+    setTasks((current) => current.map((item) => item.id === task.id ? optimisticTask : item));
+    setSelectedTask((current: any) => current?.id === task.id ? optimisticTask : current);
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_task', id: task.id, ...patch }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to update the task.');
+      }
+      setTasks((current) => current.map((item) => item.id === task.id ? result.task : item));
+      setSelectedTask((current: any) => current?.id === task.id ? result.task : current);
+    } catch (error) {
+      setTasks((current) => current.map((item) => item.id === task.id ? task : item));
+      setSelectedTask((current: any) => current?.id === task.id ? task : current);
+      setInlineTaskError(error instanceof Error ? error.message : 'Unable to update the task.');
+    } finally {
+      setUpdatingTaskIds((current) => {
+        const next = new Set(current);
+        next.delete(task.id);
+        return next;
+      });
+    }
+  }, [canEditTaskInline, updatingTaskIds]);
+
+  const handleTaskDrop = React.useCallback((taskId: string, changes: TaskInlineChanges) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (task) void handleInlineTaskUpdate(task, changes);
+  }, [handleInlineTaskUpdate, tasks]);
+
 
 
   // Retrieve current active project's stages
@@ -330,12 +404,10 @@ export default function TasksPage() {
   // Categorize status tasks for Status Board
   const classifiedTasks = React.useMemo(() => {
     return {
-      yetToStart: tasks.filter(t => t.status === 'TODO' && t.progress === 0),
-      pendingActive: tasks.filter(t => (t.status === 'IN_PROGRESS' || t.status === 'TODO') && t.progress > 0),
+      yetToStart: tasks.filter(t => t.status === 'TODO'),
+      pendingActive: tasks.filter(t => t.status === 'IN_PROGRESS'),
       blocked: tasks.filter(t => t.status === 'BLOCKED'),
       completed: tasks.filter(t => t.status === 'COMPLETED'),
-      unassigned: tasks.filter(t => !t.assignedToId),
-      intervention: tasks.filter(t => t.status === 'BLOCKED' && t.blocker)
     };
   }, [tasks]);
   const canEditSelectedTask = Boolean(
@@ -460,6 +532,15 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {inlineTaskError && (
+        <div role="alert" className="mb-2 flex shrink-0 items-center justify-between rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[10px] text-rose-200">
+          <span>{inlineTaskError}</span>
+          <button type="button" onClick={() => setInlineTaskError('')} className="text-rose-300 hover:text-white" aria-label="Dismiss task update error">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col overflow-hidden py-2 h-full">
         {loading ? (
@@ -472,87 +553,68 @@ export default function TasksPage() {
           <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-4 pr-6 scrollbar-none">
             {kanbanGrouping === 'status' ? (
               <>
-                {/* Column 1: Unassigned */}
-                {classifiedTasks.unassigned.length > 0 && (
-                  <KanbanColumn
-                    title="Unassigned"
-                    count={classifiedTasks.unassigned.length}
-                    tasks={classifiedTasks.unassigned}
-                    onSelect={setSelectedTask}
-                    highlightColor="border-t-zinc-650"
-                  />
-                )}
-
-                {/* Column 2: Yet to Start */}
-                {classifiedTasks.yetToStart.length > 0 && (
-                  <KanbanColumn
-                    title="Yet to Start"
-                    count={classifiedTasks.yetToStart.length}
-                    tasks={classifiedTasks.yetToStart}
-                    onSelect={setSelectedTask}
-                  />
-                )}
-
-                {/* Column 3: Pending/Active */}
-                {classifiedTasks.pendingActive.length > 0 && (
-                  <KanbanColumn
-                    title="Active / Pending"
-                    count={classifiedTasks.pendingActive.length}
-                    tasks={classifiedTasks.pendingActive}
-                    onSelect={setSelectedTask}
-                  />
-                )}
-
-                {/* Column 4: Blocked */}
-                {classifiedTasks.blocked.length > 0 && (
-                  <KanbanColumn
-                    title="Blocked / Delayed"
-                    count={classifiedTasks.blocked.length}
-                    tasks={classifiedTasks.blocked}
-                    onSelect={setSelectedTask}
-                    highlightColor="border-t-rose-500"
-                  />
-                )}
-
-                {/* Column 5: Client Intervention */}
-                {classifiedTasks.intervention.length > 0 && (
-                  <KanbanColumn
-                    title="Needs Intervention"
-                    count={classifiedTasks.intervention.length}
-                    tasks={classifiedTasks.intervention}
-                    onSelect={setSelectedTask}
-                    highlightColor="border-t-amber-500"
-                  />
-                )}
-
-                {/* Column 6: Completed */}
-                {classifiedTasks.completed.length > 0 && (
-                  <KanbanColumn
-                    title="Completed"
-                    count={classifiedTasks.completed.length}
-                    tasks={classifiedTasks.completed}
-                    onSelect={setSelectedTask}
-                    highlightColor="border-t-emerald-500"
-                  />
-                )}
+                <KanbanColumn
+                  title="Yet to Start"
+                  count={classifiedTasks.yetToStart.length}
+                  tasks={classifiedTasks.yetToStart}
+                  onSelect={setSelectedTask}
+                  canEditTask={canEditTaskInline}
+                  updatingTaskIds={updatingTaskIds}
+                  onTaskUpdate={handleInlineTaskUpdate}
+                  onDropTask={(taskId) => handleTaskDrop(taskId, { status: 'TODO' })}
+                />
+                <KanbanColumn
+                  title="Active / Pending"
+                  count={classifiedTasks.pendingActive.length}
+                  tasks={classifiedTasks.pendingActive}
+                  onSelect={setSelectedTask}
+                  canEditTask={canEditTaskInline}
+                  updatingTaskIds={updatingTaskIds}
+                  onTaskUpdate={handleInlineTaskUpdate}
+                  onDropTask={(taskId) => handleTaskDrop(taskId, { status: 'IN_PROGRESS' })}
+                  highlightColor="border-t-indigo-500"
+                />
+                <KanbanColumn
+                  title="Blocked / Delayed"
+                  count={classifiedTasks.blocked.length}
+                  tasks={classifiedTasks.blocked}
+                  onSelect={setSelectedTask}
+                  canEditTask={canEditTaskInline}
+                  updatingTaskIds={updatingTaskIds}
+                  onTaskUpdate={handleInlineTaskUpdate}
+                  onDropTask={(taskId) => handleTaskDrop(taskId, { status: 'BLOCKED' })}
+                  highlightColor="border-t-rose-500"
+                />
+                <KanbanColumn
+                  title="Completed"
+                  count={classifiedTasks.completed.length}
+                  tasks={classifiedTasks.completed}
+                  onSelect={setSelectedTask}
+                  canEditTask={canEditTaskInline}
+                  updatingTaskIds={updatingTaskIds}
+                  onTaskUpdate={handleInlineTaskUpdate}
+                  onDropTask={(taskId) => handleTaskDrop(taskId, { status: 'COMPLETED' })}
+                  highlightColor="border-t-emerald-500"
+                />
               </>
             ) : (
               /* STAGE-WISE GROUPING */
               <>
                 {/* Unassigned / Backlog Column */}
-                {tasks.filter(t => !t.stageId).length > 0 && (
-                  <KanbanColumn
-                    title="Project Backlog / Unassigned"
-                    count={tasks.filter(t => !t.stageId).length}
-                    tasks={tasks.filter(t => !t.stageId)}
-                    onSelect={setSelectedTask}
-                    highlightColor="border-t-zinc-650"
-                  />
-                )}
+                <KanbanColumn
+                  title="Project Backlog / Unassigned"
+                  count={tasks.filter(t => !t.stageId).length}
+                  tasks={tasks.filter(t => !t.stageId)}
+                  onSelect={setSelectedTask}
+                  canEditTask={canEditTaskInline}
+                  updatingTaskIds={updatingTaskIds}
+                  onTaskUpdate={handleInlineTaskUpdate}
+                  onDropTask={(taskId) => handleTaskDrop(taskId, { stageId: null })}
+                  highlightColor="border-t-zinc-650"
+                />
 
                 {/* Columns for each stage in position order */}
                 {activeProjectStages
-                  .filter((stage: any) => tasks.filter(t => t.stageId === stage.id).length > 0)
                   .map((stage: any, idx: number) => {
                     const stageTasks = tasks.filter(t => t.stageId === stage.id);
                     return (
@@ -562,6 +624,10 @@ export default function TasksPage() {
                         count={stageTasks.length}
                         tasks={stageTasks}
                         onSelect={setSelectedTask}
+                        canEditTask={canEditTaskInline}
+                        updatingTaskIds={updatingTaskIds}
+                        onTaskUpdate={handleInlineTaskUpdate}
+                        onDropTask={(taskId) => handleTaskDrop(taskId, { stageId: stage.id })}
                         highlightColor="border-t-zinc-300"
                       />
                     );
@@ -599,20 +665,39 @@ export default function TasksPage() {
                     <TableCell className="text-zinc-400">{task.assignedTo?.name || 'Unassigned'}</TableCell>
                     <TableCell className="font-mono text-zinc-450">{task.timeline || 'N/A'}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5 font-mono text-[10px]">
-                        <span>{task.progress}%</span>
-                        <div className="h-1 w-10 bg-zinc-900 overflow-hidden">
-                          <div style={{ width: `${task.progress}%` }} className="h-full bg-white" />
-                        </div>
+                      <div
+                        className="flex min-w-36 items-center gap-2"
+                        onClick={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => event.stopPropagation()}
+                      >
+                        <InlineProgressSlider
+                          task={task}
+                          canEdit={canEditTaskInline(task)}
+                          isUpdating={updatingTaskIds.has(task.id)}
+                          onCommit={(progress) => void handleInlineTaskUpdate(task, { progress })}
+                        />
+                        {updatingTaskIds.has(task.id) && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge
-                        variant={task.status === 'COMPLETED' ? 'risk-low' : task.status === 'BLOCKED' ? 'risk-high' : 'outline'}
-                        className="rounded-none uppercase font-mono tracking-wider text-[8px]"
+                      <div
+                        className="flex justify-end"
+                        onClick={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => event.stopPropagation()}
                       >
-                        {task.status}
-                      </Badge>
+                        <select
+                          value={task.status}
+                          onChange={(event) => void handleInlineTaskUpdate(task, { status: event.target.value })}
+                          disabled={!canEditTaskInline(task) || updatingTaskIds.has(task.id)}
+                          aria-label={`Set status for ${task.title}`}
+                          title={canEditTaskInline(task) ? 'Set task status' : 'Only admins or the assigned member can update this task'}
+                          className={`h-7 min-w-28 rounded-md border px-2 font-mono text-[9px] uppercase tracking-wide outline-none transition-colors focus:border-indigo-300 disabled:cursor-not-allowed disabled:opacity-50 ${taskStatusLabelClass(task.status)}`}
+                        >
+                          {TASK_STATUS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1127,18 +1212,117 @@ export default function TasksPage() {
   );
 }
 
+function InlineProgressSlider({
+  task,
+  canEdit,
+  isUpdating,
+  onCommit,
+  compact = false,
+}: {
+  task: any;
+  canEdit: boolean;
+  isUpdating: boolean;
+  onCommit: (progress: number) => void;
+  compact?: boolean;
+}) {
+  const [draftProgress, setDraftProgress] = React.useState(task.progress);
+  const lastCommittedProgress = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    setDraftProgress(task.progress);
+    lastCommittedProgress.current = null;
+  }, [task.id, task.progress]);
+
+  const commit = (progress: number) => {
+    if (!canEdit || isUpdating || progress === task.progress || lastCommittedProgress.current === progress) return;
+    lastCommittedProgress.current = progress;
+    onCommit(progress);
+  };
+
+  return (
+    <div className={compact ? 'flex min-w-0 items-center gap-1.5' : 'flex min-w-0 flex-1 items-center gap-2'}>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={draftProgress}
+        onChange={(event) => setDraftProgress(Number(event.target.value))}
+        onPointerUp={(event) => commit(Number(event.currentTarget.value))}
+        onTouchEnd={(event) => commit(Number(event.currentTarget.value))}
+        onBlur={(event) => commit(Number(event.currentTarget.value))}
+        onKeyUp={(event) => {
+          if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
+            commit(Number(event.currentTarget.value));
+          }
+        }}
+        disabled={!canEdit || isUpdating}
+        draggable={false}
+        aria-label={`Set progress for ${task.title}`}
+        aria-valuetext={`${draftProgress}% complete`}
+        title={canEdit ? 'Drag to set task progress' : 'Only admins or the assigned member can update this task'}
+        style={{ '--task-progress': `${draftProgress}%` } as React.CSSProperties}
+        className={`task-progress-slider h-1.5 min-w-0 flex-1 rounded-full ${
+          canEdit && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-50'
+        }`}
+      />
+      <span className={`w-8 shrink-0 text-right font-mono text-[9px] font-semibold ${compact ? 'text-zinc-400' : 'text-zinc-300'}`}>
+        {draftProgress}%
+      </span>
+    </div>
+  );
+}
+
 /* Kanban column child component */
 interface KanbanColumnProps {
   title: string;
   count: number;
   tasks: any[];
   onSelect: (task: any) => void;
+  canEditTask: (task: any) => boolean;
+  updatingTaskIds: Set<string>;
+  onTaskUpdate: (task: any, changes: TaskInlineChanges) => void | Promise<void>;
+  onDropTask: (taskId: string) => void;
   highlightColor?: string;
 }
 
-function KanbanColumn({ title, count, tasks, onSelect, highlightColor = 'border-t-zinc-800' }: KanbanColumnProps) {
+function KanbanColumn({
+  title,
+  count,
+  tasks,
+  onSelect,
+  canEditTask,
+  updatingTaskIds,
+  onTaskUpdate,
+  onDropTask,
+  highlightColor = 'border-t-zinc-800',
+}: KanbanColumnProps) {
+  const [isDragOver, setIsDragOver] = React.useState(false);
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    const taskId = event.dataTransfer.getData('text/plain');
+    if (taskId) onDropTask(taskId);
+  };
+
   return (
-    <div className={`w-72 shrink-0 border border-zinc-800/80 bg-zinc-900/10 rounded-2xl flex flex-col h-full border-t-4 shadow-xl backdrop-blur-sm overflow-hidden ${highlightColor}`}>
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsDragOver(false);
+      }}
+      onDrop={handleDrop}
+      className={`w-72 shrink-0 border bg-zinc-900/10 rounded-2xl flex flex-col h-full border-t-4 shadow-xl backdrop-blur-sm overflow-hidden transition-colors ${highlightColor} ${
+        isDragOver ? 'border-indigo-400 bg-indigo-500/10 ring-1 ring-inset ring-indigo-400/40' : 'border-zinc-800/80'
+      }`}
+    >
       <div className="p-3.5 border-b border-zinc-800/60 bg-zinc-900/20 flex justify-between items-center rounded-t-2xl">
         <span className="font-bold text-zinc-300 uppercase text-[9.5px] tracking-wider truncate mr-2" title={title}>{title}</span>
         <Badge variant="outline" className="rounded-full bg-zinc-950 border-zinc-800 text-[8.5px] px-2 py-0.5 font-mono text-zinc-400">
@@ -1151,7 +1335,14 @@ function KanbanColumn({ title, count, tasks, onSelect, highlightColor = 'border-
           <div
             key={task.id}
             onClick={() => onSelect(task)}
-            className="border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/70 hover:border-zinc-700/80 rounded-xl p-3.5 space-y-3.5 cursor-pointer hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/5"
+            draggable={canEditTask(task) && !updatingTaskIds.has(task.id)}
+            onDragStart={(event) => {
+              event.dataTransfer.setData('text/plain', task.id);
+              event.dataTransfer.effectAllowed = 'move';
+            }}
+            className={`border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/70 hover:border-zinc-700/80 rounded-xl p-3.5 space-y-3.5 hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/5 ${
+              canEditTask(task) ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+            }`}
           >
             <div>
               <div className="flex justify-between items-start gap-1">
@@ -1166,11 +1357,45 @@ function KanbanColumn({ title, count, tasks, onSelect, highlightColor = 'border-
               {task.description && <span className="block text-[9px] text-zinc-500 mt-1 leading-normal truncate">{task.description}</span>}
             </div>
 
+            {/* Inline status and progress controls */}
+            <div
+              className="grid grid-cols-[1fr_6rem] gap-2"
+              onClick={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
+              onDragStart={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+            >
+              <select
+                value={task.status}
+                onChange={(event) => void onTaskUpdate(task, { status: event.target.value })}
+                disabled={!canEditTask(task) || updatingTaskIds.has(task.id)}
+                draggable={false}
+                aria-label={`Set status for ${task.title}`}
+                className={`h-7 min-w-0 rounded-md border px-1.5 font-mono text-[8px] uppercase outline-none focus:border-indigo-300 disabled:cursor-not-allowed disabled:opacity-50 ${taskStatusLabelClass(task.status)}`}
+              >
+                {TASK_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <InlineProgressSlider
+                task={task}
+                canEdit={canEditTask(task)}
+                isUpdating={updatingTaskIds.has(task.id)}
+                onCommit={(progress) => void onTaskUpdate(task, { progress })}
+                compact
+              />
+            </div>
+
             {/* Micro progress bar */}
             <div className="space-y-1">
               <div className="flex justify-between text-[8px] text-zinc-650 font-mono">
-                <span>Progress</span>
-                <span>{task.progress}%</span>
+                <span>{updatingTaskIds.has(task.id) ? 'Saving changes' : 'Progress'}</span>
+                <span className="flex items-center gap-1">
+                  {updatingTaskIds.has(task.id) && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                  {task.progress}%
+                </span>
               </div>
               <div className="h-1 bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-900">
                 <div
@@ -1196,7 +1421,11 @@ function KanbanColumn({ title, count, tasks, onSelect, highlightColor = 'border-
           </div>
         ))}
         {tasks.length === 0 && (
-          <div className="py-6 text-center text-zinc-700 italic text-[9px]">Empty</div>
+          <div className={`rounded-xl border border-dashed py-8 text-center text-[9px] transition-colors ${
+            isDragOver ? 'border-indigo-400/60 text-indigo-300' : 'border-zinc-800 text-zinc-700'
+          }`}>
+            Drop tasks here
+          </div>
         )}
       </div>
     </div>

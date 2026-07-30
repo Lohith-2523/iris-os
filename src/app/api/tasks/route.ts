@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { isTaskStatus, normalizeTaskStatusProgress } from '@/lib/tasks/status-progress';
 
 function canEditTask(user: { id: string; role: string }, task: { assignedToId: string | null }) {
   return isOrganizationAdmin(user) || (user.role.toLowerCase() === 'member' && task.assignedToId === user.id);
@@ -99,13 +100,25 @@ export async function POST(request: NextRequest) {
       if (!client || client.orgId !== requestUser.orgId) {
         return NextResponse.json({ error: 'Unauthorized client scope' }, { status: 403 });
       }
+      const requestedStatus = status || 'TODO';
+      const requestedProgress = progress !== undefined ? Number(progress) : 0;
+      if (!isTaskStatus(requestedStatus)) {
+        return NextResponse.json({ error: 'Invalid task status' }, { status: 400 });
+      }
+      if (!Number.isInteger(requestedProgress) || requestedProgress < 0 || requestedProgress > 100) {
+        return NextResponse.json({ error: 'Task progress must be a whole number between 0 and 100' }, { status: 400 });
+      }
+      const normalizedStatusProgress = normalizeTaskStatusProgress(
+        { status: 'TODO', progress: 0 },
+        { status: requestedStatus, progress: requestedProgress },
+      );
 
       const newTask = await prisma.clientTask.create({
         data: {
           title,
           description: description || null,
-          status: status || 'TODO',
-          progress: progress !== undefined ? parseInt(progress, 10) : 0,
+          status: normalizedStatusProgress.status,
+          progress: normalizedStatusProgress.progress,
           clientId,
           projectId: projectId || null,
           stageId: stageId || null,
@@ -146,6 +159,13 @@ export async function POST(request: NextRequest) {
       if (normalizedProgress !== undefined && (!Number.isInteger(normalizedProgress) || normalizedProgress < 0 || normalizedProgress > 100)) {
         return NextResponse.json({ error: 'Task progress must be a whole number between 0 and 100' }, { status: 400 });
       }
+      if (status !== undefined && !isTaskStatus(status)) {
+        return NextResponse.json({ error: 'Invalid task status' }, { status: 400 });
+      }
+      const normalizedStatusProgress = normalizeTaskStatusProgress(
+        { status: existingTask.status, progress: existingTask.progress },
+        { status, progress: normalizedProgress },
+      );
       const normalizedDeadline = deadline !== undefined && deadline ? new Date(deadline) : null;
       if (deadline !== undefined && deadline && Number.isNaN(normalizedDeadline?.getTime())) {
         return NextResponse.json({ error: 'Task deadline must be a valid date' }, { status: 400 });
@@ -201,8 +221,8 @@ export async function POST(request: NextRequest) {
         data: {
           title: normalizedTitle,
           description: description !== undefined ? (description === '' ? null : String(description)) : undefined,
-          status: status !== undefined ? status : undefined,
-          progress: normalizedProgress,
+          status: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.status : undefined,
+          progress: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.progress : undefined,
           blocker: blocker !== undefined ? (blocker === '' ? null : blocker) : undefined,
           update: update !== undefined ? (update === '' ? null : update) : undefined,
           assignedToId: assignedToId !== undefined ? (assignedToId === '' || assignedToId === null ? null : assignedToId) : undefined,

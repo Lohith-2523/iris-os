@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
               subtotal: Math.abs(amount),
               amount: Math.abs(amount),
               paidAmount,
-              dueDate: new Date(date.getTime() + 30 * 24 * 60 * 60 * 1000), // Due in 30 days
+              dueDate: new Date(date.getTime() + 14 * 24 * 60 * 60 * 1000),
               issuedDate: date,
               status: normalizedStatus,
               source: 'IMPORTED',

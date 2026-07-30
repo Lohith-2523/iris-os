@@ -12,7 +12,7 @@ type RevenueTransaction = {
 };
 
 function getFinanceMetrics(
-  invoices: Array<{ amount: number; paidAmount: number; status: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } }>,
+  invoices: Array<{ amount: number; paidAmount: number; status: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } | null }>,
   expenses: Array<{ amount: number }>,
   transactions: RevenueTransaction[] = [],
 ) {
@@ -181,14 +181,17 @@ export async function GET(request: NextRequest) {
 
         const financeMetrics = getFinanceMetrics(invoices, expenses, transactions);
 
-        const recentInvoices = invoices.slice(0, 10).map(inv => ({
-          id: inv.id,
-          number: inv.invoiceNumber,
-          client: inv.client.name,
-          amount: inv.amount,
-          date: inv.issuedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          status: inv.status,
-        }));
+        const recentInvoices = invoices.slice(0, 10).map((inv) => {
+          const buyer = inv.buyerSnapshot as { name?: string; legalEntityName?: string } | null;
+          return {
+            id: inv.id,
+            number: inv.invoiceNumber,
+            client: inv.client?.name || buyer?.legalEntityName || buyer?.name || 'Manual customer',
+            amount: inv.amount,
+            date: inv.issuedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            status: inv.status,
+          };
+        });
 
         return NextResponse.json({
           ...financeMetrics,

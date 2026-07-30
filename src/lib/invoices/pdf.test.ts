@@ -62,7 +62,7 @@ describe('invoice PDF', () => {
     expect(pdf.length).toBeGreaterThan(3_000);
     const parsed = await PDFDocument.load(Uint8Array.from(pdf));
     expect(parsed.getPageCount()).toBe(1);
-    expect(parsed.getTitle()).toBe('Invoice INV-2026-TEST');
+    expect(parsed.getTitle()).toBe('Tax Invoice INV-2026-TEST');
 
     if (process.env.WRITE_SAMPLE_PDF === '1') {
       const outputDirectory = path.join(process.cwd(), 'tmp', 'pdfs');
@@ -122,5 +122,60 @@ describe('invoice PDF', () => {
       await mkdir(outputDirectory, { recursive: true });
       await writeFile(path.join(outputDirectory, 'iris-os-invoice-template.pdf'), template);
     }
+  });
+
+  it.each([
+    [{ documentType: 'INVOICE' as const, invoiceType: 'TAX' }, 'Tax Invoice TAX-2026-TEST'],
+    [{ documentType: 'PROFORMA' as const, invoiceType: 'STANDARD' }, 'Proforma Invoice PF-2026-TEST'],
+  ])('labels tax and proforma documents clearly in PDF metadata', async (documentDetails, expectedTitle) => {
+    const isProforma = documentDetails.documentType === 'PROFORMA';
+    const pdf = await generateInvoicePdf({
+      ...documentDetails,
+      invoiceNumber: isProforma ? 'PF-2026-TEST' : 'TAX-2026-TEST',
+      issuedDate: new Date('2026-07-29T00:00:00.000Z'),
+      dueDate: new Date('2026-08-29T00:00:00.000Z'),
+      currency: 'INR',
+      projectName: 'Manual quotation',
+      description: 'Professional services',
+      seller: {
+        name: 'Prism Studio',
+        legalEntityName: 'Prism Studio Private Limited',
+        email: 'billing@example.com',
+        addressLine1: '1 Studio Road',
+        addressLine2: '',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postalCode: '560001',
+        country: 'India',
+        gstNumber: '',
+      },
+      buyer: {
+        name: 'Manual Customer',
+        legalEntityName: 'Manual Customer',
+        email: 'customer@example.com',
+        addressLine1: '2 Customer Road',
+        addressLine2: '',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postalCode: '560002',
+        country: 'India',
+        gstNumber: '',
+      },
+      lineItems: [{
+        description: 'Professional services',
+        quantity: 1,
+        unitPrice: 1000,
+        amount: 1000,
+      }],
+      subtotal: 1000,
+      taxRate: 18,
+      taxAmount: 180,
+      total: 1180,
+      paidAmount: 0,
+      status: isProforma ? 'PROFORMA' : 'UNPAID',
+    });
+
+    const parsed = await PDFDocument.load(Uint8Array.from(pdf));
+    expect(parsed.getTitle()).toBe(expectedTitle);
   });
 });

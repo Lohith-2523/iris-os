@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   __testing,
   clientOnboardingEmail,
+  invoiceDeliveryEmail,
   meetingInvitationEmail,
   memberOnboardingEmail,
 } from './iris-templates';
@@ -56,5 +57,40 @@ describe('Iris email templates', () => {
     expect(email.html).toContain('Creative, Strategy');
     expect(email.html).toContain('Complete team onboarding');
     expect(email.text).toContain('team-token');
+  });
+
+  it('renders invoice delivery with the exact invitation layout system', () => {
+    const email = invoiceDeliveryEmail({
+      recipientName: 'Lohith',
+      organizationName: 'Iris Agency',
+      invoiceNumber: 'INV-2026-001',
+      projectName: 'Launch campaign',
+      amount: 'INR 118,000.00',
+      dueDate: 'August 30, 2026',
+      downloadUrl: 'https://irisos.app/api/invoices/invoice-id/pdf',
+      documentType: 'INVOICE',
+    });
+
+    expect(email.subject).toContain('Tax invoice');
+    expect(email.html).toContain('background-color:#090a0c');
+    expect(email.html).toContain('linear-gradient(135deg,#fafafa');
+    expect(email.html).toContain('https://irisos.app/iris-logo-white-bg.png');
+    expect(email.html).toContain('Tax invoice');
+    expect(email.html).toContain('Download invoice PDF');
+  });
+
+  it('omits a proforma validity date when none was provided', () => {
+    const email = invoiceDeliveryEmail({
+      recipientName: 'Lohith',
+      organizationName: 'Iris Agency',
+      invoiceNumber: 'PF-2026-001',
+      projectName: 'Website redesign quotation',
+      amount: 'INR 118,000.00',
+      downloadUrl: 'https://irisos.app/api/invoices/proforma-id/pdf',
+      documentType: 'PROFORMA',
+    });
+
+    expect(email.html).not.toContain('Valid until');
+    expect(email.text).not.toContain('Valid until');
   });
 });

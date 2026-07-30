@@ -1242,7 +1242,7 @@ export default function FinancePage() {
       { header: 'Project', key: 'name', width: 34 },
       { header: 'Payment Type', key: 'paymentType', width: 20 },
       { header: 'Frequency', key: 'frequency', width: 16 },
-      { header: 'Payment Date', key: 'startDate', width: 16 },
+      { header: 'Invoice Date', key: 'startDate', width: 16 },
       { header: `Amount (${currencyState})`, key: 'amount', width: 18 },
     ];
     styleHeader(retainersSheet.getRow(1));
@@ -2198,7 +2198,7 @@ export default function FinancePage() {
                               <TableHead>Project</TableHead>
                               <TableHead>Type</TableHead>
                               <TableHead>Frequency</TableHead>
-                              <TableHead>Payment Date</TableHead>
+                              <TableHead>Invoice Date</TableHead>
                               <TableHead className="text-right">Amount</TableHead>
                               <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -2584,7 +2584,7 @@ export default function FinancePage() {
                 </div>}
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-semibold uppercase text-zinc-400">
-                    {editingRetainer.paymentType === 'ONE_TIME' ? 'Payment Date' : 'Retainer Start Date'}
+                    Invoice Date
                   </label>
                   <input
                     type="date"

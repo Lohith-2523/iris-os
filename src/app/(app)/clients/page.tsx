@@ -165,9 +165,6 @@ export default function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="font-mono text-2xl font-bold tracking-tight text-white">{formatCurrency(totalPortfolioValue)}</div>
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-zinc-500">
-              <span>Only payments inside signed project contract periods are included.</span>
-            </div>
           </CardContent>
         </Card>
       </div>

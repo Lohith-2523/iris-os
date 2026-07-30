@@ -962,6 +962,16 @@ export default function DashboardPage() {
                     >
                       Ads Manager
                     </Button>
+                    <Button
+                      size="lg"
+                      className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-100 border border-zinc-300 text-zinc-950 hover:bg-white rounded-md h-11"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/prism?q=${encodeURIComponent('Create an invoice')}`;
+                      }}
+                    >
+                      Automatic Invoice
+                    </Button>
                   </div>
                 </CardContent>
               </ExpandableCard>

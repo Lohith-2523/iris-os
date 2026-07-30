@@ -59,7 +59,8 @@ function formatMoney(value: number, currency: string) {
   })}`;
 }
 
-function formatDate(value: Date) {
+function formatDate(value?: Date | null) {
+  if (!value) return 'Not specified';
   return value.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -107,6 +108,7 @@ function drawParty(
     [party.city, party.state, party.postalCode].filter(Boolean).join(', '),
     party.country,
     party.email,
+    party.phone || '',
     party.gstNumber ? `GSTIN: ${party.gstNumber}` : '',
   ].filter(Boolean);
   let cursor = y - 17;
@@ -119,10 +121,14 @@ function drawParty(
 }
 
 export async function generateInvoicePdf(input: InvoicePdfInput) {
+  const isProforma = input.documentType === 'PROFORMA';
+  const isTaxInvoice = !isProforma;
+  const documentLabel = isProforma ? 'PROFORMA INVOICE' : 'TAX INVOICE';
+  const metadataLabel = isProforma ? 'Proforma Invoice' : 'Tax Invoice';
   const document = await PDFDocument.create();
-  document.setTitle(`Invoice ${safeText(input.invoiceNumber)}`);
+  document.setTitle(`${metadataLabel} ${safeText(input.invoiceNumber)}`);
   document.setAuthor('Iris OS');
-  document.setSubject(`Project invoice for ${safeText(input.projectName)}`);
+  document.setSubject(`${metadataLabel} for ${safeText(input.projectName)}`);
   document.setCreator('Iris OS Invoice Engine');
   document.setProducer('Iris OS');
   const page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -161,10 +167,10 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
       color: brandText,
     });
   });
-  page.drawText('INVOICE', {
-    x: PAGE_WIDTH - MARGIN - 116,
+  page.drawText(documentLabel, {
+    x: PAGE_WIDTH - MARGIN - bold.widthOfTextAtSize(documentLabel, isProforma ? 20 : isTaxInvoice ? 23 : 27),
     y: PAGE_HEIGHT - 64,
-    size: 27,
+    size: isProforma ? 20 : isTaxInvoice ? 23 : 27,
     font: bold,
     color: brandText,
   });
@@ -182,8 +188,8 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   page.drawRectangle({ x: 350, y: 633, width: 197, height: 78, color: LIGHT });
   const meta = [
     ['ISSUED', formatDate(input.issuedDate)],
-    ['DUE', formatDate(input.dueDate)],
-    ['STATUS', safeText(input.status).replaceAll('_', ' ')],
+    [isProforma ? 'VALID UNTIL' : 'DUE', formatDate(input.dueDate)],
+    ['TYPE', isProforma ? 'PROFORMA' : 'TAX'],
   ];
   meta.forEach(([label, value], index) => {
     const y = 690 - index * 22;
@@ -195,7 +201,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   page.drawLine({ start: { x: MARGIN, y: 606 }, end: { x: PAGE_WIDTH - MARGIN, y: 606 }, thickness: 1, color: rgb(0.82, 0.83, 0.85) });
   page.drawText('BILL TO', { x: MARGIN, y: 584, size: 8, font: bold, color: SILVER });
   drawParty(page, input.buyer, MARGIN, 566, 260, font, bold);
-  page.drawText('PROJECT', { x: 350, y: 584, size: 8, font: bold, color: SILVER });
+  page.drawText(isProforma ? 'REFERENCE' : 'PROJECT', { x: 350, y: 584, size: 8, font: bold, color: SILVER });
   wrapText(input.projectName, bold, 11, 197).slice(0, 2).forEach((line, index) => {
     page.drawText(line, { x: 350, y: 566 - index * 14, size: 11, font: bold, color: BLACK });
   });
@@ -230,9 +236,9 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
       font,
       color: BLACK,
     }));
-    page.drawText(String(item.quantity), { x: 370, y: rowY, size: 9, font, color: BLACK });
-    page.drawText(formatMoney(item.unitPrice, input.currency), { x: 411, y: rowY, size: 8.5, font, color: BLACK });
-    page.drawText(formatMoney(item.amount, input.currency), { x: 478, y: rowY, size: 8.5, font: bold, color: BLACK });
+    page.drawText(String(item.quantity), { x: 368, y: rowY, size: 8.5, font, color: BLACK });
+    page.drawText(formatMoney(item.unitPrice, input.currency), { x: 411, y: rowY, size: 7.5, font, color: BLACK });
+    page.drawText(formatMoney(item.amount, input.currency), { x: 480, y: rowY, size: 7.5, font: bold, color: BLACK });
     rowY -= rowHeight;
   }
 
@@ -240,8 +246,8 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   const totalsY = Math.max(160, rowY - 24);
   const totals = [
     ['Subtotal', formatMoney(input.subtotal, input.currency)],
-    ...(input.taxRate > 0
-      ? [[`GST (${input.taxRate.toFixed(2)}%)`, formatMoney(input.taxAmount, input.currency)]]
+    ...(input.taxAmount > 0
+      ? [[`Tax (${input.taxRate.toFixed(2)}%)`, formatMoney(input.taxAmount, input.currency)]]
       : []),
     ['Paid', formatMoney(input.paidAmount, input.currency)],
   ];
@@ -258,8 +264,8 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   });
   const balanceBoxY = totalsY - totals.length * 22 - 24;
   page.drawRectangle({ x: totalsX, y: balanceBoxY, width: 197, height: 38, color: brand });
-  page.drawText('BALANCE DUE', { x: totalsX + 12, y: balanceBoxY + 14, size: 8.5, font: bold, color: brandText });
-  const balance = formatMoney(Math.max(0, input.total - input.paidAmount), input.currency);
+  page.drawText(isProforma ? 'ESTIMATED TOTAL' : 'BALANCE DUE', { x: totalsX + 12, y: balanceBoxY + 14, size: 8.5, font: bold, color: brandText });
+  const balance = formatMoney(isProforma ? input.total : Math.max(0, input.total - input.paidAmount), input.currency);
   page.drawText(balance, {
     x: PAGE_WIDTH - MARGIN - 12 - bold.widthOfTextAtSize(balance, 11),
     y: balanceBoxY + 12,
@@ -268,13 +274,23 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
     color: brandText,
   });
 
-  page.drawText('Payment terms', { x: MARGIN, y: 116, size: 8, font: bold, color: BLACK });
-  page.drawText(`Payment is due by ${formatDate(input.dueDate)}. Reference ${safeText(input.invoiceNumber)} when paying.`, {
-    x: MARGIN,
-    y: 100,
-    size: 8.5,
-    font,
-    color: rgb(0.38, 0.4, 0.44),
+  page.drawText(input.termsOfSale ? 'Terms and Conditions' : (isProforma ? 'Validity' : 'Payment terms'), {
+    x: MARGIN, y: 116, size: 8, font: bold, color: BLACK,
+  });
+  const terms = input.termsOfSale
+    || (isProforma
+      ? (input.dueDate
+        ? `This proforma invoice is valid until ${formatDate(input.dueDate)} and is not a demand for payment.`
+        : 'This proforma invoice is not a demand for payment.')
+      : `Payment is due by ${formatDate(input.dueDate)}. Reference ${safeText(input.invoiceNumber)} when paying.`);
+  wrapText(terms, font, 8.5, PAGE_WIDTH - MARGIN * 2).slice(0, 3).forEach((line, index) => {
+    page.drawText(line, {
+      x: MARGIN,
+      y: 100 - index * 11,
+      size: 8.5,
+      font,
+      color: rgb(0.38, 0.4, 0.44),
+    });
   });
   page.drawLine({ start: { x: MARGIN, y: 76 }, end: { x: PAGE_WIDTH - MARGIN, y: 76 }, thickness: 0.7, color: rgb(0.82, 0.83, 0.85) });
   page.drawText('Generated securely by Iris OS', { x: MARGIN, y: 56, size: 7.5, font, color: rgb(0.5, 0.52, 0.56) });

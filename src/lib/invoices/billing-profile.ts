@@ -53,16 +53,8 @@ export function billingSnapshot(
   };
 }
 
-export function invoiceDueDate(issueDate: Date, paymentTerms?: string | null) {
-  const daysByTerm: Record<string, number> = {
-    DUE_ON_RECEIPT: 0,
-    NET_15: 15,
-    NET_30: 30,
-    NET_45: 45,
-    NET_60: 60,
-  };
-  const days = daysByTerm[paymentTerms || 'NET_30'] ?? 30;
-  return new Date(issueDate.getTime() + days * 24 * 60 * 60 * 1000);
+export function invoiceDueDate(issueDate: Date) {
+  return new Date(issueDate.getTime() + 14 * 24 * 60 * 60 * 1000);
 }
 
 export function roundMoney(value: number) {

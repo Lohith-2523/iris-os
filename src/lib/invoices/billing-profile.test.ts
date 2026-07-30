@@ -21,10 +21,9 @@ describe('invoice billing rules', () => {
     ]);
   });
 
-  it('calculates project payment terms in UTC-safe day increments', () => {
+  it('sets every invoice due date fourteen days after its issue date', () => {
     const issueDate = new Date('2026-07-28T12:00:00.000Z');
-    expect(invoiceDueDate(issueDate, 'DUE_ON_RECEIPT').toISOString()).toBe(issueDate.toISOString());
-    expect(invoiceDueDate(issueDate, 'NET_30').toISOString()).toBe('2026-08-27T12:00:00.000Z');
+    expect(invoiceDueDate(issueDate).toISOString()).toBe('2026-08-11T12:00:00.000Z');
   });
 
   it('derives exactly the three immutable payment states', () => {

@@ -85,7 +85,11 @@ export async function POST(request: NextRequest) {
         org.bankNames.map((account) => [account.trim().toLocaleLowerCase(), account]),
       );
       const outstandingInvoices = await prisma.invoice.findMany({
-        where: { orgId: org.id, status: { in: ['UNPAID', 'PARTIALLY_PAID'] } },
+        where: {
+          orgId: org.id,
+          documentType: 'INVOICE',
+          status: { in: ['UNPAID', 'PARTIALLY_PAID'] },
+        },
         select: {
           id: true,
           invoiceNumber: true,
@@ -276,6 +280,7 @@ export async function POST(request: NextRequest) {
             where: {
               id: invoiceId,
               orgId: org.id,
+              documentType: 'INVOICE',
               status: { in: ['UNPAID', 'PARTIALLY_PAID'] },
             },
             select: { id: true, clientId: true, invoiceNumber: true, description: true },

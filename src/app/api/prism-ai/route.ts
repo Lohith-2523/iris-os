@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
-import { getRequestUser } from '@/lib/org';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { z } from 'zod';
 import {
   extractMeetingDetailsWithGemini,
@@ -19,6 +19,23 @@ import {
 import { createPrismMeeting } from '@/lib/calendar/create-prism-meeting';
 import { GoogleCalendarIntegrationError } from '@/lib/google-calendar';
 import { IrisEmailDeliveryError } from '@/lib/email/iris-email';
+import { publicAppUrl } from '@/lib/app-url';
+import {
+  automationConfirmationMessage,
+  isAutomationRequest,
+  mergeAutomationWorkflow,
+  missingAutomationFields,
+  type AutomationWorkflowState,
+} from '@/lib/prism-ai/automation-workflow';
+import {
+  extractAutomationDetailsWithGemini,
+  GeminiAutomationError,
+} from '@/lib/prism-ai/gemini-automations';
+import {
+  executePrismAutomation,
+  PrismAutomationExecutionError,
+} from '@/lib/prism-ai/execute-automation';
+import { InvoiceServiceError } from '@/lib/invoices/service';
 
 const AUTOMATIC_INSIGHT_TTL_MS = 30 * 60 * 1000;
 const CHAT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -646,7 +663,7 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
 
       // 3. High-Level Strategy AI: Prism AI (strategy, Ask Prism, complex reasoning)
       case 'ask-prism': {
-        const meetingSession = sessionId
+        const activeSession = sessionId
           ? await prisma.prismChatSession.findFirst({
               where: { id: sessionId, userId: user.id, orgId: user.orgId },
               select: {
@@ -656,14 +673,147 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
               },
             })
           : null;
-        if (sessionId && !meetingSession) {
+        if (sessionId && !activeSession) {
           return NextResponse.json({ error: 'Chat session not found' }, { status: 404 });
         }
 
-        const meetingWorkflowActive = meetingSession?.workflowType === 'MEETING';
+        const automationWorkflowActive = activeSession?.workflowType === 'AUTOMATION';
+        if (automationWorkflowActive || isAutomationRequest(query)) {
+          if (!isOrganizationAdmin(user)) {
+            return NextResponse.json(
+              { error: 'Only workspace administrators can create records with Prism AI.' },
+              { status: 403 },
+            );
+          }
+          const currentState = automationWorkflowActive
+            ? activeSession.workflowState as Partial<AutomationWorkflowState> | null
+            : null;
+          const [clients, projects, team, leads] = await Promise.all([
+            prisma.client.findMany({
+              where: { orgId: user.orgId },
+              select: { name: true },
+              orderBy: { name: 'asc' },
+            }),
+            prisma.project.findMany({
+              where: { orgId: user.orgId },
+              select: { name: true, client: { select: { name: true } } },
+              orderBy: { name: 'asc' },
+            }),
+            prisma.user.findMany({
+              where: { orgId: user.orgId },
+              select: { name: true, email: true },
+              orderBy: { name: 'asc' },
+            }),
+            prisma.agencyLead.findMany({
+              where: { orgId: user.orgId },
+              select: { fullName: true, email: true },
+              orderBy: { fullName: 'asc' },
+            }),
+          ]);
+          const automationResult = await extractAutomationDetailsWithGemini({
+            query,
+            currentState,
+            currentDate: new Date().toISOString().slice(0, 10),
+            currency: org.currency,
+            directory: {
+              clients,
+              projects: projects.map((project) => ({
+                name: project.name,
+                clientName: project.client.name,
+              })),
+              team,
+              leads: leads.map((lead) => ({ name: lead.fullName, email: lead.email })),
+            },
+          });
+          let workflowState = mergeAutomationWorkflow(currentState, automationResult);
+          if (!workflowState) {
+            return NextResponse.json({ error: 'Prism AI could not identify the requested automation.' }, { status: 400 });
+          }
+
+          const missingFields = missingAutomationFields(workflowState);
+          let output: string;
+          let workflowComplete = false;
+          let createdAutomation: Awaited<ReturnType<typeof executePrismAutomation>> | null = null;
+
+          if (automationResult.action === 'CANCEL') {
+            output = 'Automation cancelled. No records were created.';
+            workflowComplete = true;
+          } else if (
+            automationResult.action === 'CONFIRM'
+            && currentState?.awaitingConfirmation
+            && missingFields.length === 0
+          ) {
+            createdAutomation = await executePrismAutomation({
+              state: workflowState,
+              orgId: user.orgId,
+              userId: user.id,
+              baseUrl: publicAppUrl(request),
+              workspaceContext: dbContextText,
+              automationKey: sessionId ? `prism-automation:${sessionId}` : undefined,
+            });
+            output = createdAutomation.message;
+            workflowComplete = true;
+          } else if (missingFields.length === 0) {
+            workflowState = { ...workflowState, awaitingConfirmation: true };
+            output = automationConfirmationMessage(workflowState, org.currency);
+          } else {
+            workflowState = { ...workflowState, awaitingConfirmation: false };
+            output = automationResult.reply || `Please provide the ${missingFields.join(', ')}.`;
+          }
+
+          const persistedSessionId = await prisma.$transaction(async (tx) => {
+            let persistedId = sessionId;
+            if (!persistedId) {
+              const subject = workflowState.kind.toLowerCase();
+              const title = workflowState.draft.name || workflowState.draft.title || workflowState.draft.projectName;
+              const session = await tx.prismChatSession.create({
+                data: {
+                  title: `${workflowComplete ? 'Created' : 'Create'} ${subject}${title ? `: ${title}` : ''}`.slice(0, 80),
+                  workflowType: workflowComplete ? null : 'AUTOMATION',
+                  workflowState: workflowComplete ? undefined : workflowState,
+                  userId: user.id,
+                  orgId: user.orgId,
+                },
+              });
+              persistedId = session.id;
+            } else {
+              await tx.prismChatSession.update({
+                where: { id: persistedId },
+                data: {
+                  workflowType: workflowComplete ? null : 'AUTOMATION',
+                  workflowState: workflowComplete ? Prisma.JsonNull : workflowState,
+                  updatedAt: new Date(),
+                },
+              });
+            }
+            await tx.askPrismMessage.createMany({
+              data: [
+                { role: 'user', content: query, userId: user.id, orgId: user.orgId, sessionId: persistedId },
+                { role: 'assistant', content: output, userId: user.id, orgId: user.orgId, sessionId: persistedId },
+              ],
+            });
+            return persistedId;
+          });
+
+          return NextResponse.json({
+            result: output,
+            model: 'Prism AI',
+            sessionId: persistedSessionId,
+            persisted: true,
+            automation: createdAutomation
+              ? {
+                  completed: true,
+                  entity: createdAutomation.entity,
+                  invalidateTags: createdAutomation.invalidateTags,
+                }
+              : { completed: false, kind: workflowState.kind },
+          });
+        }
+
+        const meetingWorkflowActive = activeSession?.workflowType === 'MEETING';
         if (meetingWorkflowActive || isMeetingRequest(query)) {
           const currentState = meetingWorkflowActive
-            ? meetingSession.workflowState as Partial<MeetingWorkflowState> | null
+            ? activeSession.workflowState as Partial<MeetingWorkflowState> | null
             : null;
           const timeZone = validTimeZone(currentState?.timeZone || context?.timeZone);
           const [teamDirectory, clientDirectory] = await Promise.all([
@@ -949,6 +1099,9 @@ Please reply in general terms. Advise them politely that they have disabled "Pri
     console.error('Error in Prism AI routing handler:', error);
     if (
       error instanceof GeminiMeetingError
+      || error instanceof GeminiAutomationError
+      || error instanceof PrismAutomationExecutionError
+      || error instanceof InvoiceServiceError
       || error instanceof GoogleCalendarIntegrationError
       || error instanceof IrisEmailDeliveryError
     ) {

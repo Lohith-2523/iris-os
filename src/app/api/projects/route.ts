@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
 
     let invoice = null;
     let invoiceWarning: string | null = null;
-    if (newProject.autoGenerateInvoice) {
+    {
       try {
         invoice = await createAndSendProjectInvoice({
           projectId: newProject.id,
@@ -235,11 +235,13 @@ export async function POST(request: NextRequest) {
           baseUrl: publicAppUrl(request),
           automationKey: `project-initialization:${newProject.id}`,
           source: 'PROJECT_INITIALIZATION',
+          issuedDate: newProject.paymentStartDate || undefined,
+          sendEmail: newProject.autoGenerateInvoice,
         });
       } catch (error) {
         invoiceWarning = error instanceof InvoiceServiceError
           ? error.message
-          : 'The project was created, but its automatic invoice could not be generated.';
+          : 'The project was created, but its dated invoice could not be generated.';
       }
     }
 

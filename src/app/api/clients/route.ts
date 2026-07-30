@@ -217,6 +217,12 @@ export async function POST(request: NextRequest) {
     if (initialProject && !initialProject.name?.trim()) {
       return NextResponse.json({ error: 'An initial project requires a project name' }, { status: 400 });
     }
+    if (initialProject && !initialProject.startDate) {
+      return NextResponse.json({ error: 'An initial project requires a start date' }, { status: 400 });
+    }
+    if (initialProject && Number.isNaN(new Date(initialProject.startDate).getTime())) {
+      return NextResponse.json({ error: 'Initial project start date is invalid' }, { status: 400 });
+    }
 
     const rawProjectBudget = initialProject?.budget;
     const projectBudget = rawProjectBudget === undefined || rawProjectBudget === null || rawProjectBudget === ''
@@ -337,12 +343,18 @@ export async function POST(request: NextRequest) {
         const validStages = stageItems.filter((stage: unknown) =>
           typeof stage === 'string' ? stage.trim().length > 0 : Boolean((stage as { name?: string })?.name?.trim())
         );
+        const schedulableStages = projectEnd
+          ? validStages
+          : validStages.filter((stage: unknown) => (
+              typeof stage === 'object'
+              && Boolean((stage as { startDate?: string }).startDate)
+              && Boolean((stage as { endDate?: string }).endDate)
+            ));
         const createdStages = [] as { id: string }[];
-        if (validStages.length > 0) {
-          const fallbackEnd = new Date(projectStart.getTime() + 90 * 24 * 60 * 60 * 1000);
-          const scheduleEnd = projectEnd || fallbackEnd;
-          const msPerStage = (scheduleEnd.getTime() - projectStart.getTime()) / validStages.length;
-          for (const [position, item] of validStages.entries()) {
+        if (schedulableStages.length > 0) {
+          const scheduleEnd = projectEnd || projectStart;
+          const msPerStage = (scheduleEnd.getTime() - projectStart.getTime()) / schedulableStages.length;
+          for (const [position, item] of schedulableStages.entries()) {
             const stage = typeof item === 'string' ? { name: item } : item as { name: string; startDate?: string; endDate?: string };
             const createdStage = await tx.projectStage.create({
               data: {
@@ -406,7 +418,7 @@ export async function POST(request: NextRequest) {
 
     let invoice = null;
     let invoiceWarning: string | null = null;
-    if (result.project && initialProject?.autoGenerateInvoice) {
+    if (result.project && initialProject) {
       try {
         invoice = await createAndSendProjectInvoice({
           projectId: result.project.id,
@@ -414,11 +426,13 @@ export async function POST(request: NextRequest) {
           baseUrl: publicAppUrl(request),
           automationKey: `project-initialization:${result.project.id}`,
           source: 'PROJECT_INITIALIZATION',
+          issuedDate: projectCommercials.data?.paymentStartDate || undefined,
+          sendEmail: Boolean(initialProject.autoGenerateInvoice),
         });
       } catch (error) {
         invoiceWarning = error instanceof InvoiceServiceError
           ? error.message
-          : 'The client and project were created, but the automatic invoice could not be generated.';
+          : 'The client and project were created, but the dated invoice could not be generated.';
       }
     }
 

@@ -205,7 +205,15 @@ export const PrismAIService = {
   /**
    * Delegates query execution.
    */
-  async askPrism(query: string, context?: any, sessionId?: string): Promise<{ result: string; model: string; sessionId: string }> {
+  async askPrism(query: string, context?: any, sessionId?: string): Promise<{
+    result: string;
+    model: string;
+    sessionId: string;
+    automation?: {
+      completed: boolean;
+      entity?: { type: 'project' | 'task' | 'invoice' | 'report'; id: string; href: string };
+    };
+  }> {
     if (typeof window === 'undefined') {
       throw new PrismAIRequestError('Prism chat is only available in the browser.');
     }
@@ -222,10 +230,23 @@ export const PrismAIService = {
     if (data.meeting) {
       invalidateWorkspaceDataTags(['calendar', 'dashboard']);
     }
+    if (data.automation?.completed && data.automation.entity) {
+      const tagsByEntity = {
+        project: ['projects', 'tasks', 'clients', 'finance', 'dashboard', 'operations'],
+        task: ['tasks', 'projects', 'team', 'dashboard', 'operations'],
+        invoice: ['invoices', 'finance', 'projects', 'clients', 'dashboard'],
+        report: ['reports', 'reporting', 'dashboard'],
+      } as const;
+      const entityType = data.automation.entity.type as keyof typeof tagsByEntity;
+      if (entityType in tagsByEntity) {
+        invalidateWorkspaceDataTags([...tagsByEntity[entityType]]);
+      }
+    }
     return {
       result: data.result,
       model: data.model || 'Prism AI',
       sessionId: data.sessionId,
+      automation: data.automation,
     };
   },
 

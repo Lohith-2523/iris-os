@@ -11,7 +11,7 @@ describe('project commercials', () => {
       paymentAmount: '2500',
       paymentFrequency: 'quarterly',
       paymentStartDate: '2026-01-15',
-      paymentTerms: 'net_30',
+      paymentTerms: 'Payment is due within 30 days of the invoice date.',
     });
 
     expect(result.error).toBeUndefined();
@@ -19,7 +19,7 @@ describe('project commercials', () => {
       paymentType: 'RETAINER',
       paymentAmount: 2500,
       paymentFrequency: 'quarterly',
-      paymentTerms: 'NET_30',
+      paymentTerms: 'Payment is due within 30 days of the invoice date.',
     });
   });
 
@@ -29,10 +29,23 @@ describe('project commercials', () => {
       paymentAmount: 8000,
       paymentFrequency: 'monthly',
       paymentStartDate: '2026-01-15',
-      paymentTerms: 'DUE_ON_RECEIPT',
+      paymentTerms: 'Payment is due on receipt.',
     });
 
     expect(result.data?.paymentFrequency).toBeNull();
+  });
+
+  it('keeps payment terms optional', () => {
+    const result = parseProjectCommercials({
+      paymentType: 'RETAINER',
+      paymentAmount: 2500,
+      paymentFrequency: 'monthly',
+      paymentStartDate: '2026-01-15',
+      paymentTerms: '',
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.data?.paymentTerms).toBeNull();
   });
 
   it('recognizes a one-time payment once', () => {
