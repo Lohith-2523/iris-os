@@ -7,6 +7,7 @@ import {
   InvoiceServiceError,
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
+import { getDeliveryDelaySummary } from '@/lib/delivery-delays';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
       tasks: {
         include: {
           assignedTo: true,
+          stage: true,
         }
       },
       milestones: true,
@@ -58,7 +60,17 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(projects);
+    return NextResponse.json(projects.map((project) => {
+      const delays = getDeliveryDelaySummary(project);
+      return {
+        ...project,
+        deliveryDelays: {
+          stages: delays.delayedStages.map((stage) => ({ id: stage.id, name: stage.name, endDate: stage.endDate })),
+          tasks: delays.delayedTasks.map((task) => ({ title: task.title, deadline: task.deadline, stageId: task.stageId })),
+          total: delays.total,
+        },
+      };
+    }));
   } catch (error: any) {
     console.error('Error fetching projects:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

@@ -240,7 +240,7 @@ export default function ReportingPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Client Summary Briefs</CardTitle>
-              <CardDescription>Generate individual client health summaries instantly.</CardDescription>
+              <CardDescription>Generate individual performance, renewal, and profitability summaries instantly.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               {clients.length > 0 ? (

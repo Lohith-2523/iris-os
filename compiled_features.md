@@ -16,7 +16,7 @@ This document compiles all the features currently developed and planned for Crys
 
 ## 2. Agency Command Center (Dashboard)
 - **Status**: Developed
-- **Goal**: The executive home screen summarizing agency health, financial performance, delivery risk, capacity, and client status.
+- **Goal**: The executive home screen summarizing agency performance, financial performance, stage and task delays, capacity, and client status.
 - **Key Developed Features**:
   - Real-time metric cards for Monthly Revenue, Active Clients, Team Workloads, and Agency Health Score.
   - Active insight cards highlighting profit leaks and client churn risk.
@@ -26,7 +26,7 @@ This document compiles all the features currently developed and planned for Crys
 - **Status**: Developed
 - **Goal**: Embedded AI assistant powering recommendations, forecasts, summaries, and chat responses.
 - **Key Developed Features**:
-  - Ask Prism chat terminal supporting dynamic suggestions ("Summarize portfolio health scores").
+  - Ask Prism chat terminal supporting dynamic suggestions ("Summarize renewals and churn signals").
   - Dynamic user-name parsing through the `formatUserMessage` utility, translating mock "Lohith" prompts to use the active logged-in user's first name/full name based on local storage email.
 
 ## 4. Finance operating center
@@ -38,9 +38,9 @@ This document compiles all the features currently developed and planned for Crys
 
 ## 5. Client Portfolio & Onboarding
 - **Status**: Developed (updated onboarding UX)
-- **Goal**: Portfolio lookup, health indexes, renewal timelines, and dynamic onboarding wizards.
+- **Goal**: Portfolio lookup, renewal timelines, churn exposure, and dynamic onboarding wizards.
 - **Key Developed Features**:
-  - Clean client list with health indicator badges (Excellent, Good, Fair, Risk).
+  - Clean client list with renewal dates and explicit churn-risk percentages.
   - 6-step Industry-Specific Client Onboarding wizard (Company Profile, POC, Service Scope, Checklist Specs, Goals/Budget, Review).
   - Dynamic fields customized for 10 agency types (e.g. tech stack for Web Design, active platforms for Social Media).
   - ADMIN role gate restricting onboarding access (MEMBER roles view Access Denied screen).
@@ -58,7 +58,7 @@ This document compiles all the features currently developed and planned for Crys
 - **Goal**: Track project milestones, timelines, resource allocation, and team dependencies.
 - **Upcoming Features**:
   - Gantt/timeline view tracking project progress.
-  - Risk registers linking project delay alerts back to client health scores.
+  - Delay registers showing overdue stages and tasks with their owning projects.
 
 ## 8. Team & Capacity Operations
 - **Status**: Planned (Under Development)

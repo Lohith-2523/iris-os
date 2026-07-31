@@ -15,7 +15,7 @@ Build operations management for internal workflows, approvals, process health, d
 
 ## Build
 
-- Show process status, open approvals, blocked work, SLA risk, delivery risk, and operational throughput.
+- Show process status, open approvals, blocked work, SLA risk, stage/task delays, and operational throughput.
 - Include queues for client requests, design approvals, report reviews, project escalations, and finance approvals.
 - Link operational items to clients, projects, reports, designs, automations, and team owners.
 - Surface Prisma operational recommendations and bottleneck detection.
@@ -30,4 +30,3 @@ Use approval requests, tasks, internal requests, automation runs, project risks,
 - Approvals connect to Design Hub, Reporting, Finance, and Projects.
 - Process health has useful metrics, not static filler.
 - Prisma identifies bottlenecks from seeded queues.
-

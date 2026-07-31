@@ -150,7 +150,7 @@ Finance capabilities:
 
 Client capabilities:
 
-- Client Health Analysis
+- Account Performance Analysis
 - Churn Prediction
 - Upsell Opportunities
 - ROI Analysis

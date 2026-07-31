@@ -170,7 +170,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
               <input
                 type="text"
                 aria-label="Ask Prism AI"
-                placeholder="Ask Prism AI (e.g. summarize health, forecast)..."
+                placeholder="Ask Prism AI (e.g. summarize renewals, forecast)..."
                 value={prismQuery}
                 onChange={(e) => setPrismQuery(e.target.value)}
                 className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"

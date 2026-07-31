@@ -51,7 +51,7 @@ Model the app around these domains:
 Include these model families when designing schemas and sample data:
 
 - Organizations, brands, users, roles, and permissions
-- Clients, contacts, health scores, renewals, upsell opportunities, and ROI metrics
+- Clients, contacts, renewals, churn risk, upsell opportunities, and ROI metrics
 - Projects, milestones, resource allocations, project risks, and timelines
 - Invoices, expenses, subscriptions, cash-flow points, profitability metrics, and forecasts
 - Reports, report schedules, executive summaries, and client report outputs

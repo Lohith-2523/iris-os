@@ -674,8 +674,8 @@ export default function ClientDetailDashboard({
           <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'}>
             Status: {client.status}
           </Badge>
-          <Badge variant={client.healthScore >= 80 ? 'risk-low' : client.healthScore >= 50 ? 'risk-medium' : 'risk-high'}>
-            Health: {client.healthScore}/100 ({client.healthStatus})
+          <Badge variant="outline">
+            Renewal: {client.renewalDate || 'Not scheduled'}
           </Badge>
         </div>
       </div>

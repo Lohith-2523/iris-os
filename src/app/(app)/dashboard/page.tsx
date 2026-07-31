@@ -937,7 +937,7 @@ export default function DashboardPage() {
               </ExpandableCard>
 
               <ExpandableCard 
-                className="min-h-[200px] flex-1 flex flex-col justify-between overflow-hidden cursor-default hover:ring-0"
+                className="min-h-[250px] flex-1 flex flex-col justify-between overflow-hidden cursor-default hover:ring-0"
                 disableExpand={true}
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1093,7 +1093,7 @@ export default function DashboardPage() {
                               <span className="text-[10px] text-zinc-500 mt-1 block font-mono">{client.domain}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-mono text-zinc-400">Health: {client.healthScore}/100</span>
+                              <span className="text-[10px] font-mono text-zinc-400">Churn risk: {client.churnRiskScore}%</span>
                               <span className="text-[11px] font-mono font-bold text-emerald-450">
                                 {formatCurrency(client.revenue)}
                               </span>

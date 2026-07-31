@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-07-31",
+    "macrostructure": "Narrative Workflow",
+    "theme": "CrystalOS light contrast cards",
+    "enrichment": "semantic label spectrum",
+    "brief": "Black briefing cards in light mode with bright semantic labels and concrete renewal, delay, and blocker signals"
+  },
+  {
+    "date": "2026-07-31",
+    "macrostructure": "Narrative Workflow",
+    "theme": "CrystalOS obsidian and silver",
+    "enrichment": "subtle grid material",
+    "brief": "Full-viewport Prisma briefing entrance that morphs into the workspace shell with matched light and dark materials"
+  },
+  {
+    "date": "2026-07-31",
+    "macrostructure": "Narrative Workflow",
+    "theme": "CrystalOS graphite",
+    "enrichment": "none",
+    "brief": "Admin-only Prisma daily briefing with staged updates and an action-card ring"
+  }
+]

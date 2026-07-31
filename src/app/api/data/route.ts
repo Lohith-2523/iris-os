@@ -245,8 +245,6 @@ export async function GET(request: NextRequest) {
             name: c.name,
             domain: c.domain || '',
             status: c.status,
-            healthScore: c.healthScore,
-            healthStatus: c.healthStatus,
             churnRiskScore: c.churnRiskScore,
             roiMetric: c.roiMetric,
             renewalDate: c.renewalDate ? c.renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,

@@ -17,7 +17,7 @@ Build business intelligence dashboards that connect agency performance across fi
 
 - Show cross-module KPI trends, comparisons, cohorts, and benchmarks.
 - Include configurable filters for date range, client, brand, service line, team, and channel.
-- Add charts for revenue mix, margin trend, churn risk distribution, utilization, delivery health, and creative ROI.
+- Add charts for revenue mix, margin trend, churn risk distribution, utilization, stage/task timeliness, and creative ROI.
 - Surface Prisma analysis explaining major changes and anomalies.
 
 ## Data
@@ -30,4 +30,3 @@ Use aggregated seeded data from finance, clients, projects, team, Design Hub, an
 - Filters affect charts and tables.
 - Prisma explains at least three notable trends.
 - Visual density remains readable on desktop and mobile.
-

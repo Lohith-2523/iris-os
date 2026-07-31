@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { setActiveWorkspaceContext } from '@/lib/utils';
 import { setPrismAIWorkspaceScope } from '@/lib/prism-ai/service';
+import { DailyBriefingLauncher } from '@/components/daily-briefing/daily-briefing-launcher';
 import {
   configureWorkspaceDataCache,
   getWorkspaceDataLoadingSnapshot,
@@ -62,6 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   
   const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string } | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [isBriefingGateResolved, setIsBriefingGateResolved] = React.useState(false);
   const isWorkspaceDataLoading = React.useSyncExternalStore(
     subscribeWorkspaceDataLoading,
     getWorkspaceDataLoadingSnapshot,
@@ -112,6 +114,40 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return stopWorkspaceDataBackgroundChecks;
   }, [user]);
 
+  React.useEffect(() => {
+    if (!user) return;
+    if (user.role.toLowerCase() !== 'admin' || pathname === '/briefing') {
+      setIsBriefingGateResolved(true);
+      return;
+    }
+
+    setIsBriefingGateResolved(false);
+    const controller = new AbortController();
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+    void fetch(`/api/daily-briefing?intent=status&timeZone=${encodeURIComponent(timeZone)}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Daily briefing status unavailable');
+        return response.json() as Promise<{ shouldOpen?: boolean }>;
+      })
+      .then((status) => {
+        if (status.shouldOpen) {
+          router.replace('/briefing?source=daily');
+          return;
+        }
+        setIsBriefingGateResolved(true);
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        console.error('Unable to check the daily briefing:', error);
+        setIsBriefingGateResolved(true);
+      });
+
+    return () => controller.abort();
+  }, [pathname, router, user]);
+
   const isClientGated = user?.role?.toLowerCase() === 'client' && 
     pathname !== '/client-dashboard' && 
     pathname !== '/client-leads' &&
@@ -126,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isAdminGated = user?.role?.toLowerCase() === 'admin' && 
     (pathname === '/client-dashboard' || pathname === '/client-leads' || pathname === '/teams-dashboard');
 
-  if (loading) {
+  if (loading || (user?.role.toLowerCase() === 'admin' && !isBriefingGateResolved)) {
     return (
       <div className="workspace-shell flex h-screen w-screen items-center justify-center bg-[#09090b]">
         <div className="workspace-session-status workspace-loading-card text-zinc-500 text-xs flex items-center gap-2" role="status">
@@ -265,6 +301,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </main>
       </div>
+      {user?.role.toLowerCase() === 'admin' && <DailyBriefingLauncher />}
     </div>
   );
 }

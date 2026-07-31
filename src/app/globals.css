@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../../tokens.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -167,10 +168,14 @@
   --font-heading: 'Clash Display', sans-serif;
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   background-color: var(--background);
   font-family: var(--font-sans);
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 h1,

@@ -6,7 +6,7 @@ Iris OS is an enterprise-grade SaaS operating system for freelancers, agencies, 
 
 The product unifies finance, operations, clients, projects, reporting, forecasting, business intelligence, creative operations, automation, executive reporting, and proprietary AI intelligence.
 
-Prisma AI is the embedded intelligence layer. It should power insights, recommendations, forecasts, summaries, risk signals, health scores, and Ask Prisma experiences throughout the app.
+Prisma AI is the embedded intelligence layer. It should power insights, recommendations, forecasts, summaries, churn signals, agency performance scores, and Ask Prisma experiences throughout the app.
 
 Design Hub is an Iris OS-owned creative operations workspace powered by Canva workflows. Canva can be visible as the underlying provider, but Iris OS remains the primary product.
 
@@ -84,7 +84,7 @@ tests/
 ## Core Data Families
 
 - Organizations, brands, users, roles, permissions
-- Clients, contacts, client health, renewals, upsell opportunities, ROI
+- Clients, contacts, renewals, churn risk, upsell opportunities, ROI
 - Projects, milestones, timelines, risks, resource allocations
 - Invoices, expenses, subscriptions, cash flow, profitability, forecasts
 - Team members, capacity, utilization, performance, hiring recommendations
@@ -118,4 +118,3 @@ Every feature should include:
 - Route smoke tests for page rendering.
 - Playwright workflow coverage for the main user path.
 - Responsive checks for desktop and mobile layout quality.
-

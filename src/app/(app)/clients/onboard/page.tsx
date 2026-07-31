@@ -346,8 +346,6 @@ export default function ClientOnboardPage() {
         gstNumber: formData.gstNumber,
         domain: null,
         status: 'ACTIVE',
-        healthScore: 100,
-        healthStatus: 'EXCELLENT',
         churnRiskScore: 0,
         roiMetric: 0.0,
         upsellOpportunityValue: 0.0,

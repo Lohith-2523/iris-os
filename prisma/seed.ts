@@ -203,18 +203,18 @@ async function main() {
 
   // 4. Clients
   const clientNames = [
-    { name: 'Aether Technologies', domain: 'aethertech.com', status: 'ACTIVE', healthScore: 92, healthStatus: 'EXCELLENT', churnRiskScore: 5, roiMetric: 4.8 },
-    { name: 'Vertex Retail', domain: 'vertexretail.com', status: 'ACTIVE', healthScore: 88, healthStatus: 'EXCELLENT', churnRiskScore: 12, roiMetric: 3.5 },
-    { name: 'Nova BioLabs', domain: 'novabiolabs.org', status: 'ACTIVE', healthScore: 74, healthStatus: 'GOOD', churnRiskScore: 24, roiMetric: 2.1 },
-    { name: 'Quantum Capital', domain: 'quantumcap.io', status: 'ACTIVE', healthScore: 61, healthStatus: 'FAIR', churnRiskScore: 35, roiMetric: 1.8 },
-    { name: 'Solaria Energy', domain: 'solaria.energy', status: 'ACTIVE', healthScore: 42, healthStatus: 'RISK', churnRiskScore: 68, roiMetric: 1.2 },
-    { name: 'Pulse Media', domain: 'pulsemedia.agency', status: 'ACTIVE', healthScore: 95, healthStatus: 'EXCELLENT', churnRiskScore: 3, roiMetric: 5.2 },
-    { name: 'Apex Retail Group', domain: 'apexretail.com', status: 'ACTIVE', healthScore: 79, healthStatus: 'GOOD', churnRiskScore: 18, roiMetric: 2.9 },
-    { name: 'Onyx Logistics', domain: 'onyxlogistics.com', status: 'ACTIVE', healthScore: 55, healthStatus: 'FAIR', churnRiskScore: 48, roiMetric: 1.5 },
-    { name: 'Nebula Creative Studio', domain: 'nebulastudio.net', status: 'ACTIVE', healthScore: 83, healthStatus: 'GOOD', churnRiskScore: 15, roiMetric: 3.1 },
-    { name: 'Pinnacle Health', domain: 'pinnaclehealth.co', status: 'ACTIVE', healthScore: 35, healthStatus: 'RISK', churnRiskScore: 78, roiMetric: 0.9 },
-    { name: 'Zephyr Logistics', domain: 'zephyrlogistics.com', status: 'CHURNED', healthScore: 10, healthStatus: 'RISK', churnRiskScore: 99, roiMetric: 0.0 },
-    { name: 'Horizon Automotive', domain: 'horizonauto.com', status: 'LEAD', healthScore: 0, healthStatus: 'FAIR', churnRiskScore: 0, roiMetric: 0.0 },
+    { name: 'Aether Technologies', domain: 'aethertech.com', status: 'ACTIVE', churnRiskScore: 5, roiMetric: 4.8 },
+    { name: 'Vertex Retail', domain: 'vertexretail.com', status: 'ACTIVE', churnRiskScore: 12, roiMetric: 3.5 },
+    { name: 'Nova BioLabs', domain: 'novabiolabs.org', status: 'ACTIVE', churnRiskScore: 24, roiMetric: 2.1 },
+    { name: 'Quantum Capital', domain: 'quantumcap.io', status: 'ACTIVE', churnRiskScore: 35, roiMetric: 1.8 },
+    { name: 'Solaria Energy', domain: 'solaria.energy', status: 'ACTIVE', churnRiskScore: 68, roiMetric: 1.2 },
+    { name: 'Pulse Media', domain: 'pulsemedia.agency', status: 'ACTIVE', churnRiskScore: 3, roiMetric: 5.2 },
+    { name: 'Apex Retail Group', domain: 'apexretail.com', status: 'ACTIVE', churnRiskScore: 18, roiMetric: 2.9 },
+    { name: 'Onyx Logistics', domain: 'onyxlogistics.com', status: 'ACTIVE', churnRiskScore: 48, roiMetric: 1.5 },
+    { name: 'Nebula Creative Studio', domain: 'nebulastudio.net', status: 'ACTIVE', churnRiskScore: 15, roiMetric: 3.1 },
+    { name: 'Pinnacle Health', domain: 'pinnaclehealth.co', status: 'ACTIVE', churnRiskScore: 78, roiMetric: 0.9 },
+    { name: 'Zephyr Logistics', domain: 'zephyrlogistics.com', status: 'CHURNED', churnRiskScore: 99, roiMetric: 0.0 },
+    { name: 'Horizon Automotive', domain: 'horizonauto.com', status: 'LEAD', churnRiskScore: 0, roiMetric: 0.0 },
   ];
 
   const clients: Client[] = [];
@@ -228,8 +228,6 @@ async function main() {
         name: c.name,
         domain: c.domain,
         status: c.status,
-        healthScore: c.healthScore,
-        healthStatus: c.healthStatus,
         churnRiskScore: c.churnRiskScore,
         roiMetric: c.roiMetric,
         renewalDate: c.status === 'ACTIVE' ? renewalDate : null,
@@ -627,11 +625,11 @@ async function main() {
 
   await prisma.report.create({
     data: {
-      title: 'Solaria Energy Account Health Assessment',
+      title: 'Solaria Energy Renewal & Churn Brief',
       type: 'CLIENT',
       status: 'READY',
-      filePath: '/reports/solaria_health.pdf',
-      summary: 'Prism AI client churn warning report: Solaria Energy Health drops to 42. Churn Risk Score reaches 68%. Actions: Immediate renewal touchpoint advised.',
+      filePath: '/reports/solaria_renewal.pdf',
+      summary: 'Prism AI client churn warning report: Solaria Energy churn risk reaches 68%. Action: Immediate renewal touchpoint advised.',
       createdById: user2.id,
       orgId: org.id,
     },

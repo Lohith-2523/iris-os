@@ -4,7 +4,6 @@ import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { ArrowRight, Plus, Sparkles, Trash2, X } from 'lucide-react';
@@ -178,7 +177,7 @@ export default function ClientsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Active Accounts List</CardTitle>
-              <CardDescription>Comprehensive overview of portfolio relationships and engagement scores.</CardDescription>
+              <CardDescription>Portfolio relationships with renewal timing and churn exposure.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -187,7 +186,7 @@ export default function ClientsPage() {
                     <TableHead>Client Name</TableHead>
                     <TableHead>Domain</TableHead>
                     <TableHead>Assigned Specialist</TableHead>
-                    <TableHead className="text-center">Health Score</TableHead>
+                    <TableHead className="text-center">Renewal</TableHead>
                     <TableHead className="text-center">Churn Risk</TableHead>
                     <TableHead className="text-right">Contract Value</TableHead>
                     {canManageClients && <TableHead className="w-[68px] text-right">Actions</TableHead>}
@@ -221,14 +220,8 @@ export default function ClientsPage() {
                               <span className="text-zinc-600 italic">Unassigned</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Badge
-                              variant={
-                                c.healthScore >= 80 ? 'risk-low' : c.healthScore >= 50 ? 'risk-medium' : 'risk-high'
-                              }
-                            >
-                              {c.healthScore}/100 ({c.healthStatus})
-                            </Badge>
+                          <TableCell className="text-center text-xs text-zinc-300">
+                            {c.renewalDate || 'Not scheduled'}
                           </TableCell>
                           <TableCell className="text-center">
                             <span className="font-mono text-xs text-zinc-300 font-semibold">{c.churnRiskScore}%</span>

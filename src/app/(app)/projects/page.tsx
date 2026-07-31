@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
+import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/delivery-delays';
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -408,9 +409,9 @@ export default function ProjectsPage() {
     const active = projects.filter(p => p.status === 'IN_PROGRESS').length;
     const hold = projects.filter(p => p.status === 'ON_HOLD').length;
     const contractedValue = projects.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
-    const highRisk = projects.filter(p => p.riskLevel === 'HIGH').length;
+    const delayCount = projects.reduce((sum, project) => sum + getDeliveryDelaySummary(project).total, 0);
 
-    return { total, active, hold, contractedValue, highRisk };
+    return { total, active, hold, contractedValue, delayCount };
   }, [projects]);
 
   const getAccentColorStyle = React.useCallback((clientId: string) => {
@@ -519,13 +520,13 @@ export default function ProjectsPage() {
 
         <Card>
           <CardHeader className="pb-1.5">
-            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Risk Threshold alerts</CardTitle>
+            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Stage & task delays</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2">
-            <div className={`text-xl font-bold font-mono tracking-tight ${stats.highRisk > 0 ? 'text-rose-450' : 'text-emerald-450'}`}>
-              {stats.highRisk} High Risk
+            <div className={`text-xl font-bold font-mono tracking-tight ${stats.delayCount > 0 ? 'text-rose-450' : 'text-emerald-450'}`}>
+              {stats.delayCount} Delayed
             </div>
-            {stats.highRisk > 0 && <AlertTriangle className="h-4 w-4 text-rose-500 animate-pulse" />}
+            {stats.delayCount > 0 && <AlertTriangle className="h-4 w-4 text-rose-500 animate-pulse" />}
           </CardContent>
         </Card>
       </div>
@@ -545,6 +546,7 @@ export default function ProjectsPage() {
           {sortedClients.map((client) => {
             const isExpanded = expandedClientId === client.id;
             const clientProjects = projects.filter(p => p.clientId === client.id);
+            const clientDelayCount = clientProjects.reduce((sum, project) => sum + getDeliveryDelaySummary(project).total, 0);
             
             return (
               <Card 
@@ -582,8 +584,8 @@ export default function ProjectsPage() {
                         <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[8px] uppercase font-bold rounded-md">
                           {client.status}
                         </Badge>
-                        <Badge variant={client.healthStatus === 'EXCELLENT' || client.healthStatus === 'GOOD' ? 'risk-low' : 'risk-high'} className="text-[8px] uppercase font-bold rounded-md">
-                          Health: {client.healthStatus} ({client.healthScore}%)
+                        <Badge variant={clientDelayCount ? 'risk-high' : 'risk-low'} className="text-[8px] uppercase font-bold rounded-md">
+                          {clientDelayCount ? `${clientDelayCount} delays` : 'On schedule'}
                         </Badge>
                       </div>
                     </div>
@@ -598,6 +600,7 @@ export default function ProjectsPage() {
                           const completedTasks = proj.tasks?.filter((t: any) => t.status === 'COMPLETED').length || 0;
                           const totalTasks = proj.tasks?.length || 0;
                           const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                          const delaySummary = getDeliveryDelaySummary(proj);
 
                           return (
                             <div 
@@ -610,6 +613,11 @@ export default function ProjectsPage() {
                                   <Badge variant={proj.status === 'COMPLETED' ? 'risk-low' : proj.status === 'OVERDUE' || proj.status === 'ON_HOLD' ? 'risk-high' : 'outline'} className="text-[8px] uppercase font-bold rounded-md">
                                     {proj.status}
                                   </Badge>
+                                  {delaySummary.total > 0 && (
+                                    <Badge variant="risk-high" className="text-[8px] uppercase font-bold rounded-md">
+                                      {delaySummary.delayedStages.length} stages · {delaySummary.delayedTasks.length} tasks late
+                                    </Badge>
+                                  )}
                                 </div>
                                 <div className="grid grid-cols-3 gap-4 text-[9.5px] text-zinc-400">
                                   <div>
@@ -687,8 +695,8 @@ export default function ProjectsPage() {
                         <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[7.5px] uppercase font-bold rounded-md">
                           {client.status}
                         </Badge>
-                        <Badge variant={client.healthStatus === 'EXCELLENT' || client.healthStatus === 'GOOD' ? 'risk-low' : 'risk-high'} className="text-[7.5px] uppercase font-bold rounded-md">
-                          {client.healthStatus}
+                        <Badge variant={clientDelayCount ? 'risk-high' : 'risk-low'} className="text-[7.5px] uppercase font-bold rounded-md">
+                          {clientDelayCount ? `${clientDelayCount} delays` : 'On schedule'}
                         </Badge>
                       </div>
                     </div>
@@ -1528,7 +1536,10 @@ export default function ProjectsPage() {
                 <div className="space-y-2 border-t border-zinc-900 pt-4">
                   <span className="text-[8px] text-zinc-600 uppercase font-bold block">Development Stage Gates</span>
                   <div className="space-y-2">
-                    {selectedProject.stages?.map((stage: any, idx: number) => (
+                    {selectedProject.stages?.map((stage: any, idx: number) => {
+                      const stageDelayed = isStageDelayed(stage, selectedProject.tasks || []);
+                      const stageTaskCount = (selectedProject.tasks || []).filter((task: any) => task.stageId === stage.id).length;
+                      return (
                       <div key={stage.id} className="p-2 border border-zinc-900 bg-zinc-950/30 flex justify-between items-center">
                         <div>
                           <span className="font-semibold text-white text-[11px]">{idx + 1}. {stage.name}</span>
@@ -1536,11 +1547,11 @@ export default function ProjectsPage() {
                             {new Date(stage.startDate).toLocaleDateString()} to {new Date(stage.endDate).toLocaleDateString()}
                           </span>
                         </div>
-                        <Badge variant="outline" className="text-[8px] font-mono rounded-none uppercase">
-                          {stage.tasks?.length || 0} Tasks
+                        <Badge variant={stageDelayed ? 'risk-high' : 'outline'} className="text-[8px] font-mono rounded-none uppercase">
+                          {stageDelayed ? 'Stage delayed' : `${stageTaskCount} Tasks`}
                         </Badge>
                       </div>
-                    ))}
+                    )})}
                     {(!selectedProject.stages || selectedProject.stages.length === 0) && (
                       <span className="text-zinc-650 italic block">No stages defined for project campaign.</span>
                     )}
@@ -1560,10 +1571,10 @@ export default function ProjectsPage() {
                           </span>
                         </div>
                         <Badge
-                          variant={task.status === 'COMPLETED' ? 'risk-low' : task.status === 'BLOCKED' ? 'risk-high' : 'outline'}
+                          variant={task.status === 'COMPLETED' ? 'risk-low' : task.status === 'BLOCKED' || isTaskDelayed(task) ? 'risk-high' : 'outline'}
                           className="rounded-none uppercase tracking-wider text-[8px]"
                         >
-                          {task.status}
+                          {isTaskDelayed(task) ? 'DELAYED' : task.status}
                         </Badge>
                       </div>
                     ))}

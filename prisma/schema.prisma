@@ -138,8 +138,6 @@ model Client {
   name                   String
   domain                 String?
   status                 String // ACTIVE, CHURNED, LEAD
-  healthScore            Int // 0-100
-  healthStatus           String // EXCELLENT, GOOD, FAIR, RISK
   churnRiskScore         Int // Churn prediction score 0-100
   roiMetric              Float // ROI generated for client
   renewalDate            DateTime?

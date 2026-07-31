@@ -47,8 +47,6 @@ export async function POST(request: NextRequest) {
                 orgId: org.id,
                 name: name,
                 status: 'ACTIVE',
-                healthScore: 0,
-                healthStatus: 'UNKNOWN',
                 churnRiskScore: 0,
                 roiMetric: 0,
                 upsellOpportunityValue: 0,

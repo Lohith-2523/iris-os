@@ -263,17 +263,17 @@ function generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Prism AI', query
   const q = (query || '').toLowerCase();
   
   const activeClients = [
-    { name: 'Solaria Energy', health: 42 },
-    { name: 'Pinnacle Health', health: 35 },
-    { name: 'Vertex Retail', health: 88 },
-    { name: 'Aether Technologies', health: 92 },
-    { name: 'Pulse Media', health: 95 }
+    { name: 'Solaria Energy', churnRisk: 68, renewal: 'within 30 days' },
+    { name: 'Pinnacle Health', churnRisk: 78, renewal: 'within 60 days' },
+    { name: 'Vertex Retail', churnRisk: 12, renewal: 'within 90 days' },
+    { name: 'Aether Technologies', churnRisk: 5, renewal: 'later this year' },
+    { name: 'Pulse Media', churnRisk: 3, renewal: 'later this year' }
   ];
   
   const activeProjects = [
-    { name: 'Solaria Energy Web Redesign', status: 'delayed', risk: 'high' },
-    { name: 'Vertex Retail Brand Guidelines', status: 'active', risk: 'medium' },
-    { name: 'Aether Social Campaign', status: 'active', risk: 'low' }
+    { name: 'Solaria Energy Web Redesign', delayedStages: 1, delayedTasks: 3 },
+    { name: 'Vertex Retail Brand Guidelines', delayedStages: 0, delayedTasks: 1 },
+    { name: 'Aether Social Campaign', delayedStages: 0, delayedTasks: 0 }
   ];
 
   const teamRoster = [
@@ -283,20 +283,20 @@ function generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Prism AI', query
   ];
 
   if (model === 'Gemini') {
-    if (q.includes('client') || q.includes('portfolio') || q.includes('health') || q.includes('status')) {
-      const summaryList = activeClients.map((c: any) => `- **${c.name}**: Health score **${c.health}/100** (${c.health < 50 ? 'Needs Attention / Churn Risk' : 'Stable'})`).join('\n');
+    if (q.includes('client') || q.includes('portfolio') || q.includes('renewal') || q.includes('churn') || q.includes('status')) {
+      const summaryList = activeClients.map((c: any) => `- **${c.name}**: **${c.churnRisk}% churn risk** · renewal ${c.renewal}`).join('\n');
       return `Lohith, here is a status overview of your active client portfolio:
 ${summaryList}
 
-The average portfolio health score is **70.4/100**. Solaria Energy and Pinnacle Health require immediate operational check-ins.`;
+Solaria Energy and Pinnacle Health have the highest explicit churn risk and should receive the next renewal check-ins.`;
     }
     
     if (q.includes('project') || q.includes('pipeline') || q.includes('workload')) {
-      const projList = activeProjects.map(p => `- **${p.name}**: Status is **${p.status.toUpperCase()}** (${p.risk.toUpperCase()} RISK)`).join('\n');
+      const projList = activeProjects.map(p => `- **${p.name}**: **${p.delayedStages} delayed stages · ${p.delayedTasks} delayed tasks**`).join('\n');
       return `Lohith, the project delivery pipeline has **${activeProjects.length} active projects** with overall operational capacity at **74%**:
 ${projList}
 
-I recommend shifting resources from lower-risk projects to assist with the Solaria Energy milestones.`;
+I recommend clearing the three overdue Solaria tasks before shifting work into the next stage.`;
     }
 
     if (q.includes('team') || q.includes('member') || q.includes('workload')) {

@@ -15,9 +15,9 @@ Build project management for delivery visibility, timeline optimization, resourc
 
 ## Build
 
-- Show project status, client, owner, timeline, budget, margin, health, blockers, and risk.
+- Show project status, client, owner, timeline, budget, margin, overdue stages, delayed tasks, and blockers.
 - Include timeline and milestone visualizations.
-- Add resource recommendations and delivery risk explanations from Prisma.
+- Add resource recommendations and overdue stage/task explanations from Prisma.
 - Link projects to clients, team members, invoices, and reports.
 
 ## Data
@@ -30,4 +30,3 @@ Use projects, clients, milestones, team members, resource allocations, project r
 - Timeline and resource data connect to Team and Forecasting.
 - Project profitability connects to Finance.
 - No project detail page feels empty.
-

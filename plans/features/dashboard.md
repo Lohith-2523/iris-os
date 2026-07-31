@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build the Agency Command Center: the executive home screen for agency health, financial performance, delivery risk, capacity, client status, and Prisma recommendations.
+Build the Agency Command Center: the executive home screen for agency performance, financial performance, stage/task delays, capacity, client status, and Prisma recommendations.
 
 ## Screens
 
@@ -29,4 +29,3 @@ Use seeded finance, client, project, team, forecast, and Prisma insight records.
 - Every metric links to a relevant module or detail state.
 - Prisma insights are visible without opening a separate Prisma page.
 - Mobile layout stacks cleanly without text overflow.
-
