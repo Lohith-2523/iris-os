@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
+import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
+import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -54,6 +56,7 @@ export default function ClientOnboardPage() {
   const [preselectedLeadId, setPreselectedLeadId] = React.useState<string | null>(null);
   const appliedPreselectedLeadId = React.useRef<string | null>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
+  const [agencyBillingMissingFields, setAgencyBillingMissingFields] = React.useState<string[]>([]);
 
   // Onboarding Wizard Steps
   // 1: Company Profile, 2: Client Contact, 3: Client Connections,
@@ -168,8 +171,14 @@ export default function ClientOnboardPage() {
 
   React.useEffect(() => {
     checkRole();
-    fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
-      if (workspace?.organization?.currency) setCurrencyState(workspace.organization.currency);
+    fetch('/api/organization').then((res) => res.ok ? res.json() : null).then((organization) => {
+      if (organization?.currency) setCurrencyState(organization.currency);
+      if (organization) {
+        setAgencyBillingMissingFields(missingBillingProfileFields(organization, {
+          requireLegalName: true,
+          label: 'agency',
+        }));
+      }
     }).catch(() => undefined);
 
     async function fetchTeam() {
@@ -1086,6 +1095,8 @@ export default function ClientOnboardPage() {
                     <Wallet className="h-4 w-4 text-zinc-400" />
                     <h2 className="text-sm font-semibold text-white">Create Initial Project & Commercials</h2>
                   </div>
+
+                  <AgencyBillingProfileNotice missingFields={agencyBillingMissingFields} />
 
                   <div className="space-y-4 pt-2 border-t border-zinc-900/60 animate-fadeIn">
                       <div className="grid gap-4 sm:grid-cols-2">

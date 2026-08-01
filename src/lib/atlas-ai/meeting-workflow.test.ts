@@ -6,7 +6,7 @@ import {
   zonedLocalDateTimeToUtc,
 } from './meeting-workflow';
 
-describe('Prism meeting workflow', () => {
+describe('Atlas meeting workflow', () => {
   it('detects explicit scheduling requests', () => {
     expect(isMeetingRequest('Schedule a meeting with the client tomorrow')).toBe(true);
     expect(isMeetingRequest('Summarize this client')).toBe(false);

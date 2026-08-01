@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
     UNION ALL
     SELECT 'agencyLeads', COUNT(*), MAX("updatedAt") FROM "AgencyLead" WHERE "orgId" = ${user.orgId}
     UNION ALL
+    SELECT 'agencyMetaAccounts', COUNT(*), MAX("updatedAt") FROM "AgencyMetaAdAccount" WHERE "orgId" = ${user.orgId}
+    UNION ALL
     SELECT 'transactions', COUNT(*), MAX("updatedAt") FROM "Transaction" WHERE "orgId" = ${user.orgId}
     UNION ALL
     SELECT 'tasks', COUNT(*), MAX(task."updatedAt")

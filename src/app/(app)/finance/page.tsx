@@ -28,7 +28,7 @@ import {
   Trash2,
   Loader2
 } from 'lucide-react';
-import { PrismAIService } from '@/lib/prism-ai/service';
+import { AtlasAIService } from '@/lib/atlas-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
@@ -53,6 +53,7 @@ export default function FinancePage() {
   const [loadingRazorpay, setLoadingRazorpay] = React.useState(false);
 
   const [dbData, setDbData] = React.useState<any>(null);
+  const [loadingFinanceTimeframe, setLoadingFinanceTimeframe] = React.useState(false);
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
@@ -778,12 +779,7 @@ export default function FinancePage() {
   React.useEffect(() => {
     async function loadBase() {
       try {
-        const res = await fetch('/api/data?domain=finance');
-        if (res.ok) {
-          const json = await res.json();
-          setDbData(json);
-        }
-        const leaks = await PrismAIService.getProfitLeaks();
+        const leaks = await AtlasAIService.getProfitLeaks();
         if (leaks.length > 0) {
           setLeakData(leaks[0]);
         }
@@ -799,6 +795,26 @@ export default function FinancePage() {
     fetchSubscriptions();
     fetchRetainers();
   }, [fetchIntegrations, fetchManualTransactions, fetchOrgBanks, fetchOutstandingInvoices, fetchRetainers, fetchSubscriptions]);
+
+  React.useEffect(() => {
+    let isCurrent = true;
+    setLoadingFinanceTimeframe(true);
+    void fetch(`/api/data?domain=finance&timeframe=${encodeURIComponent(timeFrame)}`, {
+      cache: 'no-store',
+      headers: { 'X-Workspace-Cache-Background': '1' },
+    })
+      .then(async (response) => response.ok ? response.json() : Promise.reject(new Error('Unable to load finance timeframe.')))
+      .then((data) => {
+        if (isCurrent) setDbData(data);
+      })
+      .catch((error) => {
+        if (isCurrent) console.error(error);
+      })
+      .finally(() => {
+        if (isCurrent) setLoadingFinanceTimeframe(false);
+      });
+    return () => { isCurrent = false; };
+  }, [timeFrame]);
 
   const isStripeConnected = React.useMemo(() => {
     return integrations.some((i) => i.provider === 'STRIPE' && i.status === 'CONNECTED');
@@ -831,8 +847,8 @@ export default function FinancePage() {
   }, [isRazorpayConnected, fetchRazorpayData]);
 
   const aiLeakText = React.useMemo(() => {
-    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Prism AI...');
-    return formatUserMessage(`Lohith, Prism AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
+    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Atlas AI...');
+    return formatUserMessage(`Lohith, Atlas AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {
@@ -863,7 +879,11 @@ export default function FinancePage() {
     // Revenue is recognized exclusively from positive Revenue entries in the ledger.
     const totalGross = manualGross;
     const totalExpenses = baseExpenses + manualExpenses;
-    const totalOutstanding = baseOutstanding;
+    const liveOutstanding = outstandingInvoices.reduce(
+      (sum, invoice) => sum + Math.max(0, Number(invoice.amount || 0) - Number(invoice.paidAmount || 0)),
+      0,
+    );
+    const totalOutstanding = outstandingInvoices.length > 0 ? liveOutstanding : baseOutstanding;
     const profitMargin = totalGross > 0 ? ((totalGross - totalExpenses) / totalGross) * 100 : 0;
 
     return {
@@ -873,7 +893,7 @@ export default function FinancePage() {
       netProfitMargin: profitMargin,
       aiSubscriptionCosts
     };
-  }, [dbData, manualTransactions, subscriptionTransactions, isInTimeFrame, timeFrame]);
+  }, [dbData, manualTransactions, subscriptionTransactions, outstandingInvoices, isInTimeFrame, timeFrame]);
 
   const expenseBreakdownData = React.useMemo(() => {
     const aiCosts = combinedMetrics.aiSubscriptionCosts;
@@ -935,28 +955,11 @@ export default function FinancePage() {
     });
   }, [manualTransactions, subscriptionTransactions]);
 
-  const revenueLineData = React.useMemo(() => {
-    const map = new Map<string, number>();
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
-    // We want to sort chronologically, so we iterate from end to start since combinedTransactions is newest-first
-    const reversedTx = [...combinedTransactions].reverse();
-    
-    reversedTx.forEach((tx: any) => {
-      // Assuming revenue if amount > 0 and status is successful
-      if (tx.amountUSD > 0 && (tx.status === 'succeeded' || tx.status === 'captured')) {
-        const d = new Date(tx.date);
-        if (!isNaN(d.getTime())) {
-          const label = timeFrame === 'Monthly' 
-            ? `${monthNames[d.getMonth()]} ${d.getDate()}`
-            : `${monthNames[d.getMonth()]} '${d.getFullYear().toString().substring(2)}`;
-          map.set(label, (map.get(label) || 0) + tx.amountUSD);
-        }
-      }
-    });
-
-    return Array.from(map.entries()).map(([label, value]) => ({ label, value }));
-  }, [combinedTransactions, timeFrame]);
+  const revenueLineData = React.useMemo(() => (
+    (dbData?.revenueHistory ?? []).filter((point: { date?: string }) =>
+      !point.date || isInTimeFrame(point.date),
+    )
+  ), [dbData?.revenueHistory, isInTimeFrame]);
 
   const expensesByCategory = React.useMemo(() => {
     let scale = 1;
@@ -1747,11 +1750,19 @@ export default function FinancePage() {
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
-                  <div className="flex flex-col h-full space-y-3">
+                  <div className="flex h-full min-h-0 flex-col space-y-3">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Receivables Queue</h3>
-                    <p className="text-xs text-zinc-400 font-sans leading-relaxed">
-                      Outstanding invoices combine general ledger aging with failed gateway captures from connected payment providers.
-                    </p>
+                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                      {(dbData?.outstandingInvoices || []).length ? dbData.outstandingInvoices.map((invoice: any, index: number) => (
+                        <div key={invoice.id} className="flex items-center justify-between gap-3 border-b border-zinc-800/70 pb-2 text-xs">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-zinc-200">{index + 1}. {invoice.invoiceNumber}</p>
+                            <p className="truncate text-[10px] text-zinc-500">{invoice.clientName}</p>
+                          </div>
+                          <span className="shrink-0 font-mono font-bold text-amber-400">{formatCurrency(invoice.pendingAmount)}</span>
+                        </div>
+                      )) : <p className="text-xs text-zinc-500">No invoices have an outstanding balance.</p>}
+                    </div>
                   </div>
                 }
               >
@@ -1767,13 +1778,15 @@ export default function FinancePage() {
               </ExpandableCard>
             </div>
             
-            {/* Center Column: Revenue vs Time */}
+            {/* Center Column: Overall finance over time */}
             <div className="min-h-[560px] flex flex-col space-y-6">
               <div className="flex-1">
                 <RevenueLineChart
-                  data={revenueLineData}
-                  title="Revenue vs Time"
-                  description="Tracking recognized revenue from ledger receipts."
+                  data={loadingFinanceTimeframe ? [] : revenueLineData}
+                  title="Overall Revenue, Expenses & Receivables"
+                  description={loadingFinanceTimeframe
+                    ? `Loading ${timeFrame.toLowerCase()} data…`
+                    : `${timeFrame} view · recognized revenue, recorded expenses, and running invoice balances.`}
                   currencyRate={1}
                   className="h-full min-h-[560px] w-full"
                   contentClassName="h-[430px] md:h-[452px]"

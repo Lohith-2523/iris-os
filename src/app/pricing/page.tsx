@@ -11,7 +11,7 @@ const FAQS = [
   },
   {
     question: "How does the profit-leak detection work?",
-    answer: "Prism AI automatically analyzes contractor billing hours against project retainers and actual client margins, alerting you to unprofitable accounts and resource over-allocations instantly."
+    answer: "Atlas AI automatically analyzes contractor billing hours against project retainers and actual client margins, alerting you to unprofitable accounts and resource over-allocations instantly."
   },
   {
     question: "Can I adjust my plan tier or add-ons later?",
@@ -174,7 +174,7 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                  <span>Prism AI Chat Assistance</span>
+                  <span>Atlas AI Chat Assistance</span>
                 </li>
               </ul>
             </div>

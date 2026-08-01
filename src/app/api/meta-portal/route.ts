@@ -9,7 +9,7 @@ import {
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 
 async function syncMetaPerformanceForClient(orgId: string, clientId: string, adAccountId: string) {
-  const [client, connection] = await Promise.all([
+  const [client, connection, organization] = await Promise.all([
     prisma.client.findFirst({
       where: { id: clientId, orgId, adAccountId },
       select: { id: true },
@@ -18,7 +18,11 @@ async function syncMetaPerformanceForClient(orgId: string, clientId: string, adA
       where: { orgId_provider: { orgId, provider: 'META' } },
       select: { credentialCiphertext: true },
     }),
+    prisma.organization.findUnique({ where: { id: orgId }, select: { metaAccessConsent: true } }),
   ]);
+  if (!organization?.metaAccessConsent) {
+    throw new MetaIntegrationError('Consent to access Meta data is required before synchronizing.', 403);
+  }
   if (!client) throw new MetaIntegrationError('Assign this Meta ad account to the client before syncing.', 409);
   if (!connection?.credentialCiphertext) throw new MetaIntegrationError('Connect Meta before syncing performance.', 409);
 

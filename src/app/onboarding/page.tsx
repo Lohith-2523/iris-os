@@ -30,7 +30,7 @@ const PLANS = [
       'Active Contractor Profit Leak Checks',
       'Automated Executive Reports & SLAs',
       'Full Canva & Meta Ad Portal Sync',
-      'Prism AI Client Query Clearance'
+      'Atlas AI Client Query Clearance'
     ]
   },
   {
@@ -49,19 +49,21 @@ const PLANS = [
 ];
 
 const FULL_PRIVACY_POLICY = [
+  ['Meta Advertising Data and Atlas AI', 'Meta access requires a separate optional consent. When enabled, Iris OS may retrieve selected ad-account identifiers, campaigns, ads, forms, lead submissions, spend, impressions, reach and clicks. Atlas AI uses only aggregate Meta performance metrics, and only when both general Atlas data sharing and the separate Atlas Meta analytics consent are enabled. Atlas AI never receives Meta access tokens or raw Meta lead names, emails, phone numbers or form fields. Withdrawing Meta access stops future provider retrieval; withdrawing Atlas Meta consent stops future AI use of those metrics.'],
   ['1. Data Controller Identification', 'Shards Media ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
   ['2. Categories of Personal Data We Collect', 'We process identity and account metadata (including corporate name, billing address, currency settings and administrator emails); financial data (internal ledgers, invoices, totals, expenses and merchant names); integration telemetry and OAuth access tokens for connected Canva, Meta, Google and Notion services; contractor allocation information; and system logs such as IP address, device headers and authentication timestamps.'],
-  ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Prism AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
+  ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Atlas AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
   ['4. Google and Notion Authentication APIs & Data Scope', 'Google authentication uses your profile data, email address, profile picture and authorization tokens. Iris OS does not read emails, documents or photos unless you separately grant additional permissions. Notion access is limited to the databases you explicitly select for reporting. Integration tokens are encrypted with industry-standard AES-256 encryption and may be revoked from the relevant provider’s security console.'],
-  ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Prism AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
+  ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Atlas AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
   ['6. GDPR & DPDP Act Data Subject Rights', 'You may request access to and portability of your data, correction of inaccurate data, withdrawal of consent, grievance redressal, and—where applicable under the DPDP Act—nomination of a person to exercise your rights in the event of death or incapacity.'],
   ['7. International Cross-Border Data Transfers', 'Personal data may be processed on secure servers in the United States, the EEA and India. EEA transfers use European Commission Standard Contractual Clauses where applicable. Transfers under the DPDP Act follow applicable Government of India cross-border requirements.'],
   ['8. Contact Our Data Protection Officer', 'To exercise your rights, withdraw consent or raise a privacy concern, contact Shards Media’s Privacy Compliance Department at studio@shardsmedia.com with the subject line “PRIVACY: DATA RIGHTS EXERCISE”.'],
 ] as const;
 
 const PRIVACY_TLDR = [
+  'Meta access is separately optional. Atlas uses Meta metrics only under an additional consent and never receives raw Meta lead contact data.',
   'Your workspace data is used to operate Iris OS and stays scoped to your organization.',
-  'Prism AI access is optional. You can leave it off and change that choice later in Settings.',
+  'Atlas AI access is optional. You can leave it off and change that choice later in Settings.',
   'Connected services only receive the permissions you authorize; you can revoke them at any time.',
   'You can request access, correction, deletion, or export of your personal data.',
   'Contact studio@shardsmedia.com for privacy requests or concerns.',
@@ -84,6 +86,7 @@ export default function OnboardingPage() {
   // Consent state
   const [termsAgreed, setTermsAgreed] = React.useState(false);
   const [aiSharingConsent, setAiSharingConsent] = React.useState(false);
+  const [metaAccessConsent, setMetaAccessConsent] = React.useState(false);
   const [showPrivacyTldr, setShowPrivacyTldr] = React.useState(false);
 
   // Payment state
@@ -112,6 +115,7 @@ export default function OnboardingPage() {
         setSelectedPlanId(draft.selectedPlanId || 'pro');
         setTermsAgreed(Boolean(draft.termsAgreed));
         setAiSharingConsent(Boolean(draft.aiSharingConsent));
+        setMetaAccessConsent(Boolean(draft.metaAccessConsent ?? workspace.organization.metaAccessConsent));
         if (workspace.onboarding?.currentStep > 0 && workspace.onboarding.currentStep < steps.length) {
           setStep(steps[workspace.onboarding.currentStep]);
         }
@@ -135,7 +139,7 @@ export default function OnboardingPage() {
         onboarding: {
           needsOnboarding: true,
           currentStep,
-          draft: { agencyName, username, currency, selectedPlanId, termsAgreed, aiSharingConsent },
+          draft: { agencyName, username, currency, selectedPlanId, termsAgreed, aiSharingConsent, metaAccessConsent },
         },
       }),
     });
@@ -199,6 +203,7 @@ export default function OnboardingPage() {
             hasAddon: selectedPlanId === 'basic' ? false : undefined,
             currency: currency,
             aiSharingConsent: aiSharingConsent,
+            metaAccessConsent,
             username: username,
             billingEmail: email,
           })
@@ -483,11 +488,25 @@ export default function OnboardingPage() {
                   />
                   <div className="cursor-pointer select-none">
                     <label htmlFor="aiConsentCheckbox" className="block text-sm font-bold text-zinc-300">
-                      Enable Prism AI Analysis (Recommended)
+                      Enable Atlas AI Analysis (Recommended)
                     </label>
                     <span className="block text-sm text-zinc-500 mt-1 leading-relaxed">
                       Allow the AI models to read your transaction records and lead pipeline data to automatically identify leaks and calculate campaign performance metrics. You can revoke this in settings at any time.
                     </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3 rounded border border-blue-900/40 bg-blue-950/10">
+                  <input
+                    type="checkbox"
+                    id="metaAccessConsentCheckbox"
+                    checked={metaAccessConsent}
+                    onChange={(e) => setMetaAccessConsent(e.target.checked)}
+                    className="mt-1 rounded border-zinc-800 bg-zinc-900 accent-blue-600 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                  />
+                  <div className="cursor-pointer select-none">
+                    <label htmlFor="metaAccessConsentCheckbox" className="block text-sm font-bold text-zinc-300">Allow access to Meta (Optional)</label>
+                    <span className="block text-sm text-zinc-500 mt-1 leading-relaxed">Allow Iris OS to connect selected Meta ad accounts and retrieve campaign performance and lead-form submissions. This does not consent to Atlas AI analysis and can be withdrawn later.</span>
                   </div>
                 </div>
 

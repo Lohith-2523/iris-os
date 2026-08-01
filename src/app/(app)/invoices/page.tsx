@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { Download, FileText, LayoutDashboard, ListPlus, Loader2, Plus, ReceiptText, Send, Sparkles, Trash2 } from 'lucide-react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
+import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
+import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -138,6 +140,7 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = React.useState<any[]>([]);
   const [projects, setProjects] = React.useState<any[]>([]);
   const [leads, setLeads] = React.useState<LeadOption[]>([]);
+  const [agencyBillingMissingFields, setAgencyBillingMissingFields] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [creating, setCreating] = React.useState(false);
   const [creatingProjectInvoice, setCreatingProjectInvoice] = React.useState(false);
@@ -178,10 +181,11 @@ export default function InvoicesPage() {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [invoiceResponse, projectResponse, leadResponse] = await Promise.all([
+      const [invoiceResponse, projectResponse, leadResponse, organizationResponse] = await Promise.all([
         fetch('/api/invoices'),
         fetch('/api/projects'),
         fetch('/api/agency-leads'),
+        fetch('/api/organization'),
       ]);
       if (!invoiceResponse.ok) throw new Error('Unable to load invoices.');
       setInvoices(await invoiceResponse.json());
@@ -189,6 +193,15 @@ export default function InvoicesPage() {
       if (leadResponse.ok) {
         const leadData = await leadResponse.json();
         setLeads(Array.isArray(leadData.leads) ? leadData.leads : []);
+      }
+      if (organizationResponse.ok) {
+        const organization = await organizationResponse.json();
+        if (organization) {
+          setAgencyBillingMissingFields(missingBillingProfileFields(organization, {
+            requireLegalName: true,
+            label: 'agency',
+          }));
+        }
       }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load invoices.');
@@ -376,6 +389,8 @@ export default function InvoicesPage() {
         <Card><CardHeader className="pb-2"><CardTitle className="text-[10px] uppercase tracking-wider text-zinc-500">Proforma invoices</CardTitle></CardHeader><CardContent className="font-mono text-xl font-bold text-white">{invoices.filter((invoice) => invoice.documentType === 'PROFORMA').length}</CardContent></Card>
       </div>
 
+      <AgencyBillingProfileNotice missingFields={agencyBillingMissingFields} />
+
       {error && <div role="alert" className="border border-amber-900/40 bg-amber-950/15 p-3 text-xs text-amber-300">{error}</div>}
       {success && <div role="status" className="border border-zinc-700 bg-zinc-900/60 p-3 text-xs text-zinc-200">{success}</div>}
 
@@ -438,7 +453,7 @@ export default function InvoicesPage() {
               <Button
                 type="button"
                 className="w-full gap-2"
-                disabled={!projectInvoiceProjectId || creatingProjectInvoice}
+                disabled={!projectInvoiceProjectId || creatingProjectInvoice || agencyBillingMissingFields.length > 0}
                 onClick={createProjectInvoice}
               >
                 {creatingProjectInvoice ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -480,7 +495,7 @@ export default function InvoicesPage() {
                 <textarea value={taxForm.termsOfSale} onChange={(event) => setTaxForm((current) => ({ ...current, termsOfSale: event.target.value }))} maxLength={4000} rows={3} placeholder="Optional payment, delivery, or cancellation terms" className={fieldClass} />
               </label>
               <div className="flex justify-end">
-                <Button type="submit" disabled={creating || !canSubmitTax} className="gap-2">
+                <Button type="submit" disabled={creating || !canSubmitTax || agencyBillingMissingFields.length > 0} className="gap-2">
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {creating ? 'Creating and sending…' : 'Create tax invoice'}
                 </Button>
@@ -565,7 +580,7 @@ export default function InvoicesPage() {
 
               <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Terms and Conditions</span><textarea value={proformaForm.termsOfSale} onChange={(event) => setProformaForm((current) => ({ ...current, termsOfSale: event.target.value }))} maxLength={4000} rows={3} placeholder="Optional validity, delivery, payment, or cancellation terms" className={fieldClass} /></label>
               <div className="flex justify-end">
-                <Button type="submit" disabled={creating || !canSubmitProforma} className="gap-2">
+                <Button type="submit" disabled={creating || !canSubmitProforma || agencyBillingMissingFields.length > 0} className="gap-2">
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {creating ? 'Creating and sending…' : 'Create proforma invoice'}
                 </Button>

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const sessions = await prisma.prismChatSession.findMany({
+    const sessions = await prisma.atlasChatSession.findMany({
       where: { userId: user.id, orgId: user.orgId },
       orderBy: { updatedAt: 'desc' },
       select: {

@@ -184,11 +184,19 @@ export async function POST(request: NextRequest) {
 
     if (action === 'disconnect') {
       if (existingConnection) {
-        await prisma.integrationConnection.delete({
-          where: { id: existingConnection.id },
-        });
+        await prisma.$transaction([
+          prisma.agencyMetaAdAccount.deleteMany({ where: { orgId: user.orgId } }),
+          prisma.integrationConnection.delete({ where: { id: existingConnection.id } }),
+        ]);
       }
       return NextResponse.json({ success: true, status: 'DISCONNECTED' });
+    }
+
+    if (!user.organization.metaAccessConsent) {
+      return NextResponse.json(
+        { error: 'Consent to access Meta data is required before connecting or synchronizing Meta.' },
+        { status: 403 },
+      );
     }
 
     if (provider === 'META' && action === 'connect_sdk') {

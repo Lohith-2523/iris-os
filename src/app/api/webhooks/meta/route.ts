@@ -109,6 +109,71 @@ async function processLeadNotification(
     };
   }
 
+  const [organization, agencyAccount] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: pageMapping.orgId },
+      select: { metaAccessConsent: true },
+    }),
+    prisma.agencyMetaAdAccount.findUnique({
+      where: { orgId_adAccountId: { orgId: pageMapping.orgId, adAccountId } },
+    }),
+  ]);
+  if (!organization?.metaAccessConsent) {
+    return { type: 'leadgen_ignored', leadId: leadgenId, reason: 'meta_access_consent_withdrawn' };
+  }
+
+  const contact = normalizeMetaLeadFields(lead.fieldData);
+  if (agencyAccount) {
+    const storedLead = await prisma.agencyLead.upsert({
+      where: { orgId_leadId: { orgId: pageMapping.orgId, leadId: lead.id } },
+      create: {
+        leadId: lead.id,
+        fullName: contact.fullName || 'Meta lead',
+        email: contact.email || '',
+        phone: contact.phone,
+        status: 'procured',
+        createdTime: parseMetaDate(lead.createdTime),
+        collectionMethod: 'Meta Instant Form',
+        approachMethod: 'Meta Lead Ad',
+        funnelName: ad.name || agencyAccount.accountName,
+        sourceProvider: 'META',
+        adId: lead.adId,
+        adName: ad.name,
+        campaignId: lead.campaignId || ad.campaignId,
+        adAccountId,
+        pageId,
+        formId: lead.formId,
+        fieldData: contact.values,
+        orgId: pageMapping.orgId,
+      },
+      update: {
+        fullName: contact.fullName || 'Meta lead',
+        email: contact.email || '',
+        phone: contact.phone,
+        createdTime: parseMetaDate(lead.createdTime),
+        adId: lead.adId,
+        adName: ad.name,
+        campaignId: lead.campaignId || ad.campaignId,
+        adAccountId,
+        pageId,
+        formId: lead.formId,
+        fieldData: contact.values,
+      },
+    });
+    const leadsCount = await prisma.agencyLead.count({
+      where: { orgId: pageMapping.orgId, sourceProvider: 'META', adId: lead.adId },
+    });
+    await prisma.metaAd.updateMany({
+      where: { orgId: pageMapping.orgId, adId: lead.adId },
+      data: { leadsCount },
+    });
+    await appendConnectionLog(
+      pageMapping.connectionId,
+      `Retrieved agency Meta lead ${lead.id} from ${ad.name || lead.adId}.`,
+    );
+    return { type: 'agency_leadgen_captured', leadId: storedLead.leadId, adAccountId };
+  }
+
   const client = await prisma.client.findFirst({
     where: {
       orgId: pageMapping.orgId,
@@ -125,7 +190,6 @@ async function processLeadNotification(
     };
   }
 
-  const contact = normalizeMetaLeadFields(lead.fieldData);
   const storedLead = await prisma.metaLead.upsert({
     where: {
       orgId_leadId: {

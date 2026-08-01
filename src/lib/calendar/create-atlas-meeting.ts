@@ -8,7 +8,7 @@ import {
 } from '@/lib/email/iris-email';
 import { meetingInvitationEmail } from '@/lib/email/iris-templates';
 
-export async function createPrismMeeting(input: {
+export async function createAtlasMeeting(input: {
   orgId: string;
   userId: string;
   organizerEmail: string;
@@ -37,7 +37,7 @@ export async function createPrismMeeting(input: {
     orgId: input.orgId,
     userId: input.userId,
     title: input.title,
-    description: 'Created by Prism AI in Iris OS.',
+    description: 'Created by Atlas AI in Iris OS.',
     startTime: input.startTime,
     endTime: input.endTime,
     timeZone: input.timeZone,
@@ -56,7 +56,7 @@ export async function createPrismMeeting(input: {
   const event = await prisma.calendarEvent.create({
     data: {
       title: input.title,
-      description: 'Created by Prism AI in Iris OS.',
+      description: 'Created by Atlas AI in Iris OS.',
       meetLink: googleEvent.meetLink,
       startTime: input.startTime,
       endTime: input.endTime,

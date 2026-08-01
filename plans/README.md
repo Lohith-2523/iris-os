@@ -12,9 +12,9 @@ Start here before building Iris OS. These files turn `app-prompt.docx` into an a
 
 ## Build Principle
 
-Iris OS is a full-stack SaaS MVP, not a static mockup. Build a navigable, premium, enterprise-grade product shell with realistic data, database-backed domains, mocked integrations, and Prisma AI embedded across the experience.
+Iris OS is a full-stack SaaS MVP, not a static mockup. Build a navigable, premium, enterprise-grade product shell with realistic data, database-backed domains, mocked integrations, and Atlas AI embedded across the experience.
 
-Do not create placeholder pages. Every route should include real UI structure, realistic sample data, relevant actions, and at least one useful Prisma insight or workflow where appropriate.
+Do not create placeholder pages. Every route should include real UI structure, realistic sample data, relevant actions, and at least one useful Atlas insight or workflow where appropriate.
 
 ## Recommended Agent Workflow
 
@@ -29,7 +29,7 @@ Do not create placeholder pages. Every route should include real UI structure, r
 
 1. Foundation and shared shell
 2. Dashboard
-3. Prisma
+3. Atlas
 4. Finance
 5. Clients
 6. Projects

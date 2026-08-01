@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatUserMessage, renderFormattedText, formatCurrency } from '@/lib/utils';
+import { formatUserMessage, formatCurrency } from '@/lib/utils';
+import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import {
   BarChart3,
@@ -851,15 +852,15 @@ function ExplorerContent() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4.5 w-4.5 text-zinc-400" />
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Prism AI Graph Assistant</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Atlas AI Graph Assistant</CardTitle>
                 </div>
                 <Badge variant="default" className="text-[9px] bg-zinc-900 text-zinc-400 uppercase tracking-wider border-zinc-800 px-2 py-0.5 rounded-md">
-                  Prism AI Model
+                  Atlas AI Model
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="pt-2 text-xs text-zinc-300 leading-relaxed font-sans space-y-3">
-              <p>{renderFormattedText(aiInsightText)}</p>
+              <FormattedMarkdown text={aiInsightText} />
               <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-semibold bg-zinc-950/40 border border-zinc-900/60 p-2.5 rounded-md">
                 <Info className="h-4 w-4 shrink-0 text-zinc-600" />
                 <span>Adjust the primary/secondary Y-axis values on the left panel to update model parameters and run live predictions.</span>

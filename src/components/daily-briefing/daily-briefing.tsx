@@ -17,6 +17,7 @@ import {
   TimerOff,
 } from 'lucide-react';
 import type { DailyBriefingItem, DailyBriefingPayload } from '@/lib/daily-briefing';
+import { dailyBriefingGreeting } from '@/lib/daily-briefing';
 import styles from './daily-briefing.module.css';
 
 type BriefingResponse = {
@@ -40,6 +41,10 @@ const ICONS: Record<DailyBriefingItem['id'], React.ComponentType<{ 'aria-hidden'
 
 function browserTimeZone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+}
+
+function greetingName(greeting: string) {
+  return greeting.match(/^Good (?:morning|afternoon|evening),\s*(.+?)\.?$/i)?.[1] || 'there';
 }
 
 function transitionStyle(item: DailyBriefingItem) {
@@ -78,6 +83,12 @@ export function DailyBriefing() {
   const [isFiling, setIsFiling] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [timeZone] = React.useState(() => browserTimeZone());
+  const [greetingNow, setGreetingNow] = React.useState(() => new Date());
+
+  React.useEffect(() => {
+    const interval = window.setInterval(() => setGreetingNow(new Date()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const loadBriefing = React.useCallback(async () => {
     setIsLoading(true);
@@ -86,7 +97,7 @@ export function DailyBriefing() {
       const response = await fetch(`/api/daily-briefing?intent=briefing&timeZone=${encodeURIComponent(timeZone)}`, {
         cache: 'no-store',
       });
-      if (!response.ok) throw new Error('Prisma could not prepare today’s briefing.');
+      if (!response.ok) throw new Error('Atlas could not prepare today’s briefing.');
       const data = await response.json() as BriefingResponse;
       setBriefing(data);
       setReadCount(Math.min(data.readCount, data.payload.items.length));
@@ -94,9 +105,11 @@ export function DailyBriefing() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'open', timeZone }),
+      }).then((openResponse) => {
+        if (openResponse.ok) window.dispatchEvent(new Event('daily-briefing-opened'));
       });
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Prisma could not prepare today’s briefing.');
+      setError(loadError instanceof Error ? loadError.message : 'Atlas could not prepare today’s briefing.');
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +150,7 @@ export function DailyBriefing() {
   if (isLoading) {
     return (
       <div className={`${styles.loadingState} ${styles.immersiveState}`} role="status" aria-live="polite">
-        <span>Prisma is assembling your morning scan…</span>
+        <span>Atlas is assembling your morning scan…</span>
       </div>
     );
   }
@@ -156,6 +169,7 @@ export function DailyBriefing() {
   }
 
   const { payload } = briefing;
+  const liveGreeting = dailyBriefingGreeting(greetingName(payload.greeting), greetingNow, timeZone);
   const currentItem = payload.items[readCount];
   const isComplete = readCount >= payload.items.length;
   const currentNumber = Math.min(readCount + 1, payload.items.length);
@@ -171,7 +185,7 @@ export function DailyBriefing() {
       <header className={styles.header}>
         <div className={styles.brandLine}>
           <span className={styles.liveDot} />
-          <span>Prisma daily briefing</span>
+          <span>Atlas daily briefing</span>
         </div>
         <span className={styles.progress}>
           {isComplete ? 'Review complete' : `${currentNumber} / ${payload.items.length}`}
@@ -179,7 +193,7 @@ export function DailyBriefing() {
       </header>
 
       <div className={styles.intro}>
-        <h1 id="daily-briefing-title" className={styles.greeting}>{payload.greeting}</h1>
+        <h1 id="daily-briefing-title" className={styles.greeting}>{liveGreeting}</h1>
         <p className={styles.introduction}>{payload.introduction}</p>
       </div>
 

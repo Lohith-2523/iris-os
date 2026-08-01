@@ -7,7 +7,7 @@ import { X, Lock, ArrowRight } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { setActiveWorkspaceContext } from '@/lib/utils';
-import { setPrismAIWorkspaceScope } from '@/lib/prism-ai/service';
+import { setAtlasAIWorkspaceScope } from '@/lib/atlas-ai/service';
 import { DailyBriefingLauncher } from '@/components/daily-briefing/daily-briefing-launcher';
 import {
   configureWorkspaceDataCache,
@@ -42,7 +42,7 @@ const ADMIN_WORKSPACE_DATA = [
   '/api/integrations',
   '/api/reports',
   '/api/organization',
-  '/api/prism-ai/sessions',
+  '/api/atlas-ai/sessions',
 ];
 
 function workspaceWarmupUrls(role: string) {
@@ -64,6 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isBriefingGateResolved, setIsBriefingGateResolved] = React.useState(false);
+  const [hasUnreadBriefing, setHasUnreadBriefing] = React.useState(false);
   const isWorkspaceDataLoading = React.useSyncExternalStore(
     subscribeWorkspaceDataLoading,
     getWorkspaceDataLoadingSnapshot,
@@ -77,7 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         setUser(data);
         configureWorkspaceDataCache({ userId: data.id, orgId: data.orgId });
-        setPrismAIWorkspaceScope({ userId: data.id, orgId: data.orgId });
+        setAtlasAIWorkspaceScope({ userId: data.id, orgId: data.orgId });
         const workspaceRes = await workspaceFetch('/api/workspace');
         if (workspaceRes.ok) {
           const workspace = await workspaceRes.json();
@@ -86,7 +87,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         await warmWorkspaceDataCache(workspaceWarmupUrls(data.role));
       } else if (res.status === 401) {
         configureWorkspaceDataCache(null);
-        setPrismAIWorkspaceScope(null);
+        setAtlasAIWorkspaceScope(null);
         router.replace('/login');
       }
     } catch (e) {
@@ -116,37 +117,50 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!user) return;
-    if (user.role.toLowerCase() !== 'admin' || pathname === '/briefing') {
+    if (user.role.toLowerCase() !== 'admin' || window.location.pathname === '/briefing') {
       setIsBriefingGateResolved(true);
       return;
     }
 
     setIsBriefingGateResolved(false);
-    const controller = new AbortController();
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
-    void fetch(`/api/daily-briefing?intent=status&timeZone=${encodeURIComponent(timeZone)}`, {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-      .then(async (response) => {
+    let isCurrent = true;
+
+    const checkBriefingStatus = async (openOnUnread: boolean) => {
+      try {
+        const response = await fetch(`/api/daily-briefing?intent=status&timeZone=${encodeURIComponent(timeZone)}`, {
+          cache: 'no-store',
+        });
         if (!response.ok) throw new Error('Daily briefing status unavailable');
-        return response.json() as Promise<{ shouldOpen?: boolean }>;
-      })
-      .then((status) => {
-        if (status.shouldOpen) {
+        const status = await response.json() as { shouldOpen?: boolean };
+        if (!isCurrent) return;
+        const shouldOpen = Boolean(status.shouldOpen);
+        setHasUnreadBriefing(shouldOpen);
+        if (openOnUnread && shouldOpen) {
+          setIsBriefingGateResolved(true);
           router.replace('/briefing?source=daily');
           return;
         }
-        setIsBriefingGateResolved(true);
-      })
-      .catch((error) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
+      } catch (error) {
         console.error('Unable to check the daily briefing:', error);
-        setIsBriefingGateResolved(true);
-      });
+      } finally {
+        if (isCurrent && openOnUnread) setIsBriefingGateResolved(true);
+      }
+    };
 
-    return () => controller.abort();
-  }, [pathname, router, user]);
+    void checkBriefingStatus(true);
+    const interval = window.setInterval(() => void checkBriefingStatus(false), 60 * 60 * 1_000);
+    return () => {
+      isCurrent = false;
+      window.clearInterval(interval);
+    };
+  }, [router, user]);
+
+  React.useEffect(() => {
+    const markBriefingRead = () => setHasUnreadBriefing(false);
+    window.addEventListener('daily-briefing-opened', markBriefingRead);
+    return () => window.removeEventListener('daily-briefing-opened', markBriefingRead);
+  }, []);
 
   const isClientGated = user?.role?.toLowerCase() === 'client' && 
     pathname !== '/client-dashboard' && 
@@ -301,7 +315,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </main>
       </div>
-      {user?.role.toLowerCase() === 'admin' && <DailyBriefingLauncher />}
+      {user?.role.toLowerCase() === 'admin' && <DailyBriefingLauncher hasUnreadBriefing={hasUnreadBriefing} />}
     </div>
   );
 }

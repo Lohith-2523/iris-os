@@ -538,7 +538,7 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  <div className="rounded border border-zinc-850 bg-zinc-950/35 p-4 space-y-4">
+                  <div id="agency-invoice-identity" className="rounded border border-zinc-850 bg-zinc-950/35 p-4 space-y-4">
                     <div>
                       <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Agency invoice identity</span>
                       <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
@@ -777,7 +777,7 @@ export default function SettingsPage() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-2.5">
-                              <div className={`industry-specialization-icon h-7 w-7 rounded flex items-center justify-center shrink-0 transition-colors ${
+                              <div className={`workspace-selected-icon industry-specialization-icon h-7 w-7 rounded flex items-center justify-center shrink-0 transition-colors ${
                                 isSelected ? 'bg-white text-zinc-950' : 'bg-zinc-900 text-zinc-400 group-hover:text-white'
                               }`}>
                                 <Icon className="h-4 w-4" />
@@ -924,7 +924,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-white">AI Settings & Data Privacy</CardTitle>
-                  <CardDescription>Configure Prism AI access permissions for your workspace data.</CardDescription>
+                  <CardDescription>Configure Atlas AI access permissions for your workspace data.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 font-sans text-xs">
                   <div className="flex items-start justify-between gap-3 p-3 rounded border border-zinc-850 bg-zinc-900/10">
@@ -938,10 +938,10 @@ export default function SettingsPage() {
                       />
                       <div className="cursor-pointer select-none">
                         <label htmlFor="settingsAiConsentCheckbox" className="block font-bold text-zinc-300">
-                          Enable Prism AI Analysis
+                          Enable Atlas AI Analysis
                         </label>
                         <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
-                          Allow Prism AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.
+                          Allow Atlas AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.
                         </span>
                       </div>
                     </div>

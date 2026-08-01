@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
 import { clearWorkspaceUiPreferences, readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
-import { PrismIcon } from '@/components/ui/prism-icon';
+import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
 import {
   LayoutDashboard,
@@ -47,7 +47,7 @@ type NavigationGroup = {
 export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = React.useMemo(() => createClient(), []);
   const [orgName, setOrgName] = React.useState('Organization');
   const [plan, setPlan] = React.useState('');
   const [user, setUser] = React.useState<{
@@ -58,11 +58,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     role: string;
     hasMetaAccount?: boolean;
   } | null>(null);
-  const [, setSession] = React.useState<import('@supabase/supabase-js').Session | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
 
-  const loadOrg = async () => {
+  const loadOrg = React.useCallback(async () => {
     try {
       const res = await fetch('/api/workspace');
       if (res.ok) {
@@ -74,22 +73,6 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       }
     } catch (e) {
       console.error('Error loading org in sidebar:', e);
-    }
-  };
-
-  const loadUser = React.useCallback(async () => {
-    try {
-      const res = await fetch('/api/user');
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data);
-        setUiScope({ userId: data.id, orgId: data.orgId });
-      } else {
-        setUser(null);
-      }
-    } catch (e) {
-      console.error('Error loading user in sidebar:', e);
-      setUser(null);
     }
   }, []);
 
@@ -106,23 +89,11 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
   };
 
   React.useEffect(() => {
-    Promise.resolve().then(() => {
-      loadOrg();
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        loadUser();
-      } else {
-        loadUser();
-      }
-    });
+    void loadOrg();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
       if (session?.user) {
-        loadUser();
+        void loadOrg();
       } else {
         setUser(null);
       }
@@ -130,15 +101,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
     // Listen to changes from settings update
     const handleOrgUpdate = () => loadOrg();
-    const handleUserUpdate = () => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          loadUser();
-        } else {
-          loadUser();
-        }
-      });
-    };
+    const handleUserUpdate = () => void loadOrg();
 
     window.addEventListener('organization-updated', handleOrgUpdate);
     window.addEventListener('user-updated', handleUserUpdate);
@@ -148,7 +111,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       window.removeEventListener('organization-updated', handleOrgUpdate);
       window.removeEventListener('user-updated', handleUserUpdate);
     };
-  }, [supabase.auth, loadUser]);
+  }, [loadOrg, supabase]);
 
   const handleSignOut = async () => {
     clearWorkspaceUiPreferences(uiScope);
@@ -159,7 +122,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
   const navigationGroups = React.useMemo<NavigationGroup[]>(() => [
     {
-      label: 'Relationships',
+      label: 'Overview',
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
@@ -187,7 +150,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
       items: [
         { name: 'Reporting', href: '/reporting', icon: FileText },
         { name: 'Strategy', href: '/strategy', icon: TrendingUp },
-        { name: 'Prism AI', href: '/prism', icon: PrismIcon, highlight: true },
+        { name: 'Atlas AI', href: '/atlas', icon: AtlasIcon, highlight: true },
       ],
     },
   ], []);

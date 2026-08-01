@@ -12,8 +12,8 @@ Iris OS is an enterprise-grade SaaS operating system designed for creative agenc
 * **Performance Indicators**: Real-time tracking of revenue streams, profit margins, active contractor allocations, and team utilization.
 * **Proactive Intelligence**: Built-in risk detection, cost-leak signals, and actionable operations recommendations.
 
-### 2. Prism AI Engine
-* **Prism AI Intelligence**: Leverages Prism AI with Gemini and ChatGPT capabilities to delegate intelligence queries based on complexity.
+### 2. Atlas AI Engine
+* **Atlas AI Intelligence**: Leverages Atlas AI with Gemini and ChatGPT capabilities to delegate intelligence queries based on complexity.
 * **Contextual Features**: Powers SaaS cost audits, rolling cash flow forecasting, strategy checklist generation, and direct conversational database querying.
 
 ### 3. Meta Ads & Leads Manager
@@ -76,7 +76,7 @@ Google Workspace SMTP Relay as `Iris OS <noreply@irisos.app>`. For Gmail SMTP,
 use `smtp.gmail.com`, port `587`, and an app password. For Google SMTP Relay,
 use `smtp-relay.gmail.com` with the port, TLS mode, authentication, and allowed-IP
 settings configured in Google Workspace. `SMTP_USER` and `SMTP_PASSWORD` may be
-omitted together when the relay authorizes the deployment server by IP. Prism
+omitted together when the relay authorizes the deployment server by IP. Atlas
 meeting coordination always uses Gemini; the creating user must also connect
 Google Calendar with event-management access.
 

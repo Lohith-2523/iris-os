@@ -14,9 +14,9 @@ async function main() {
   await prisma.clientInvite.deleteMany({});
   await prisma.memberInvite.deleteMany({});
   await prisma.scheduledPost.deleteMany({});
-  await prisma.askPrismMessage.deleteMany({});
-  await prisma.prismChatSession.deleteMany({});
-  await prisma.prismInsight.deleteMany({});
+  await prisma.askAtlasMessage.deleteMany({});
+  await prisma.atlasChatSession.deleteMany({});
+  await prisma.atlasInsight.deleteMany({});
   await prisma.integrationConnection.deleteMany({});
   await prisma.automationRun.deleteMany({});
   await prisma.automation.deleteMany({});
@@ -293,7 +293,7 @@ async function main() {
       data: {
         platform: ['instagram'],
         postType: 'reel',
-        caption: 'Watch Sarah execute high-fidelity profit leak audits using Prism AI! 📊💸 Recover up to $2,800/mo in contractor allocations in just three clicks. Full tutorial in bio!',
+        caption: 'Watch Sarah execute high-fidelity profit leak audits using Atlas AI! 📊💸 Recover up to $2,800/mo in contractor allocations in just three clicks. Full tutorial in bio!',
         mediaUrl: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=500&auto=format&fit=crop&q=60',
         status: 'PUBLISHED',
         scheduledAt: new Date('2026-06-24T18:00:00Z'),
@@ -499,7 +499,7 @@ async function main() {
         projectedRev: 200000 + m * 5000,
         projectedExp: 130000 + m * 2000,
         confidence: 90 - m * 5,
-        narrative: `Prism AI projects steady growth of ${2.5 + m * 0.2}% in pipeline value, driven by Aether and Vertex account expansions.`,
+        narrative: `Atlas AI projects steady growth of ${2.5 + m * 0.2}% in pipeline value, driven by Aether and Vertex account expansions.`,
         orgId: org.id,
       },
     });
@@ -617,7 +617,7 @@ async function main() {
       type: 'FINANCE',
       status: 'READY',
       filePath: '/reports/q2_finance.pdf',
-      summary: 'Prism Executive Summary: Q2 Revenue surged by 12.8% to $528K. Churn rate drops to historic low 2.4%. Profit leaks detected in Contractor Utilizations ($14,500 leakage).',
+      summary: 'Atlas Executive Summary: Q2 Revenue surged by 12.8% to $528K. Churn rate drops to historic low 2.4%. Profit leaks detected in Contractor Utilizations ($14,500 leakage).',
       createdById: user1.id,
       orgId: org.id,
     },
@@ -629,14 +629,14 @@ async function main() {
       type: 'CLIENT',
       status: 'READY',
       filePath: '/reports/solaria_renewal.pdf',
-      summary: 'Prism AI client churn warning report: Solaria Energy churn risk reaches 68%. Action: Immediate renewal touchpoint advised.',
+      summary: 'Atlas AI client churn warning report: Solaria Energy churn risk reaches 68%. Action: Immediate renewal touchpoint advised.',
       createdById: user2.id,
       orgId: org.id,
     },
   });
 
-  // 12. Prism Insights
-  await prisma.prismInsight.create({
+  // 12. Atlas Insights
+  await prisma.atlasInsight.create({
     data: {
       type: 'HEALTH_SCORE',
       title: 'Agency Executive Health Score: 84/100',
@@ -649,7 +649,7 @@ async function main() {
     },
   });
 
-  await prisma.prismInsight.create({
+  await prisma.atlasInsight.create({
     data: {
       type: 'PROFIT_LEAK',
       title: 'Contractor Resource Leak Detected',
@@ -662,7 +662,7 @@ async function main() {
     },
   });
 
-  await prisma.prismInsight.create({
+  await prisma.atlasInsight.create({
     data: {
       type: 'CHURN_PREDICTION',
       title: 'High Churn Alert: Solaria Energy',
@@ -675,8 +675,8 @@ async function main() {
     },
   });
 
-  // 13. Ask Prism Messages
-  await prisma.askPrismMessage.create({
+  // 13. Ask Atlas Messages
+  await prisma.askAtlasMessage.create({
     data: {
       role: 'USER',
       content: 'Summarize the agency health and highlight profit leaks.',
@@ -685,7 +685,7 @@ async function main() {
     },
   });
 
-  await prisma.askPrismMessage.create({
+  await prisma.askAtlasMessage.create({
     data: {
       role: 'ASSISTANT',
       content: 'Lohith, the Agency Health Score stands at a strong **84/100**. Our primary profit leak is in contractor over-allocations on Vortex Retail projects ($2,800/mo) and unoptimized SaaS subscription redundancies ($1,400/mo). I recommend reassigning internal designers and auditing tool licenses.',
@@ -1448,7 +1448,7 @@ async function main() {
         },
         {
           date: new Date('2026-06-18'),
-          details: 'Prism AI Team Seat',
+          details: 'Atlas AI Team Seat',
           category: 'AI Subscription',
           type: 'Others',
           transactorAccount: 'anthropic-billing@anthropic.com',

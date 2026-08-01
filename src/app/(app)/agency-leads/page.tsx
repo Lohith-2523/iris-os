@@ -23,7 +23,8 @@ import {
   FileSpreadsheet,
   Check,
   Loader2,
-  Trash2
+  Trash2,
+  Megaphone
 } from 'lucide-react';
 import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import * as XLSX from 'xlsx';
@@ -42,6 +43,9 @@ interface AgencyLead {
   estimatedClientValue: number | null;
   createdTime: string;
   convertedClient?: { id: string; name: string } | null;
+  sourceProvider?: string | null;
+  adName?: string | null;
+  adAccountId?: string | null;
 }
 
 interface LeadMetrics {
@@ -52,13 +56,33 @@ interface LeadMetrics {
   averageRoas: number | null;
 }
 
+interface AgencyMetaData {
+  metaAccessConsent: boolean;
+  atlasMetaAnalyticsConsent: boolean;
+  accounts: Array<{ adAccountId: string; accountName: string; lastSync: string | null }>;
+  campaignCount: number;
+  metrics: { spend: number; impressions: number; reach: number; clicks: number; leadsCount: number; ctr: number | null; cpc: number | null; cpm: number | null; costPerLead: number | null };
+  ads: Array<{ id: string; name: string; spend: number; impressions: number; clicks: number; leadsCount: number; campaign: { name: string } | null }>;
+}
+
+interface MetaConnectionData {
+  discoveredAdAccounts: Array<{ id: string; name: string }>;
+  selectedAdAccountIds: string[];
+}
+
 export default function AgencyLeadsPage() {
   const router = useRouter();
   const [leads, setLeads] = React.useState<AgencyLead[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'entry'>('pipeline');
+  const [activeTab, setActiveTab] = React.useState<'pipeline' | 'entry' | 'meta'>('pipeline');
+  const [role, setRole] = React.useState('admin');
+  const [agencyMeta, setAgencyMeta] = React.useState<AgencyMetaData | null>(null);
+  const [metaConnection, setMetaConnection] = React.useState<MetaConnectionData | null>(null);
+  const [selectedMetaAccountId, setSelectedMetaAccountId] = React.useState('');
+  const [metaBusy, setMetaBusy] = React.useState(false);
+  const [metaError, setMetaError] = React.useState('');
   const [metrics, setMetrics] = React.useState<LeadMetrics>({
     marketingSpend: 0,
     closedLeadCount: 0,
@@ -96,7 +120,7 @@ export default function AgencyLeadsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/agency-leads');
+      const [res, integrationsRes] = await Promise.all([fetch('/api/agency-leads'), fetch('/api/integrations')]);
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
@@ -107,12 +131,87 @@ export default function AgencyLeadsPage() {
           averageCac: null,
           averageRoas: null,
         });
+        setRole(data.role || 'admin');
+        setAgencyMeta(data.meta || null);
+      }
+      if (integrationsRes.ok) {
+        const integrations = await integrationsRes.json();
+        const meta = integrations.find((item: { provider: string }) => item.provider === 'META');
+        setMetaConnection(meta?.meta || null);
       }
     } catch (e) {
       console.error('Failed to load agency leads data:', e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const postAgencyMeta = async (body: Record<string, unknown>) => {
+    setMetaBusy(true);
+    setMetaError('');
+    try {
+      const response = await fetch('/api/agency-leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to update Meta settings.');
+      await loadData();
+      return data;
+    } catch (error) {
+      setMetaError(formatUserMessage(error instanceof Error ? error.message : 'Unable to update Meta settings.'));
+      return null;
+    } finally {
+      setMetaBusy(false);
+    }
+  };
+
+  const connectMeta = () => {
+    if (!agencyMeta?.metaAccessConsent) {
+      setMetaError('Enable Meta access consent before connecting an account.');
+      return;
+    }
+    const fb = (window as any).FB;
+    const configId = process.env.NEXT_PUBLIC_META_LOGIN_CONFIG_ID;
+    if (!fb || !configId) {
+      setMetaError('Meta Login is not ready or configured for this deployment.');
+      return;
+    }
+    setMetaBusy(true);
+    fb.login((response: any) => {
+      if (response.status !== 'connected' || !response.authResponse?.accessToken) {
+        setMetaBusy(false);
+        setMetaError('Meta authorization was cancelled or did not complete.');
+        return;
+      }
+      void (async () => {
+        try {
+          const result = await fetch('/api/integrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'META', action: 'connect_sdk', authResponse: response.authResponse }) });
+          const data = await result.json();
+          if (!result.ok) throw new Error(data.error || 'Meta authorization failed.');
+          setMetaConnection(data.meta);
+        } catch (error) {
+          setMetaError(formatUserMessage(error instanceof Error ? error.message : 'Meta authorization failed.'));
+        } finally { setMetaBusy(false); }
+      })();
+    }, { config_id: configId, scope: 'public_profile,email,ads_read,business_management,leads_retrieval,pages_show_list,pages_manage_metadata', auth_type: 'rerequest', return_scopes: true });
+  };
+
+  const assignMetaAccount = async () => {
+    if (!selectedMetaAccountId) return;
+    setMetaBusy(true);
+    setMetaError('');
+    try {
+      const selectedIds = Array.from(new Set([...(metaConnection?.selectedAdAccountIds || []), selectedMetaAccountId]));
+      const selection = await fetch('/api/integrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'META', action: 'select_meta_accounts', accountIds: selectedIds }) });
+      const selectionData = await selection.json();
+      if (!selection.ok) throw new Error(selectionData.error || 'Unable to select the Meta account.');
+      const assignment = await fetch('/api/agency-leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'assign_meta_account', adAccountId: selectedMetaAccountId }) });
+      const assignmentData = await assignment.json();
+      if (!assignment.ok) throw new Error(assignmentData.error || 'Unable to assign the Meta account.');
+      await fetch('/api/agency-leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'sync_meta_account', adAccountId: selectedMetaAccountId }) });
+      setSelectedMetaAccountId('');
+      await loadData();
+    } catch (error) {
+      setMetaError(formatUserMessage(error instanceof Error ? error.message : 'Unable to assign the Meta account.'));
+    } finally { setMetaBusy(false); }
   };
 
   React.useEffect(() => {
@@ -503,6 +602,18 @@ export default function AgencyLeadsPage() {
               <Upload className="h-3.5 w-3.5" />
               <span>Add Leads</span>
             </button>
+            {role !== 'client' && (
+              <button
+                onClick={() => setActiveTab('meta')}
+                aria-pressed={activeTab === 'meta'}
+                className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'meta' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Megaphone className="h-3.5 w-3.5" />
+                <span>Agency Meta</span>
+              </button>
+            )}
           </div>
           <Button
             variant="outline"
@@ -601,7 +712,7 @@ export default function AgencyLeadsPage() {
           </div>
 
           {/* KANBAN BOARD */}
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-5 items-stretch overflow-x-auto min-h-[500px]">
+          <div className="agency-leads-kanban-board grid gap-4 grid-cols-1 md:grid-cols-5 items-stretch overflow-x-auto min-h-[500px]">
             {columns.map((col) => {
               const colLeads = filteredLeads.filter(
                 (l) =>
@@ -615,9 +726,10 @@ export default function AgencyLeadsPage() {
               return (
                 <div
                   key={col.id}
+                  data-stage={col.id}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, col.id)}
-                  className={`flex flex-col rounded-lg border p-3 ${col.bg} transition-all duration-150 min-h-[450px]`}
+                  className={`agency-leads-kanban-column flex flex-col rounded-lg border p-3 ${col.bg} transition-all duration-150 min-h-[450px]`}
                 >
                   {/* Column Header */}
                   <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5 mb-3">
@@ -641,7 +753,7 @@ export default function AgencyLeadsPage() {
                           key={lead.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, lead.leadId)}
-                          className="p-3 border border-zinc-900 bg-zinc-950/40 hover:bg-zinc-900/40 transition-all select-none text-[11px] relative group rounded-md cursor-grab active:cursor-grabbing"
+                          className="agency-leads-kanban-card p-3 border border-zinc-900 bg-zinc-950/40 hover:bg-zinc-900/40 transition-all select-none text-[11px] relative group rounded-md cursor-grab active:cursor-grabbing"
                         >
                           <div className="flex justify-between items-start">
                             <span className="font-semibold text-white truncate max-w-[110px]">
@@ -657,8 +769,9 @@ export default function AgencyLeadsPage() {
                             </button>
                           </div>
                           <span className="text-[10px] text-zinc-500 font-mono block mt-0.5 truncate">
-                            {lead.email}
+                            {lead.email || 'Email not provided'}
                           </span>
+                          {lead.sourceProvider === 'META' && <Badge variant="outline" className="mt-2 border-blue-900/50 text-[8px] text-blue-300">Meta lead</Badge>}
                           {lead.funnelName && (
                             <span className="text-[9px] text-zinc-600 font-sans block mt-2 border-t border-zinc-900 pt-1.5 truncate">
                               Funnel: {lead.funnelName}
@@ -687,7 +800,7 @@ export default function AgencyLeadsPage() {
             })}
           </div>
         </>
-      ) : (
+      ) : activeTab === 'entry' ? (
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left Column: Manual Form */}
           <div className="lg:col-span-1 space-y-6">
@@ -1013,6 +1126,65 @@ export default function AgencyLeadsPage() {
             </Card>
           </div>
         </div>
+      ) : (
+        <div className="space-y-5">
+          {metaError && (
+            <div className="rounded-md border border-rose-900/40 bg-rose-950/20 p-3 text-xs text-rose-300">{metaError}</div>
+          )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
+              <CardHeader>
+                <CardTitle className="text-sm text-white">Agency-owned Meta account</CardTitle>
+                <CardDescription>Connect an account used to advertise your own agency. Its form submissions join the same lead cards above.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <label className="flex items-start gap-3 rounded-md border border-zinc-800 p-3 text-xs text-zinc-300">
+                  <input type="checkbox" className="mt-0.5" checked={Boolean(agencyMeta?.metaAccessConsent)} disabled={metaBusy} onChange={(event) => void postAgencyMeta({ action: 'update_meta_access_consent', consent: event.target.checked })} />
+                  <span><strong className="block text-white">Allow Iris OS to access Meta</strong>I consent to Iris OS retrieving selected ad-account performance and lead-form submissions from Meta. I can withdraw this access at any time.</span>
+                </label>
+                <label className="flex items-start gap-3 rounded-md border border-violet-900/50 bg-violet-950/10 p-3 text-xs text-zinc-300">
+                  <input type="checkbox" className="mt-0.5" checked={Boolean(agencyMeta?.atlasMetaAnalyticsConsent)} disabled={metaBusy} onChange={(event) => void postAgencyMeta({ action: 'update_atlas_meta_consent', consent: event.target.checked })} />
+                  <span><strong className="block text-violet-200">Use aggregate Meta data with Atlas AI</strong>I consent to Atlas AI using Meta-derived spend, impressions, reach, clicks, and lead totals for better analytics. Atlas receives metrics only—not Meta access tokens, raw form fields, names, emails, or phone numbers—and only while general Atlas data sharing is also enabled.</span>
+                </label>
+                <Button onClick={connectMeta} disabled={metaBusy || !agencyMeta?.metaAccessConsent} className="w-full">
+                  {metaConnection ? 'Reconnect Meta' : 'Connect Meta account'}
+                </Button>
+                {metaConnection && (
+                  <div className="flex gap-2">
+                    <select value={selectedMetaAccountId} onChange={(event) => setSelectedMetaAccountId(event.target.value)} className="min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white">
+                      <option value="">Select your agency ad account</option>
+                      {metaConnection.discoveredAdAccounts.map((account) => <option key={account.id} value={account.id}>{account.name} ({account.id})</option>)}
+                    </select>
+                    <Button onClick={() => void assignMetaAccount()} disabled={metaBusy || !selectedMetaAccountId}>Add & sync</Button>
+                  </div>
+                )}
+                {(agencyMeta?.accounts || []).map((account) => (
+                  <div key={account.adAccountId} className="flex items-center justify-between rounded-md border border-zinc-850 bg-zinc-950 p-3">
+                    <div><div className="text-xs font-semibold text-white">{account.accountName}</div><div className="text-[10px] text-zinc-500">Last sync: {account.lastSync ? new Date(account.lastSync).toLocaleString() : 'Never'}</div></div>
+                    <Button size="sm" variant="outline" disabled={metaBusy} onClick={() => void postAgencyMeta({ action: 'sync_meta_account', adAccountId: account.adAccountId })}><RefreshCw className="mr-1 h-3 w-3" /> Sync</Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
+              <CardHeader><CardTitle className="text-sm text-white">Advertising performance</CardTitle><CardDescription>{agencyMeta?.campaignCount || 0} campaigns across agency-owned accounts.</CardDescription></CardHeader>
+              <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {[
+                  ['Spend', formatCurrency(agencyMeta?.metrics.spend || 0, 2)], ['Impressions', (agencyMeta?.metrics.impressions || 0).toLocaleString()], ['Reach', (agencyMeta?.metrics.reach || 0).toLocaleString()],
+                  ['Clicks', (agencyMeta?.metrics.clicks || 0).toLocaleString()], ['CTR', agencyMeta?.metrics.ctr == null ? '—' : `${agencyMeta.metrics.ctr.toFixed(2)}%`], ['CPC', agencyMeta?.metrics.cpc == null ? '—' : formatCurrency(agencyMeta.metrics.cpc, 2)],
+                  ['CPM', agencyMeta?.metrics.cpm == null ? '—' : formatCurrency(agencyMeta.metrics.cpm, 2)], ['Leads', String(agencyMeta?.metrics.leadsCount || 0)], ['Cost / lead', agencyMeta?.metrics.costPerLead == null ? '—' : formatCurrency(agencyMeta.metrics.costPerLead, 2)],
+                ].map(([label, value]) => <div key={label} className="rounded-md border border-zinc-850 p-3"><div className="text-[9px] uppercase tracking-wider text-zinc-500">{label}</div><div className="mt-1 font-mono text-sm font-bold text-white">{value}</div></div>)}
+              </CardContent>
+            </Card>
+          </div>
+          <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
+            <CardHeader><CardTitle className="text-sm text-white">Top Meta ads</CardTitle><CardDescription>Provider-reported delivery and spend with leads retrieved into the agency pipeline.</CardDescription></CardHeader>
+            <CardContent><Table><TableHeader><TableRow><TableHead>Ad</TableHead><TableHead>Campaign</TableHead><TableHead>Spend</TableHead><TableHead>Impressions</TableHead><TableHead>Clicks</TableHead><TableHead>Leads</TableHead></TableRow></TableHeader><TableBody>
+              {(agencyMeta?.ads || []).map((ad) => <TableRow key={ad.id}><TableCell className="text-white">{ad.name}</TableCell><TableCell>{ad.campaign?.name || '—'}</TableCell><TableCell>{formatCurrency(ad.spend, 2)}</TableCell><TableCell>{ad.impressions.toLocaleString()}</TableCell><TableCell>{ad.clicks.toLocaleString()}</TableCell><TableCell>{ad.leadsCount}</TableCell></TableRow>)}
+              {(agencyMeta?.ads || []).length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-zinc-500">Connect and sync an agency Meta account to see performance.</TableCell></TableRow>}
+            </TableBody></Table></CardContent>
+          </Card>
+        </div>
       )}
 
       {/* LEAD DETAILS DIALOG MODAL */}
@@ -1052,7 +1224,7 @@ export default function AgencyLeadsPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Email Address</span>
-                  <span className="text-white font-mono mt-0.5 block break-all">{selectedLead.email}</span>
+                  <span className="text-white font-mono mt-0.5 block break-all">{selectedLead.email || 'Not provided'}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Phone Number</span>

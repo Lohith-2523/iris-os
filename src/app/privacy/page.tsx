@@ -494,8 +494,8 @@ export default function PrivacyPolicyPage() {
             <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
               {[
                 { title: 'Contractual Performance (Art. 6.1.b)', desc: 'To deploy settings, calculate invoices, sync project milestones, and authorize client logins.' },
-                { title: 'Explicit Consent (Art. 6.1.a)', desc: 'To connect Canva, Google, Notion, and Meta APIs; synchronize and manage Google Calendar events; use Google Gemini models exclusively for AI-assisted call scheduling; and securely analyze financial ledgers and lead pipeline data using Prism AI models. Connected integrations and AI-assisted scheduling are optional and can be declined or revoked in settings at any time.' },
-                { title: 'Legitimate Interests (Art. 6.1.f)', desc: 'To execute Prism AI heuristics, identify contractor profit leaks, and detect anomalous security activity.' }
+                { title: 'Explicit Consent (Art. 6.1.a)', desc: 'To connect Canva, Google, Notion, and Meta APIs; synchronize and manage Google Calendar events; use Google Gemini models exclusively for AI-assisted call scheduling; and securely analyze financial ledgers and lead pipeline data using Atlas AI models. Connected integrations and AI-assisted scheduling are optional and can be declined or revoked in settings at any time.' },
+                { title: 'Legitimate Interests (Art. 6.1.f)', desc: 'To execute Atlas AI heuristics, identify contractor profit leaks, and detect anomalous security activity.' }
               ].map((li, idx) => (
                 <li
                   key={idx}
@@ -713,6 +713,22 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
+          <section
+            id="meta-atlas"
+            className="neo-raised"
+            style={{ padding: '32px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}
+          >
+            <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: '18px', color: '#e8e8e8', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', margin: 0 }}>
+              4A. Meta Advertising Data and Atlas AI
+            </h2>
+            <p style={{ fontFamily: BODY, fontSize: '14px', color: 'rgba(232,232,232,0.65)', lineHeight: 1.7, margin: 0 }}>
+              Access to Meta is optional and requires a separate affirmative checkbox during onboarding or in the Agency Leads page. If enabled, Iris OS may store the selected ad-account identifier and account metadata; campaign, ad and form identifiers; lead-form submissions; and delivery metrics such as spend, impressions, reach, clicks, click-through rate, cost per click, cost per thousand impressions, lead totals and cost per lead. This information is used to retrieve agency leads into the common lead pipeline and report advertising performance.
+            </p>
+            <p style={{ fontFamily: BODY, fontSize: '14px', color: 'rgba(232,232,232,0.65)', lineHeight: 1.7, margin: 0 }}>
+              Atlas AI may use Meta-derived data only for aggregate metrics and better analytics, only when the workspace has enabled both general Atlas AI data sharing and the separate Atlas Meta analytics checkbox. Atlas AI is not given Meta OAuth access tokens, raw Meta form fields, lead names, email addresses or phone numbers. The consent choices are independent: disabling Atlas Meta analytics stops future AI processing of these metrics without disconnecting Meta, while withdrawing Meta access stops future retrieval from Meta. Previously stored Meta data remains subject to the retention, deletion and legal-obligation rules below.
+            </p>
+          </section>
+
           {/* Section 5 */}
           <section
             id="retention"
@@ -765,7 +781,7 @@ export default function PrivacyPolicyPage() {
               {[
                 'All API tokens (Google, Notion, Meta) are immediately and permanently purged from active databases.',
                 'Your identity details are deleted or fully anonymized.',
-                'Historical operational logs used by Prism AI are fully scrubbed of identifiable references.',
+                'Historical operational logs used by Atlas AI are fully scrubbed of identifiable references.',
                 'For Meta (Facebook/Instagram) integrations, you can deauthorize the application or request deletion of all retrieved campaigns, ads, and leads data at any time via the deauthorization endpoint (/api/meta-ads/deauthorize) and data deletion request endpoint (/api/meta-ads/delete-data). Following verification, the data is immediately and permanently wiped from the active database and a unique tracking code is generated to confirm completion.'
               ].map((item, idx) => (
                 <li

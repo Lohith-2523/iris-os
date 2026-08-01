@@ -106,7 +106,7 @@ Calling setState synchronously within an effect body causes cascading renders th
   158:39  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
 /vercel/sandbox/repo/src/app/(app)/forecasting/page.tsx
    6:10  warning  'Badge' is defined but never used           @typescript-eslint/no-unused-vars
-   9:10  warning  'PrismAIService' is defined but never used  @typescript-eslint/no-unused-vars
+   9:10  warning  'AtlasAIService' is defined but never used  @typescript-eslint/no-unused-vars
   11:22  warning  'Sparkles' is defined but never used        @typescript-eslint/no-unused-vars
   11:40  warning  'ChevronRight' is defined but never used    @typescript-eslint/no-unused-vars
   15:52  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
@@ -117,13 +117,13 @@ Calling setState synchronously within an effect body causes cascading renders th
    21:3   warning  'DollarSign' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
 /vercel/sandbox/repo/src/app/(app)/operations/page.tsx
   9:30  warning  'ShieldAlert' is defined but never used  @typescript-eslint/no-unused-vars
-/vercel/sandbox/repo/src/app/(app)/prism/page.tsx
+/vercel/sandbox/repo/src/app/(app)/atlas/page.tsx
    4:39  warning  'CardDescription' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
    9:10  warning  'cn' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
   34:9   error    Error: Cannot access variable before it is declared
 `handleSendMessage` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
-/vercel/sandbox/repo/src/app/(app)/prism/page.tsx:34:9
+/vercel/sandbox/repo/src/app/(app)/atlas/page.tsx:34:9
   32 |       const q = searchParams.get('q');
   33 |       if (q) {
 > 34 |         handleSendMessage(q);
@@ -131,7 +131,7 @@ Calling setState synchronously within an effect body causes cascading renders th
   35 |         // Clear query param from address bar without reloading
   36 |         window.history.replaceState(null, '', window.location.pathname);
   37 |       }
-/vercel/sandbox/repo/src/app/(app)/prism/page.tsx:41:3
+/vercel/sandbox/repo/src/app/(app)/atlas/page.tsx:41:3
   39 |   }, []);
    22:3   warning  'Activity' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
 /vercel/sandbox/repo/src/app/(app)/projects/page.tsx
@@ -214,7 +214,7 @@ Calling setState synchronously within an effect body causes cascading renders th
    4:27  warning  'request' is defined but never used       @typescript-eslint/no-unused-vars
   11:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   56:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-/vercel/sandbox/repo/src/app/api/prism-ai/route.ts
+/vercel/sandbox/repo/src/app/api/atlas-ai/route.ts
    84:89  warning  'context' is defined but never used       @typescript-eslint/no-unused-vars
    84:98  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   109:49  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
@@ -226,7 +226,7 @@ Calling setState synchronously within an effect body causes cascading renders th
 /vercel/sandbox/repo/src/lib/integrations/adapters.ts
   39:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
   40:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
-/vercel/sandbox/repo/src/lib/prism-ai/service.ts
+/vercel/sandbox/repo/src/lib/atlas-ai/service.ts
   155:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Exited with code 1.

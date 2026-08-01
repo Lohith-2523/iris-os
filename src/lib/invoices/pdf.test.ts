@@ -138,8 +138,8 @@ describe('invoice PDF', () => {
       projectName: 'Manual quotation',
       description: 'Professional services',
       seller: {
-        name: 'Prism Studio',
-        legalEntityName: 'Prism Studio Private Limited',
+        name: 'Atlas Studio',
+        legalEntityName: 'Atlas Studio Private Limited',
         email: 'billing@example.com',
         addressLine1: '1 Studio Road',
         addressLine2: '',

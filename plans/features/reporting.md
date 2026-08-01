@@ -15,14 +15,14 @@ Build reporting for one-click client reports, automated executive reports, sched
 
 ## Build
 
-- Generate report views from seeded finance, client, project, creative, and Prisma data.
+- Generate report views from seeded finance, client, project, creative, and Atlas data.
 - Include report templates for client performance, executive summary, profitability, project status, and creative intelligence.
 - Add schedule controls with recipients, cadence, sections, and status.
-- Include Prisma report summaries and recommended talking points.
+- Include Atlas report summaries and recommended talking points.
 
 ## Data
 
-Use reports, report schedules, clients, projects, finance metrics, creative metrics, executive summaries, and Prisma report insights.
+Use reports, report schedules, clients, projects, finance metrics, creative metrics, executive summaries, and Atlas report insights.
 
 ## Acceptance Checks
 

@@ -2196,6 +2196,20 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
   color: var(--light-label-neutral-border) !important;
 }
 
+/* A selected icon should remain a dark, high-contrast control in the light
+   workspace. Dark mode intentionally keeps the existing white selected state. */
+:root.light .workspace-shell .workspace-selected-icon.bg-white {
+  background: linear-gradient(145deg, #3b4657, #1b222d) !important;
+  border-color: #1b222d !important;
+  color: #ffffff !important;
+}
+
+:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-icon.workspace-selected-icon {
+  background: linear-gradient(145deg, #3b4657, #1b222d) !important;
+  border-color: #1b222d !important;
+  color: #ffffff !important;
+}
+
 /* Workspace search is an input affordance, not a metallic action button. */
 .workspace-topbar-search-trigger {
   background: #09090b;
@@ -2242,4 +2256,185 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
 :root.light .workspace-shell .workspace-command-search-input {
   background: transparent !important;
   box-shadow: none !important;
+}
+
+/* Invoice readiness is a warning state in both themes. In the light workspace
+   it uses a dark mustard surface so it remains distinct from white content. */
+:root.light .workspace-shell .agency-billing-profile-notice {
+  background: linear-gradient(145deg, #4a3505, #312303) !important;
+  border-color: #8a6514 !important;
+  color: #fff2c5 !important;
+}
+
+:root.light .workspace-shell .agency-billing-profile-notice :is(svg, p) {
+  color: #fff0bd !important;
+}
+
+:root.light .workspace-shell .agency-billing-profile-notice a {
+  background: #211804 !important;
+  border-color: #b88a22 !important;
+  color: #fff4c9 !important;
+}
+
+:root.light .workspace-shell .agency-billing-profile-notice a:hover {
+  background: #332606 !important;
+}
+
+/* Light-theme lead pipeline: strong stage recognition with inset dark cards.
+   Dark mode keeps the original restrained graphite treatment. */
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] {
+  background: #ffffff !important;
+  border-color: #d6dce5 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='warm'] {
+  background: #6b4705 !important;
+  border-color: #6b4705 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='cold'] {
+  background: #172554 !important;
+  border-color: #1e40af !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='lost'] {
+  background: #7f1d1d !important;
+  border-color: #7f1d1d !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='closed'] {
+  background: #14532d !important;
+  border-color: #14532d !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column > :first-child {
+  border-color: rgba(255, 255, 255, .34) !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column > :first-child > span {
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column .workspace-badge {
+  background: rgba(4, 8, 18, .34) !important;
+  border-color: rgba(255, 255, 255, .42) !important;
+  color: #ffffff !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-card {
+  background: rgba(5, 9, 18, .7) !important;
+  border-color: rgba(255, 255, 255, .25) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .18) !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-card:hover {
+  background: rgba(9, 15, 28, .84) !important;
+  border-color: rgba(255, 255, 255, .48) !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
+  color: #ffffff !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column .border-dashed {
+  border-color: rgba(255, 255, 255, .42) !important;
+  color: rgba(255, 255, 255, .88) !important;
+}
+
+/* Procured remains the neutral entry stage in the light workspace. */
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] {
+  background: #ffffff !important;
+  border-color: #d6dce5 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] > :first-child {
+  border-color: #d6dce5 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] > :first-child > span {
+  color: #172033 !important;
+  text-shadow: none;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .workspace-badge {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card {
+  background: #ffffff !important;
+  border-color: #d6dce5 !important;
+  box-shadow: 0 8px 20px rgba(71, 85, 105, .1) !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
+  color: #263247 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .border-dashed {
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+/* Saturated jewel tones keep the client portfolio chart vivid without losing
+   contrast against either workspace surface. */
+.client-portfolio-value-chart {
+  --portfolio-chart-violet: #a78bfa;
+  --portfolio-chart-cyan: #22d3ee;
+  --portfolio-chart-amber: #fbbf24;
+  --portfolio-chart-rose: #fb7185;
+  --portfolio-chart-emerald: #34d399;
+  --portfolio-chart-axis: #d4d4d8;
+  --portfolio-chart-axis-muted: #a1a1aa;
+  --portfolio-chart-grid: rgba(167, 139, 250, .2);
+  --portfolio-chart-hover: rgba(167, 139, 250, .1);
+}
+
+:root.light .workspace-shell .client-portfolio-value-chart {
+  --portfolio-chart-violet: #7c3aed;
+  --portfolio-chart-cyan: #0284c7;
+  --portfolio-chart-amber: #d97706;
+  --portfolio-chart-rose: #e11d48;
+  --portfolio-chart-emerald: #059669;
+  --portfolio-chart-axis: #334155;
+  --portfolio-chart-axis-muted: #64748b;
+  --portfolio-chart-grid: rgba(124, 58, 237, .16);
+  --portfolio-chart-hover: rgba(124, 58, 237, .08);
+}
+
+/* Client identities on the Projects page use a stable per-client palette.
+   Dark mode receives the luminous variant; light mode uses the deeper shade. */
+.project-client-card {
+  --client-identity-accent: var(--client-identity-dark);
+  --client-identity-name: var(--client-identity-dark);
+  border-left-color: var(--client-identity-accent) !important;
+}
+
+.project-client-icon {
+  background: color-mix(in srgb, var(--client-identity-accent) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--client-identity-accent) 46%, transparent) !important;
+  color: var(--client-identity-accent) !important;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--client-identity-accent) 14%, transparent);
+}
+
+.project-client-name {
+  color: var(--client-identity-name) !important;
+}
+
+:root.light .workspace-shell .project-client-card {
+  --client-identity-accent: var(--client-identity-light);
+  --client-identity-name: var(--client-identity-light-name);
+}
+
+:root.light .workspace-shell .project-client-icon {
+  background: color-mix(in srgb, var(--client-identity-accent) 10%, white) !important;
+  border-color: color-mix(in srgb, var(--client-identity-accent) 35%, white) !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--client-identity-accent) 13%, transparent);
 }

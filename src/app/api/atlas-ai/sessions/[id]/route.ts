@@ -11,7 +11,7 @@ export async function GET(
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const session = await prisma.prismChatSession.findUnique({
+    const session = await prisma.atlasChatSession.findUnique({
       where: { id },
       include: {
         messages: {
@@ -46,7 +46,7 @@ export async function DELETE(
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const session = await prisma.prismChatSession.findUnique({
+    const session = await prisma.atlasChatSession.findUnique({
       where: { id },
     });
 
@@ -54,7 +54,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    await prisma.prismChatSession.delete({
+    await prisma.atlasChatSession.delete({
       where: { id },
     });
 

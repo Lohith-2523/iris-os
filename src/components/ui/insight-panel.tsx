@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { PrismIcon } from './prism-icon';
+import { AtlasIcon } from './atlas-icon';
 import { ArrowRight, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Button } from './button';
 
@@ -20,7 +20,7 @@ export function InsightPanel({
   type = 'general',
   score,
   scoreLabel,
-  actionLabel = 'Optimize with Prism',
+  actionLabel = 'Optimize with Atlas',
   onActionClick,
   riskLevel = 'LOW',
   children,
@@ -35,7 +35,7 @@ export function InsightPanel({
       case 'health':
         return <ShieldCheck className="h-5 w-5 text-emerald-400" />;
       default:
-        return <PrismIcon className="h-5 w-5" />;
+        return <AtlasIcon className="h-5 w-5" />;
     }
   };
 
@@ -61,7 +61,7 @@ export function InsightPanel({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">Prism AI Intelligence</span>
+              <span className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">Atlas AI Intelligence</span>
               {riskLevel !== 'LOW' && (
                 <span className={cn(
                   'text-[10px] px-1.5 py-0.2 rounded-none font-medium border uppercase tracking-wider',

@@ -17,12 +17,12 @@ Build project management for delivery visibility, timeline optimization, resourc
 
 - Show project status, client, owner, timeline, budget, margin, overdue stages, delayed tasks, and blockers.
 - Include timeline and milestone visualizations.
-- Add resource recommendations and overdue stage/task explanations from Prisma.
+- Add resource recommendations and overdue stage/task explanations from Atlas.
 - Link projects to clients, team members, invoices, and reports.
 
 ## Data
 
-Use projects, clients, milestones, team members, resource allocations, project risks, profitability metrics, and Prisma project insights.
+Use projects, clients, milestones, team members, resource allocations, project risks, profitability metrics, and Atlas project insights.
 
 ## Acceptance Checks
 

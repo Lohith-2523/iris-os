@@ -581,7 +581,7 @@ export default function TermsOfServicePage() {
 
           {/* Section 5 */}
           <section
-            id="prism-ai"
+            id="atlas-ai"
             className="neo-raised"
             style={{
               padding: '32px',
@@ -602,7 +602,7 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              5. Prism AI Processing & Optional Data-Sharing
+              5. Atlas AI Processing & Optional Data-Sharing
             </h2>
             <p
               style={{
@@ -613,13 +613,13 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              Iris OS contains AI-powered analysis features (&quot;Prism AI&quot;) that utilize approved language-model capabilities to analyze your manual cost ledgers and agency leads.
+              Iris OS contains AI-powered analysis features (&quot;Atlas AI&quot;) that utilize approved language-model capabilities to analyze your manual cost ledgers and agency leads.
             </p>
             <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
               {[
-                'Opt-In Consent: By default, database records are not shared with AI models. You must explicitly opt-in to enable Prism AI analysis of your financial transactions and leads database.',
+                'Opt-In Consent: By default, database records are not shared with AI models. You must explicitly opt-in to enable Atlas AI analysis of your financial transactions and leads database.',
                 'Control & Revocation: You can decline this sharing or instantly revoke/decline access at any time via Settings > AI Settings & Data Privacy.',
-                'Fallback Mode: If consent is disabled or revoked, Prism AI automatically shifts to a general reasoning mode without accessing your live transaction tables or lead databases.'
+                'Fallback Mode: If consent is disabled or revoked, Atlas AI automatically shifts to a general reasoning mode without accessing your live transaction tables or lead databases.'
               ].map((item, idx) => (
                 <li
                   key={idx}
@@ -670,7 +670,7 @@ export default function TermsOfServicePage() {
                 margin: 0,
               }}
             >
-              All software, layout designs, core algorithms, database schemas, and AI heuristics (Prism AI) remain the exclusive 
+              All software, layout designs, core algorithms, database schemas, and AI heuristics (Atlas AI) remain the exclusive
               intellectual property of Shards Media. You are granted a limited, revocable, non-transferable, and non-exclusive license 
               to use the software solely to manage internal agency operations. You may not reverse engineer, modify, or resell 
               Platform components.

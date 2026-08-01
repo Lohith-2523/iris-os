@@ -39,7 +39,7 @@ Model the app around these domains:
 - Reporting
 - Analytics
 - Design Hub
-- Prisma
+- Atlas
 - Automations
 - Forecasting
 - Operations
@@ -58,7 +58,7 @@ Include these model families when designing schemas and sample data:
 - Design assets, Canva projects, campaigns, brand kits, publishing schedules, and approvals
 - Automations, triggers, actions, runs, approvals, and notifications
 - Integration connections, providers, sync events, and webhooks
-- Prisma insights, forecasts, recommendations, scores, analyses, and Ask Prisma messages
+- Atlas insights, forecasts, recommendations, scores, analyses, and Ask Atlas messages
 
 ## Integration Pattern
 
@@ -73,11 +73,11 @@ Use provider adapters for external capabilities:
 
 Adapters should expose clear mock behavior, connection states, sync logs, and failure states. Avoid scattering provider-specific logic across UI components.
 
-## Prisma AI Layer
+## Atlas AI Layer
 
-Treat Prisma AI as an internal service layer that can power:
+Treat Atlas AI as an internal service layer that can power:
 
-- Ask Prisma
+- Ask Atlas
 - Forecasts
 - Recommendations
 - Risk detection
@@ -90,8 +90,8 @@ Use deterministic mock intelligence for the MVP unless live AI credentials are p
 
 ## Testing Expectations
 
-Add unit tests for scoring helpers, forecast helpers, seed-data generators, integration adapters, and Prisma AI mock services.
+Add unit tests for scoring helpers, forecast helpers, seed-data generators, integration adapters, and Atlas AI mock services.
 
-Add Playwright coverage for every main navigation item and core workflows such as creating a client, inspecting profitability, generating a client report, reviewing churn risk, scheduling design publishing, approving a design asset, running an automation, and asking Prisma.
+Add Playwright coverage for every main navigation item and core workflows such as creating a client, inspecting profitability, generating a client report, reviewing churn risk, scheduling design publishing, approving a design asset, running an automation, and asking Atlas.
 
 Check desktop and mobile layouts for text overflow, incoherent overlap, missing states, inaccessible controls, and incomplete pages.

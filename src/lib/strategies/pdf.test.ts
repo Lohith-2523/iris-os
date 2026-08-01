@@ -12,7 +12,10 @@ describe('generateStrategyPdf', () => {
     const content = [
       '# Expansion strategy for Northstar',
       '## Executive direction',
-      'Focus the next quarter on expanding the strongest existing client relationships.',
+      'Focus the next quarter on **expanding** the *strongest* existing client relationships.',
+      '| Metric | Current | Target |',
+      '| --- | ---: | ---: |',
+      '| Qualified opportunities | 8 | **15** |',
       ...Array.from({ length: 42 }, (_, index) => (
         `- Action ${index + 1}: Validate the opportunity, assign an owner, define evidence, and review progress in the weekly operating cadence.`
       )),

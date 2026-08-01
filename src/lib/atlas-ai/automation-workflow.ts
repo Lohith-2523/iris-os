@@ -55,6 +55,9 @@ export type AutomationWorkflowState = {
   kind: AutomationKind;
   draft: AutomationDraft;
   awaitingConfirmation: boolean;
+  decisionMode: boolean;
+  decisionRationale: string;
+  decisionEvidence: string[];
 };
 
 export const geminiAutomationResultSchema = z.object({
@@ -62,15 +65,24 @@ export const geminiAutomationResultSchema = z.object({
   action: z.enum(['COLLECT', 'READY', 'CONFIRM', 'CANCEL']),
   draft: automationDraftSchema,
   reply: z.string().trim().max(1_000),
+  decisionMode: z.boolean().default(false),
+  decisionRationale: z.string().trim().max(1_500).default(''),
+  decisionEvidence: z.array(z.string().trim().min(1).max(300)).max(6).default([]),
 });
 
 export type GeminiAutomationResult = z.infer<typeof geminiAutomationResultSchema>;
 
 const CREATE_VERBS = /\b(create|add|make|set up|setup|generate|prepare|draft|build|issue|send|need|want)\b/i;
 const AUTOMATION_NOUNS = /\b(project|task|to-?do|invoice|bill|report)\b/i;
+const DECISION_DELEGATION = /\b(you decide|decide for me|use your (?:best )?judg(?:e)?ment|use your discretion|as you see fit|whatever (?:you think )?is best|appropriately|necessary changes?|take action|handle it|do what(?:ever)? is best|analy[sz]e (?:the )?data and (?:act|decide|change|fix|improve))\b/i;
+const DECISION_ACTION = /\b(change|update|adjust|fix|improve|optimi[sz]e|create|add|make|assign|schedule|generate|act|handle|do)\b/i;
 
 export function isAutomationRequest(query: string) {
   return CREATE_VERBS.test(query) && AUTOMATION_NOUNS.test(query);
+}
+
+export function isDecisionAutomationRequest(query: string) {
+  return DECISION_DELEGATION.test(query) && DECISION_ACTION.test(query);
 }
 
 export function mergeAutomationWorkflow(
@@ -94,6 +106,11 @@ export function mergeAutomationWorkflow(
     draft,
     awaitingConfirmation: result.action === 'READY'
       || (Boolean(current?.awaitingConfirmation) && result.action !== 'CANCEL'),
+    decisionMode: result.decisionMode || Boolean(current?.decisionMode),
+    decisionRationale: result.decisionRationale || current?.decisionRationale || '',
+    decisionEvidence: result.decisionEvidence.length
+      ? result.decisionEvidence
+      : current?.decisionEvidence || [],
   };
 }
 
@@ -145,7 +162,14 @@ export function missingAutomationFields(state: AutomationWorkflowState) {
 
 export function automationConfirmationMessage(state: AutomationWorkflowState, currency: string) {
   const { draft } = state;
-  const lines = [`I have the ${state.kind.toLowerCase()} ready to create:`, ''];
+  const lines = state.decisionMode
+    ? [
+        `I analyzed the available workspace data and selected this ${state.kind.toLowerCase()} action:`,
+        '',
+        ...(state.decisionRationale ? [`**Decision rationale:** ${state.decisionRationale}`, ''] : []),
+        ...(state.decisionEvidence.length ? ['**Evidence used:**', ...state.decisionEvidence.map((item) => `- ${item}`), ''] : []),
+      ]
+    : [`I have the ${state.kind.toLowerCase()} ready to create:`, ''];
   if (state.kind === 'PROJECT') {
     lines.push(
       `**Project:** ${draft.name}`,

@@ -30,19 +30,19 @@ export interface ProfitLeak {
 const UNAVAILABLE_HEALTH = {
   score: 0,
   rating: 'FAIR' as const,
-  details: 'Prism AI health data is currently unavailable. No synthetic organization metrics were substituted.',
+  details: 'Atlas AI health data is currently unavailable. No synthetic organization metrics were substituted.',
 };
 
-const AI_UNAVAILABLE = 'Prism AI is currently unavailable. No synthetic organization data was returned.';
+const AI_UNAVAILABLE = 'Atlas AI is currently unavailable. No synthetic organization data was returned.';
 
-export class PrismAIRequestError extends Error {
+export class AtlasAIRequestError extends Error {
   constructor(message: string, public readonly status?: number) {
     super(message);
-    this.name = 'PrismAIRequestError';
+    this.name = 'AtlasAIRequestError';
   }
 }
 
-// Automatic Prisma insights are derived from a point-in-time workspace snapshot.
+// Automatic Atlas insights are derived from a point-in-time workspace snapshot.
 // Keep them in session storage (not local storage) so navigating between workspace
 // pages does not repeatedly invoke an AI provider, while a new browser session starts
 // with a fresh, authenticated snapshot.
@@ -57,7 +57,7 @@ const CACHEABLE_ACTIONS = new Set([
 const inFlightRequests = new Map<string, Promise<any>>();
 let activeWorkspaceScope = '';
 
-export function setPrismAIWorkspaceScope(scope: { userId: string; orgId: string } | null) {
+export function setAtlasAIWorkspaceScope(scope: { userId: string; orgId: string } | null) {
   activeWorkspaceScope = scope ? `${scope.userId}:${scope.orgId}` : '';
 }
 
@@ -70,7 +70,7 @@ function stableSerialize(value: unknown): string {
 }
 
 function insightCacheKey(action: string, bodyData: Record<string, unknown>) {
-  return `crystal.prism.insight:${activeWorkspaceScope || 'unscoped'}:${action}:${stableSerialize(bodyData)}:v1`;
+  return `crystal.atlas.insight:${activeWorkspaceScope || 'unscoped'}:${action}:${stableSerialize(bodyData)}:v1`;
 }
 
 function readCachedInsight(key: string): any | null {
@@ -95,11 +95,11 @@ function cacheInsight(key: string, data: unknown) {
       data,
     }));
   } catch {
-    // Session storage is only a performance optimization and must never block Prism.
+    // Session storage is only a performance optimization and must never block Atlas.
   }
 }
 
-async function fetchPrismAI(action: string, bodyData: Record<string, unknown> = {}): Promise<any> {
+async function fetchAtlasAI(action: string, bodyData: Record<string, unknown> = {}): Promise<any> {
   if (typeof window === 'undefined') {
     return { result: '' };
   }
@@ -117,18 +117,18 @@ async function fetchPrismAI(action: string, bodyData: Record<string, unknown> = 
   const request = (async () => {
     let res: Response;
     try {
-      res = await workspaceFetch('/api/prism-ai', {
+      res = await workspaceFetch('/api/atlas-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, ...bodyData })
       });
     } catch {
-      throw new PrismAIRequestError(AI_UNAVAILABLE);
+      throw new AtlasAIRequestError(AI_UNAVAILABLE);
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new PrismAIRequestError(
-        typeof data.error === 'string' ? data.error : 'Prism AI could not complete this request.',
+      throw new AtlasAIRequestError(
+        typeof data.error === 'string' ? data.error : 'Atlas AI could not complete this request.',
         res.status,
       );
     }
@@ -144,7 +144,7 @@ async function fetchPrismAI(action: string, bodyData: Record<string, unknown> = 
   }
 }
 
-export const PrismAIService = {
+export const AtlasAIService = {
   /**
    * Calculates overall agency health score based on clients and projects.
    */
@@ -153,7 +153,7 @@ export const PrismAIService = {
       return UNAVAILABLE_HEALTH;
     }
     try {
-      const data = await fetchPrismAI('dashboard-summary');
+      const data = await fetchAtlasAI('dashboard-summary');
       return {
         score: 0,
         rating: 'FAIR',
@@ -172,7 +172,7 @@ export const PrismAIService = {
       return [];
     }
     try {
-      await fetchPrismAI('operations-advice');
+      await fetchAtlasAI('operations-advice');
       // Returns dynamic predictions or fallback structured list
       return [];
     } catch {
@@ -188,7 +188,7 @@ export const PrismAIService = {
       return [];
     }
     try {
-      await fetchPrismAI('finance-analysis');
+      await fetchAtlasAI('finance-analysis');
       // Returns dynamic list of leaks or mock structures
       return [];
     } catch {
@@ -197,15 +197,15 @@ export const PrismAIService = {
   },
 
   async getReportingBrief(context?: Record<string, unknown>): Promise<{ result: string; model: string }> {
-    if (typeof window === 'undefined') return { result: AI_UNAVAILABLE, model: 'Prism AI' };
-    const data = await fetchPrismAI('reporting-brief', { context });
-    return { result: data.result || AI_UNAVAILABLE, model: data.model || 'Prism AI' };
+    if (typeof window === 'undefined') return { result: AI_UNAVAILABLE, model: 'Atlas AI' };
+    const data = await fetchAtlasAI('reporting-brief', { context });
+    return { result: data.result || AI_UNAVAILABLE, model: data.model || 'Atlas AI' };
   },
 
   /**
    * Delegates query execution.
    */
-  async askPrism(query: string, context?: any, sessionId?: string): Promise<{
+  async askAtlas(query: string, context?: any, sessionId?: string): Promise<{
     result: string;
     model: string;
     sessionId: string;
@@ -215,7 +215,7 @@ export const PrismAIService = {
     };
   }> {
     if (typeof window === 'undefined') {
-      throw new PrismAIRequestError('Prism chat is only available in the browser.');
+      throw new AtlasAIRequestError('Atlas chat is only available in the browser.');
     }
     const meetingContext = {
       ...(context || {}),
@@ -223,9 +223,9 @@ export const PrismAIService = {
       locale: navigator.language,
       clientDateTime: new Date().toISOString(),
     };
-    const data = await fetchPrismAI('ask-prism', { query, context: meetingContext, sessionId });
+    const data = await fetchAtlasAI('ask-atlas', { query, context: meetingContext, sessionId });
     if (!data.persisted || typeof data.sessionId !== 'string' || !data.result) {
-      throw new PrismAIRequestError('Prism replied, but the chat could not be saved. Please retry.');
+      throw new AtlasAIRequestError('Atlas replied, but the chat could not be saved. Please retry.');
     }
     if (data.meeting) {
       invalidateWorkspaceDataTags(['calendar', 'dashboard']);
@@ -244,7 +244,7 @@ export const PrismAIService = {
     }
     return {
       result: data.result,
-      model: data.model || 'Prism AI',
+      model: data.model || 'Atlas AI',
       sessionId: data.sessionId,
       automation: data.automation,
     };
@@ -258,7 +258,7 @@ export const PrismAIService = {
       return [];
     }
     try {
-      await fetchPrismAI('reporting-brief');
+      await fetchAtlasAI('reporting-brief');
       return [];
     } catch {
       return [];
@@ -267,10 +267,10 @@ export const PrismAIService = {
 
   async getSessions() {
     if (typeof window === 'undefined') return [];
-    // Chat history must reflect completed Prism writes immediately. Unlike
+    // Chat history must reflect completed Atlas writes immediately. Unlike
     // dashboard reads, a stale session list makes a persisted conversation look
     // as though it was lost.
-    const res = await workspaceFetch('/api/prism-ai/sessions', { cache: 'no-store' });
+    const res = await workspaceFetch('/api/atlas-ai/sessions', { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.sessions || [];
@@ -278,15 +278,15 @@ export const PrismAIService = {
 
   async getSessionMessages(id: string) {
     if (typeof window === 'undefined') return null;
-    const res = await workspaceFetch(`/api/prism-ai/sessions/${id}`, { cache: 'no-store' });
+    const res = await workspaceFetch(`/api/atlas-ai/sessions/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
     return await res.json();
   },
 
   async deleteSession(id: string) {
     if (typeof window === 'undefined') return;
-    await workspaceFetch(`/api/prism-ai/sessions/${id}`, { method: 'DELETE' });
+    await workspaceFetch(`/api/atlas-ai/sessions/${id}`, { method: 'DELETE' });
   }
 };
 
-export default PrismAIService;
+export default AtlasAIService;

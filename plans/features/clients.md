@@ -16,13 +16,13 @@ Build client management with profitability, renewals, churn prediction, and upse
 ## Build
 
 - Create a sortable, filterable client table with revenue, margin, renewal date, churn risk, owner, and status.
-- Add client detail pages with contacts, projects, invoices, reports, performance metrics, timeline, and Prisma insights.
+- Add client detail pages with contacts, projects, invoices, reports, performance metrics, timeline, and Atlas insights.
 - Show Client Profitability Score, renewal timing, churn prediction, ROI analysis, and upsell recommendations.
 - Include actions for generating client reports and opening related projects.
 
 ## Data
 
-Use clients, contacts, projects, invoices, renewals, ROI metrics, upsell opportunities, and Prisma client insights.
+Use clients, contacts, projects, invoices, renewals, ROI metrics, upsell opportunities, and Atlas client insights.
 
 ## Acceptance Checks
 

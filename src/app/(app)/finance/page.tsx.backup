@@ -24,7 +24,7 @@ import {
   Key,
   Upload
 } from 'lucide-react';
-import { PrismAIService } from '@/lib/prism-ai/service';
+import { AtlasAIService } from '@/lib/atlas-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
@@ -339,7 +339,7 @@ export default function FinancePage() {
           const json = await res.json();
           setDbData(json);
         }
-        const leaks = await PrismAIService.getProfitLeaks();
+        const leaks = await AtlasAIService.getProfitLeaks();
         if (leaks.length > 0) {
           setLeakData(leaks[0]);
         }
@@ -384,8 +384,8 @@ export default function FinancePage() {
   }, [isRazorpayConnected, fetchRazorpayData]);
 
   const aiLeakText = React.useMemo(() => {
-    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Prism AI...');
-    return formatUserMessage(`Lohith, Prism AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
+    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Atlas AI...');
+    return formatUserMessage(`Lohith, Atlas AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {

@@ -17,11 +17,56 @@ import {
   Layers,
   ArrowUp,
   ArrowDown,
-  Edit2
+  Edit2,
+  Building2,
+  BriefcaseBusiness,
+  Gem,
+  Globe2,
+  Landmark,
+  Megaphone,
+  Rocket,
+  Store,
+  type LucideIcon,
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
 import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/delivery-delays';
+
+const clientIdentityIcons: LucideIcon[] = [
+  Building2,
+  BriefcaseBusiness,
+  Gem,
+  Globe2,
+  Landmark,
+  Megaphone,
+  Rocket,
+  Store,
+];
+
+const clientIdentityPalettes = [
+  { light: '#5b21b6', lightName: '#4c1d95', dark: '#c4b5fd' },
+  { light: '#0369a1', lightName: '#0c4a6e', dark: '#7dd3fc' },
+  { light: '#0f766e', lightName: '#115e59', dark: '#5eead4' },
+  { light: '#b45309', lightName: '#78350f', dark: '#fcd34d' },
+  { light: '#be123c', lightName: '#881337', dark: '#fda4af' },
+  { light: '#047857', lightName: '#064e3b', dark: '#6ee7b7' },
+  { light: '#c2410c', lightName: '#7c2d12', dark: '#fdba74' },
+  { light: '#4338ca', lightName: '#312e81', dark: '#a5b4fc' },
+];
+
+function getClientIdentity(clientId: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < clientId.length; index += 1) {
+    hash ^= clientId.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  const stableHash = hash >>> 0;
+  return {
+    Icon: clientIdentityIcons[(stableHash >>> 8) % clientIdentityIcons.length],
+    palette: clientIdentityPalettes[stableHash % clientIdentityPalettes.length],
+  };
+}
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -414,29 +459,6 @@ export default function ProjectsPage() {
     return { total, active, hold, contractedValue, delayCount };
   }, [projects]);
 
-  const getAccentColorStyle = React.useCallback((clientId: string) => {
-    const palette = [
-      "hsl(270, 95%, 60%)", // Extreme Violet
-      "hsl(245, 95%, 58%)", // Violet-Blue / Indigo
-      "hsl(220, 95%, 58%)", // Royal Blue
-      "hsl(195, 95%, 55%)", // Cyan / Sky Blue
-      "hsl(170, 95%, 52%)", // Teal / Turquoise
-      "hsl(145, 95%, 50%)", // Spring Green
-      "hsl(120, 95%, 48%)", // Emerald Green
-      "hsl(95, 95%, 50%)",  // Lime Green
-      "hsl(70, 95%, 52%)",  // Yellow-Green / Yellow
-      "hsl(45, 95%, 55%)",  // Amber / Orange
-      "hsl(20, 95%, 58%)",  // Coral / Red-Orange
-      "hsl(0, 95%, 60%)"     // Extreme Red
-    ];
-    let hash = 0;
-    for (let i = 0; i < clientId.length; i++) {
-      hash = clientId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % palette.length;
-    return palette[index];
-  }, []);
-
   const sortedClients = React.useMemo(() => {
     if (!expandedClientId) return clients;
     const expanded = clients.find(c => c.id === expandedClientId);
@@ -547,6 +569,7 @@ export default function ProjectsPage() {
             const isExpanded = expandedClientId === client.id;
             const clientProjects = projects.filter(p => p.clientId === client.id);
             const clientDelayCount = clientProjects.reduce((sum, project) => sum + getDeliveryDelaySummary(project).total, 0);
+            const { Icon: ClientIcon, palette: clientPalette } = getClientIdentity(client.id);
             
             return (
               <Card 
@@ -556,12 +579,16 @@ export default function ProjectsPage() {
                     setExpandedClientId(client.id);
                   }
                 }}
-                style={{ borderLeftColor: getAccentColorStyle(client.id) }}
+                style={{
+                  '--client-identity-light': clientPalette.light,
+                  '--client-identity-light-name': clientPalette.lightName,
+                  '--client-identity-dark': clientPalette.dark,
+                } as React.CSSProperties}
                 className={cn(
-                  "transition-all duration-300 flex flex-col justify-between border border-zinc-800/80 border-l-8 overflow-hidden relative shadow-lg",
+                  "project-client-card transition-all duration-300 flex flex-col justify-between border border-zinc-800/80 border-l-8 overflow-hidden relative shadow-lg",
                   isExpanded 
-                    ? "col-span-1 md:col-span-2 row-span-2 h-[440px] bg-zinc-900/50" 
-                    : "col-span-1 h-[212px] bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer hover:border-zinc-750/80 hover:scale-[1.01] hover:shadow-indigo-500/5"
+                    ? "col-span-1 md:col-span-2 row-span-2 h-[500px] bg-zinc-900/50"
+                    : "col-span-1 h-[272px] bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer hover:border-zinc-750/80 hover:scale-[1.01] hover:shadow-indigo-500/5"
                 )}
               >
                 {isExpanded ? (
@@ -576,9 +603,14 @@ export default function ProjectsPage() {
                     </button>
 
                     <div className="pb-3 border-b border-zinc-800 flex justify-between items-start pr-8">
-                      <div>
-                        <h2 className="text-xl font-black text-white tracking-tighter leading-tight">{client.name}</h2>
-                        <p className="text-[9px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{client.domain || 'No Domain Listed'}</p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="project-client-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+                          <ClientIcon className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                          <h2 className="project-client-name truncate text-xl font-black tracking-tighter leading-tight">{client.name}</h2>
+                          <p className="text-[9px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{client.domain || 'No Domain Listed'}</p>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[8px] uppercase font-bold rounded-md">
@@ -685,7 +717,10 @@ export default function ProjectsPage() {
                   /* COLLAPSED VIEW */
                   <div className="p-5 flex flex-col justify-between h-full space-y-4">
                     <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2 pt-2">
-                      <h3 className="text-xl font-black text-white tracking-tighter leading-tight select-none px-2 max-w-full truncate" title={client.name}>
+                      <span className="project-client-icon flex h-11 w-11 items-center justify-center rounded-xl border">
+                        <ClientIcon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <h3 className="project-client-name text-xl font-black tracking-tighter leading-tight select-none px-2 max-w-full truncate" title={client.name}>
                         {client.name}
                       </h3>
                       <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block truncate max-w-full">
@@ -732,7 +767,7 @@ export default function ProjectsPage() {
               <Card 
                 key={`placeholder-${idx}`}
                 onClick={() => router.push('/clients/onboard')}
-                className="col-span-1 h-[212px] border border-dashed border-zinc-800/80 bg-zinc-900/5 hover:bg-zinc-900/10 flex flex-col items-center justify-center text-center p-6 rounded-2xl cursor-pointer hover:border-zinc-700 transition-all duration-300"
+                className="col-span-1 h-[272px] border border-dashed border-zinc-800/80 bg-zinc-900/5 hover:bg-zinc-900/10 flex flex-col items-center justify-center text-center p-6 rounded-2xl cursor-pointer hover:border-zinc-700 transition-all duration-300"
               >
                 <Plus className="h-5 w-5 text-zinc-500 mb-2" />
                 <h4 className="text-[10px] font-bold text-white uppercase tracking-wider">Onboard New Client</h4>

@@ -8,10 +8,38 @@ import {
 export const GEMINI_AUTOMATION_MODEL = 'gemini-3.5-flash';
 
 type AutomationDirectory = {
-  clients: Array<{ name: string }>;
-  projects: Array<{ name: string; clientName: string }>;
-  team: Array<{ name: string; email: string }>;
-  leads: Array<{ name: string; email: string }>;
+  clients: Array<{
+    name: string;
+    status: string;
+    churnRiskScore: number;
+    roiMetric: number;
+    activeProjects: number;
+  }>;
+  projects: Array<{
+    name: string;
+    clientName: string;
+    status: string;
+    progress: number;
+    riskLevel: string;
+    riskDescription: string;
+    serviceLine: string;
+    startDate: string;
+    endDate: string;
+    paymentType: string;
+    paymentAmount: number | null;
+    paymentFrequency: string;
+    openTasks: number;
+    blockedTasks: number;
+    assignedTeam: string[];
+  }>;
+  team: Array<{
+    name: string;
+    email: string;
+    role: string;
+    activeTasks: number;
+    assignedProjects: number;
+  }>;
+  leads: Array<{ name: string; email: string; status: string; estimatedValue: number | null }>;
 };
 
 export class GeminiAutomationError extends Error {
@@ -24,7 +52,7 @@ export class GeminiAutomationError extends Error {
 async function callGemini(body: Record<string, unknown>) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new GeminiAutomationError('Prism AI automations are not configured.', 503);
+    throw new GeminiAutomationError('Atlas AI automations are not configured.', 503);
   }
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_AUTOMATION_MODEL}:generateContent`,
@@ -40,14 +68,14 @@ async function callGemini(body: Record<string, unknown>) {
     error?: { message?: string };
   };
   if (!response.ok) {
-    console.error('Prism automation provider failed:', response.status, payload.error?.message || 'Unknown error');
+    console.error('Atlas automation provider failed:', response.status, payload.error?.message || 'Unknown error');
     throw new GeminiAutomationError(
-      payload.error?.message || 'Prism AI could not continue this automation.',
+      payload.error?.message || 'Atlas AI could not continue this automation.',
       response.status >= 400 && response.status < 500 ? 400 : 502,
     );
   }
   const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new GeminiAutomationError('Prism AI returned an empty automation response.');
+  if (!text) throw new GeminiAutomationError('Atlas AI returned an empty automation response.');
   return text;
 }
 
@@ -57,9 +85,10 @@ export async function extractAutomationDetailsWithGemini(input: {
   currentDate: string;
   currency: string;
   directory: AutomationDirectory;
+  decisionRequested: boolean;
 }) {
-  const prompt = `You are the automation engine inside Prism AI.
-This workflow MUST use Gemini 3.5 Flash only. Never mention Gemini or any provider to the user; the product is always called Prism AI.
+  const prompt = `You are the automation engine inside Atlas AI.
+This workflow MUST use Gemini 3.5 Flash only. Never mention Gemini or any provider to the user; the product is always called Atlas AI.
 
 Identify and collect details for exactly one of PROJECT, TASK, INVOICE, or REPORT.
 - Preserve every valid value in CURRENT_STATE unless the user changes it.
@@ -74,6 +103,13 @@ Identify and collect details for exactly one of PROJECT, TASK, INVOICE, or REPOR
 - Use CANCEL only when the user clearly cancels.
 - Otherwise use COLLECT and ask one concise question that gathers the most useful missing values.
 - If this is not a creation request and there is no active workflow, use kind NONE.
+- DELEGATED_DECISION means the user explicitly asked Atlas to use its judgment instead of supplying every detail.
+- When DELEGATED_DECISION is true, analyze DIRECTORY and select the single highest-impact safe action supported by this workflow. Prefer a TASK that addresses the highest-risk or blocked active project; use REPORT when no justified record-changing action is available.
+- In decision mode, infer missing operational details from verified DIRECTORY evidence instead of asking the user. Use the least-loaded qualified team member, canonical entity names, and a reasonable future deadline. Never invent evidence, entities, amounts, or performance claims.
+- Commercial amounts may only be inferred from an existing exact project or a clear comparable-project median in DIRECTORY. Otherwise collect the amount rather than fabricating it.
+- An invoice may only be selected when an existing project or lead unambiguously supports it. Never invent line items, customer addresses, or tax details.
+- Set decisionMode true only for an explicit delegated decision. Explain the choice in decisionRationale and include 1-6 concise facts from DIRECTORY in decisionEvidence.
+- The application always asks for confirmation before writing, including in decision mode.
 - Return only JSON matching the schema.
 
 Required values:
@@ -87,6 +123,7 @@ INVOICE:
 REPORT: title, reportType, reportFocus.
 
 CURRENCY: ${input.currency}
+DELEGATED_DECISION: ${input.decisionRequested}
 CURRENT_STATE: ${JSON.stringify(input.currentState || {})}
 DIRECTORY: ${JSON.stringify(input.directory)}
 USER_MESSAGE: ${input.query}`;
@@ -101,6 +138,9 @@ USER_MESSAGE: ${input.query}`;
         properties: {
           kind: { type: 'STRING', enum: ['NONE', 'PROJECT', 'TASK', 'INVOICE', 'REPORT'] },
           action: { type: 'STRING', enum: ['COLLECT', 'READY', 'CONFIRM', 'CANCEL'] },
+          decisionMode: { type: 'BOOLEAN' },
+          decisionRationale: { type: 'STRING' },
+          decisionEvidence: { type: 'ARRAY', items: { type: 'STRING' } },
           draft: {
             type: 'OBJECT',
             properties: {
@@ -169,13 +209,13 @@ USER_MESSAGE: ${input.query}`;
           },
           reply: { type: 'STRING' },
         },
-        required: ['kind', 'action', 'draft', 'reply'],
+        required: ['kind', 'action', 'draft', 'reply', 'decisionMode', 'decisionRationale', 'decisionEvidence'],
       },
     },
   });
   const parsed = geminiAutomationResultSchema.safeParse(JSON.parse(text));
   if (!parsed.success) {
-    throw new GeminiAutomationError('Prism AI returned invalid automation details. Please rephrase the request.');
+    throw new GeminiAutomationError('Atlas AI returned invalid automation details. Please rephrase the request.');
   }
   return parsed.data;
 }
@@ -186,7 +226,7 @@ export async function generateReportWithGemini(input: {
   focus: string;
   workspaceContext: string;
 }) {
-  const prompt = `You are Prism AI, an executive reporting system.
+  const prompt = `You are Atlas AI, an executive reporting system.
 Create a polished ${input.type} report titled "${input.title}" focused on: ${input.focus}.
 Use only facts present in WORKSPACE_CONTEXT. Never invent figures, clients, or performance claims.
 Use concise markdown headings, an executive summary, evidence, risks, and recommended next actions.

@@ -15,12 +15,12 @@ type GenerateStrategyInput = {
   projects: unknown[];
 };
 
-export class PrismStrategyError extends Error {
+export class AtlasStrategyError extends Error {
   status: number;
 
   constructor(message: string, status = 502) {
     super(message);
-    this.name = 'PrismStrategyError';
+    this.name = 'AtlasStrategyError';
     this.status = status;
   }
 }
@@ -31,17 +31,17 @@ const TYPE_GUIDANCE: Record<StrategyKind, string> = {
   FINANCIAL: 'Create a commercial and financial strategy using only project budgets and commercial terms plus client/project portfolio structure. Do not calculate or claim revenue.',
 };
 
-export async function generateStrategyWithPrism(input: GenerateStrategyInput) {
+export async function generateStrategyWithAtlas(input: GenerateStrategyInput) {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
-    throw new PrismStrategyError(
-      'Prism AI strategy generation is not configured. Add ANTHROPIC_API_KEY to the server environment.',
+    throw new AtlasStrategyError(
+      'Atlas AI strategy generation is not configured. Add ANTHROPIC_API_KEY to the server environment.',
       503,
     );
   }
 
   const model = process.env.ANTHROPIC_STRATEGY_MODEL?.trim() || ['cla', 'ude-sonnet-5'].join('');
-  const system = `You are the senior strategy architect inside Iris OS Prism AI.
+  const system = `You are the senior strategy architect inside Iris OS Atlas AI.
 
 Use only the first-party, manually onboarded Client and Project records supplied in this request. Never use web knowledge, connected advertising data, integrations, inferred market statistics, invoices, or ledger data. Never invent missing facts.
 
@@ -97,8 +97,8 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
     } catch {
       providerMessage = '';
     }
-    throw new PrismStrategyError(
-      `Prism AI could not generate the strategy (${response.status})${providerMessage ? `: ${providerMessage}` : ''}${requestId ? ` [request ${requestId}]` : ''}.`,
+    throw new AtlasStrategyError(
+      `Atlas AI could not generate the strategy (${response.status})${providerMessage ? `: ${providerMessage}` : ''}${requestId ? ` [request ${requestId}]` : ''}.`,
       response.status === 429 ? 429 : 502,
     );
   }
@@ -110,6 +110,6 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
     .join('\n')
     .trim();
 
-  if (!content) throw new PrismStrategyError('Prism AI returned an empty strategy.');
-  return { content, model: 'Prism AI' };
+  if (!content) throw new AtlasStrategyError('Atlas AI returned an empty strategy.');
+  return { content, model: 'Atlas AI' };
 }

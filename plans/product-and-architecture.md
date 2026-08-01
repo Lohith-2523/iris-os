@@ -6,7 +6,7 @@ Iris OS is an enterprise-grade SaaS operating system for freelancers, agencies, 
 
 The product unifies finance, operations, clients, projects, reporting, forecasting, business intelligence, creative operations, automation, executive reporting, and proprietary AI intelligence.
 
-Prisma AI is the embedded intelligence layer. It should power insights, recommendations, forecasts, summaries, churn signals, agency performance scores, and Ask Prisma experiences throughout the app.
+Atlas AI is the embedded intelligence layer. It should power insights, recommendations, forecasts, summaries, churn signals, agency performance scores, and Ask Atlas experiences throughout the app.
 
 Design Hub is an Iris OS-owned creative operations workspace powered by Canva workflows. Canva can be visible as the underlying provider, but Iris OS remains the primary product.
 
@@ -92,11 +92,11 @@ tests/
 - Design assets, Canva projects, campaigns, brand kits, publishing schedules, approvals
 - Automations, triggers, actions, runs, notifications
 - Integrations, providers, connections, sync events, webhooks
-- Prisma insights, recommendations, forecasts, scores, analyses, chat messages
+- Atlas insights, recommendations, forecasts, scores, analyses, chat messages
 
-## Prisma AI Service
+## Atlas AI Service
 
-Implement Prisma AI behind an internal service boundary with deterministic mock output first.
+Implement Atlas AI behind an internal service boundary with deterministic mock output first.
 
 The service should expose helpers for:
 
@@ -107,7 +107,7 @@ The service should expose helpers for:
 - Profit Leak Detection
 - Forecast Narratives
 - Executive Summaries
-- Ask Prisma responses
+- Ask Atlas responses
 - Creative Intelligence recommendations
 
 ## Testing Standard

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface PrismIconProps extends React.SVGProps<SVGSVGElement> {}
+export type AtlasIconProps = React.SVGProps<SVGSVGElement>;
 
-export const PrismIcon = React.forwardRef<SVGSVGElement, PrismIconProps>(
+export const AtlasIcon = React.forwardRef<SVGSVGElement, AtlasIconProps>(
   ({ className, ...props }, ref) => {
     return (
       <svg
@@ -22,4 +22,4 @@ export const PrismIcon = React.forwardRef<SVGSVGElement, PrismIconProps>(
   }
 );
 
-PrismIcon.displayName = 'PrismIcon';
+AtlasIcon.displayName = 'AtlasIcon';

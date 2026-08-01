@@ -1,21 +1,21 @@
 import { describe, it, expect } from 'vitest';
-import { PrismAIService } from '../src/lib/prism-ai/service';
+import { AtlasAIService } from '../src/lib/atlas-ai/service';
 
-describe('PrismAIService safe server fallbacks', () => {
+describe('AtlasAIService safe server fallbacks', () => {
   it('does not substitute a synthetic agency health score', async () => {
-    const health = await PrismAIService.getAgencyHealthScore();
+    const health = await AtlasAIService.getAgencyHealthScore();
     expect(health.score).toBe(0);
     expect(health.details).toContain('No synthetic organization metrics');
   });
 
   it('does not invent churn-risk clients', async () => {
-    const predictions = await PrismAIService.getChurnPredictions();
+    const predictions = await AtlasAIService.getChurnPredictions();
     expect(predictions).toEqual([]);
   });
 
   it('does not invent financial leakage when the service is unavailable', async () => {
-    await expect(PrismAIService.askPrism('Highlight profit leaks')).rejects.toThrow(
-      'Prism AI is currently unavailable. No synthetic organization data was returned.',
+    await expect(AtlasAIService.askAtlas('Highlight profit leaks')).rejects.toThrow(
+      'Atlas AI is currently unavailable. No synthetic organization data was returned.',
     );
   });
 });

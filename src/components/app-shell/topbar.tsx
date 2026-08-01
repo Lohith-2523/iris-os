@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Search, Sparkles, Command, Menu, X, BrainCircuit, Play, ArrowRight, Sun, Moon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatUserMessage } from '@/lib/utils';
-import { PrismIcon } from '../ui/prism-icon';
+import { AtlasIcon } from '../ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
 import {
   applyWorkspaceTheme,
@@ -33,7 +33,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
   const isClient = pathname === '/client-dashboard';
   const [isCommandOpen, setIsCommandOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [prismQuery, setPrismQuery] = React.useState('');
+  const [atlasQuery, setAtlasQuery] = React.useState('');
   const [commandResults, setCommandResults] = React.useState<CommandItem[]>([]);
   const [theme, setTheme] = React.useState<WorkspaceTheme>('dark');
   const hasOptimisticThemeRef = React.useRef(false);
@@ -98,14 +98,14 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handlePrismSubmit = (e: React.FormEvent) => {
+  const handleAtlasSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prismQuery.trim()) return;
+    if (!atlasQuery.trim()) return;
     
-    // Redirect to prism chat with pre-filled query
-    prepareWorkspaceDataCacheForRouteChange('/prism');
-    router.push(`/prism?q=${encodeURIComponent(prismQuery)}`);
-    setPrismQuery('');
+    // Redirect to atlas chat with pre-filled query
+    prepareWorkspaceDataCacheForRouteChange('/atlas');
+    router.push(`/atlas?q=${encodeURIComponent(atlasQuery)}`);
+    setAtlasQuery('');
   };
 
   const navCommands = [
@@ -113,7 +113,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     { name: 'Go to Finance Ledger', category: 'Navigation', href: '/finance' },
     { name: 'Go to Client Portfolio', category: 'Navigation', href: '/clients' },
     { name: 'Go to Project Delivery', category: 'Navigation', href: '/projects' },
-    { name: 'Go to Prism AI Intelligence', category: 'Navigation', href: '/prism' },
+    { name: 'Go to Atlas AI Intelligence', category: 'Navigation', href: '/atlas' },
     { name: 'Go to Settings Console', category: 'Navigation', href: '/settings' },
     { name: 'Export Latest Financial Report', category: 'Action', action: 'export-report' },
     { name: 'Review Contractor Profit Leak', category: 'Action', action: 'view-leak' },
@@ -162,17 +162,17 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
         </div>
 
-        {/* Center: Ask Prism Form */}
+        {/* Center: Ask Atlas Form */}
         {!isClient && (
           <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <form onSubmit={handlePrismSubmit} className="workspace-topbar-search flex h-9 items-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
-              <PrismIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+            <form onSubmit={handleAtlasSubmit} className="workspace-topbar-search flex h-9 items-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
+              <AtlasIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
               <input
                 type="text"
-                aria-label="Ask Prism AI"
-                placeholder="Ask Prism AI (e.g. summarize renewals, forecast)..."
-                value={prismQuery}
-                onChange={(e) => setPrismQuery(e.target.value)}
+                aria-label="Ask Atlas AI"
+                placeholder="Ask Atlas AI (e.g. summarize renewals, forecast)..."
+                value={atlasQuery}
+                onChange={(e) => setAtlasQuery(e.target.value)}
                 className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
               />
               <button type="submit" className="hidden" />
@@ -305,15 +305,15 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                     <div
                       onClick={() => {
                         setIsCommandOpen(false);
-                        prepareWorkspaceDataCacheForRouteChange('/prism');
-                        router.push('/prism');
+                        prepareWorkspaceDataCacheForRouteChange('/atlas');
+                        router.push('/atlas');
                       }}
                       className="flex items-center justify-between rounded-md bg-zinc-900/40 border border-zinc-800/80 p-3 mx-1 hover:bg-zinc-900 cursor-pointer"
                     >
                       <div className="flex items-center gap-2.5">
                         <BrainCircuit className="h-4.5 w-4.5 text-zinc-300" />
                         <div>
-                          <span className="block text-xs font-semibold text-white">Ask Prism Command Center</span>
+                          <span className="block text-xs font-semibold text-white">Ask Atlas Command Center</span>
                           <span className="block text-[10px] text-zinc-500 mt-0.5">Solve profit leaks and check team capacity charts.</span>
                         </div>
                       </div>

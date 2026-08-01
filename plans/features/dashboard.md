@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build the Agency Command Center: the executive home screen for agency performance, financial performance, stage/task delays, capacity, client status, and Prisma recommendations.
+Build the Agency Command Center: the executive home screen for agency performance, financial performance, stage/task delays, capacity, client status, and Atlas recommendations.
 
 ## Screens
 
@@ -16,16 +16,16 @@ Build the Agency Command Center: the executive home screen for agency performanc
 
 - Show Agency Health Score, monthly revenue, margin, cash runway, utilization, churn risk, forecast variance, and active project risk.
 - Include charts for revenue trend, profitability by client segment, capacity utilization, and pipeline forecast.
-- Surface Prisma executive summary, strategic recommendations, opportunity detection, and profit leak alerts.
+- Surface Atlas executive summary, strategic recommendations, opportunity detection, and profit leak alerts.
 - Link dashboard cards into Finance, Clients, Projects, Team, Reporting, and Forecasting.
 
 ## Data
 
-Use seeded finance, client, project, team, forecast, and Prisma insight records. Dashboard metrics should be computed from shared data rather than isolated constants.
+Use seeded finance, client, project, team, forecast, and Atlas insight records. Dashboard metrics should be computed from shared data rather than isolated constants.
 
 ## Acceptance Checks
 
 - Dashboard renders as a complete executive view.
 - Every metric links to a relevant module or detail state.
-- Prisma insights are visible without opening a separate Prisma page.
+- Atlas insights are visible without opening a separate Atlas page.
 - Mobile layout stacks cleanly without text overflow.

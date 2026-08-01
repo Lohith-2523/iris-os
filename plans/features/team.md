@@ -17,12 +17,12 @@ Build team operations for capacity forecasting, utilization, productivity insigh
 
 - Show utilization, available capacity, overloaded roles, hiring gaps, productivity trends, and project allocation.
 - Add filters for role, team, brand, utilization band, and time period.
-- Include Prisma capacity forecast, hiring recommendations, productivity insights, and performance analysis.
+- Include Atlas capacity forecast, hiring recommendations, productivity insights, and performance analysis.
 - Link team capacity to Projects and Forecasting.
 
 ## Data
 
-Use users, roles, project allocations, utilization records, performance metrics, capacity forecasts, and Prisma team insights.
+Use users, roles, project allocations, utilization records, performance metrics, capacity forecasts, and Atlas team insights.
 
 ## Acceptance Checks
 

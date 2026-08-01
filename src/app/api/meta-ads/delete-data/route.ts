@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
         prisma.metaLead.deleteMany({ where: { orgId: connection.orgId } }),
         prisma.metaAd.deleteMany({ where: { orgId: connection.orgId } }),
         prisma.metaCampaign.deleteMany({ where: { orgId: connection.orgId } }),
+        prisma.agencyLead.deleteMany({ where: { orgId: connection.orgId, sourceProvider: 'META' } }),
+        prisma.agencyMetaAdAccount.deleteMany({ where: { orgId: connection.orgId } }),
         prisma.integrationConnection.updateMany({
           where: { orgId: connection.orgId, provider: 'META' },
           data: {

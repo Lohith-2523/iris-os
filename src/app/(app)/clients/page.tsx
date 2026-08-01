@@ -262,7 +262,7 @@ export default function ClientsPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-200">
                 <Sparkles className="h-4 w-4" />
               </div>
-              <CardTitle className="pt-3 text-sm font-semibold text-white">Prism AI Strategy</CardTitle>
+              <CardTitle className="pt-3 text-sm font-semibold text-white">Atlas AI Strategy</CardTitle>
               <CardDescription>
                 {latestStrategy ? 'A concise view of your latest generated strategy.' : 'Generate a strategy from your client and project portfolio.'}
               </CardDescription>

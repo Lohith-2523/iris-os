@@ -1,13 +1,13 @@
-# Feature Plan: Prisma
+# Feature Plan: Atlas
 
 ## Goal
 
-Build Prisma as CrystalOS's flagship proprietary intelligence layer and command center.
+Build Atlas as CrystalOS's flagship proprietary intelligence layer and command center.
 
 ## Screens
 
-- Prisma Command Center
-- Ask Prisma chat
+- Atlas Command Center
+- Ask Atlas chat
 - Insights feed
 - Forecasting and recommendations
 - Executive summaries
@@ -15,7 +15,7 @@ Build Prisma as CrystalOS's flagship proprietary intelligence layer and command 
 
 ## Build
 
-- Create Ask Prisma with deterministic contextual responses from seeded data.
+- Create Ask Atlas with deterministic contextual responses from seeded data.
 - Show finance, client, team, project, creative, and executive insight categories.
 - Include Agency Health Score, Client Profitability Score, churn risk, capacity forecast, profit leak detection, and strategic recommendations.
 - Add insight detail drawers with evidence, confidence, impact, and recommended action.
@@ -27,8 +27,8 @@ Use PrismaInsight, PrismaRecommendation, PrismaForecast, PrismaScore, and AskPri
 
 ## Acceptance Checks
 
-- Ask Prisma works without external AI credentials.
+- Ask Atlas works without external AI credentials.
 - Insights reference real seeded entities.
 - Recommendations include actionable next steps.
-- Prisma also appears in other modules through shared insight components.
+- Atlas also appears in other modules through shared insight components.
 

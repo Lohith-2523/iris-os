@@ -19,7 +19,7 @@ export type WorkspaceCacheTag =
   | 'integrations'
   | 'reports'
   | 'strategies'
-  | 'prism';
+  | 'atlas';
 
 export type WorkspacePatchKind =
   | 'clients'
@@ -95,7 +95,7 @@ export function workspaceReadTags(url: string): WorkspaceCacheTag[] {
   if (pathname === '/api/integrations') return ['integrations'];
   if (pathname === '/api/reports') return ['reports', 'reporting'];
   if (pathname === '/api/strategies') return ['strategies'];
-  if (pathname.startsWith('/api/prism-ai')) return ['prism'];
+  if (pathname.startsWith('/api/atlas-ai')) return ['atlas'];
   return [];
 }
 
@@ -127,10 +127,10 @@ export function workspaceMutationPlan(
   if (pathname.startsWith('/api/auth/')) {
     return { invalidateTags: [], skip: true };
   }
-  if (pathname.startsWith('/api/prism-ai')) {
-    // Ask Prism writes the session and its messages in the same request. Refresh
+  if (pathname.startsWith('/api/atlas-ai')) {
+    // Ask Atlas writes the session and its messages in the same request. Refresh
     // the history list and any open conversation immediately after that write.
-    return { invalidateTags: ['prism'] };
+    return { invalidateTags: ['atlas'] };
   }
   if (pathname === '/api/workspace' && normalizedMethod === 'PATCH' && isThemeOnlyWorkspaceMutation(body)) {
     return { invalidateTags: ['workspace'] };
@@ -179,7 +179,7 @@ export function workspaceMutationPlan(
     };
   }
   if (pathname === '/api/agency-leads') {
-    return { invalidateTags: ['leads'], patchKind: 'leads' };
+    return { invalidateTags: ['leads', 'meta', 'integrations', 'dashboard', 'atlas', 'organization'], patchKind: 'leads' };
   }
   if (pathname === '/api/calendar') {
     return {

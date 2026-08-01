@@ -50,6 +50,8 @@ export async function POST(request: NextRequest) {
       bankNames,
       currency,
       aiSharingConsent,
+      metaAccessConsent,
+      atlasMetaAnalyticsConsent,
       username,
       billingEmail,
       preferences,
@@ -127,6 +129,16 @@ export async function POST(request: NextRequest) {
           bankNames: bankNames !== undefined ? bankNames : org.bankNames,
           currency: currency !== undefined ? currency : org.currency,
           aiSharingConsent: aiSharingConsent !== undefined ? aiSharingConsent : org.aiSharingConsent,
+          metaAccessConsent: typeof metaAccessConsent === 'boolean' ? metaAccessConsent : org.metaAccessConsent,
+          metaAccessConsentAt: typeof metaAccessConsent === 'boolean'
+            ? (metaAccessConsent ? new Date() : null)
+            : org.metaAccessConsentAt,
+          atlasMetaAnalyticsConsent: typeof atlasMetaAnalyticsConsent === 'boolean'
+            ? atlasMetaAnalyticsConsent
+            : org.atlasMetaAnalyticsConsent,
+          atlasMetaAnalyticsConsentAt: typeof atlasMetaAnalyticsConsent === 'boolean'
+            ? (atlasMetaAnalyticsConsent ? new Date() : null)
+            : org.atlasMetaAnalyticsConsentAt,
           billingEmail: billingEmail !== undefined ? billingEmail : org.billingEmail,
           preferences: preferences !== undefined ? preferences : org.preferences,
         },
@@ -165,12 +177,12 @@ export async function DELETE(request: NextRequest) {
       prisma.expense.deleteMany({ where: { orgId } }),
       prisma.invoice.deleteMany({ where: { orgId } }),
       
-      // 2. Delete tasks, reports, automations, prism messages
+      // 2. Delete tasks, reports, automations, atlas messages
       prisma.clientTask.deleteMany({ where: { client: { orgId } } }),
       prisma.report.deleteMany({ where: { orgId } }),
-      prisma.askPrismMessage.deleteMany({ where: { orgId } }),
-      prisma.prismChatSession.deleteMany({ where: { orgId } }),
-      prisma.prismInsight.deleteMany({ where: { orgId } }),
+      prisma.askAtlasMessage.deleteMany({ where: { orgId } }),
+      prisma.atlasChatSession.deleteMany({ where: { orgId } }),
+      prisma.atlasInsight.deleteMany({ where: { orgId } }),
       prisma.automationRun.deleteMany({ where: { automation: { orgId } } }),
       prisma.automation.deleteMany({ where: { orgId } }),
 
@@ -187,6 +199,7 @@ export async function DELETE(request: NextRequest) {
       prisma.metaLead.deleteMany({ where: { orgId } }),
       prisma.metaAd.deleteMany({ where: { orgId } }),
       prisma.metaCampaign.deleteMany({ where: { orgId } }),
+      prisma.agencyMetaAdAccount.deleteMany({ where: { orgId } }),
 
       // 6. Delete agency leads & integration connections
       prisma.agencyLead.deleteMany({ where: { orgId } }),

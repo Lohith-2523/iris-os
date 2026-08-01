@@ -9,17 +9,17 @@ import { parseProjectCommercials } from '@/lib/projects/commercial';
 import { generateReportWithGemini } from './gemini-automations';
 import type { AutomationWorkflowState } from './automation-workflow';
 
-export class PrismAutomationExecutionError extends Error {
+export class AtlasAutomationExecutionError extends Error {
   constructor(message: string, readonly status = 400) {
     super(message);
-    this.name = 'PrismAutomationExecutionError';
+    this.name = 'AtlasAutomationExecutionError';
   }
 }
 
 function dateValue(value: string, label: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(date.getTime())) {
-    throw new PrismAutomationExecutionError(`${label} must be a valid date.`);
+    throw new AtlasAutomationExecutionError(`${label} must be a valid date.`);
   }
   return date;
 }
@@ -27,14 +27,14 @@ function dateValue(value: string, label: string) {
 function exactName<T extends { name: string }>(items: T[], name: string, label: string) {
   const matches = items.filter((item) => item.name.trim().toLowerCase() === name.trim().toLowerCase());
   if (matches.length !== 1) {
-    throw new PrismAutomationExecutionError(
+    throw new AtlasAutomationExecutionError(
       matches.length ? `${label} "${name}" is ambiguous.` : `${label} "${name}" was not found in this workspace.`,
     );
   }
   return matches[0];
 }
 
-export async function executePrismAutomation(input: {
+export async function executeAtlasAutomation(input: {
   state: AutomationWorkflowState;
   orgId: string;
   userId: string;
@@ -53,7 +53,7 @@ export async function executePrismAutomation(input: {
     const client = exactName(clients, draft.clientName, 'Client');
     const startDate = dateValue(draft.startDate, 'Start date');
     const endDate = dateValue(draft.endDate, 'End date');
-    if (endDate < startDate) throw new PrismAutomationExecutionError('Project end date must be after its start date.');
+    if (endDate < startDate) throw new AtlasAutomationExecutionError('Project end date must be after its start date.');
     const commercials = parseProjectCommercials({
       paymentType: draft.paymentType,
       paymentAmount: draft.paymentAmount,
@@ -62,7 +62,7 @@ export async function executePrismAutomation(input: {
       paymentTerms: draft.paymentTerms,
     });
     if (commercials.error || !commercials.data) {
-      throw new PrismAutomationExecutionError(commercials.error || 'Project commercials are invalid.');
+      throw new AtlasAutomationExecutionError(commercials.error || 'Project commercials are invalid.');
     }
     const stageNames = ['Discovery & Plan', 'Execution', 'Review', 'Delivery'];
     const duration = endDate.getTime() - startDate.getTime();
@@ -153,7 +153,7 @@ export async function executePrismAutomation(input: {
         || lead.email.trim().toLowerCase() === normalizedLeadName
       );
       if (leadMatches.length !== 1) {
-        throw new PrismAutomationExecutionError(
+        throw new AtlasAutomationExecutionError(
           leadMatches.length
             ? `Lead "${draft.leadName}" is ambiguous.`
             : `Lead "${draft.leadName}" was not found in this workspace.`,
@@ -165,7 +165,7 @@ export async function executePrismAutomation(input: {
         ? dateValue(draft.invoiceValidUntil, 'Valid-until date')
         : undefined;
       if (validUntil && validUntil < issuedDate) {
-        throw new PrismAutomationExecutionError('The proforma valid-until date cannot be before its issue date.');
+        throw new AtlasAutomationExecutionError('The proforma valid-until date cannot be before its issue date.');
       }
       const invoice = await createAndSendProformaInvoice({
         orgId: input.orgId,
@@ -197,7 +197,7 @@ export async function executePrismAutomation(input: {
           gstNumber: draft.customerGstNumber.toUpperCase(),
         },
         automationKey: input.automationKey,
-        source: 'PRISM_AI',
+        source: 'ATLAS_AI',
       });
       return {
         message: `Proforma invoice **${invoice.invoiceNumber}** was created for lead **${lead.fullName}** and delivery status is **${invoice.deliveryStatus.toLowerCase()}**.`,
@@ -220,7 +220,7 @@ export async function executePrismAutomation(input: {
       lineItems: draft.invoiceItems.length ? draft.invoiceItems : undefined,
       taxRate: draft.invoiceItems.length ? Number(draft.invoiceTaxRate) : undefined,
       automationKey: input.automationKey,
-      source: 'PRISM_AI',
+      source: 'ATLAS_AI',
     });
     return {
       message: `Invoice **${invoice.invoiceNumber}** was created for **${project.name}** and delivery status is **${invoice.deliveryStatus.toLowerCase()}**.`,

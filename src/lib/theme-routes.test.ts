@@ -6,4 +6,9 @@ describe('workspace theme routes', () => {
     expect(workspaceThemePaths).toContain('/invoices');
     expect(isWorkspaceThemePath('/invoices')).toBe(true);
   });
+
+  it('keeps the Atlas daily briefing inside the persisted workspace theme scope', () => {
+    expect(workspaceThemePaths).toContain('/briefing');
+    expect(isWorkspaceThemePath('/briefing')).toBe(true);
+  });
 });

@@ -3,15 +3,24 @@ import {
   automationConfirmationMessage,
   automationDraftSchema,
   isAutomationRequest,
+  isDecisionAutomationRequest,
   mergeAutomationWorkflow,
   missingAutomationFields,
 } from './automation-workflow';
 
-describe('Prism automation workflow', () => {
+const decisionDefaults = {
+  decisionMode: false,
+  decisionRationale: '',
+  decisionEvidence: [] as string[],
+};
+
+describe('Atlas automation workflow', () => {
   it('detects creation requests without hijacking analytical questions', () => {
     expect(isAutomationRequest('Create a project for Acme')).toBe(true);
     expect(isAutomationRequest('Generate a financial report')).toBe(true);
     expect(isAutomationRequest('What projects are at risk?')).toBe(false);
+    expect(isDecisionAutomationRequest('Analyze the data and make the necessary changes appropriately')).toBe(true);
+    expect(isDecisionAutomationRequest('What changes would you recommend?')).toBe(false);
   });
 
   it('preserves collected values across follow-up answers', () => {
@@ -28,6 +37,7 @@ describe('Prism automation workflow', () => {
       action: 'READY',
       draft: automationDraftSchema.parse({ deadline: '2026-08-15' }),
       reply: '',
+      ...decisionDefaults,
     });
 
     expect(next?.draft.title).toBe('Approve launch creative');
@@ -48,11 +58,13 @@ describe('Prism automation workflow', () => {
       paymentTerms: 'NET_30',
     });
     expect(missingAutomationFields({
+      ...decisionDefaults,
       kind: 'PROJECT',
       awaitingConfirmation: false,
       draft: { ...base, paymentType: 'RETAINER' },
     })).toContain('retainer frequency');
     expect(missingAutomationFields({
+      ...decisionDefaults,
       kind: 'PROJECT',
       awaitingConfirmation: false,
       draft: { ...base, paymentType: 'ONE_TIME' },
@@ -76,6 +88,7 @@ describe('Prism automation workflow', () => {
     });
 
     const missingLead = missingAutomationFields({
+      ...decisionDefaults,
       kind: 'INVOICE',
       awaitingConfirmation: false,
       draft,
@@ -84,6 +97,7 @@ describe('Prism automation workflow', () => {
     expect(missingLead).not.toContain('valid-until date');
 
     expect(missingAutomationFields({
+      ...decisionDefaults,
       kind: 'INVOICE',
       awaitingConfirmation: false,
       draft: { ...draft, leadName: 'Luxor Industries' },
@@ -92,6 +106,7 @@ describe('Prism automation workflow', () => {
 
   it('keeps provider branding out of the confirmation', () => {
     const message = automationConfirmationMessage({
+      ...decisionDefaults,
       kind: 'REPORT',
       awaitingConfirmation: true,
       draft: automationDraftSchema.parse({
@@ -102,5 +117,24 @@ describe('Prism automation workflow', () => {
     }, 'USD');
     expect(message).toContain('Reply **Confirm**');
     expect(message).not.toMatch(/Gemini/i);
+  });
+
+  it('shows the evidence behind a delegated decision before confirmation', () => {
+    const message = automationConfirmationMessage({
+      kind: 'TASK',
+      awaitingConfirmation: true,
+      decisionMode: true,
+      decisionRationale: 'Address the only blocked high-risk project first.',
+      decisionEvidence: ['Launch is HIGH risk with one blocked task.', 'Asha has the lowest active workload.'],
+      draft: automationDraftSchema.parse({
+        title: 'Resolve launch blocker',
+        projectName: 'Launch',
+        assigneeName: 'Asha',
+        deadline: '2026-08-08',
+      }),
+    }, 'USD');
+    expect(message).toContain('**Decision rationale:**');
+    expect(message).toContain('**Evidence used:**');
+    expect(message).toContain('Reply **Confirm**');
   });
 });

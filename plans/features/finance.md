@@ -19,12 +19,12 @@ Build the financial operating center for revenue, profitability, cash flow, expe
 
 - Show MRR, ARR, revenue trend, gross margin, net margin, cash runway, outstanding invoices, burn, and forecast variance.
 - Add tables for invoices, expenses, subscriptions, and client profitability.
-- Include Prisma revenue analysis, expense optimization, cash flow warnings, and profit leak detection.
+- Include Atlas revenue analysis, expense optimization, cash flow warnings, and profit leak detection.
 - Support filters for date range, client, brand, service line, and status.
 
 ## Data
 
-Use invoices, expenses, subscriptions, cash-flow points, profitability metrics, clients, brands, and Prisma finance insights.
+Use invoices, expenses, subscriptions, cash-flow points, profitability metrics, clients, brands, and Atlas finance insights.
 
 ## Acceptance Checks
 

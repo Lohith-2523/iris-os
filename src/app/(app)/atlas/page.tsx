@@ -4,8 +4,8 @@ import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Send, Bot, User, Trash2, MessageSquare, Plus } from 'lucide-react';
-import { PrismIcon } from '@/components/ui/prism-icon';
-import { PrismAIService } from '@/lib/prism-ai/service';
+import { AtlasIcon } from '@/components/ui/atlas-icon';
+import { AtlasAIService } from '@/lib/atlas-ai/service';
 import { formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 
@@ -15,13 +15,13 @@ interface Message {
   model?: string;
 }
 
-export default function PrismPage() {
+export default function AtlasPage() {
   const [sessions, setSessions] = React.useState<any[]>([]);
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(null);
 
   const initialMessage: Message = {
     role: 'assistant',
-    content: formatUserMessage('Welcome to Prism AI. Ask a question, or tell me to create a project, task, invoice, or report. I’ll collect any missing details and complete the work after your confirmation.'),
+    content: formatUserMessage('Welcome to Atlas AI. Ask a question, or tell me to create a project, task, invoice, or report. I’ll collect any missing details and complete the work after your confirmation.'),
   };
 
   const [messages, setMessages] = React.useState<Message[]>([initialMessage]);
@@ -30,7 +30,7 @@ export default function PrismPage() {
   const [chatError, setChatError] = React.useState<string | null>(null);
 
   const loadSessions = React.useCallback(async () => {
-    const data = await PrismAIService.getSessions();
+    const data = await AtlasAIService.getSessions();
     setSessions(data);
     return data;
   }, []);
@@ -41,7 +41,7 @@ export default function PrismPage() {
         const latestSessionId = data[0]?.id;
         if (latestSessionId) {
           setCurrentSessionId(latestSessionId);
-          const msgData = await PrismAIService.getSessionMessages(latestSessionId);
+          const msgData = await AtlasAIService.getSessionMessages(latestSessionId);
           if (msgData && msgData.messages && msgData.messages.length > 0) {
             setMessages(msgData.messages);
           }
@@ -60,7 +60,7 @@ export default function PrismPage() {
     setIsLoading(true);
 
     try {
-      const response = await PrismAIService.askPrism(textToSend, undefined, currentSessionId || undefined);
+      const response = await AtlasAIService.askAtlas(textToSend, undefined, currentSessionId || undefined);
       
       if (response.sessionId !== currentSessionId) {
         setCurrentSessionId(response.sessionId);
@@ -71,7 +71,7 @@ export default function PrismPage() {
       // The optimistic user message was never persisted, so remove it instead
       // of displaying a misleading completed-looking conversation.
       setMessages((prev) => prev.slice(0, -1));
-      setChatError(error instanceof Error ? error.message : 'Prism could not save this chat. Please retry.');
+      setChatError(error instanceof Error ? error.message : 'Atlas could not save this chat. Please retry.');
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +101,7 @@ export default function PrismPage() {
 
   const selectSession = async (id: string) => {
     setCurrentSessionId(id);
-    const data = await PrismAIService.getSessionMessages(id);
+    const data = await AtlasAIService.getSessionMessages(id);
     if (data && data.messages && data.messages.length > 0) {
       setMessages(data.messages);
     } else {
@@ -111,7 +111,7 @@ export default function PrismPage() {
 
   const handleDeleteSession = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    await PrismAIService.deleteSession(id);
+    await AtlasAIService.deleteSession(id);
     if (currentSessionId === id) {
       handleNewChat();
     }
@@ -134,9 +134,9 @@ export default function PrismPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5 shrink-0">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Prism Command Center</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Atlas Command Center</h1>
             <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300 py-0.5 px-2 flex items-center gap-1 font-semibold">
-              <PrismIcon className="h-3 w-3" />
+              <AtlasIcon className="h-3 w-3" />
               <span>Proprietary AI Engine</span>
             </Badge>
           </div>
@@ -255,7 +255,7 @@ export default function PrismPage() {
                   <Bot className="h-4 w-4 animate-spin" />
                 </div>
                 <div className="rounded-none p-4 bg-[#121215] border border-zinc-850 text-zinc-500 font-sans italic">
-                  Prism is working...
+                  Atlas is working...
                 </div>
               </div>
             )}
@@ -286,7 +286,7 @@ export default function PrismPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ask Prism anything, or say “Create a project…”"
+                placeholder="Ask Atlas anything, or say “Create a project…”"
                 className="flex-1 rounded-none border border-zinc-800 bg-zinc-900/40 py-2 px-4 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-all font-sans"
               />
               <Button type="submit" disabled={isLoading || !query.trim()} className="h-9 w-9 px-0 bg-white hover:bg-zinc-200 text-zinc-950 shrink-0 rounded-none">

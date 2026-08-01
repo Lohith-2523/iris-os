@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 
 interface RevenueLineChartProps {
-  data: { label: string; value: number }[];
+  data: Array<{ label: string; value?: number; revenue?: number; expenses?: number; receivables?: number }>;
   title?: string;
   description?: string;
   currencyRate?: number;
@@ -20,6 +20,20 @@ export function RevenueLineChart({
   className,
   contentClassName,
 }: RevenueLineChartProps) {
+  const chartData = React.useMemo(() => {
+    const normalized = data.map((point) => ({
+      label: point.label,
+      revenue: Number(point.revenue ?? point.value ?? 0),
+      expenses: Number(point.expenses ?? 0),
+      receivables: Number(point.receivables ?? 0),
+    }));
+    if (normalized.length !== 1) return normalized;
+    return [
+      { label: 'Start', revenue: 0, expenses: 0, receivables: 0 },
+      normalized[0],
+    ];
+  }, [data]);
+
   return (
     <Card className={className ?? "w-full"}>
       <CardHeader>
@@ -28,7 +42,21 @@ export function RevenueLineChart({
       </CardHeader>
       <CardContent className={contentClassName ?? "h-72"}>
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="revenue-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.32} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+              </linearGradient>
+              <linearGradient id="expenses-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.02} />
+              </linearGradient>
+              <linearGradient id="receivables-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#eab308" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#eab308" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
             <XAxis 
               dataKey="label" 
@@ -43,23 +71,47 @@ export function RevenueLineChart({
               fontSize={12} 
               tickLine={false} 
               axisLine={false} 
+              domain={[0, 'auto']}
               tickFormatter={(val) => `${val / 1000}k`}
             />
             <Tooltip 
               contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '6px' }}
-              itemStyle={{ color: '#10b981' }}
+              itemStyle={{ color: '#f4f4f5' }}
               labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
-              formatter={(val: any) => [formatCurrency((val as number || 0) * currencyRate), 'Revenue']}
+              formatter={(val: any, name: any) => [
+                formatCurrency((Number(val) || 0) * currencyRate),
+                name === 'revenue' ? 'Revenue' : name === 'expenses' ? 'Expenses' : 'Pending receivables',
+              ]}
             />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
+            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value) => value === 'revenue' ? 'Revenue' : value === 'expenses' ? 'Expenses' : 'Pending receivables'} />
+            <Area
+              type="monotone"
+              dataKey="revenue"
               stroke="#10b981" 
               strokeWidth={3}
+              fill="url(#revenue-area)"
               dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, strokeWidth: 0 }}
             />
-          </LineChart>
+            <Area
+              type="monotone"
+              dataKey="expenses"
+              stroke="#ef4444"
+              strokeWidth={3}
+              fill="url(#expenses-area)"
+              dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="receivables"
+              stroke="#eab308"
+              strokeWidth={3}
+              fill="url(#receivables-area)"
+              dot={{ fill: '#eab308', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

@@ -330,7 +330,7 @@ export default function TeamPage() {
     setIsParsing(true);
     setErrorMsg('');
     try {
-      const res = await fetch('/api/prism-ai', {
+      const res = await fetch('/api/atlas-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -340,7 +340,7 @@ export default function TeamPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        // Parse Prism AI returned array
+        // Parse Atlas AI returned array
         const parsedUsers = JSON.parse(data.result);
         if (Array.isArray(parsedUsers)) {
           setStagedUsers(parsedUsers.map((u: any) => ({
@@ -353,14 +353,14 @@ export default function TeamPage() {
           setIsTemplateAligned(false);
           setUploadStatus('success');
         } else {
-          throw new Error("Prism AI output could not be parsed into a list.");
+          throw new Error("Atlas AI output could not be parsed into a list.");
         }
       } else {
         throw new Error("AI Routing Handler failed.");
       }
     } catch (e: any) {
       console.error(e);
-      setErrorMsg("Prism AI could not parse the custom layout. Loaded local smart fallback users.");
+      setErrorMsg("Atlas AI could not parse the custom layout. Loaded local smart fallback users.");
       setStagedUsers([
         { name: 'Kunal Verma', email: 'kunal@apex.co', phone: '+91 99887 76655', role: 'Solutions Architect', projects: 'Integrations Phase 2' },
         { name: 'Aditi Sharma', email: 'aditi@apex.co', phone: '+91 99887 76644', role: 'UI/UX Specialist', projects: 'Canva Design Hub' }
@@ -418,7 +418,7 @@ export default function TeamPage() {
             setUploadStatus('success');
             setIsParsing(false);
           } else {
-            // Non-aligned: Ask Prism AI to parse
+            // Non-aligned: Ask Atlas AI to parse
             await triggerAIAnalysis(text);
           }
         };
@@ -467,7 +467,7 @@ export default function TeamPage() {
               setUploadStatus('success');
               setIsParsing(false);
             } else {
-              // Convert worksheet rows to flat text layout description for Prism AI
+              // Convert worksheet rows to flat text layout description for Atlas AI
               const textFormat = rows.map(r => r.join(', ')).join('\n');
               await triggerAIAnalysis(textFormat);
             }
@@ -1015,7 +1015,7 @@ export default function TeamPage() {
                     <div className="bg-zinc-950 border border-zinc-900 p-4 text-xs text-zinc-400 flex items-center justify-between rounded-md animate-pulse">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 text-white animate-spin" />
-                        <span>Analyzing layout format. Running Prism AI extraction pipelines...</span>
+                        <span>Analyzing layout format. Running Atlas AI extraction pipelines...</span>
                       </div>
                       <Badge variant="outline" className="text-[9px] bg-zinc-900 border-zinc-800 text-zinc-400 rounded-md uppercase">
                         AI Processing
@@ -1043,12 +1043,12 @@ export default function TeamPage() {
                           {isTemplateAligned ? <Check className="h-4.5 w-4.5" /> : <Sparkles className="h-4.5 w-4.5" />}
                           <div>
                             <span className="font-bold uppercase tracking-wider block">
-                              {isTemplateAligned ? 'Standard Template Identified' : 'Prism AI Extraction Complete'}
+                              {isTemplateAligned ? 'Standard Template Identified' : 'Atlas AI Extraction Complete'}
                             </span>
                             <span className="text-[10px] block mt-0.5 opacity-80">
                               {isTemplateAligned
                                 ? `Imported file matched headers. Extracted ${stagedUsers.length} specialists directly.`
-                                : `Prism AI parsed custom columns. Extracted ${stagedUsers.length} specialists. Please review details below.`}
+                                : `Atlas AI parsed custom columns. Extracted ${stagedUsers.length} specialists. Please review details below.`}
                             </span>
                           </div>
                         </div>

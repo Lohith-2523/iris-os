@@ -94,11 +94,15 @@ export async function GET(request: NextRequest) {
       orderBy: [{ issuedDate: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return NextResponse.json(invoices.map((invoice) => ({
+    const responseInvoices = invoices.map((invoice) => ({
       ...invoice,
       balanceDue: invoice.documentType === 'PROFORMA' ? 0 : Math.max(0, invoice.amount - invoice.paidAmount),
       downloadUrl: `/api/invoices/${invoice.id}/pdf`,
-    })));
+    }));
+    if (outstanding) {
+      responseInvoices.sort((left, right) => right.balanceDue - left.balanceDue);
+    }
+    return NextResponse.json(responseInvoices);
   } catch (error) {
     console.error('Unable to list invoices:', error);
     return NextResponse.json({ error: 'Unable to load invoices.' }, { status: 500 });

@@ -7,28 +7,32 @@ generator client {
 }
 
 model Organization {
-  id                  String   @id @default(uuid())
-  name                String
-  legalEntityName     String?
-  billingAddressLine1 String?
-  billingAddressLine2 String?
-  billingCity         String?
-  billingState        String?
-  billingPostalCode   String?
-  billingCountry      String?
-  gstNumber           String?
-  invoiceLogoDataUrl  String?
-  invoiceBrandColor   String   @default("#09090B")
-  plan                String   @default("BASIC")
-  hasAddon            Boolean  @default(false)
-  agencyTypes         String[] @default([])
-  bankNames           String[] @default([])
-  currency            String   @default("USD")
-  billingEmail        String?
-  preferences         Json?
-  aiSharingConsent    Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                          String    @id @default(uuid())
+  name                        String
+  legalEntityName             String?
+  billingAddressLine1         String?
+  billingAddressLine2         String?
+  billingCity                 String?
+  billingState                String?
+  billingPostalCode           String?
+  billingCountry              String?
+  gstNumber                   String?
+  invoiceLogoDataUrl          String?
+  invoiceBrandColor           String    @default("#09090B")
+  plan                        String    @default("BASIC")
+  hasAddon                    Boolean   @default(false)
+  agencyTypes                 String[]  @default([])
+  bankNames                   String[]  @default([])
+  currency                    String    @default("USD")
+  billingEmail                String?
+  preferences                 Json?
+  aiSharingConsent            Boolean   @default(false)
+  metaAccessConsent           Boolean   @default(false)
+  metaAccessConsentAt         DateTime?
+  atlasMetaAnalyticsConsent   Boolean   @default(false)
+  atlasMetaAnalyticsConsentAt DateTime?
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   brands                    Brand[]
   users                     User[]
@@ -40,6 +44,7 @@ model Organization {
   automations               Automation[]
   integrations              IntegrationConnection[]
   metaPages                 MetaPageConnection[]
+  agencyMetaAdAccounts      AgencyMetaAdAccount[]
   googleCalendarConnections GoogleCalendarConnection[]
   metaAds                   MetaAd[]
   metaLeads                 MetaLead[]
@@ -50,9 +55,9 @@ model Organization {
   recurringSubscriptions    RecurringSubscription[]
   recurringRetainers        RecurringRetainer[] // Legacy compatibility; new commercial terms live on Project.
   reports                   Report[]
-  prismInsights             PrismInsight[]
-  prismChatSessions         PrismChatSession[]
-  prismMessages             AskPrismMessage[]
+  atlasInsights             AtlasInsight[]
+  atlasChatSessions         AtlasChatSession[]
+  atlasMessages             AskAtlasMessage[]
   financialForecasts        FinancialForecast[]
   memberInvites             MemberInvite[]
   onboardingState           OrganizationOnboardingState?
@@ -110,11 +115,11 @@ model User {
   projectMembers           ProjectMember[]
   reports                  Report[]
   automations              Automation[]
-  askPrismMessages         AskPrismMessage[]
+  askAtlasMessages         AskAtlasMessage[]
   clientTasks              ClientTask[]
   taskComments             TaskComment[]
   createdEvents            CalendarEvent[]           @relation("CreatedEvents")
-  prismChatSessions        PrismChatSession[]
+  atlasChatSessions        AtlasChatSession[]
   preferences              UserPreference?
   googleCalendarConnection GoogleCalendarConnection?
   strategiesCreated        Strategy[]
@@ -484,6 +489,25 @@ model MetaPageConnection {
   @@index([orgId])
 }
 
+model AgencyMetaAdAccount {
+  id               String       @id @default(uuid())
+  adAccountId      String
+  accountName      String
+  businessName     String?
+  currency         String?
+  timezoneName     String?
+  accountStatus    Int?
+  lastSync         DateTime?
+  providerSyncedAt DateTime?
+  orgId            String
+  organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([orgId, adAccountId])
+  @@index([orgId, lastSync])
+}
+
 model GoogleCalendarConnection {
   id                   String       @id @default(uuid())
   status               String // CONNECTED, DISCONNECTED, ERROR, SYNCING
@@ -502,7 +526,7 @@ model GoogleCalendarConnection {
   @@index([externalAccountId])
 }
 
-model PrismInsight {
+model AtlasInsight {
   id             String       @id @default(uuid())
   type           String // HEALTH_SCORE, PROFIT_LEAK, CHURN_PREDICTION, GENERAL
   title          String
@@ -516,10 +540,11 @@ model PrismInsight {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  @@index([orgId, createdAt])
+  @@index([orgId, createdAt], map: "PrismInsight_orgId_createdAt_idx")
+  @@map("PrismInsight")
 }
 
-model PrismChatSession {
+model AtlasChatSession {
   id            String       @id @default(uuid())
   title         String
   workflowType  String?
@@ -531,13 +556,14 @@ model PrismChatSession {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  messages AskPrismMessage[]
+  messages AskAtlasMessage[]
 
-  @@index([userId])
-  @@index([orgId, updatedAt])
+  @@index([userId], map: "PrismChatSession_userId_idx")
+  @@index([orgId, updatedAt], map: "PrismChatSession_orgId_updatedAt_idx")
+  @@map("PrismChatSession")
 }
 
-model AskPrismMessage {
+model AskAtlasMessage {
   id           String            @id @default(uuid())
   role         String // USER, ASSISTANT
   content      String
@@ -546,12 +572,13 @@ model AskPrismMessage {
   orgId        String
   organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   sessionId    String?
-  session      PrismChatSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session      AtlasChatSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   createdAt    DateTime          @default(now())
 
-  @@index([userId])
-  @@index([orgId, createdAt])
-  @@index([sessionId])
+  @@index([userId], map: "AskPrismMessage_userId_idx")
+  @@index([orgId, createdAt], map: "AskPrismMessage_orgId_createdAt_idx")
+  @@index([sessionId], map: "AskPrismMessage_sessionId_idx")
+  @@map("AskPrismMessage")
 }
 
 model MetaCampaign {
@@ -643,6 +670,14 @@ model AgencyLead {
   approachMethod       String?
   funnelName           String?
   estimatedClientValue Float?
+  sourceProvider       String?
+  adId                 String?
+  adName               String?
+  campaignId           String?
+  adAccountId          String?
+  pageId               String?
+  formId               String?
+  fieldData            Json?
   createdTime          DateTime     @default(now())
   orgId                String
   organization         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -653,6 +688,9 @@ model AgencyLead {
 
   @@unique([orgId, leadId])
   @@index([orgId])
+  @@index([orgId, sourceProvider, createdTime])
+  @@index([orgId, adAccountId, createdTime])
+  @@index([orgId, adId])
 }
 
 model ClientInvite {

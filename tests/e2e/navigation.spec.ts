@@ -24,7 +24,7 @@ test.describe('Iris OS Shell Smoke Navigation', () => {
       { name: 'Reporting', url: 'reporting', header: 'Executive Reporting' },
       { name: 'Analytics', url: 'analytics', header: 'Business Intelligence' },
       { name: 'Design Hub', url: 'design-hub', header: 'Design Hub' },
-      { name: 'Prism AI', url: 'prism', header: 'Prism Command Center' },
+      { name: 'Atlas AI', url: 'atlas', header: 'Atlas Command Center' },
       { name: 'Settings', url: 'settings', header: 'Settings Console' },
     ];
     

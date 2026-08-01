@@ -824,11 +824,19 @@ export default function DashboardPage() {
             <ExpandableCard 
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
-                <div className="flex flex-col h-full space-y-3">
+                <div className="flex h-full min-h-0 flex-col space-y-3">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider">Pending Receivables</h3>
-                  <p className="text-xs text-zinc-400 font-sans leading-relaxed">
-                    Consolidated outstanding and overdue client invoices waiting for capture.
-                  </p>
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                    {(financeData?.outstandingInvoices || []).length ? financeData.outstandingInvoices.map((invoice: any, index: number) => (
+                      <div key={invoice.id} className="flex items-center justify-between gap-3 border-b border-zinc-800/70 pb-2 text-xs">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-zinc-200">{index + 1}. {invoice.invoiceNumber}</p>
+                          <p className="truncate text-[10px] text-zinc-500">{invoice.clientName}</p>
+                        </div>
+                        <span className="shrink-0 font-mono font-bold text-amber-400">{formatCurrency(invoice.pendingAmount)}</span>
+                      </div>
+                    )) : <p className="text-xs text-zinc-500">No invoices have an outstanding balance.</p>}
+                  </div>
                 </div>
               }
             >
@@ -841,7 +849,7 @@ export default function DashboardPage() {
                   {financeData ? formatCurrency(financeData.outstandingAmount) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
-                  <span>Unpaid client invoices</span>
+                  <span>Invoices not fully paid</span>
                 </div>
               </CardContent>
             </ExpandableCard>
@@ -967,7 +975,7 @@ export default function DashboardPage() {
                       className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-100 border border-zinc-300 text-zinc-950 hover:bg-white rounded-md h-11"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = `/prism?q=${encodeURIComponent('Create an invoice')}`;
+                        window.location.href = `/atlas?q=${encodeURIComponent('Create an invoice')}`;
                       }}
                     >
                       Automatic Invoice
@@ -1066,8 +1074,8 @@ export default function DashboardPage() {
             <div className="min-h-[560px]">
               <div className="h-full w-full">
             <RevenueLineChart 
-              title="Global Revenue Flow"
-              description="Aggregated gross billings vs time"
+              title="Overall Revenue, Expenses & Receivables"
+              description="Recognized revenue, recorded expenses, and pending receivables over time"
               className="h-full min-h-[560px] w-full"
               contentClassName="h-[430px] md:h-[452px]"
               data={financeData?.revenueHistory ?? []}

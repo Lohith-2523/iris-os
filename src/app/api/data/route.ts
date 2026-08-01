@@ -3,8 +3,10 @@ import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { ledgerRevenueEntries, sumLedgerRevenue } from '@/lib/finance/ledger-revenue';
 import { clientPortfolioValueForYear } from '@/lib/clients/portfolio-value';
+import { buildFinancialHistory, type FinancialTimeframe } from '@/lib/finance/financial-history';
 
 type RevenueTransaction = {
+  invoiceId: string | null;
   amount: number;
   category: string;
   date: Date;
@@ -12,9 +14,10 @@ type RevenueTransaction = {
 };
 
 function getFinanceMetrics(
-  invoices: Array<{ amount: number; paidAmount: number; status: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } | null }>,
-  expenses: Array<{ amount: number }>,
+  invoices: Array<{ id: string; invoiceNumber: string; amount: number; paidAmount: number; status: string; documentType: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } | null }>,
+  expenses: Array<{ amount: number; date: Date }>,
   transactions: RevenueTransaction[] = [],
+  timeframe: FinancialTimeframe = 'Six Months',
 ) {
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -54,22 +57,36 @@ function getFinanceMetrics(
         : 0,
     }));
 
-  const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
-  const revenueHistory = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(currentYear, currentMonth - (5 - index), 1);
-    return {
-      label: monthFormatter.format(date),
-      value: revenueForMonth(date.getFullYear(), date.getMonth()),
-    };
-  });
+  const invoiceBalance = (invoice: typeof invoices[number]) => Math.max(0, invoice.amount - invoice.paidAmount);
+  const isOutstandingInvoice = (invoice: typeof invoices[number]) =>
+    invoice.documentType === 'INVOICE' && invoiceBalance(invoice) > 0;
+  const isPartiallyPaidInvoice = (invoice: typeof invoices[number]) =>
+    isOutstandingInvoice(invoice) && invoice.paidAmount > 0;
+  const revenueHistory = buildFinancialHistory({ invoices, expenses, transactions, timeframe });
+  const outstandingInvoices = invoices
+    .filter(isOutstandingInvoice)
+    .map((invoice) => ({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      clientName: invoice.client?.name || 'Manual customer',
+      amount: invoice.amount,
+      paidAmount: invoice.paidAmount,
+      pendingAmount: invoiceBalance(invoice),
+      issuedDate: invoice.issuedDate.toISOString(),
+    }))
+    .sort((left, right) => right.pendingAmount - left.pendingAmount);
 
   return {
     // Ledger entries are the sole source of recognized revenue. Invoices only
     // represent receivables and therefore contribute to outstanding balances.
     grossBillings: sumLedgerRevenue(transactionRevenue),
     outstandingAmount: invoices
-      .filter((invoice) => invoice.status === 'UNPAID' || invoice.status === 'PARTIALLY_PAID')
-      .reduce((sum, invoice) => sum + Math.max(0, invoice.amount - invoice.paidAmount), 0),
+      .filter(isOutstandingInvoice)
+      .reduce((sum, invoice) => sum + invoiceBalance(invoice), 0),
+    pendingReceivablesAmount: invoices
+      .filter(isPartiallyPaidInvoice)
+      .reduce((sum, invoice) => sum + invoiceBalance(invoice), 0),
+    outstandingInvoices,
     totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
     currentMonthRevenue,
     previousMonthRevenue,
@@ -83,6 +100,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const domain = searchParams.get('domain');
+    const requestedTimeframe = searchParams.get('timeframe');
+    const timeframe: FinancialTimeframe = requestedTimeframe === 'Monthly' || requestedTimeframe === 'Quarterly' || requestedTimeframe === 'Yearly' || requestedTimeframe === 'All Time'
+      ? requestedTimeframe
+      : 'Six Months';
 
     if (!domain) {
       return NextResponse.json({ error: 'Missing domain parameter' }, { status: 400 });
@@ -119,7 +140,7 @@ export async function GET(request: NextRequest) {
           prisma.invoice.findMany({ where: { orgId, ...revenueClientScope }, include: { client: true } }),
           user.role.toLowerCase() === 'client' ? Promise.resolve([]) : prisma.expense.findMany({ where: { orgId } }),
           prisma.transaction.findMany({
-            where: { orgId, category: 'Revenue', amount: { gt: 0 }, ...revenueClientScope },
+            where: { orgId, ...revenueClientScope },
             include: { client: true },
           }),
         ]);
@@ -174,12 +195,12 @@ export async function GET(request: NextRequest) {
               orderBy: { date: 'desc' }
             }),
           prisma.transaction.findMany({
-            where: { orgId, category: 'Revenue', amount: { gt: 0 }, ...revenueClientScope },
+            where: { orgId, ...revenueClientScope },
             include: { client: true },
           }),
         ]);
 
-        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions);
+        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions, timeframe);
 
         const recentInvoices = invoices.slice(0, 10).map((inv) => {
           const buyer = inv.buyerSnapshot as { name?: string; legalEntityName?: string } | null;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDailyBriefing, dailyBriefingBusinessDate, normalizeBriefingTimeZone } from '@/lib/daily-briefing';
+import { buildDailyBriefing, dailyBriefingBusinessDate, dailyBriefingGreeting, normalizeBriefingTimeZone } from '@/lib/daily-briefing';
 
 describe('daily briefing business day', () => {
   it('keeps pre-4 AM activity in the previous business day', () => {
@@ -10,8 +10,19 @@ describe('daily briefing business day', () => {
     expect(dailyBriefingBusinessDate(new Date('2026-07-31T23:00:00.000Z'), 'Asia/Kolkata')).toBe('2026-08-01');
   });
 
+  it('keeps 3:59 AM in the prior briefing day and starts a new day at 4:00 AM', () => {
+    expect(dailyBriefingBusinessDate(new Date('2026-07-31T22:29:00.000Z'), 'Asia/Kolkata')).toBe('2026-07-31');
+    expect(dailyBriefingBusinessDate(new Date('2026-07-31T22:30:00.000Z'), 'Asia/Kolkata')).toBe('2026-08-01');
+  });
+
   it('falls back safely for invalid timezones', () => {
     expect(normalizeBriefingTimeZone('not/a-timezone')).toBe('Asia/Kolkata');
+  });
+
+  it('uses the local login time for the greeting', () => {
+    expect(dailyBriefingGreeting('Asha Rao', new Date('2026-08-01T05:30:00.000Z'), 'Asia/Kolkata')).toBe('Good morning, Asha.');
+    expect(dailyBriefingGreeting('Asha Rao', new Date('2026-08-01T08:30:00.000Z'), 'Asia/Kolkata')).toBe('Good afternoon, Asha.');
+    expect(dailyBriefingGreeting('Asha Rao', new Date('2026-08-01T10:30:00.000Z'), 'Asia/Kolkata')).toBe('Good evening, Asha.');
   });
 });
 

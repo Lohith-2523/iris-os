@@ -121,7 +121,7 @@ async function createAndSendDocument(input: {
   paymentTerms?: string | null;
   totals: ReturnType<typeof calculateInvoiceItems>;
   automationKey?: string;
-  source?: 'MANUAL' | 'PROJECT_INITIALIZATION' | 'PRISM_AI';
+  source?: 'MANUAL' | 'PROJECT_INITIALIZATION' | 'ATLAS_AI';
   buyerSnapshot?: InvoicePartySnapshot;
   recipient?: { name: string; email: string };
   invoiceNumber?: string;
@@ -320,7 +320,7 @@ export async function createAndSendProjectInvoice(input: {
   lineItems?: InvoiceLineItemInput[];
   taxRate?: number;
   automationKey?: string;
-  source?: 'MANUAL' | 'PROJECT_INITIALIZATION' | 'PRISM_AI';
+  source?: 'MANUAL' | 'PROJECT_INITIALIZATION' | 'ATLAS_AI';
   issuedDate?: Date;
   sendEmail?: boolean;
 }) {
@@ -385,7 +385,7 @@ export async function createAndSendProformaInvoice(input: {
   termsOfSale?: string;
   lineItems: InvoiceLineItemInput[];
   automationKey?: string;
-  source?: 'MANUAL' | 'PRISM_AI';
+  source?: 'MANUAL' | 'ATLAS_AI';
   taxRate?: number;
   buyerSnapshot?: InvoicePartySnapshot;
   recipient?: { name: string; email: string };

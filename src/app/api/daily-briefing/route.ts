@@ -185,7 +185,10 @@ export async function GET(request: NextRequest) {
     const intent = request.nextUrl.searchParams.get('intent') || 'briefing';
 
     if (intent === 'status') {
-      const briefing = storedBriefing(authorization.user.preferences?.settings, businessDate);
+      // Prime the business-day record before navigation. This makes the first
+      // post-4 AM sign-in deterministic even when no briefing has been opened
+      // yet, while the advisory lock prevents duplicate first-login records.
+      const briefing = await ensureDailyBriefing(authorization.user, timeZone);
       return NextResponse.json({
         businessDate,
         shouldOpen: !briefing?.openedAt,

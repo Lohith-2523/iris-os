@@ -151,7 +151,7 @@ function MultiSelect({
                 {option.name}
                 {option.clientName ? <span className="ml-1.5 text-[10px] text-zinc-600">· {option.clientName}</span> : null}
               </span>
-              <span className={cn('ml-2 flex h-4 w-4 shrink-0 items-center justify-center rounded border', active ? 'border-zinc-500 bg-white text-black' : 'border-zinc-700')}>
+              <span className={cn('workspace-selected-icon ml-2 flex h-4 w-4 shrink-0 items-center justify-center rounded border', active ? 'border-zinc-500 bg-white text-black' : 'border-zinc-700')}>
                 {active && <Check className="h-3 w-3" />}
               </span>
             </button>
@@ -213,12 +213,12 @@ export default function StrategyPage() {
         body: JSON.stringify({ type: activeType, ...form }),
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Prism AI could not generate this strategy.');
+      if (!response.ok) throw new Error(result.error || 'Atlas AI could not generate this strategy.');
       setStrategies((current) => [result.strategy, ...current.filter((item) => item.id !== result.strategy.id)]);
       setSelectedStrategy(result.strategy);
       setForm(EMPTY_FORM);
     } catch (generateError) {
-      setError(generateError instanceof Error ? generateError.message : 'Prism AI could not generate this strategy.');
+      setError(generateError instanceof Error ? generateError.message : 'Atlas AI could not generate this strategy.');
     } finally {
       setGenerating(false);
     }
@@ -258,7 +258,7 @@ export default function StrategyPage() {
       <div className="flex flex-col gap-3 border-b border-zinc-800/60 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-            <Sparkles className="h-3.5 w-3.5" /> Prism AI-powered planning
+            <Sparkles className="h-3.5 w-3.5" /> Atlas AI-powered planning
           </div>
           <h1 className="silver-text-gradient text-2xl font-bold tracking-tight text-white">Strategy Studio</h1>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-zinc-500">
@@ -280,7 +280,7 @@ export default function StrategyPage() {
               <Card className={cn('h-full transition-colors', active && 'border-zinc-600 bg-zinc-900/70')}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg border', active ? 'border-zinc-600 bg-white text-black' : 'border-zinc-800 bg-zinc-950 text-zinc-400')}>
+                    <div className={cn('workspace-selected-icon flex h-9 w-9 items-center justify-center rounded-lg border', active ? 'border-zinc-600 bg-white text-black' : 'border-zinc-800 bg-zinc-950 text-zinc-400')}>
                       <Icon className="h-4 w-4" />
                     </div>
                     <span className="text-[10px] font-medium text-zinc-600">{historyCount} saved</span>
@@ -301,14 +301,14 @@ export default function StrategyPage() {
         <Card>
           <CardHeader className="border-b border-zinc-800/70">
             <CardTitle className="text-sm text-white">Create {activeSection.label.toLowerCase()}</CardTitle>
-            <CardDescription>Prism AI receives the selected first-party records plus this brief. Leaving scope empty includes all clients and projects.</CardDescription>
+            <CardDescription>Atlas AI receives the selected first-party records plus this brief. Leaving scope empty includes all clients and projects.</CardDescription>
           </CardHeader>
           <CardContent className="pt-5">
             <form onSubmit={generate} className="space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1.5 text-xs text-zinc-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Strategy name <span className="font-normal normal-case tracking-normal">(optional)</span></span>
-                  <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} maxLength={140} placeholder="Prism AI can name it for you" className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-zinc-600" />
+                  <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} maxLength={140} placeholder="Atlas AI can name it for you" className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-zinc-600" />
                 </label>
                 <label className="space-y-1.5 text-xs text-zinc-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Strategy timeline *</span>
@@ -343,7 +343,7 @@ export default function StrategyPage() {
                 </p>
                 <Button type="submit" disabled={generating || !form.goal.trim() || !form.timeline.trim()} className="gap-2">
                   {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {generating ? 'Prism AI is building…' : 'Generate with Prism AI'}
+                  {generating ? 'Atlas AI is building…' : 'Generate with Atlas AI'}
                 </Button>
               </div>
             </form>

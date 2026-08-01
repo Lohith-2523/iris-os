@@ -31,7 +31,7 @@ test.describe('Client Login and Access Control', () => {
     await expect(page.locator('nav')).toContainText('Client Dashboard');
     await expect(page.locator('nav')).not.toContainText('Finance');
     await expect(page.locator('nav')).not.toContainText('Team');
-    await expect(page.locator('nav')).not.toContainText('Prism AI');
+    await expect(page.locator('nav')).not.toContainText('Atlas AI');
 
     // Verify client onboarding page access is not restricted anymore
     await page.goto('/clients/onboard');

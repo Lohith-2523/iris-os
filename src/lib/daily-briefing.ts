@@ -142,6 +142,12 @@ function safeName(name: string) {
   return name.trim().split(/\s+/)[0] || 'there';
 }
 
+export function dailyBriefingGreeting(userName: string, now: Date, requestedTimeZone: unknown) {
+  const hour = zonedParts(now, normalizeBriefingTimeZone(requestedTimeZone)).hour;
+  const greeting = hour < 12 ? 'Good morning' : hour < 16 ? 'Good afternoon' : 'Good evening';
+  return `${greeting}, ${safeName(userName)}.`;
+}
+
 function percentChange(current: number, previous: number) {
   if (previous <= 0) return null;
   return ((current - previous) / previous) * 100;
@@ -301,10 +307,10 @@ export function buildDailyBriefing(snapshot: DailyBriefingSnapshot): DailyBriefi
     version: DAILY_BRIEFING_VERSION,
     businessDate,
     generatedAt: snapshot.now.toISOString(),
-    greeting: `Good morning, ${safeName(snapshot.userName)}.`,
+    greeting: dailyBriefingGreeting(snapshot.userName, snapshot.now, timeZone),
     introduction: totalActions
-      ? `Prisma found ${totalActions} items worth your attention. We will take them one at a time.`
-      : 'Prisma completed the morning scan. Everything important is moving in the right direction.',
+      ? `Atlas found ${totalActions} items worth your attention. We will take them one at a time.`
+      : 'Atlas completed the morning scan. Everything important is moving in the right direction.',
     items,
   };
 }

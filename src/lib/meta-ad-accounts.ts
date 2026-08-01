@@ -65,5 +65,15 @@ export async function resolveAssignableMetaAdAccountId(
     );
   }
 
+  const agencyAssignment = await prisma.agencyMetaAdAccount.findUnique({
+    where: { orgId_adAccountId: { orgId, adAccountId: account.id } },
+    select: { accountName: true },
+  });
+  if (agencyAssignment) {
+    throw new MetaAdAccountAssignmentError(
+      `${agencyAssignment.accountName} is assigned to the agency lead pipeline and cannot also be assigned to a client.`,
+    );
+  }
+
   return account.id;
 }

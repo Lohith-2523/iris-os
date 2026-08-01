@@ -1,0 +1,2 @@
+-- Daily briefing state is stored in UserPreference.settings JSON.
+-- No database schema changes are required for this migration.

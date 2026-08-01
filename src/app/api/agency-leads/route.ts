@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getOrganization, getRequestUser } from '@/lib/org';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { calculateLeadEconomics } from '@/lib/lead-economics';
+import { calculateAgencyMetaMetrics } from '@/lib/agency-meta-metrics';
+import { assignAgencyMetaAdAccount, syncAgencyMetaAdAccount } from '@/lib/agency-meta-sync';
+import { MetaIntegrationError } from '@/lib/meta-business';
 
 function parseEstimatedClientValue(value: unknown) {
   if (value === undefined || value === null || value === '') return null;
@@ -14,7 +17,8 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const [leads, expenseTransactions, closedLeadCount, sourcedProjectPayments] = await Promise.all([
+    const canManageAgencyMeta = isOrganizationAdmin(user);
+    const [leads, expenseTransactions, closedLeadCount, sourcedProjectPayments, agencyMetaAccounts] = await Promise.all([
       prisma.agencyLead.findMany({
         where: { orgId: user.orgId },
         orderBy: { createdTime: 'desc' },
@@ -51,7 +55,40 @@ export async function GET(request: NextRequest) {
         },
         select: { paymentAmount: true },
       }),
+      canManageAgencyMeta
+        ? prisma.agencyMetaAdAccount.findMany({
+            where: { orgId: user.orgId },
+            orderBy: { createdAt: 'asc' },
+          })
+        : Promise.resolve([]),
     ]);
+
+    const agencyMetaAccountIds = agencyMetaAccounts.map((account) => account.adAccountId);
+    const [agencyMetaAds, agencyMetaCampaignCount] = agencyMetaAccountIds.length > 0
+      ? await Promise.all([
+          prisma.metaAd.findMany({
+            where: { orgId: user.orgId, adAccountId: { in: agencyMetaAccountIds } },
+            orderBy: [{ spend: 'desc' }, { updatedAt: 'desc' }],
+            select: {
+              id: true,
+              adId: true,
+              name: true,
+              status: true,
+              spend: true,
+              leadsCount: true,
+              reach: true,
+              impressions: true,
+              clicks: true,
+              adAccountId: true,
+              providerSyncedAt: true,
+              campaign: { select: { campaignId: true, name: true } },
+            },
+          }),
+          prisma.metaCampaign.count({
+            where: { orgId: user.orgId, adAccountId: { in: agencyMetaAccountIds } },
+          }),
+        ])
+      : [[], 0] as const;
 
     const metrics = calculateLeadEconomics({
       expenseTransactions,
@@ -65,7 +102,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       leads,
       metrics,
-      role: user.role || 'admin'
+      role: user.role || 'admin',
+      meta: canManageAgencyMeta ? {
+        metaAccessConsent: user.organization.metaAccessConsent,
+        metaAccessConsentAt: user.organization.metaAccessConsentAt,
+        atlasMetaAnalyticsConsent: user.organization.atlasMetaAnalyticsConsent,
+        atlasMetaAnalyticsConsentAt: user.organization.atlasMetaAnalyticsConsentAt,
+        accounts: agencyMetaAccounts,
+        campaignCount: agencyMetaCampaignCount,
+        metrics: calculateAgencyMetaMetrics(agencyMetaAds),
+        ads: agencyMetaAds.slice(0, 20),
+      } : null,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -79,12 +126,68 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
     const body = await request.json();
     const { action } = body;
+    const org = user.organization;
 
-    const org = await getOrganization(request);
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    if (action === 'update_atlas_meta_consent') {
+      if (typeof body.consent !== 'boolean') {
+        return NextResponse.json({ error: 'Consent must be a boolean.' }, { status: 400 });
+      }
+      const organization = await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          atlasMetaAnalyticsConsent: body.consent,
+          atlasMetaAnalyticsConsentAt: body.consent ? new Date() : null,
+        },
+        select: { atlasMetaAnalyticsConsent: true, atlasMetaAnalyticsConsentAt: true },
+      });
+      return NextResponse.json({ success: true, ...organization });
+    }
+
+    if (action === 'update_meta_access_consent') {
+      if (typeof body.consent !== 'boolean') {
+        return NextResponse.json({ error: 'Consent must be a boolean.' }, { status: 400 });
+      }
+      const organization = await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          metaAccessConsent: body.consent,
+          metaAccessConsentAt: body.consent ? new Date() : null,
+        },
+        select: { metaAccessConsent: true, metaAccessConsentAt: true },
+      });
+      return NextResponse.json({ success: true, ...organization });
+    }
+
+    if (action === 'assign_meta_account') {
+      if (typeof body.adAccountId !== 'string' || !body.adAccountId.trim()) {
+        return NextResponse.json({ error: 'Select a Meta ad account.' }, { status: 400 });
+      }
+      const account = await assignAgencyMetaAdAccount(org.id, body.adAccountId.trim());
+      return NextResponse.json({ success: true, account });
+    }
+
+    if (action === 'remove_meta_account') {
+      if (typeof body.adAccountId !== 'string' || !body.adAccountId.trim()) {
+        return NextResponse.json({ error: 'Select a Meta ad account.' }, { status: 400 });
+      }
+      await prisma.agencyMetaAdAccount.deleteMany({
+        where: { orgId: org.id, adAccountId: body.adAccountId.trim() },
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === 'sync_meta_account') {
+      if (typeof body.adAccountId !== 'string' || !body.adAccountId.trim()) {
+        return NextResponse.json({ error: 'Select a Meta ad account.' }, { status: 400 });
+      }
+      const result = await syncAgencyMetaAdAccount(org.id, body.adAccountId.trim());
+      return NextResponse.json({ success: true, ...result });
     }
 
     // 1. Drag and drop stage status update or inline state update
@@ -125,6 +228,7 @@ export async function POST(request: NextRequest) {
           estimatedClientValue,
           approachMethod: approachMethod || 'Email',
           collectionMethod: 'Manual Entry',
+          sourceProvider: 'MANUAL',
           orgId: org.id
         }
       });
@@ -170,6 +274,7 @@ export async function POST(request: NextRequest) {
             estimatedClientValue,
             approachMethod: approachMethod || 'Email',
             collectionMethod: 'Bulk Import',
+            sourceProvider: 'IMPORT',
             orgId: org.id
           }
         });
@@ -197,6 +302,9 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error in Agency Leads API:', error);
+    if (error instanceof MetaIntegrationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json(
       { error: 'Failed to process request', details: errorMessage },
       { status: 500 }

@@ -93,6 +93,11 @@ type RawMetaLead = MetaGraphErrorResponse & {
   }>;
 };
 
+type RawMetaLeadForm = {
+  id?: string;
+  name?: string;
+};
+
 type RawMetaAdAttribution = MetaGraphErrorResponse & {
   id?: string;
   name?: string;
@@ -151,6 +156,18 @@ export type MetaPage = {
   name: string;
   accessToken: string;
   tasks: string[];
+};
+
+export type MetaPageLead = {
+  id: string;
+  createdTime: string | null;
+  adId: string | null;
+  campaignId: string | null;
+  pageId: string;
+  pageName: string;
+  formId: string;
+  formName: string | null;
+  fieldData: Array<{ name?: string; values?: unknown[] }>;
 };
 
 export type MetaCredentialPayload = {
@@ -483,6 +500,46 @@ export async function retrieveMetaLead(leadId: string, pageAccessToken: string) 
     campaignId: lead.campaign_id || null,
     fieldData: lead.field_data || [],
   };
+}
+
+export async function retrieveMetaPageLeads(pages: MetaPage[]): Promise<MetaPageLead[]> {
+  const leadsById = new Map<string, MetaPageLead>();
+
+  for (const page of pages) {
+    const forms = await graphGetAll<RawMetaLeadForm>(
+      `${page.id}/leadgen_forms`,
+      page.accessToken,
+      'id,name',
+      10,
+    );
+
+    for (const form of forms) {
+      if (!form.id) continue;
+      const leads = await graphGetAll<RawMetaLead>(
+        `${form.id}/leads`,
+        page.accessToken,
+        'id,created_time,ad_id,form_id,campaign_id,field_data',
+        20,
+      );
+
+      for (const lead of leads) {
+        if (!lead.id) continue;
+        leadsById.set(lead.id, {
+          id: lead.id,
+          createdTime: lead.created_time || null,
+          adId: lead.ad_id || null,
+          campaignId: lead.campaign_id || null,
+          pageId: page.id,
+          pageName: page.name,
+          formId: lead.form_id || form.id,
+          formName: form.name || null,
+          fieldData: lead.field_data || [],
+        });
+      }
+    }
+  }
+
+  return Array.from(leadsById.values());
 }
 
 export async function retrieveMetaAdAttribution(adId: string, accessToken: string) {

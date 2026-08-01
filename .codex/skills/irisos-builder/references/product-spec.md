@@ -4,7 +4,7 @@
 
 Iris OS is an enterprise-grade SaaS operating system for modern agencies and creative enterprises. It unifies finance, operations, clients, projects, reporting, forecasting, intelligence, and content production from a single platform.
 
-Iris OS includes Prisma AI as its proprietary intelligence layer. Prisma should appear across the product through names such as Prisma Insights, Prisma Forecasting, Prisma Recommendations, Prisma Reports, Prisma Analysis, Ask Prisma, and Prisma Command Center.
+Iris OS includes Atlas AI as its proprietary intelligence layer. Atlas should appear across the product through names such as Atlas Insights, Atlas Forecasting, Atlas Recommendations, Atlas Reports, Atlas Analysis, Ask Atlas, and Atlas Command Center.
 
 ## Target Users
 
@@ -26,7 +26,7 @@ Iris OS must include these main modules:
 - Reporting
 - Analytics
 - Design Hub
-- Prisma
+- Atlas
 - Automations
 - Forecasting
 - Operations
@@ -136,9 +136,9 @@ Pages:
 - Creative Intelligence Center
 - Design API Console
 
-## Prisma Capabilities
+## Atlas Capabilities
 
-Prisma is Iris OS's dedicated flagship intelligence experience and should be deeply integrated into every module.
+Atlas is Iris OS's dedicated flagship intelligence experience and should be deeply integrated into every module.
 
 Finance capabilities:
 
@@ -185,7 +185,7 @@ Prominently showcase:
 - Client Profitability Score
 - AI Subscription Management
 - One-Click Client Reporting
-- Prisma
+- Atlas
 - Team Capacity Forecasting
 - Client Churn Prediction
 - Automated Executive Reports
