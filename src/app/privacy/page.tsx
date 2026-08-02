@@ -1,25 +1,15 @@
-'use client';
-
-import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
+import { MarketingHeader } from '@/components/marketing/marketing-header';
 
 // ─── Font shorthands ──────────────────────────────────────────────────────────
-const DISPLAY = "'Space Grotesk', sans-serif";
-const BODY    = "'Geist', sans-serif";
-const MONO    = "'Geist Mono', monospace";
-const JBMONO  = "'JetBrains Mono', monospace";
+const DISPLAY = "var(--font-space-grotesk), sans-serif";
+const BODY    = "var(--font-geist-sans), sans-serif";
+const MONO    = "var(--font-geist-mono), monospace";
+const JBMONO  = "var(--font-mono), monospace";
 
 export default function PrivacyPolicyPage() {
-  const [scrolled, setScrolled] = React.useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handler);
-    return () => window.removeEventListener('scroll', handler);
-  }, []);
-
   return (
     <div
       style={{
@@ -35,185 +25,7 @@ export default function PrivacyPolicyPage() {
       }}
       className="relative select-none"
     >
-      {/* Header */}
-      <header
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          padding: '16px 24px',
-          transition: 'all 0.3s ease',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 20px 12px 16px',
-            background: scrolled ? '#111111' : 'rgba(17,17,17,0.6)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: '60px',
-            boxShadow: scrolled
-              ? '8px 8px 18px #040404, -8px -8px 18px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.05)'
-              : '0 0 0 1px rgba(255,255,255,0.05)',
-            transition: 'all 0.3s ease',
-          }}
-        >
-          {/* Logo */}
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <img
-              src="/iris-logo-black-bg.png"
-              alt="Iris OS"
-              style={{
-                height: '36px',
-                width: 'auto',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
-          </Link>
-
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex" style={{ gap: '4px' }}>
-            <Link
-              href="/#about"
-              style={{
-                fontFamily: BODY,
-                fontWeight: 500,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.6)',
-                textDecoration: 'none',
-                padding: '8px 18px',
-                borderRadius: '50px',
-                transition: 'color 0.2s ease, background 0.2s ease',
-              }}
-              className="hover:bg-[rgba(255,255,255,0.06)] hover:text-[#e8e8e8]"
-            >
-              About
-            </Link>
-            <Link
-              href="/#features"
-              style={{
-                fontFamily: BODY,
-                fontWeight: 500,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.6)',
-                textDecoration: 'none',
-                padding: '8px 18px',
-                borderRadius: '50px',
-                transition: 'color 0.2s ease, background 0.2s ease',
-              }}
-              className="hover:bg-[rgba(255,255,255,0.06)] hover:text-[#e8e8e8]"
-            >
-              Features
-            </Link>
-          </nav>
-
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-4">
-            <Link
-              href="/#waitlist"
-              className="neo-button-accent"
-              style={{
-                fontFamily: BODY,
-                fontWeight: 600,
-                fontSize: '13px',
-                padding: '10px 22px',
-                textDecoration: 'none',
-                color: '#0a0a0a',
-                border: 'none',
-              }}
-            >
-              Request Early Access
-            </Link>
-          </div>
-
-          {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-white hover:text-gray-300 focus:outline-none"
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed md:hidden z-40 p-6 flex flex-col gap-4 neo-raised"
-          style={{
-            top: '90px',
-            left: '24px',
-            right: '24px',
-            background: 'rgba(17, 17, 17, 0.95)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            boxShadow: '10px 10px 24px #040404, -10px -10px 24px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.08)',
-            border: 'none',
-          }}
-        >
-          <nav className="flex flex-col gap-3">
-            <Link
-              href="/#about"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                fontFamily: BODY,
-                fontSize: '15px',
-                color: 'rgba(232,232,232,0.8)',
-                textDecoration: 'none',
-                padding: '10px 16px',
-                borderRadius: '12px',
-                transition: 'background 0.2s',
-              }}
-              className="hover:bg-[rgba(255,255,255,0.06)]"
-            >
-              About
-            </Link>
-            <Link
-              href="/#features"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                fontFamily: BODY,
-                fontSize: '15px',
-                color: 'rgba(232,232,232,0.8)',
-                textDecoration: 'none',
-                padding: '10px 16px',
-                borderRadius: '12px',
-                transition: 'background 0.2s',
-              }}
-              className="hover:bg-[rgba(255,255,255,0.06)]"
-            >
-              Features
-            </Link>
-
-          </nav>
-          <Link
-            href="/#waitlist"
-            onClick={() => setMobileMenuOpen(false)}
-            className="neo-button-accent"
-            style={{
-              fontFamily: BODY,
-              fontWeight: 600,
-              fontSize: '14px',
-              padding: '12px',
-              textAlign: 'center',
-              textDecoration: 'none',
-              color: '#0a0a0a',
-              marginTop: '8px',
-            }}
-          >
-            Request Early Access
-          </Link>
-        </div>
-      )}
+      <MarketingHeader />
 
       {/* Hero Banner */}
       <section
@@ -331,6 +143,7 @@ export default function PrivacyPolicyPage() {
                 { id: 'data-collection', label: '2. Personal Data We Collect' },
                 { id: 'purpose', label: '3. Purpose & Legal Basis' },
                 { id: 'integrations', label: '4. Google Data & Gemini' },
+                { id: 'secure-messaging', label: '4B. Secure Messaging' },
                 { id: 'retention', label: '5. Retention & Erasure' },
                 { id: 'user-rights', label: '6. GDPR & DPDP Act Rights' },
                 { id: 'transfers', label: '7. International Transfers' },
@@ -437,6 +250,7 @@ export default function PrivacyPolicyPage() {
                 { title: 'Financial Data', desc: 'Internal ledgers, client invoices, amount totals, expenses, merchant names.' },
                 { title: 'Integration Telemetry & Access Tokens', desc: 'OAuth authorization tokens for Canva catalogs, Meta Ads metrics, and Google or Notion workspaces.' },
                 { title: 'Google Account & Calendar Data', desc: 'Google account email and profile information, calendar identifiers, and event information such as titles, descriptions, dates, times, attendees, RSVP status, recurrence, locations, and Google Meet links, when you connect Google Calendar.' },
+                { title: 'Secure Messaging Metadata', desc: 'Conversation participant identifiers, timestamps, delivery/read status, public device key bundles, opaque encrypted message envelopes, and encrypted attachment metadata. Iris OS does not accept message plaintext, private identity keys, attachment keys, or plaintext filenames.' },
                 { title: 'Human Resources & Contractor Allocation Logs', desc: 'Contractor name initials and assigned deliverable hours.' },
                 { title: 'System Logs & Telemetry', desc: 'IP address, device headers, authentication timestamps.' }
               ].map((li, idx) => (
@@ -729,6 +543,22 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          <section
+            id="secure-messaging"
+            className="neo-raised"
+            style={{ padding: '32px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '16px' }}
+          >
+            <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: '18px', color: '#e8e8e8', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', margin: 0 }}>
+              4B. Secure Messaging Data
+            </h2>
+            <p style={{ fontFamily: BODY, fontSize: '14px', color: 'rgba(232,232,232,0.65)', lineHeight: 1.7, margin: 0 }}>
+              Secure Messaging is available on Pro and Advanced plans for direct conversations between agency owners and their clients or team members. Clients and team members cannot create conversations with one another. The service stores organization and participant identifiers, timestamps, delivery and read status, public device key bundles, opaque encrypted message envelopes, ciphertext sizes, encrypted attachment metadata, and storage object identifiers needed to deliver the service.
+            </p>
+            <p style={{ fontFamily: BODY, fontSize: '14px', color: 'rgba(232,232,232,0.65)', lineHeight: 1.7, margin: 0 }}>
+              Message plaintext, OpenPGP private keys, attachment encryption keys, plaintext filenames, captions, and thumbnails remain on participant devices and are not accepted by the Iris OS messaging API. Messages are encrypted to the active devices of both participants and digitally signed by the sending device. We may still process the limited metadata described above for routing, abuse prevention, plan-limit enforcement, delivery receipts, retention, and account security. Encrypted envelopes and their metadata are deleted when the associated conversation, user, organization, or a valid erasure request is deleted, subject to applicable legal obligations.
+            </p>
+          </section>
+
           {/* Section 5 */}
           <section
             id="retention"
@@ -978,7 +808,7 @@ export default function PrivacyPolicyPage() {
             width: '100%',
           }}
         >
-          <img src="/iris-logo-black-bg.png" alt="Iris OS" style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
+          <Image src="/iris-logo-black-bg.png" alt="Iris OS" width={74} height={28} style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
           <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
             © 2026 Iris OS, Inc. All rights reserved.
           </span>

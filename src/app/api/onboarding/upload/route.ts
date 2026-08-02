@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,27 @@ export async function POST(request: NextRequest) {
     }
 
     if (type === 'financial') {
+      const invoiceClientNames = [...new Set(data
+        .filter((row) => String(row.type || '').toUpperCase().trim() === 'INVOICE')
+        .map((row) => String(row.name || '').trim())
+        .filter(Boolean))];
+      const [currentClientCount, matchingClients] = await Promise.all([
+        prisma.client.count({ where: { orgId: org.id } }),
+        prisma.client.findMany({
+          where: { orgId: org.id, name: { in: invoiceClientNames } },
+          select: { name: true },
+        }),
+      ]);
+      const existingNames = new Set(matchingClients.map((client) => client.name));
+      const clientsToCreate = invoiceClientNames.filter((name) => !existingNames.has(name)).length;
+      const clientLimit = entitlementsFor(org.plan).clientLimit;
+      if (currentClientCount + clientsToCreate > clientLimit) {
+        return NextResponse.json({
+          error: planLimitMessage('clients', clientLimit, org.plan),
+          current: currentClientCount,
+          requestedNewClients: clientsToCreate,
+        }, { status: 409 });
+      }
       let invoiceCount = 0;
       let expenseCount = 0;
 

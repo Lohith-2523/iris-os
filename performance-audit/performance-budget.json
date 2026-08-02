@@ -1,0 +1,42 @@
+{
+  "lighthouse": {
+    "performanceMinimum": 85,
+    "accessibilityMinimum": 90,
+    "bestPracticesMinimum": 90,
+    "seoMinimumForPublicPages": 90
+  },
+  "coreWebVitals": {
+    "lcpGoodMs": 2500,
+    "inpGoodMs": 200,
+    "clsGood": 0.1
+  },
+  "loading": {
+    "fcpTargetMs": 1800,
+    "ttfbTargetMs": 800,
+    "speedIndexTargetMs": 3400,
+    "featureLoadFailMs": 2000
+  },
+  "javascript": {
+    "initialRouteJsWarningKbGzip": 250,
+    "initialRouteJsFailKbGzip": 400,
+    "singleChunkWarningKbGzip": 150
+  },
+  "network": {
+    "initialRequestCountWarning": 60,
+    "initialTransferWarningKb": 1500,
+    "imageWarningKb": 300
+  },
+  "api": {
+    "p50TargetMs": 250,
+    "p95TargetMs": 800,
+    "p99TargetMs": 1500,
+    "errorRateMaximum": 0.01
+  },
+  "navigation": {
+    "clientNavigationP95TargetMs": 1000
+  },
+  "load": {
+    "httpFailureRateMaximum": 0.01,
+    "p95TargetMs": 1000
+  }
+}

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,16 +20,17 @@ import {
   Sparkles
 } from 'lucide-react';
 import { formatUserMessage } from '@/lib/utils';
-import { createClient } from '@/lib/client';
 
 function MemberOnboardingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
 
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(Boolean(token));
   const [invite, setInvite] = React.useState<any>(null);
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(
+    token ? null : 'Invalid request: Missing secure onboarding token.',
+  );
 
   // Form password details
   const [password, setPassword] = React.useState('');
@@ -83,6 +85,7 @@ function MemberOnboardingContent() {
     setSubmitting(true);
 
     try {
+      const { createClient } = await import('@/lib/client');
       const supabase = createClient();
       if (useGoogle) {
         const { error } = await supabase.auth.signInWithOAuth({
@@ -178,7 +181,7 @@ function MemberOnboardingContent() {
       <div className="w-full max-w-2xl space-y-6">
         {/* Header brand */}
         <div className="text-center space-y-2 flex flex-col items-center">
-          <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-8 object-contain" />
+          <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={84} height={32} priority className="h-8 w-auto object-contain" />
           <h1 className="text-xl font-bold text-white tracking-tight mt-1">Specialist Onboarding Hub</h1>
           <p className="text-zinc-555 text-[11px]">Configure credentials to unlock your delivery terminal.</p>
         </div>

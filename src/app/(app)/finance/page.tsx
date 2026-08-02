@@ -36,6 +36,7 @@ import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
+import { validateBrowserFile } from '@/lib/file-security';
 
 export default function FinancePage() {
   const [isSkippedAll, setIsSkippedAll] = React.useState(false);
@@ -563,12 +564,8 @@ export default function FinancePage() {
     if (isImportingTransactions) return;
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (ext !== 'xlsx') {
-      alert('Unsupported file format. Please upload the Iris OS Excel template (.xlsx).');
-      return;
-    }
+    const validation = await validateBrowserFile(file, 'spreadsheet-import', { maxBytes: 10 * 1024 * 1024 });
+    if (!validation.ok || !file.name.toLowerCase().endsWith('.xlsx')) return alert(validation.ok ? 'Please upload the Iris OS Excel template (.xlsx).' : validation.error);
     setIsImportingTransactions(true);
     try {
       const ExcelJS = await import('exceljs');

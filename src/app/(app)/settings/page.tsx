@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatUserMessage } from '@/lib/utils';
+import { validateBrowserFile } from '@/lib/file-security';
 import {
   getMetaSdkStatus,
   META_SDK_ERROR_EVENT,
@@ -372,11 +373,7 @@ export default function SettingsPage() {
     loadOrg();
   }, []);
 
-  const maxAllowed = React.useMemo(() => {
-    if (plan === 'BASIC') return hasAddon ? 2 : 1;
-    if (plan === 'PRO') return 5;
-    return 10; // ADVANCED allows all 10
-  }, [plan, hasAddon]);
+  const maxAllowed = 10;
 
   const limitExceeded = React.useMemo(() => {
     return selectedTypes.length > maxAllowed;
@@ -388,7 +385,7 @@ export default function SettingsPage() {
       setErrorMessage('');
     } else {
       if (selectedTypes.length >= maxAllowed) {
-        setErrorMessage(formatUserMessage(`Lohith, you have reached the maximum of ${maxAllowed} agency types for your current plan settings. Upgrade your plan or enable the add-on to choose more.`));
+        setErrorMessage(formatUserMessage(`Lohith, all ${maxAllowed} available agency specializations are already selected.`));
         return;
       }
       setSelectedTypes(prev => [...prev, typeName]);
@@ -565,16 +562,13 @@ export default function SettingsPage() {
                               type="file"
                               accept="image/png,image/jpeg"
                               className="sr-only"
-                              onChange={(event) => {
+                              onChange={async (event) => {
                                 const file = event.target.files?.[0];
                                 event.target.value = '';
                                 if (!file) return;
-                                if (!['image/png', 'image/jpeg'].includes(file.type)) {
-                                  setErrorMessage('Invoice logo must be a PNG or JPEG image.');
-                                  return;
-                                }
-                                if (file.size > 512 * 1024) {
-                                  setErrorMessage('Invoice logo must be 512 KB or smaller.');
+                                const validation = await validateBrowserFile(file, 'invoice-logo', { maxBytes: 512 * 1024 });
+                                if (!validation.ok) {
+                                  setErrorMessage(validation.error);
                                   return;
                                 }
                                 const reader = new FileReader();
@@ -734,7 +728,7 @@ export default function SettingsPage() {
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="text-sm font-semibold text-white">Agency Industry Specializations</CardTitle>
-                    <CardDescription>Select the types of services your agency handles. Limits depend on your billing plan.</CardDescription>
+                    <CardDescription>Select any of the 10 service specializations available with every plan.</CardDescription>
                   </div>
                   <Badge variant={limitExceeded ? 'risk-high' : 'default'} className="bg-zinc-900 border-zinc-800 text-zinc-300">
                     Selected: {selectedTypes.length} / {maxAllowed}
@@ -932,16 +926,19 @@ export default function SettingsPage() {
                       <input
                         type="checkbox"
                         id="settingsAiConsentCheckbox"
-                        checked={aiSharingConsent}
+                        checked={plan !== 'BASIC' && aiSharingConsent}
                         onChange={(e) => setAiSharingConsent(e.target.checked)}
-                        className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-600 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                        disabled={plan === 'BASIC'}
+                        className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-600 focus:ring-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 h-3.5 w-3.5"
                       />
                       <div className="cursor-pointer select-none">
                         <label htmlFor="settingsAiConsentCheckbox" className="block font-bold text-zinc-300">
                           Enable Atlas AI Analysis
                         </label>
                         <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
-                          Allow Atlas AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.
+                          {plan === 'BASIC'
+                            ? 'AI analysis is not included with the Basic plan. Upgrade to Pro or Advanced to enable it.'
+                            : 'Allow Atlas AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.'}
                         </span>
                       </div>
                     </div>
@@ -1061,11 +1058,7 @@ export default function SettingsPage() {
                       <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest block">Current Plan</span>
                       <h3 className="text-base font-bold text-white uppercase">{plan} Plan</h3>
                       <p className="text-zinc-500 text-[11px]">
-                        {plan === 'BASIC' 
-                          ? '1 Agency Specialization (Max 2 with Add-on)' 
-                          : plan === 'PRO' 
-                          ? 'Up to 5 Agency Specializations' 
-                          : 'All 10+ Agency Specializations'}
+                        All 10 agency specializations
                       </p>
                     </div>
                     <div className="sm:text-right">

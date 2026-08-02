@@ -1,22 +1,24 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
 // ─── Font shorthands ──────────────────────────────────────────────────────────
-const DISPLAY = "'Space Grotesk', sans-serif"
-const BODY    = "'Geist', sans-serif"
-const MONO    = "'Geist Mono', monospace"
-const JBMONO  = "'JetBrains Mono', monospace"
+const DISPLAY = "var(--font-space-grotesk), sans-serif"
+const BODY    = "var(--font-geist-sans), sans-serif"
+const MONO    = "var(--font-geist-mono), monospace"
+const JBMONO  = "var(--font-mono), monospace"
 
 // ─── Scroll Reveal Animation Wrapper ──────────────────────────────────────────
-function ScrollReveal({ children, delay = '0s', className = '', id = '', style = {} }: { children: React.ReactNode; delay?: string; className?: string; id?: string; style?: React.CSSProperties }) {
-  const [isVisible, setIsVisible] = useState(false);
+function ScrollReveal({ children, delay = '0s', className = '', id = '', style = {}, eager = false }: { children: React.ReactNode; delay?: string; className?: string; id?: string; style?: React.CSSProperties; eager?: boolean }) {
+  const [isVisible, setIsVisible] = useState(eager);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (eager) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -37,7 +39,7 @@ function ScrollReveal({ children, delay = '0s', className = '', id = '', style =
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [eager]);
 
   return (
     <div
@@ -92,9 +94,12 @@ function Header() {
       >
         {/* Logo — imported PNG wordmark */}
         <a href="#" className="flex items-center no-underline">
-          <img
+          <Image
             src={irisLogo}
             alt="Iris OS"
+            width={105}
+            height={40}
+            priority
             className="h-7 sm:h-8 md:h-10 w-auto object-contain block"
           />
         </a>
@@ -132,6 +137,7 @@ function Header() {
         {/* CTA */}
         <Link
           href="/waitlist"
+          prefetch={false}
           className="neo-button-accent hidden md:inline-block"
           style={{
             fontFamily: BODY,
@@ -175,7 +181,7 @@ function Header() {
       >
         <div>
           <div className="flex justify-between items-center mb-8 pb-4 border-b border-zinc-900">
-            <img src={irisLogo} alt="Iris OS" className="h-8 w-auto object-contain" />
+            <Image src={irisLogo} alt="Iris OS" width={84} height={32} className="h-8 w-auto object-contain" />
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
               className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/5 cursor-pointer"
@@ -204,6 +210,7 @@ function Header() {
         <div className="pt-6 border-t border-zinc-900">
           <Link
             href="/waitlist"
+            prefetch={false}
             onClick={() => setIsMobileMenuOpen(false)}
             className="neo-button-accent w-full text-center py-3.5 block font-semibold text-sm cursor-pointer"
             style={{ fontFamily: BODY, textDecoration: 'none', color: '#0a0a0a' }}
@@ -262,7 +269,7 @@ function Hero() {
         />
 
       {/* Floating logo */}
-      <ScrollReveal className="float-anim" style={{ marginBottom: '44px' }}>
+      <ScrollReveal eager className="float-anim" style={{ marginBottom: '44px' }}>
         <div
           style={{
             borderRadius: '28px',
@@ -274,9 +281,12 @@ function Hero() {
             padding: '20px 28px',
           }}
         >
-          <img
+          <Image
             src={irisLogo}
             alt="Iris OS"
+            width={136}
+            height={52}
+            priority
             style={{ height: '52px', width: 'auto', objectFit: 'contain', display: 'block' }}
           />
         </div>
@@ -284,6 +294,7 @@ function Hero() {
 
       {/* Badge */}
       <ScrollReveal
+        eager
         delay="0.15s"
         style={{
           display: 'inline-flex',
@@ -326,6 +337,7 @@ function Hero() {
 
       {/* Headline */}
       <ScrollReveal
+        eager
         delay="0.3s"
         style={{
           maxWidth: '900px',
@@ -349,6 +361,7 @@ function Hero() {
 
       {/* Tagline */}
       <ScrollReveal
+        eager
         delay="0.45s"
         style={{
           maxWidth: '720px',
@@ -371,11 +384,13 @@ function Hero() {
 
       {/* CTAs */}
       <ScrollReveal
+        eager
         delay="0.6s"
         style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}
       >
         <Link
           href="/waitlist"
+          prefetch={false}
           className="neo-button-accent"
           style={{
             fontFamily: BODY,
@@ -1408,6 +1423,7 @@ function Waitlist() {
         <div className="neo-raised" style={{ padding: 'clamp(28px, 6vw, 48px) clamp(20px, 6vw, 40px)', display: 'flex', justifyContent: 'center' }}>
           <Link
             href="/waitlist"
+            prefetch={false}
             className="neo-button-accent"
             style={{
               fontFamily: BODY,
@@ -1455,7 +1471,7 @@ function Footer() {
         gap: '16px',
       }}
     >
-      <img src={irisLogo} alt="Iris OS" style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
+      <Image src={irisLogo} alt="Iris OS" width={74} height={28} style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
       <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
         © 2026 Iris OS, Inc. All rights reserved.
       </span>
@@ -1467,6 +1483,7 @@ function Footer() {
               <Link
                 key={item}
                 href={href}
+                prefetch={false}
                 style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}

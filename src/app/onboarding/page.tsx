@@ -14,10 +14,11 @@ const PLANS = [
     price: 99,
     tagline: 'Starter Workspace Clearance',
     features: [
-      '1 Agency Specialization Included',
+      'All 10 Agency Specializations Included',
       'Core Operational Ledger Console',
       'Client Read-Only Portal Gate',
-      'Standard Webhook Integration Hook'
+      '2 Team Members and 5 Clients',
+      'No AI or Messaging Features'
     ]
   },
   {
@@ -26,11 +27,12 @@ const PLANS = [
     price: 299,
     tagline: 'Professional Scale Workspace',
     features: [
-      'Up to 5 Agency Specializations Included',
+      'All 10 Agency Specializations Included',
       'Active Contractor Profit Leak Checks',
       'Automated Executive Reports & SLAs',
       'Full Canva & Meta Ad Portal Sync',
-      'Atlas AI Client Query Clearance'
+      'Atlas AI Meeting & Invoice Creation',
+      'Secure Messaging · 4 Team · 15 Clients'
     ]
   },
   {
@@ -39,17 +41,19 @@ const PLANS = [
     price: 599,
     tagline: 'Unlimited Enterprise Console',
     features: [
-      'All 10+ Agency Specializations Included',
+      'All 10 Agency Specializations Included',
       'Unlimited API Call Operations Threshold',
       'Custom Multi-Currency Financial Ledgers',
       '24/7 Dedicated Support & Audit Gating',
-      'Automated Lead Generation Workflows'
+      'Full Atlas AI, Briefing & Strategies',
+      'Secure Messaging · 15 Team · 30 Clients'
     ]
   }
 ];
 
 const FULL_PRIVACY_POLICY = [
   ['Meta Advertising Data and Atlas AI', 'Meta access requires a separate optional consent. When enabled, Iris OS may retrieve selected ad-account identifiers, campaigns, ads, forms, lead submissions, spend, impressions, reach and clicks. Atlas AI uses only aggregate Meta performance metrics, and only when both general Atlas data sharing and the separate Atlas Meta analytics consent are enabled. Atlas AI never receives Meta access tokens or raw Meta lead names, emails, phone numbers or form fields. Withdrawing Meta access stops future provider retrieval; withdrawing Atlas Meta consent stops future AI use of those metrics.'],
+  ['Secure Messaging Data', 'Messaging is available on Pro and Advanced plans for direct agency-owner conversations with clients or team members. Iris OS stores participant identifiers, delivery metadata, OpenPGP public device keys, opaque signed and encrypted message envelopes, and encrypted attachment metadata. Message plaintext, OpenPGP private keys, attachment keys and plaintext filenames remain on participant devices and are not accepted by the messaging service.'],
   ['1. Data Controller Identification', 'Shards Media ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
   ['2. Categories of Personal Data We Collect', 'We process identity and account metadata (including corporate name, billing address, currency settings and administrator emails); financial data (internal ledgers, invoices, totals, expenses and merchant names); integration telemetry and OAuth access tokens for connected Canva, Meta, Google and Notion services; contractor allocation information; and system logs such as IP address, device headers and authentication timestamps.'],
   ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Atlas AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
@@ -202,7 +206,7 @@ export default function OnboardingPage() {
             plan: selectedPlanId.toUpperCase(),
             hasAddon: selectedPlanId === 'basic' ? false : undefined,
             currency: currency,
-            aiSharingConsent: aiSharingConsent,
+            aiSharingConsent: selectedPlanId === 'basic' ? false : aiSharingConsent,
             metaAccessConsent,
             username: username,
             billingEmail: email,
@@ -482,7 +486,8 @@ export default function OnboardingPage() {
                   <input
                     type="checkbox"
                     id="aiConsentCheckbox"
-                    checked={aiSharingConsent}
+                    checked={selectedPlanId !== 'basic' && aiSharingConsent}
+                    disabled={selectedPlanId === 'basic'}
                     onChange={(e) => setAiSharingConsent(e.target.checked)}
                     className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-650 focus:ring-0 cursor-pointer h-3.5 w-3.5"
                   />

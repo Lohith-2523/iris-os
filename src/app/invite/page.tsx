@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, User, Lock, ArrowRight, ShieldCheck, AlertTriangle, Eye, EyeOff } from 'lucide-react';
-import { createClient } from '@/lib/client';
 
 function InvitePageContent() {
   const router = useRouter();
@@ -13,8 +13,10 @@ function InvitePageContent() {
   const token = searchParams.get('token');
 
   const [inviteData, setInviteData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(Boolean(token));
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(
+    token ? null : 'Missing invite token. Please contact your account administrator.',
+  );
 
   const [name, setName] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -58,6 +60,7 @@ function InvitePageContent() {
     setErrorMsg(null);
 
     try {
+      const { createClient } = await import('@/lib/client');
       const supabase = createClient();
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: inviteData.email,
@@ -109,7 +112,7 @@ function InvitePageContent() {
 
       <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl font-sans text-xs">
         <CardHeader className="text-center pt-8 pb-6 flex flex-col items-center">
-          <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-10 object-contain mb-4" />
+          <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={105} height={40} priority className="h-10 w-auto object-contain mb-4" />
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">
             Set Up Your Account
           </CardTitle>

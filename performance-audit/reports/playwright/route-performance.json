@@ -1,0 +1,2984 @@
+{
+  "generatedAt": "2026-08-02T09:18:20.117Z",
+  "baseURL": "http://127.0.0.1:3100",
+  "thresholdMs": 2000,
+  "authStatus": {
+    "attempted": false,
+    "authenticated": false,
+    "reason": "PERF_TEST_EMAIL and PERF_TEST_PASSWORD were not supplied."
+  },
+  "results": [
+    {
+      "route": "/coming-soon",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/coming-soon",
+      "status": 200,
+      "title": "Coming Soon - Iris OS",
+      "heading": "Coming Soon",
+      "domContentReadyMs": 59,
+      "featureReadyMs": 848,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 9.399999976158142,
+        "domContentLoadedMs": 54.39999997615814,
+        "loadEventMs": 84.69999992847443,
+        "fcpMs": 72,
+        "lcpMs": 72,
+        "cls": 0,
+        "transferBytes": 275871,
+        "encodedBytes": 271971,
+        "requestCount": 14,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 25,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 23,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 17,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 10,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 23,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 20,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 21,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 22,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 15,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          },
+          {
+            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
+            "type": "link",
+            "durationMs": 12,
+            "transferBytes": 1725,
+            "encodedBytes": 1425
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/home",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/home",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "See it all.Manage it all.",
+      "domContentReadyMs": 90,
+      "featureReadyMs": 971,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 12.200000047683716,
+        "domContentLoadedMs": 87.60000002384186,
+        "loadEventMs": 152.60000002384186,
+        "fcpMs": 188,
+        "lcpMs": 188,
+        "cls": 0,
+        "transferBytes": 324137,
+        "encodedBytes": 319037,
+        "requestCount": 18,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 84,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 9,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 72,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 65,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 24,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 9,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 2,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 83,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 82,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 72,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 66,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 84,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 73,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 81,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
+            "type": "link",
+            "durationMs": 77,
+            "transferBytes": 2660,
+            "encodedBytes": 2360
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/invite",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/invite",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Set Up Your Account",
+      "domContentReadyMs": 32,
+      "featureReadyMs": 910,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 13,
+        "domContentLoadedMs": 29.700000047683716,
+        "loadEventMs": 54.60000002384186,
+        "fcpMs": 60,
+        "lcpMs": 92,
+        "cls": 0,
+        "transferBytes": 298132,
+        "encodedBytes": 293332,
+        "requestCount": 17,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 4,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 4,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0hag5mu44rda4.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 10396,
+            "encodedBytes": 10096
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 8,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 10,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
+            "type": "link",
+            "durationMs": 4,
+            "transferBytes": 2660,
+            "encodedBytes": 2360
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/login",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/login",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Sign In",
+      "domContentReadyMs": 31,
+      "featureReadyMs": 819,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 10.099999904632568,
+        "domContentLoadedMs": 28.5,
+        "loadEventMs": 71.79999995231628,
+        "fcpMs": 56,
+        "lcpMs": 56,
+        "cls": 0,
+        "transferBytes": 299593,
+        "encodedBytes": 294793,
+        "requestCount": 17,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 5,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 2,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3a9d92xoe61g-.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 11857,
+            "encodedBytes": 11557
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 8,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 2660,
+            "encodedBytes": 2360
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/onboarding/member",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/onboarding/member",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "This page couldn’t load",
+      "domContentReadyMs": 26,
+      "featureReadyMs": 802,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 9.299999952316284,
+        "domContentLoadedMs": 23.899999976158142,
+        "loadEventMs": 52.60000002384186,
+        "fcpMs": 60,
+        "lcpMs": 88,
+        "cls": 0,
+        "transferBytes": 255419,
+        "encodedBytes": 251219,
+        "requestCount": 15,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 5,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 3,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/346ifj_obzdv2.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 11123,
+            "encodedBytes": 10823
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 7,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          },
+          {
+            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
+            "type": "link",
+            "durationMs": 5,
+            "transferBytes": 1725,
+            "encodedBytes": 1425
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "See it all.Manage it all.",
+      "domContentReadyMs": 27,
+      "featureReadyMs": 896,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 9.100000023841858,
+        "domContentLoadedMs": 25.299999952316284,
+        "loadEventMs": 51.89999997615814,
+        "fcpMs": 132,
+        "lcpMs": 132,
+        "cls": 0,
+        "transferBytes": 324137,
+        "encodedBytes": 319037,
+        "requestCount": 18,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 18,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 3,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 5,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 4,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 10,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 2660,
+            "encodedBytes": 2360
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/pricing",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/pricing",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Iris OS Workspace Tiers",
+      "domContentReadyMs": 28,
+      "featureReadyMs": 911,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 9.5,
+        "domContentLoadedMs": 26.899999976158142,
+        "loadEventMs": 52.09999990463257,
+        "fcpMs": 76,
+        "lcpMs": null,
+        "cls": 0,
+        "transferBytes": 312945,
+        "encodedBytes": 305745,
+        "requestCount": 25,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 5,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 2,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 2,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 10,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 8,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/0cv8o3wna-o63.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 8231,
+            "encodedBytes": 7931
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/pricing?_rsc=cEZXiMQbAqkBuU8b",
+            "type": "fetch",
+            "durationMs": 8,
+            "transferBytes": 3480,
+            "encodedBytes": 3180
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/privacy",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/privacy",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Data Usage & Privacy Policy",
+      "domContentReadyMs": 31,
+      "featureReadyMs": 911,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 9.800000071525574,
+        "domContentLoadedMs": 29.200000047683716,
+        "loadEventMs": 54.800000071525574,
+        "fcpMs": 84,
+        "lcpMs": 84,
+        "cls": 0,
+        "transferBytes": 310912,
+        "encodedBytes": 306112,
+        "requestCount": 17,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 18,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 4,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 5,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 4,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 2,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
+            "type": "script",
+            "durationMs": 17,
+            "transferBytes": 9711,
+            "encodedBytes": 9411
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=96&q=75",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 1922,
+            "encodedBytes": 1622
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/signup",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/signup",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Create Workspace",
+      "domContentReadyMs": 29,
+      "featureReadyMs": 914,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 11.100000023841858,
+        "domContentLoadedMs": 26.5,
+        "loadEventMs": 53.39999997615814,
+        "fcpMs": 72,
+        "lcpMs": 72,
+        "cls": 0,
+        "transferBytes": 300086,
+        "encodedBytes": 295286,
+        "requestCount": 17,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 5,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 2,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0qrf19unb6smn.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 12350,
+            "encodedBytes": 12050
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 8,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 2660,
+            "encodedBytes": 2360
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/terms",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/terms",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Terms of Service",
+      "domContentReadyMs": 31,
+      "featureReadyMs": 911,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 9.299999952316284,
+        "domContentLoadedMs": 27.200000047683716,
+        "loadEventMs": 52.39999997615814,
+        "fcpMs": 80,
+        "lcpMs": 80,
+        "cls": 0,
+        "transferBytes": 310912,
+        "encodedBytes": 306112,
+        "requestCount": 17,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 3,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 10,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 3,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 2,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 9711,
+            "encodedBytes": 9411
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 13,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=96&q=75",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 1922,
+            "encodedBytes": 1622
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/waitlist",
+      "profile": "desktop",
+      "accessExpected": "public",
+      "finalURL": "/waitlist",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Join the Waitlist",
+      "domContentReadyMs": 41,
+      "featureReadyMs": 912,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 8.299999952316284,
+        "domContentLoadedMs": 39.200000047683716,
+        "loadEventMs": 63.89999997615814,
+        "fcpMs": 48,
+        "lcpMs": 48,
+        "cls": 0,
+        "transferBytes": 309217,
+        "encodedBytes": 303217,
+        "requestCount": 21,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "maxLongTaskMs": 0,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 14,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 3,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 3,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 11,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3ys49t055e46q.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 11171,
+            "encodedBytes": 10871
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 7,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 10,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=96&q=75",
+            "type": "link",
+            "durationMs": 6,
+            "transferBytes": 1922,
+            "encodedBytes": 1622
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/coming-soon",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/coming-soon",
+      "status": 200,
+      "title": "Coming Soon - Iris OS",
+      "heading": "Coming Soon",
+      "domContentReadyMs": 1135,
+      "featureReadyMs": 2685,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 3.5999999046325684,
+        "domContentLoadedMs": 1133.2999999523163,
+        "loadEventMs": 1899,
+        "fcpMs": 1244,
+        "lcpMs": 1244,
+        "cls": 0,
+        "transferBytes": 275871,
+        "encodedBytes": 271971,
+        "requestCount": 14,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 192,
+        "maxLongTaskMs": 106,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1587,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 658,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1229,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 919,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 905,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 750,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1289,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 839,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 405,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 1010,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1057,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 235,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          },
+          {
+            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
+            "type": "link",
+            "durationMs": 220,
+            "transferBytes": 1725,
+            "encodedBytes": 1425
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/home",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/home",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "See it all.Manage it all.",
+      "domContentReadyMs": 1267,
+      "featureReadyMs": 2983,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 3.6999999284744263,
+        "domContentLoadedMs": 1265.3999999761581,
+        "loadEventMs": 2211.399999976158,
+        "fcpMs": 1292,
+        "lcpMs": 1292,
+        "cls": 0,
+        "transferBytes": 330899,
+        "encodedBytes": 325799,
+        "requestCount": 18,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 272,
+        "maxLongTaskMs": 168,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1896,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 970,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1445,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 871,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 826,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 798,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 687,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 1615,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1288,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1040,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=384&q=75",
+            "type": "link",
+            "durationMs": 436,
+            "transferBytes": 9422,
+            "encodedBytes": 9122
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 761,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 359,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 1024,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1086,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/invite",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/invite",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Set Up Your Account",
+      "domContentReadyMs": 1150,
+      "featureReadyMs": 3169,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 7.700000047683716,
+        "domContentLoadedMs": 1146.1000000238419,
+        "loadEventMs": 1833,
+        "fcpMs": 1168,
+        "lcpMs": 1968,
+        "cls": 0,
+        "transferBytes": 301438,
+        "encodedBytes": 296638,
+        "requestCount": 17,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 172,
+        "maxLongTaskMs": 120,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1510,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 394,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1276,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 936,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 889,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 738,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1321,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0hag5mu44rda4.js",
+            "type": "script",
+            "durationMs": 1337,
+            "transferBytes": 10396,
+            "encodedBytes": 10096
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 856,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 405,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 1367,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 226,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 995,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1088,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 251,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/login",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/login",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Sign In",
+      "domContentReadyMs": 1136,
+      "featureReadyMs": 2858,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 6.399999976158142,
+        "domContentLoadedMs": 1134.1000000238419,
+        "loadEventMs": 2076.2000000476837,
+        "fcpMs": 1228,
+        "lcpMs": 1228,
+        "cls": 0,
+        "transferBytes": 302899,
+        "encodedBytes": 298099,
+        "requestCount": 17,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 194,
+        "maxLongTaskMs": 127,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1741,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 801,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1258,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 918,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 842,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 719,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1350,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3a9d92xoe61g-.js",
+            "type": "script",
+            "durationMs": 1443,
+            "transferBytes": 11857,
+            "encodedBytes": 11557
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1010,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 637,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 1458,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 328,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 1009,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1055,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 248,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/onboarding/member",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/onboarding/member",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "This page couldn’t load",
+      "domContentReadyMs": 1150,
+      "featureReadyMs": 2591,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 4.399999976158142,
+        "domContentLoadedMs": 1148.3999999761581,
+        "loadEventMs": 1831.7000000476837,
+        "fcpMs": 1176,
+        "lcpMs": 2040,
+        "cls": 0,
+        "transferBytes": 255419,
+        "encodedBytes": 251219,
+        "requestCount": 15,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 242,
+        "maxLongTaskMs": 122,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1507,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1259,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 933,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 903,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 733,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1334,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/346ifj_obzdv2.js",
+            "type": "script",
+            "durationMs": 1334,
+            "transferBytes": 11123,
+            "encodedBytes": 10823
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 854,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 403,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 1365,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 993,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1071,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 233,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          },
+          {
+            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
+            "type": "link",
+            "durationMs": 234,
+            "transferBytes": 1725,
+            "encodedBytes": 1425
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "See it all.Manage it all.",
+      "domContentReadyMs": 1244,
+      "featureReadyMs": 2986,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 4.399999976158142,
+        "domContentLoadedMs": 1241.6000000238419,
+        "loadEventMs": 2211.2000000476837,
+        "fcpMs": 1272,
+        "lcpMs": 1272,
+        "cls": 0,
+        "transferBytes": 330899,
+        "encodedBytes": 325799,
+        "requestCount": 18,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 273,
+        "maxLongTaskMs": 159,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1896,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 972,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1445,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 871,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 827,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 816,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 688,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 1615,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1288,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1025,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=384&q=75",
+            "type": "link",
+            "durationMs": 436,
+            "transferBytes": 9422,
+            "encodedBytes": 9122
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 761,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 359,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 1071,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1086,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/pricing",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/pricing",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Iris OS Workspace Tiers",
+      "domContentReadyMs": 1260,
+      "featureReadyMs": 3552,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 4.199999928474426,
+        "domContentLoadedMs": 1258.1999999284744,
+        "loadEventMs": 2024.2999999523163,
+        "fcpMs": 1264,
+        "lcpMs": 1904,
+        "cls": 0,
+        "transferBytes": 309495,
+        "encodedBytes": 303495,
+        "requestCount": 21,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 284,
+        "maxLongTaskMs": 168,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1676,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 746,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1256,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 868,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 854,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 699,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 258,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1301,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1022,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 650,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/0cv8o3wna-o63.js",
+            "type": "script",
+            "durationMs": 1364,
+            "transferBytes": 8231,
+            "encodedBytes": 7931
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-white-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 308,
+            "transferBytes": 5140,
+            "encodedBytes": 4840
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 975,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1084,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 230,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/privacy",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/privacy",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Data Usage & Privacy Policy",
+      "domContentReadyMs": 1117,
+      "featureReadyMs": 2814,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 4.199999928474426,
+        "domContentLoadedMs": 1114.1999999284744,
+        "loadEventMs": 2160.6999999284744,
+        "fcpMs": 1280,
+        "lcpMs": 1280,
+        "cls": 0,
+        "transferBytes": 314956,
+        "encodedBytes": 310156,
+        "requestCount": 17,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 263,
+        "maxLongTaskMs": 145,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1816,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 876,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1334,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 884,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 854,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 720,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 715,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1334,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
+            "type": "script",
+            "durationMs": 1488,
+            "transferBytes": 9711,
+            "encodedBytes": 9411
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1007,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 619,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 341,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 975,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1084,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 293,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/signup",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/signup",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Create Workspace",
+      "domContentReadyMs": 1192,
+      "featureReadyMs": 2864,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 4.700000047683716,
+        "domContentLoadedMs": 1190.6000000238419,
+        "loadEventMs": 2077.7000000476837,
+        "fcpMs": 1196,
+        "lcpMs": 1196,
+        "cls": 0,
+        "transferBytes": 303392,
+        "encodedBytes": 298592,
+        "requestCount": 17,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 216,
+        "maxLongTaskMs": 126,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1755,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 841,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1258,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 886,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 857,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 718,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1335,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/0qrf19unb6smn.js",
+            "type": "script",
+            "durationMs": 1505,
+            "transferBytes": 12350,
+            "encodedBytes": 12050
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1039,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 652,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
+            "type": "script",
+            "durationMs": 1428,
+            "transferBytes": 9205,
+            "encodedBytes": 8905
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 342,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 993,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1086,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 248,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/terms",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/terms",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Terms of Service",
+      "domContentReadyMs": 1109,
+      "featureReadyMs": 2899,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 5.399999976158142,
+        "domContentLoadedMs": 1107.1999999284744,
+        "loadEventMs": 2132.600000023842,
+        "fcpMs": 1268,
+        "lcpMs": 1268,
+        "cls": 0,
+        "transferBytes": 314956,
+        "encodedBytes": 310156,
+        "requestCount": 17,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 229,
+        "maxLongTaskMs": 119,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1817,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 880,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1290,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 886,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 856,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 724,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 717,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1335,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
+            "type": "script",
+            "durationMs": 1474,
+            "transferBytes": 9711,
+            "encodedBytes": 9411
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1039,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 651,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 342,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 977,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1086,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 264,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    },
+    {
+      "route": "/waitlist",
+      "profile": "mobile-fast4g",
+      "accessExpected": "public",
+      "finalURL": "/waitlist",
+      "status": 200,
+      "title": "Iris OS - Enterprise Agency Operating System",
+      "heading": "Join the Waitlist",
+      "domContentReadyMs": 1122,
+      "featureReadyMs": 3569,
+      "navigationError": null,
+      "redirectedToLogin": false,
+      "metrics": {
+        "ttfbMs": 4,
+        "domContentLoadedMs": 1119.5999999046326,
+        "loadEventMs": 1910.3999999761581,
+        "fcpMs": 1204,
+        "lcpMs": 1204,
+        "cls": 0,
+        "transferBytes": 313261,
+        "encodedBytes": 307261,
+        "requestCount": 21,
+        "longTaskCount": 2,
+        "longTaskTotalMs": 187,
+        "maxLongTaskMs": 125,
+        "topResources": [
+          {
+            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "type": "script",
+            "durationMs": 1709,
+            "transferBytes": 71027,
+            "encodedBytes": 70727
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 771,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "type": "script",
+            "durationMs": 1274,
+            "transferBytes": 37671,
+            "encodedBytes": 37371
+          },
+          {
+            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "type": "link",
+            "durationMs": 903,
+            "transferBytes": 30036,
+            "encodedBytes": 29736
+          },
+          {
+            "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
+            "type": "link",
+            "durationMs": 857,
+            "transferBytes": 29588,
+            "encodedBytes": 29288
+          },
+          {
+            "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
+            "type": "link",
+            "durationMs": 718,
+            "transferBytes": 22620,
+            "encodedBytes": 22320
+          },
+          {
+            "name": "/_next/static/chunks/1x568oqg9saon.js",
+            "type": "script",
+            "durationMs": 257,
+            "transferBytes": 16232,
+            "encodedBytes": 15932
+          },
+          {
+            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
+            "type": "script",
+            "durationMs": 1320,
+            "transferBytes": 13172,
+            "encodedBytes": 12872
+          },
+          {
+            "name": "/_next/static/chunks/3ys49t055e46q.js",
+            "type": "script",
+            "durationMs": 1412,
+            "transferBytes": 11171,
+            "encodedBytes": 10871
+          },
+          {
+            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "type": "script",
+            "durationMs": 1040,
+            "transferBytes": 9469,
+            "encodedBytes": 9169
+          },
+          {
+            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "type": "script",
+            "durationMs": 653,
+            "transferBytes": 9310,
+            "encodedBytes": 9010
+          },
+          {
+            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "type": "link",
+            "durationMs": 343,
+            "transferBytes": 5966,
+            "encodedBytes": 5666
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "type": "script",
+            "durationMs": 993,
+            "transferBytes": 4463,
+            "encodedBytes": 4163
+          },
+          {
+            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "type": "script",
+            "durationMs": 1086,
+            "transferBytes": 3374,
+            "encodedBytes": 3074
+          },
+          {
+            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "type": "link",
+            "durationMs": 249,
+            "transferBytes": 2636,
+            "encodedBytes": 2336
+          }
+        ]
+      },
+      "slowRequests": [],
+      "failures": [],
+      "consoleErrors": []
+    }
+  ]
+}

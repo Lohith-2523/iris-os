@@ -3,6 +3,7 @@ import 'server-only';
 import { prisma } from '@/lib/db';
 import { generateReportWithGemini } from '@/lib/atlas-ai/gemini-automations';
 import type { AtlasReportDocument, ReportKind, ReportMetric, ReportSection } from './types';
+import { entitlementsFor } from '@/lib/plan-entitlements';
 
 const money = (value: number, currency: string) => `${currency} ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 const date = (value: Date | null | undefined) => value ? value.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'Not set';
@@ -203,7 +204,14 @@ export async function buildAtlasReportDocument(orgId: string, kind: ReportKind, 
   }
 
   const title = titleFor(kind, clientName);
-  const narrative = await atlasNarrative({ enabled: organization.aiSharingConsent, title, kind, context, metrics, highlights });
+  const narrative = await atlasNarrative({
+    enabled: organization.aiSharingConsent && entitlementsFor(organization.plan).aiFeatures,
+    title,
+    kind,
+    context,
+    metrics,
+    highlights,
+  });
   const recommendations = highlights.slice(0, 3).map((item, index) => `${index + 1}. Review the supporting records for this signal: ${item}`);
   return {
     version: 1,

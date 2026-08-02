@@ -8,6 +8,9 @@ import {
   sendIrisEmail,
 } from '@/lib/email/iris-email';
 import { memberOnboardingEmail } from '@/lib/email/iris-templates';
+import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+
+class TeamPlanLimitError extends Error {}
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,6 +82,14 @@ export async function POST(request: NextRequest) {
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
 
       const { invite, member } = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`team-capacity:${requestingUser.orgId}`}))`;
+        const memberCount = await tx.user.count({
+          where: { orgId: requestingUser.orgId, role: 'member' },
+        });
+        const memberLimit = entitlementsFor(requestingUser.organization.plan).teamMemberLimit;
+        if (memberCount >= memberLimit) {
+          throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, requestingUser.organization.plan));
+        }
         const member = await tx.user.create({
           data: {
             email: normalizedEmail,
@@ -193,17 +204,28 @@ export async function POST(request: NextRequest) {
           },
         });
       } else {
-        newUser = await prisma.user.create({
-          data: {
-            email: invite.email,
-            authUserId: identity.id,
-            name: invite.name,
-            role: 'member',
-            phone: invite.phone,
-            agencyTypes: invite.agencyTypes,
-            orgId: invite.orgId,
-            preferences: { create: {} },
-          },
+        newUser = await prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`team-capacity:${invite.orgId}`}))`;
+          const [organization, memberCount] = await Promise.all([
+            tx.organization.findUniqueOrThrow({ where: { id: invite.orgId }, select: { plan: true } }),
+            tx.user.count({ where: { orgId: invite.orgId, role: 'member' } }),
+          ]);
+          const memberLimit = entitlementsFor(organization.plan).teamMemberLimit;
+          if (memberCount >= memberLimit) {
+            throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, organization.plan));
+          }
+          return tx.user.create({
+            data: {
+              email: invite.email,
+              authUserId: identity.id,
+              name: invite.name,
+              role: 'member',
+              phone: invite.phone,
+              agencyTypes: invite.agencyTypes,
+              orgId: invite.orgId,
+              preferences: { create: {} },
+            },
+          });
         });
 
         // Legacy invitations did not create an agency member until completion.
@@ -244,6 +266,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action specified' }, { status: 400 });
   } catch (error: any) {
     console.error('Error processing member route request:', error);
+    if (error instanceof TeamPlanLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     if (error instanceof IrisEmailDeliveryError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
 import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
+import { agencyServiceLines } from '@/lib/agency-specializations';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -57,6 +58,7 @@ export default function ClientOnboardPage() {
   const appliedPreselectedLeadId = React.useRef<string | null>(null);
   const [currencyState, setCurrencyState] = React.useState('USD');
   const [agencyBillingMissingFields, setAgencyBillingMissingFields] = React.useState<string[]>([]);
+  const [availableServiceLines, setAvailableServiceLines] = React.useState<string[]>([]);
 
   // Onboarding Wizard Steps
   // 1: Company Profile, 2: Client Contact, 3: Client Connections,
@@ -117,7 +119,7 @@ export default function ClientOnboardPage() {
     // Step 4: Initial Project Setup
     createProject: true,
     projectName: '',
-    projectServiceLine: 'Paid Ads & CRO',
+    projectServiceLine: '',
     projectBudget: '',
     projectPaymentType: 'RETAINER',
     projectPaymentAmount: '',
@@ -174,6 +176,14 @@ export default function ClientOnboardPage() {
     fetch('/api/organization').then((res) => res.ok ? res.json() : null).then((organization) => {
       if (organization?.currency) setCurrencyState(organization.currency);
       if (organization) {
+        const serviceLines = agencyServiceLines(organization.agencyTypes);
+        setAvailableServiceLines(serviceLines);
+        setFormData((current) => ({
+          ...current,
+          projectServiceLine: serviceLines.includes(current.projectServiceLine)
+            ? current.projectServiceLine
+            : serviceLines[0] || '',
+        }));
         setAgencyBillingMissingFields(missingBillingProfileFields(organization, {
           requireLegalName: true,
           label: 'agency',
@@ -272,6 +282,10 @@ export default function ClientOnboardPage() {
   const handleProjectStepDecision = (createProject: boolean) => {
     if (createProject && !formData.projectName.trim()) {
       setFormError(formatUserMessage('Project Name is required to create an initial project.'));
+      return;
+    }
+    if (createProject && !availableServiceLines.includes(formData.projectServiceLine)) {
+      setFormError(formatUserMessage('Select a service line enabled in Agency Settings before creating the project.'));
       return;
     }
     if (createProject && (!formData.projectPaymentAmount || Number(formData.projectPaymentAmount) <= 0)) {
@@ -1114,17 +1128,16 @@ export default function ClientOnboardPage() {
                         <div className="space-y-1.5">
                           <label className="font-semibold text-zinc-400 block">Service Focus Line</label>
                           <select
+                            required
                             name="projectServiceLine"
                             value={formData.projectServiceLine}
                             onChange={handleInputChange}
                             className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
                           >
-                            <option value="Paid Ads & CRO">Paid Ads & CRO</option>
-                            <option value="Search Engine Optimization">Search Engine Optimization</option>
-                            <option value="Web Development & Shopify">Web Development & Shopify</option>
-                            <option value="Social Media (SMM)">Social Media (SMM)</option>
-                            <option value="Brand Rebuilding">Brand Rebuilding</option>
+                            {availableServiceLines.length === 0 && <option value="">Select specializations in Agency Settings</option>}
+                            {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{serviceLine}</option>)}
                           </select>
+                          {availableServiceLines.length === 0 && <p className="mt-1 text-[10px] text-amber-400">Choose at least one agency specialization in Settings before creating an initial project.</p>}
                         </div>
                       </div>
 

@@ -31,6 +31,7 @@ import {
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
 import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/delivery-delays';
+import { agencyServiceLines } from '@/lib/agency-specializations';
 
 const clientIdentityIcons: LucideIcon[] = [
   Building2,
@@ -75,6 +76,7 @@ export default function ProjectsPage() {
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currencyState, setCurrencyState] = React.useState('USD');
+  const [availableServiceLines, setAvailableServiceLines] = React.useState<string[]>([]);
   const [expandedClientId, setExpandedClientId] = React.useState<string | null>(null);
   const gridRef = React.useRef<HTMLDivElement>(null);
 
@@ -83,7 +85,7 @@ export default function ProjectsPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editForm, setEditForm] = React.useState<any>({
     name: '',
-    serviceLine: 'Paid Ads & CRO',
+    serviceLine: '',
     budget: '',
     paymentType: 'RETAINER',
     paymentAmount: '',
@@ -105,7 +107,7 @@ export default function ProjectsPage() {
   const [newProjectForm, setNewProjectForm] = React.useState({
     name: '',
     clientId: '',
-    serviceLine: 'Paid Ads & CRO',
+    serviceLine: '',
     timeline: '3 Months',
     startDate: new Date().toISOString().split('T')[0],
     deadline: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -175,10 +177,16 @@ export default function ProjectsPage() {
         setTeamMembers(data.filter((t: any) => t.role?.toLowerCase() !== 'client'));
       }
 
-      const workspaceRes = await fetch('/api/workspace');
+      const workspaceRes = await fetch('/api/workspace?include=agencyTypes');
       if (workspaceRes.ok) {
         const workspace = await workspaceRes.json();
         setCurrencyState(workspace.organization?.currency || 'USD');
+        const serviceLines = agencyServiceLines(workspace.organization?.agencyTypes);
+        setAvailableServiceLines(serviceLines);
+        setNewProjectForm((current) => ({
+          ...current,
+          serviceLine: serviceLines.includes(current.serviceLine) ? current.serviceLine : serviceLines[0] || '',
+        }));
       }
     } catch (e) {
       console.error(e);
@@ -196,7 +204,7 @@ export default function ProjectsPage() {
     if (selectedProject) {
       setEditForm({
         name: selectedProject.name || '',
-        serviceLine: selectedProject.serviceLine || 'Paid Ads & CRO',
+        serviceLine: selectedProject.serviceLine || '',
         budget: selectedProject.budget ? selectedProject.budget.toString() : '',
         paymentType: selectedProject.paymentType || 'RETAINER',
         paymentAmount: selectedProject.paymentAmount ? selectedProject.paymentAmount.toString() : '',
@@ -329,6 +337,10 @@ export default function ProjectsPage() {
       setFormError('Project Name and Client Association are required.');
       return;
     }
+    if (!availableServiceLines.includes(newProjectForm.serviceLine)) {
+      setFormError('Select a service line enabled in Agency Settings.');
+      return;
+    }
     if (!paymentAmount || Number(paymentAmount) <= 0 || !paymentStartDate) {
       setFormError('A positive client payment and invoice date are required.');
       return;
@@ -372,7 +384,7 @@ export default function ProjectsPage() {
         setNewProjectForm({
           name: '',
           clientId: '',
-          serviceLine: 'Paid Ads & CRO',
+          serviceLine: availableServiceLines[0] || '',
           timeline: '3 Months',
           startDate: new Date().toISOString().split('T')[0],
           deadline: new Date(new Date().getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -830,16 +842,15 @@ export default function ProjectsPage() {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Service Focus Line</label>
                   <select
+                    required
                     value={newProjectForm.serviceLine}
                     onChange={(e) => handleCreationInputChange('serviceLine', e.target.value)}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700"
                   >
-                    <option value="Paid Ads & CRO">Paid Ads & CRO</option>
-                    <option value="Search Engine Optimization">Search Engine Optimization</option>
-                    <option value="Web Development & Shopify">Web Development & Shopify</option>
-                    <option value="Social Media (SMM)">Social Media (SMM)</option>
-                    <option value="Brand Rebuilding">Brand Rebuilding</option>
+                    {availableServiceLines.length === 0 && <option value="">Select specializations in Agency Settings</option>}
+                    {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{serviceLine}</option>)}
                   </select>
+                  {availableServiceLines.length === 0 && <p className="text-[9px] text-amber-400">Select an agency specialization in Settings first.</p>}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Timeline Description</label>
@@ -1197,15 +1208,16 @@ export default function ProjectsPage() {
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Service focus</label>
                       <select
+                        required
                         value={editForm.serviceLine}
                         onChange={(e) => handleEditInputChange('serviceLine', e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-white outline-none"
                       >
-                        <option value="Paid Ads & CRO">Paid Ads & CRO</option>
-                        <option value="Search Engine Optimization">Search Engine Optimization</option>
-                        <option value="Web Development & Shopify">Web Development & Shopify</option>
-                        <option value="Social Media (SMM)">Social Media (SMM)</option>
-                        <option value="Brand Rebuilding">Brand Rebuilding</option>
+                        {editForm.serviceLine && !availableServiceLines.includes(editForm.serviceLine) && (
+                          <option value={editForm.serviceLine} disabled>{editForm.serviceLine} (not enabled in Settings)</option>
+                        )}
+                        {availableServiceLines.length === 0 && <option value="" disabled>Select specializations in Agency Settings</option>}
+                        {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{serviceLine}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1.5">

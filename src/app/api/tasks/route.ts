@@ -3,6 +3,13 @@ import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { isTaskStatus, normalizeTaskStatusProgress } from '@/lib/tasks/status-progress';
 
+function isTaskWriteConflict(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('P2025')
+    || message.includes('55P03')
+    || message.toLowerCase().includes('lock timeout');
+}
+
 function canEditTask(user: { id: string; role: string }, task: { assignedToId: string | null }) {
   return isOrganizationAdmin(user) || (user.role.toLowerCase() === 'member' && task.assignedToId === user.id);
 }
@@ -133,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'update_task') {
-      const { id, title, description, status, progress, blocker, update, assignedToId, projectId, stageId, timeline, deadline } = body;
+      const { id, title, description, status, progress, blocker, update, assignedToId, projectId, stageId, timeline, deadline, expectedUpdatedAt } = body;
 
       if (!id) {
         return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
@@ -149,6 +156,10 @@ export async function POST(request: NextRequest) {
       }
       if (!canEditTask(requestUser, existingTask)) {
         return NextResponse.json({ error: 'You can only edit tasks assigned to you.' }, { status: 403 });
+      }
+      const expectedVersion = expectedUpdatedAt ? new Date(expectedUpdatedAt) : null;
+      if (expectedUpdatedAt && Number.isNaN(expectedVersion?.getTime())) {
+        return NextResponse.json({ error: 'Invalid task version.' }, { status: 400 });
       }
 
       const normalizedTitle = title !== undefined ? String(title).trim() : undefined;
@@ -206,33 +217,44 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // If they provided a raw update string, we also add it to TaskUpdate
-      if (update) {
-        await prisma.taskUpdate.create({
-          data: {
-            content: update,
-            taskId: id
-          }
-        });
-      }
+      let updatedTask;
+      try {
+        updatedTask = await prisma.$transaction(async (tx) => {
+          // A stale/duplicate UI write should fail quickly instead of holding a
+          // request open behind another task editor for 10-50 seconds.
+          await tx.$executeRawUnsafe("SET LOCAL lock_timeout = '750ms'");
 
-      const updatedTask = await prisma.clientTask.update({
-        where: { id },
-        data: {
-          title: normalizedTitle,
-          description: description !== undefined ? (description === '' ? null : String(description)) : undefined,
-          status: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.status : undefined,
-          progress: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.progress : undefined,
-          blocker: blocker !== undefined ? (blocker === '' ? null : blocker) : undefined,
-          update: update !== undefined ? (update === '' ? null : update) : undefined,
-          assignedToId: assignedToId !== undefined ? (assignedToId === '' || assignedToId === null ? null : assignedToId) : undefined,
-          projectId: projectId !== undefined ? (projectId === '' || projectId === null ? null : projectId) : undefined,
-          stageId: stageId !== undefined ? (stageId === '' || stageId === null ? null : stageId) : undefined,
-          timeline: timeline !== undefined ? (timeline === '' ? null : String(timeline)) : undefined,
-          deadline: deadline !== undefined ? normalizedDeadline : undefined,
-        },
-        include: taskInclude
-      });
+          if (update) {
+            await tx.taskUpdate.create({ data: { content: update, taskId: id } });
+          }
+
+          return tx.clientTask.update({
+            where: expectedVersion ? { id, updatedAt: expectedVersion } : { id },
+            data: {
+              title: normalizedTitle,
+              description: description !== undefined ? (description === '' ? null : String(description)) : undefined,
+              status: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.status : undefined,
+              progress: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.progress : undefined,
+              blocker: blocker !== undefined ? (blocker === '' ? null : blocker) : undefined,
+              update: update !== undefined ? (update === '' ? null : update) : undefined,
+              assignedToId: assignedToId !== undefined ? (assignedToId === '' || assignedToId === null ? null : assignedToId) : undefined,
+              projectId: projectId !== undefined ? (projectId === '' || projectId === null ? null : projectId) : undefined,
+              stageId: stageId !== undefined ? (stageId === '' || stageId === null ? null : stageId) : undefined,
+              timeline: timeline !== undefined ? (timeline === '' ? null : String(timeline)) : undefined,
+              deadline: deadline !== undefined ? normalizedDeadline : undefined,
+            },
+            include: taskInclude,
+          });
+        }, { maxWait: 1_000, timeout: 3_000 });
+      } catch (error) {
+        if (isTaskWriteConflict(error)) {
+          return NextResponse.json(
+            { error: 'This task changed while you were editing it. Refresh and retry.' },
+            { status: 409 },
+          );
+        }
+        throw error;
+      }
 
       return NextResponse.json({ success: true, task: updatedTask });
     }

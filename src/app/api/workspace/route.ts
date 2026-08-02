@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
 
 const patchSchema = z.object({
   organization: z.object({
@@ -54,11 +55,14 @@ export async function GET() {
       },
     ];
 
+    const plan = normalizePlan(user.organization.plan);
+    const entitlements = entitlementsFor(plan);
     const response = NextResponse.json({
       organization: {
         id: user.organization.id,
         name: user.organization.name,
-        plan: user.organization.plan,
+        plan,
+        agencyTypes: user.organization.agencyTypes,
         billingEmail: user.organization.billingEmail,
         currency: user.organization.currency,
         preferences: user.organization.preferences ?? {},
@@ -81,6 +85,17 @@ export async function GET() {
       },
       integrations,
       counts: { reports: reportCount, atlasSessions: atlasSessionCount },
+      entitlements: {
+        specializationLimit: entitlements.specializationLimit,
+        teamMemberLimit: entitlements.teamMemberLimit,
+        clientLimit: entitlements.clientLimit,
+        dailyBriefing: entitlements.dailyBriefing,
+        strategyGeneration: entitlements.strategyGeneration,
+        aiFeatures: entitlements.aiFeatures,
+        messaging: entitlements.messaging,
+        atlasCapabilities: entitlements.atlasCapabilities,
+        messagingLimits: entitlements.messagingLimits,
+      },
     });
     return response;
   } catch (error) {

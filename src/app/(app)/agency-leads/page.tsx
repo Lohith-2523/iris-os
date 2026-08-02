@@ -27,8 +27,8 @@ import {
   Megaphone
 } from 'lucide-react';
 import { formatCurrency, formatUserMessage } from '@/lib/utils';
-import * as XLSX from 'xlsx';
 import { useRouter } from 'next/navigation';
+import { validateBrowserFile } from '@/lib/file-security';
 
 interface AgencyLead {
   id: string;
@@ -359,7 +359,8 @@ export default function AgencyLeadsPage() {
     document.body.removeChild(link);
   };
 
-  const downloadXlsxTemplate = () => {
+  const downloadXlsxTemplate = async () => {
+    const XLSX = await import('xlsx');
     const data = [
       ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Funnel Name", "Status", "Approach Method", "Estimated Client Value"],
       ["IRIS_OS_AGENCY_LEAD_IMPORT_v1", "Vikram Patel", "vikram@apex.co", "+91 98765 43210", "Enterprise Outreach", "procured", "Email", 250000],
@@ -372,16 +373,23 @@ export default function AgencyLeadsPage() {
   };
 
   // --- BATCH FILE UPLOAD HANDLERS ---
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const validation = await validateBrowserFile(file, 'spreadsheet-import', { maxBytes: 5 * 1024 * 1024 });
+    if (!validation.ok) {
+      setErrorMsg(validation.error);
+      setUploadStatus('error');
+      return;
+    }
 
     setIsParsing(true);
     setErrorMsg('');
     setUploadStatus('idle');
     setIsTemplateAligned(null);
 
-    const isCsv = file.name.endsWith('.csv');
+    const isCsv = file.name.toLowerCase().endsWith('.csv');
 
     try {
       if (isCsv) {
@@ -423,6 +431,7 @@ export default function AgencyLeadsPage() {
         const reader = new FileReader();
         reader.onload = async (event) => {
           try {
+            const XLSX = await import('xlsx');
             const data = new Uint8Array(event.target?.result as ArrayBuffer);
             const workbook = XLSX.read(data, { type: 'array' });
             const firstSheetName = workbook.SheetNames[0];

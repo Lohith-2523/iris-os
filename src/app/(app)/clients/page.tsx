@@ -3,13 +3,18 @@
 import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { ArrowRight, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
-import { ClientPortfolioValueChart } from '@/components/clients/client-revenue-chart';
+
+const ClientPortfolioValueChart = dynamic(
+  () => import('@/components/clients/client-revenue-chart').then((module) => module.ClientPortfolioValueChart),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded bg-zinc-900/40" /> },
+);
 
 type SavedStrategy = {
   id: string;
@@ -42,7 +47,7 @@ export default function ClientsPage() {
   React.useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/data?domain=clients');
+        const res = await fetch('/api/data?domain=clients&include=contacts');
         if (res.ok) {
           const json = await res.json();
           setDbClients(json);

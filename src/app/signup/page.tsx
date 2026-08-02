@@ -3,14 +3,13 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, Phone, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
-import { createClient } from '@/lib/client';
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -28,6 +27,8 @@ export default function SignupPage() {
     setIsLoading(true);
     
     try {
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -52,6 +53,8 @@ export default function SignupPage() {
   const handleGoogleSignup = async () => {
     setIsLoading(true);
     try {
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -72,7 +75,7 @@ export default function SignupPage() {
 
       <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl font-sans text-xs">
         <CardHeader className="text-center pt-8 pb-6 flex flex-col items-center">
-          <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-10 object-contain mb-4" />
+          <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={105} height={40} priority className="h-10 w-auto object-contain mb-4" />
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Create Workspace</CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
             Deploy an isolated enterprise operating console
@@ -193,7 +196,7 @@ export default function SignupPage() {
 
           <div className="text-center font-mono text-[10px] text-zinc-500 pt-2">
             Already have an account?{' '}
-            <Link href="/login" className="text-white hover:text-red-500 font-bold underline transition-colors">
+            <Link href="/login" prefetch={false} className="text-white hover:text-red-500 font-bold underline transition-colors">
               Log In
             </Link>
           </div>

@@ -17,6 +17,10 @@ import {
   InvoiceServiceError,
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
+import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+import { isSelectedAgencyServiceLine } from '@/lib/agency-specializations';
+
+class ClientPlanLimitError extends Error {}
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -215,6 +219,9 @@ export async function POST(request: NextRequest) {
     if (initialProject && !initialProject.name?.trim()) {
       return NextResponse.json({ error: 'An initial project requires a project name' }, { status: 400 });
     }
+    if (initialProject && !isSelectedAgencyServiceLine(initialProject.serviceLine, org.agencyTypes)) {
+      return NextResponse.json({ error: 'Select an initial project service line enabled in Agency Settings.' }, { status: 400 });
+    }
     if (initialProject && !initialProject.startDate) {
       return NextResponse.json({ error: 'An initial project requires a start date' }, { status: 400 });
     }
@@ -252,6 +259,12 @@ export async function POST(request: NextRequest) {
     // A client onboarding submission is one unit of work: an incomplete client
     // record must never be committed if its requested initial project fails.
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`client-capacity:${org.id}`}))`;
+      const clientCount = await tx.client.count({ where: { orgId: org.id } });
+      const clientLimit = entitlementsFor(org.plan).clientLimit;
+      if (clientCount >= clientLimit) {
+        throw new ClientPlanLimitError(planLimitMessage('clients', clientLimit, org.plan));
+      }
       const newClient = await tx.client.create({
         data: {
           name,
@@ -442,6 +455,9 @@ export async function POST(request: NextRequest) {
       inviteUrl: inviteUrl.toString(),
     });
   } catch (error: any) {
+    if (error instanceof ClientPlanLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     if (error instanceof MetaAdAccountAssignmentError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

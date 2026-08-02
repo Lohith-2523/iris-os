@@ -9,6 +9,7 @@ export const workspaceThemePaths = [
   '/explorer',
   '/finance',
   '/invoices',
+  '/messages',
   '/atlas',
   '/briefing',
   '/projects',

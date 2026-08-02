@@ -9,6 +9,9 @@ import { Button } from '@/components/ui/button';
 import { setActiveWorkspaceContext } from '@/lib/utils';
 import { setAtlasAIWorkspaceScope } from '@/lib/atlas-ai/service';
 import { DailyBriefingLauncher } from '@/components/daily-briefing/daily-briefing-launcher';
+import { AuthSync } from '@/components/app-shell/auth-sync';
+import { MetaSdkLoader } from '@/components/integrations/meta-sdk-loader';
+import { FileInputSecurityGuard } from '@/components/security/file-input-security-guard';
 import {
   configureWorkspaceDataCache,
   getWorkspaceDataLoadingSnapshot,
@@ -22,6 +25,19 @@ import {
 } from '@/lib/workspace-data-cache';
 
 prepareWorkspaceDataCacheForNavigation();
+
+function WorkspaceRuntime() {
+  const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID;
+  const metaApiVersion = process.env.NEXT_PUBLIC_META_API_VERSION || 'v25.0';
+
+  return (
+    <>
+      <AuthSync />
+      <FileInputSecurityGuard />
+      {metaAppId && <MetaSdkLoader appId={metaAppId} apiVersion={metaApiVersion} />}
+    </>
+  );
+}
 
 const ADMIN_WORKSPACE_DATA = [
   '/api/workspace',
@@ -45,7 +61,7 @@ const ADMIN_WORKSPACE_DATA = [
   '/api/atlas-ai/sessions',
 ];
 
-function workspaceWarmupUrls(role: string) {
+function workspaceWarmupUrls(role: string, plan = 'BASIC') {
   const normalizedRole = role.toLowerCase();
   if (normalizedRole === 'client') {
     return ['/api/workspace', '/api/meta-portal', '/api/calendar', '/api/integrations'];
@@ -53,7 +69,9 @@ function workspaceWarmupUrls(role: string) {
   if (normalizedRole === 'member') {
     return ['/api/workspace', '/api/tasks', '/api/projects', '/api/data?domain=team', '/api/calendar', '/api/integrations'];
   }
-  return ADMIN_WORKSPACE_DATA;
+  return plan === 'BASIC'
+    ? ADMIN_WORKSPACE_DATA.filter((url) => url !== '/api/atlas-ai/sessions')
+    : ADMIN_WORKSPACE_DATA;
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -61,7 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   
-  const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string } | null>(null);
+  const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string; plan: string } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isBriefingGateResolved, setIsBriefingGateResolved] = React.useState(false);
   const [hasUnreadBriefing, setHasUnreadBriefing] = React.useState(false);
@@ -76,15 +94,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/user', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
-        setUser(data);
         configureWorkspaceDataCache({ userId: data.id, orgId: data.orgId });
         setAtlasAIWorkspaceScope({ userId: data.id, orgId: data.orgId });
         const workspaceRes = await workspaceFetch('/api/workspace');
+        let activePlan = 'BASIC';
         if (workspaceRes.ok) {
           const workspace = await workspaceRes.json();
+          activePlan = workspace.organization.plan || 'BASIC';
+          setUser({ ...data, plan: activePlan });
           setActiveWorkspaceContext({ userName: data.name, currency: workspace.organization.currency });
+        } else {
+          setUser({ ...data, plan: 'BASIC' });
         }
-        await warmWorkspaceDataCache(workspaceWarmupUrls(data.role));
+        const startupTasks: Promise<unknown>[] = [
+          warmWorkspaceDataCache(workspaceWarmupUrls(data.role, activePlan)),
+        ];
+        if (activePlan !== 'BASIC') {
+          startupTasks.push(
+            import('@/lib/messaging/protocol')
+              .then(({ getMessagingProtocol }) => getMessagingProtocol().prepare({ userId: data.id }))
+              .catch((error) => {
+                console.error('Unable to register the secure messaging device during workspace startup:', error);
+              }),
+          );
+        }
+        void Promise.allSettled(startupTasks).then((results) => {
+          for (const result of results) {
+            if (result.status === 'rejected') {
+              console.error('Unable to complete a workspace background warm-up:', result.reason);
+            }
+          }
+        });
       } else if (res.status === 401) {
         configureWorkspaceDataCache(null);
         setAtlasAIWorkspaceScope(null);
@@ -117,7 +157,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!user) return;
-    if (user.role.toLowerCase() !== 'admin' || window.location.pathname === '/briefing') {
+    if (user.role.toLowerCase() !== 'admin' || user.plan !== 'ADVANCED' || window.location.pathname === '/briefing') {
       setIsBriefingGateResolved(true);
       return;
     }
@@ -162,23 +202,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('daily-briefing-opened', markBriefingRead);
   }, []);
 
+  const messagingAllowed = user?.plan !== 'BASIC';
   const isClientGated = user?.role?.toLowerCase() === 'client' && 
     pathname !== '/client-dashboard' && 
     pathname !== '/client-leads' &&
     pathname !== '/clients/onboard' &&
-    pathname !== '/calendar';
+    pathname !== '/calendar' &&
+    !(messagingAllowed && pathname === '/messages');
   
   const isMemberGated = user?.role?.toLowerCase() === 'member' && 
     pathname !== '/teams-dashboard' && 
     pathname !== '/tasks' &&
-    pathname !== '/calendar';
+    pathname !== '/calendar' &&
+    !(messagingAllowed && pathname === '/messages');
 
   const isAdminGated = user?.role?.toLowerCase() === 'admin' && 
     (pathname === '/client-dashboard' || pathname === '/client-leads' || pathname === '/teams-dashboard');
 
-  if (loading || (user?.role.toLowerCase() === 'admin' && !isBriefingGateResolved)) {
+  const isPlanGated = Boolean(user && (
+    (pathname === '/messages' && user.plan === 'BASIC')
+    || (pathname === '/atlas' && user.plan === 'BASIC')
+    || (pathname === '/briefing' && user.plan !== 'ADVANCED')
+    || (pathname === '/strategy' && user.plan !== 'ADVANCED')
+  ));
+
+  if (loading || (user?.role.toLowerCase() === 'admin' && user.plan === 'ADVANCED' && !isBriefingGateResolved)) {
     return (
       <div className="workspace-shell flex h-screen w-screen items-center justify-center bg-[#09090b]">
+        <WorkspaceRuntime />
         <div className="workspace-session-status workspace-loading-card text-zinc-500 text-xs flex items-center gap-2" role="status">
           <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
           <span>Loading workspace...</span>
@@ -189,8 +240,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="workspace-shell flex h-screen w-screen overflow-hidden bg-[#09090b]">
+      <WorkspaceRuntime />
       {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:flex shrink-0" />
+      <Sidebar className="hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} />
 
       {/* Mobile Sidebar overlay drawer */}
       {isMobileOpen && (
@@ -203,7 +255,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Sidebar Drawer */}
           <div className="workspace-drawer relative z-50 flex h-full w-64 transform transition-transform duration-300 ease-in-out">
-            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" />
+            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} />
             <button
               onClick={() => setIsMobileOpen(false)}
               className="workspace-icon-control absolute top-4 -right-12 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
@@ -224,7 +276,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           className="workspace-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0c0c0e] p-4 sm:p-6 lg:p-8"
           aria-busy={isWorkspaceDataLoading}
         >
-          {isWorkspaceDataLoading && (
+          {isWorkspaceDataLoading && pathname !== '/briefing' && (
             <div
               className="workspace-overlay workspace-loading-overlay fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/82 p-6 backdrop-blur-md"
               role="status"
@@ -236,7 +288,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           )}
-           {isAdminGated ? (
+           {isPlanGated ? (
+            <div className="flex h-[70vh] flex-col items-center justify-center font-sans text-xs">
+              <div className="workspace-access-card w-full max-w-md bg-[#0d0e12] border border-zinc-800 p-6 rounded-lg shadow-2xl space-y-6 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded bg-zinc-900 border border-zinc-800 text-zinc-400"><Lock className="h-5 w-5" /></div>
+                <div className="space-y-1.5">
+                  <h2 className="text-sm font-bold text-white uppercase tracking-wider">Plan upgrade required</h2>
+                  <p className="text-[11px] text-zinc-500 max-w-xs mx-auto leading-normal">This feature is not included with the workspace’s current {user?.plan.toLowerCase()} plan.</p>
+                </div>
+                <Button onClick={() => router.push('/settings')} className="w-full h-9 font-semibold bg-white text-zinc-950 hover:bg-zinc-200">View plan settings</Button>
+              </div>
+            </div>
+          ) : isAdminGated ? (
             <div className="flex h-[70vh] flex-col items-center justify-center font-sans text-xs">
               <div className="workspace-access-card w-full max-w-md bg-[#0d0e12] border border-zinc-800 p-6 rounded-lg shadow-2xl space-y-6 text-center relative overflow-hidden">
                 <div className="absolute top-0 inset-x-0 h-0.5 bg-zinc-800" />
@@ -315,7 +378,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </main>
       </div>
-      {user?.role.toLowerCase() === 'admin' && <DailyBriefingLauncher hasUnreadBriefing={hasUnreadBriefing} />}
+      {user?.role.toLowerCase() === 'admin' && user.plan === 'ADVANCED' && <DailyBriefingLauncher hasUnreadBriefing={hasUnreadBriefing} />}
     </div>
   );
 }

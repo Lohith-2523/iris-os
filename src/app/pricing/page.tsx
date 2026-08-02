@@ -1,8 +1,6 @@
-'use client';
-
-import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight, Check, Menu, X, HelpCircle } from 'lucide-react';
+import Image from 'next/image';
+import { Check, Menu } from 'lucide-react';
 
 const FAQS = [
   {
@@ -15,7 +13,7 @@ const FAQS = [
   },
   {
     question: "Can I adjust my plan tier or add-ons later?",
-    answer: "Yes, you can upgrade or downgrade your workspace tier, or add agency spec allowances, directly from the billing tab in your settings console."
+    answer: "Yes, you can upgrade or downgrade your workspace tier directly from the billing tab in your settings console. All tiers include all 10 agency specializations."
   },
   {
     question: "Is there a setup fee or lock-in contract?",
@@ -24,16 +22,13 @@ const FAQS = [
 ];
 
 export default function PricingPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [openFaq, setOpenFaq] = React.useState<number | null>(null);
-
   return (
-    <div className="workspace-auth workspace-pricing bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none animate-fade-in">
+    <div className="workspace-auth workspace-pricing bg-[#f4f5f7] text-[#09090b] min-h-screen relative font-sans select-none">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-white border-b-[3px] border-black px-6 py-4 flex items-center justify-between animate-fade-in">
         {/* Left: Logo */}
         <Link href="/" className="flex items-center gap-2 group shrink-0">
-          <img src="/iris-logo-white-bg.png" alt="Iris OS Logo" className="h-8 object-contain" />
+          <Image src="/iris-logo-white-bg.png" alt="Iris OS Logo" width={85} height={32} priority className="h-8 w-auto object-contain" />
         </Link>
 
         {/* Center Nav Links */}
@@ -47,44 +42,17 @@ export default function PricingPage() {
         <div className="hidden md:block">
         </div>
 
-        {/* Mobile menu toggle */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-black hover:text-red-600 focus:outline-none"
-        >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </header>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-x-0 top-16 bg-white border-b-4 border-black z-40 p-6 flex flex-col gap-6 md:hidden font-sans border-t animate-fade-in">
-          <nav className="flex flex-col gap-4 font-semibold text-xs tracking-wider uppercase">
-            <Link
-              href="/#about"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
-            >
-              About
-            </Link>
-            <Link
-              href="/#features"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
-            >
-              Features
-            </Link>
-            <Link
-              href="/pricing"
-              onClick={() => setMobileMenuOpen(false)}
-              className="hover:text-red-600 border-b border-zinc-200 pb-2"
-            >
-              Join Now
-            </Link>
+        <details className="group md:hidden">
+          <summary className="list-none cursor-pointer p-2 text-black hover:text-red-600" aria-label="Open navigation">
+            <Menu className="h-6 w-6" />
+          </summary>
+          <nav className="absolute inset-x-0 top-full flex flex-col gap-4 border-y-4 border-black bg-white p-6 text-xs font-semibold uppercase tracking-wider">
+            <Link href="/#about" prefetch={false} className="border-b border-zinc-200 pb-2 hover:text-red-600">About</Link>
+            <Link href="/#features" prefetch={false} className="border-b border-zinc-200 pb-2 hover:text-red-600">Features</Link>
+            <Link href="/pricing" prefetch={false} className="border-b border-zinc-200 pb-2 hover:text-red-600">Join Now</Link>
           </nav>
-
-        </div>
-      )}
+        </details>
+      </header>
 
       {/* Pricing Header Banner */}
       <section className="relative w-full py-16 px-6 border-b-[3px] border-black bg-white overflow-hidden">
@@ -119,7 +87,7 @@ export default function PricingPage() {
               <ul className="space-y-3 font-mono text-[10px] text-zinc-650">
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                  <span>1 Agency Specialization</span>
+                  <span>All 10 Agency Specializations</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
@@ -133,11 +101,20 @@ export default function PricingPage() {
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
                   <span>Secure Invite Gateway</span>
                 </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                  <span>2 Team Members · 5 Clients</span>
+                </li>
+                <li className="flex items-center gap-2 text-zinc-500">
+                  <span className="h-3.5 w-3.5 text-center shrink-0">—</span>
+                  <span>No AI or Messaging Features</span>
+                </li>
               </ul>
             </div>
             <div className="mt-8">
               <Link
                 href="/login"
+                prefetch={false}
                 className="w-full text-center py-2.5 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase tracking-wider block"
               >
                 Select Basic
@@ -162,7 +139,7 @@ export default function PricingPage() {
               <ul className="space-y-3 font-mono text-[10px] text-zinc-700">
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                  <span className="font-bold">Up to 5 Agency Specializations</span>
+                  <span className="font-bold">All 10 Agency Specializations</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
@@ -174,13 +151,18 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                  <span>Atlas AI Chat Assistance</span>
+                  <span>Atlas AI for Meetings & Invoices</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                  <span>Secure Messaging · 4 Team · 15 Clients</span>
                 </li>
               </ul>
             </div>
             <div className="mt-8">
               <Link
                 href="/login"
+                prefetch={false}
                 className="w-full text-center py-2.5 bg-[#09090b] text-white hover:bg-red-650 border-2 border-black text-xs font-bold uppercase tracking-wider block"
               >
                 Select Pro
@@ -202,7 +184,7 @@ export default function PricingPage() {
               <ul className="space-y-3 font-mono text-[10px] text-zinc-650">
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                  <span className="font-bold">All 10+ Agency Specializations</span>
+                  <span className="font-bold">All 10 Agency Specializations</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
@@ -216,11 +198,20 @@ export default function PricingPage() {
                   <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
                   <span>24/7 Sandbox Clearance</span>
                 </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                  <span>Full Atlas AI · Briefing · Strategy</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                  <span>Secure Messaging · 15 Team · 30 Clients</span>
+                </li>
               </ul>
             </div>
             <div className="mt-8">
               <Link
                 href="/login"
+                prefetch={false}
                 className="w-full text-center py-2.5 bg-[#09090b] text-white hover:bg-red-600 border-2 border-black text-xs font-bold uppercase tracking-wider block"
               >
                 Select Advanced
@@ -240,22 +231,21 @@ export default function PricingPage() {
 
           <div className="space-y-4">
             {FAQS.map((faq, index) => {
-              const isOpen = openFaq === index;
+              const isOpen = false;
               return (
-                <div key={index} className="border-2 border-black bg-[#f4f5f7] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : index)}
+                <details key={index} className="group border-2 border-black bg-[#f4f5f7] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                  <summary
                     className="w-full text-left p-4 font-heading font-bold text-xs uppercase flex items-center justify-between hover:bg-zinc-100 transition-colors"
                   >
                     <span>{faq.question}</span>
                     <span className="text-red-600 text-sm font-mono">{isOpen ? '−' : '+'}</span>
-                  </button>
-                  {isOpen && (
+                  </summary>
+                  <>
                     <div className="p-4 border-t-2 border-black bg-white text-xs text-zinc-700 leading-relaxed font-sans font-medium">
                       {faq.answer}
                     </div>
-                  )}
-                </div>
+                  </>
+                </details>
               );
             })}
           </div>
@@ -266,7 +256,7 @@ export default function PricingPage() {
       <footer className="bg-[#09090b] text-white py-12 px-6 border-t-[3px] border-black">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-2">
-            <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-7 object-contain" />
+            <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={74} height={28} className="h-7 w-auto object-contain" />
             <span className="text-[10px] text-zinc-500 font-mono mt-1 font-medium">© 2026. All rights reserved.</span>
           </div>
 
@@ -274,9 +264,9 @@ export default function PricingPage() {
             <Link href="/#about" className="hover:text-red-500">About</Link>
             <Link href="/#features" className="hover:text-red-500">Features</Link>
             <Link href="/pricing" className="hover:text-red-500">Pricing</Link>
-            <Link href="/terms" className="hover:text-red-500">Terms</Link>
-            <Link href="/privacy" className="hover:text-red-500">Privacy</Link>
-            <Link href="/login" className="hover:text-red-500">Sign In</Link>
+            <Link href="/terms" prefetch={false} className="hover:text-red-500">Terms</Link>
+            <Link href="/privacy" prefetch={false} className="hover:text-red-500">Privacy</Link>
+            <Link href="/login" prefetch={false} className="hover:text-red-500">Sign In</Link>
           </div>
         </div>
       </footer>

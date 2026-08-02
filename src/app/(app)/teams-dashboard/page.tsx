@@ -29,6 +29,7 @@ import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 
 interface Task {
   id: string;
+  updatedAt: string;
   title: string;
   description?: string | null;
   status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED';
@@ -68,6 +69,7 @@ export default function TeamsDashboardPage() {
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [updatingTaskId, setUpdatingTaskId] = React.useState<string | null>(null);
+  const taskWritesInFlight = React.useRef(new Set<string>());
 
   // Selected Task Detail Modal State
   const [selectedTask, setSelectedTask] = React.useState<Task | null>(null);
@@ -137,6 +139,9 @@ export default function TeamsDashboardPage() {
 
   // Task Status Update (Drag & Drop or Manual)
   const handleUpdateStatus = async (taskId: string, newStatus: Task['status']) => {
+    if (taskWritesInFlight.current.has(taskId)) return;
+    taskWritesInFlight.current.add(taskId);
+    const taskVersion = tasks.find((task) => task.id === taskId)?.updatedAt;
     setUpdatingTaskId(taskId);
     try {
       const res = await fetch('/api/tasks', {
@@ -145,6 +150,7 @@ export default function TeamsDashboardPage() {
         body: JSON.stringify({
           action: 'update_task',
           id: taskId,
+          expectedUpdatedAt: taskVersion,
           status: newStatus
         })
       });
@@ -154,6 +160,7 @@ export default function TeamsDashboardPage() {
     } catch (e) {
       console.error('Failed to update task status:', e);
     } finally {
+      taskWritesInFlight.current.delete(taskId);
       setUpdatingTaskId(null);
     }
   };

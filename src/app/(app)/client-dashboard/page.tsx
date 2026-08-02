@@ -119,6 +119,7 @@ export default function ClientDashboardPage() {
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [userRole, setUserRole] = React.useState<string>('client');
   const [clientName, setClientName] = React.useState<string | null>(null);
+  const [hasMetaAccount, setHasMetaAccount] = React.useState(false);
 
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
@@ -137,19 +138,24 @@ export default function ClientDashboardPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/meta-portal');
+      const [res, tasksResponse] = await Promise.all([
+        fetch('/api/meta-portal', { cache: 'no-store' }),
+        fetch('/api/tasks', { cache: 'no-store' }),
+      ]);
       if (res.ok) {
         const data = await res.json();
         setCampaigns(data.campaigns || []);
         setLeads(data.leads || []);
         setOrphanedAds(data.orphanedAds || []);
-        setScheduledPosts(data.scheduledPosts || []);
-        setTasks(data.clientTasks || []);
+        setScheduledPosts([]);
+        if (tasksResponse.ok) setTasks(await tasksResponse.json());
         const role = data.role || 'client';
         setUserRole(role);
         setClientName(data.clientName || '');
+        const metaConnected = Boolean(data.hasMetaAccount);
+        setHasMetaAccount(metaConnected);
         if (role === 'client') {
-          setActiveTab('calendar');
+          setActiveTab(metaConnected ? 'campaigns' : 'tasks');
         }
       }
     } catch (e) {
@@ -306,7 +312,7 @@ export default function ClientDashboardPage() {
       <div className="flex h-[60vh] items-center justify-center">
         <div className="text-zinc-500 text-xs flex items-center gap-2">
           <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-          <span>Synchronizing Meta Portal APIs & Content buffers...</span>
+          <span>Loading client workspace...</span>
         </div>
       </div>
     );
@@ -346,15 +352,15 @@ export default function ClientDashboardPage() {
         <div>
           <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Client Workspace</span>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
-            {clientName} Marketing Command
+            {clientName} Client Workspace
           </h1>
           <p className="text-xs text-zinc-500">
-            {userRole === 'client' 
-              ? 'Content calendar feedback and broadcast scheduled post approvals.' 
-              : 'Live ad performance auditing, content calendar feedback, and engagement charts.'}
+            {hasMetaAccount
+              ? 'Review attributed Meta ads and leads, with project task updates in a separate tab.'
+              : 'Review project deliverables, progress, blockers, and the latest task updates.'}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        {hasMetaAccount && <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
@@ -367,81 +373,26 @@ export default function ClientDashboardPage() {
           </Button>
           <Badge variant="risk-low" className="h-8 border-emerald-900/40 bg-emerald-950/20 text-emerald-400 gap-1.5 px-3">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Connection Active</span>
+            <span>Meta Connected</span>
           </Badge>
-        </div>
+        </div>}
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-zinc-850 gap-1.5 scrollbar-none overflow-x-auto">
-        {userRole === 'client' ? (
-          <>
-            <button
-              onClick={() => setActiveTab('calendar')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'calendar' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              <CalendarIcon className="h-3.5 w-3.5" />
-              <span>Broadcast Calendar</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('tasks')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'tasks' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Activity className="h-3.5 w-3.5" />
-              <span>Tasks & Updates</span>
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'overview' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              Performance Overview
-            </button>
+        {hasMetaAccount && (
             <button
               onClick={() => setActiveTab('campaigns')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'campaigns' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              Ads & Campaigns
-            </button>
-            <button
-              onClick={() => setActiveTab('insights')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'insights' 
-                  ? 'border-white text-white font-bold' 
-                  : 'border-transparent text-zinc-400 hover:text-white'
-              }`}
-            >
-              Engagement Insights
-            </button>
-            <button
-              onClick={() => setActiveTab('calendar')}
               className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'calendar' 
+                activeTab === 'campaigns'
                   ? 'border-white text-white font-bold' 
                   : 'border-transparent text-zinc-400 hover:text-white'
               }`}
             >
-              <CalendarIcon className="h-3.5 w-3.5" />
-              <span>Broadcast Calendar</span>
+              <Megaphone className="h-3.5 w-3.5" />
+              <span>Ads & Leads</span>
             </button>
+        )}
             <button
               onClick={() => setActiveTab('tasks')}
               className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
@@ -451,10 +402,8 @@ export default function ClientDashboardPage() {
               }`}
             >
               <Activity className="h-3.5 w-3.5" />
-              <span>Tasks & Updates</span>
+              <span>Task Updates</span>
             </button>
-          </>
-        )}
       </div>
 
       {/* TAB 1: OVERVIEW */}

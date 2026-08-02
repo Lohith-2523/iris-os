@@ -8,6 +8,7 @@ import {
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
 import { getDeliveryDelaySummary } from '@/lib/delivery-delays';
+import { isSelectedAgencyServiceLine } from '@/lib/agency-specializations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -109,6 +110,9 @@ export async function POST(request: NextRequest) {
 
     if (!name || !clientId) {
       return NextResponse.json({ error: 'Missing name or clientId' }, { status: 400 });
+    }
+    if (!isSelectedAgencyServiceLine(serviceLine, user.organization.agencyTypes)) {
+      return NextResponse.json({ error: 'Select a project service line enabled in Agency Settings.' }, { status: 400 });
     }
 
     const commercials = parseProjectCommercials({
@@ -300,6 +304,9 @@ export async function PUT(request: NextRequest) {
 
     if (!projectId) {
       return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
+    }
+    if (serviceLine !== undefined && !isSelectedAgencyServiceLine(serviceLine, user.organization.agencyTypes)) {
+      return NextResponse.json({ error: 'Select a project service line enabled in Agency Settings.' }, { status: 400 });
     }
 
     const commercials = parseProjectCommercials({

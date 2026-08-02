@@ -9,6 +9,7 @@ import { createClient } from '@/lib/client';
 import { clearWorkspaceUiPreferences, readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
+import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
 import {
   LayoutDashboard,
   Wallet,
@@ -24,11 +25,14 @@ import {
   ChevronRight,
   Calendar,
   FileSpreadsheet,
-  ReceiptText
+  ReceiptText,
+  MessageSquare,
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   onCloseMobile?: () => void;
+  workspacePlan?: string;
+  workspaceRole?: string;
 }
 
 type NavigationItem = {
@@ -44,7 +48,7 @@ type NavigationGroup = {
   items: NavigationItem[];
 };
 
-export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
+export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole, ...props }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = React.useMemo(() => createClient(), []);
@@ -56,10 +60,12 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
     name: string;
     email: string;
     role: string;
-    hasMetaAccount?: boolean;
   } | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
+  const resolvedPlan = normalizePlan(workspacePlan || plan);
+  const messagingAllowed = entitlementsFor(resolvedPlan).messaging;
+  const resolvedRole = (workspaceRole || user?.role || '').toLowerCase();
 
   const loadOrg = React.useCallback(async () => {
     try {
@@ -143,46 +149,45 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
         { name: 'Tasks', href: '/tasks', icon: Activity },
         { name: 'Team', href: '/team', icon: UserCheck },
         { name: 'Calendar', href: '/calendar', icon: Calendar },
+        ...(messagingAllowed ? [{ name: 'Messages', href: '/messages', icon: MessageSquare }] : []),
       ],
     },
     {
       label: 'Intelligence',
       items: [
         { name: 'Reporting', href: '/reporting', icon: FileText },
-        { name: 'Strategy', href: '/strategy', icon: TrendingUp },
-        { name: 'Atlas AI', href: '/atlas', icon: AtlasIcon, highlight: true },
+        ...(resolvedPlan === 'ADVANCED' ? [{ name: 'Strategy', href: '/strategy', icon: TrendingUp }] : []),
+        ...(resolvedPlan !== 'BASIC' ? [{ name: 'Atlas AI', href: '/atlas', icon: AtlasIcon, highlight: true }] : []),
       ],
     },
-  ], []);
+  ], [messagingAllowed, resolvedPlan]);
 
   const visibleGroups = React.useMemo<NavigationGroup[]>(() => {
-    const roleLower = user?.role?.toLowerCase();
-    if (roleLower === 'client') {
+    if (resolvedRole === 'client') {
       return [{
         label: 'Workspace',
         items: [
           { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
-          ...(user?.hasMetaAccount
-            ? [{ name: 'Leads', href: '/client-leads', icon: FileSpreadsheet }]
-            : []),
           { name: 'Calendar', href: '/calendar', icon: Calendar },
+          ...(messagingAllowed ? [{ name: 'Messages', href: '/messages', icon: MessageSquare }] : []),
         ],
       }];
     }
-    if (roleLower === 'member') {
+    if (resolvedRole === 'member') {
       return [{
         label: 'Workspace',
         items: [
           { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard },
           { name: 'Tasks', href: '/tasks', icon: Activity },
           { name: 'Calendar', href: '/calendar', icon: Calendar },
+          ...(messagingAllowed ? [{ name: 'Messages', href: '/messages', icon: MessageSquare }] : []),
         ],
       }];
     }
     return navigationGroups;
-  }, [user, navigationGroups]);
+  }, [navigationGroups, resolvedRole, messagingAllowed]);
 
-  const settingsItem: NavigationItem | null = user?.role?.toLowerCase() === 'admin'
+  const settingsItem: NavigationItem | null = resolvedRole === 'admin'
     ? { name: 'Settings', href: '/settings', icon: Settings }
     : null;
 
@@ -227,10 +232,10 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
 
       <div className={cn("flex h-16 items-center border-b border-zinc-800", isCollapsed ? "justify-center px-2" : "justify-between px-6")}>
         <Link
-          href={user?.role?.toLowerCase() === 'client' ? '/client-dashboard' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard'}
+          href={resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard'}
           className="flex items-center gap-2"
           onClick={() => {
-            prepareWorkspaceDataCacheForRouteChange(user?.role?.toLowerCase() === 'client' ? '/client-dashboard' : user?.role?.toLowerCase() === 'member' ? '/teams-dashboard' : '/dashboard');
+            prepareWorkspaceDataCacheForRouteChange(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard');
             onCloseMobile?.();
           }}
         >
@@ -370,7 +375,7 @@ export function Sidebar({ className, onCloseMobile, ...props }: SidebarProps) {
                     {user.name}
                   </span>
                   <span className="text-[10px] text-zinc-500 mt-1 block truncate">
-                    {user.email} {plan ? `(${plan})` : ''}
+                    {user.email} {resolvedPlan ? `(${resolvedPlan})` : ''}
                   </span>
                 </div>
               )}

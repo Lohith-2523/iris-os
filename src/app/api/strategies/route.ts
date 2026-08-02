@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { entitlementsFor } from '@/lib/plan-entitlements';
 import {
   AtlasStrategyError,
   generateStrategyWithAtlas,
@@ -84,6 +85,9 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!entitlementsFor(user.organization.plan).strategyGeneration) {
+      return NextResponse.json({ error: 'Strategy generation is available on the Advanced plan.' }, { status: 403 });
+    }
     const typeParam = request.nextUrl.searchParams.get('type')?.toUpperCase() as StrategyKind | undefined;
     const type = typeParam && STRATEGY_TYPES.has(typeParam) ? typeParam : undefined;
 
@@ -133,6 +137,9 @@ export async function POST(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!entitlementsFor(user.organization.plan).strategyGeneration) {
+      return NextResponse.json({ error: 'Strategy generation is available on the Advanced plan.' }, { status: 403 });
+    }
     if (!user.organization.aiSharingConsent) {
       return NextResponse.json({
         error: 'Enable Atlas AI Analysis in Settings > AI Settings & Data Privacy before sending workspace records to Atlas AI.',

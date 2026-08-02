@@ -51,6 +51,7 @@ export async function updateSession(request: NextRequest) {
       pathname === '/pricing' ||
       pathname === '/terms' ||
       pathname === '/privacy' ||
+      pathname === '/waitlist' ||
       pathname.startsWith('/signup') ||
       pathname.startsWith('/onboarding/member') ||
       pathname === '/invite' ||

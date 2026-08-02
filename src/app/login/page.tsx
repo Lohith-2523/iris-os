@@ -3,14 +3,13 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, User, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { createClient } from '@/lib/client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -23,6 +22,8 @@ export default function LoginPage() {
     setErrorMsg(null);
 
     try {
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
       if (error) throw error;
       const bootstrap = await fetch('/api/auth/bootstrap', { method: 'POST' });
@@ -64,6 +65,8 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
+      const { createClient } = await import('@/lib/client');
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -84,7 +87,7 @@ export default function LoginPage() {
 
       <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl font-sans text-xs">
         <CardHeader className="text-center pt-8 pb-6 flex flex-col items-center">
-          <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-10 object-contain mb-4" />
+          <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={105} height={40} priority className="h-10 w-auto object-contain mb-4" />
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">Sign In</CardTitle>
           <CardDescription className="text-xs text-zinc-500 mt-1">
             Enterprise Agency & Creative Workspace Monolith
@@ -167,7 +170,7 @@ export default function LoginPage() {
 
           <div className="text-center font-mono text-[10px] text-zinc-500 pt-2">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-white hover:text-red-500 font-bold underline transition-colors">
+            <Link href="/signup" prefetch={false} className="text-white hover:text-red-500 font-bold underline transition-colors">
               Sign Up
             </Link>
           </div>

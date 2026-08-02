@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { buildDailyBriefing, DAILY_BRIEFING_VERSION, dailyBriefingBusinessDate, normalizeBriefingTimeZone, type DailyBriefingPayload } from '@/lib/daily-briefing';
 import { getDeliveryDelaySummary } from '@/lib/delivery-delays';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { entitlementsFor } from '@/lib/plan-entitlements';
 
 type StoredDailyBriefing = {
   id: string;
@@ -172,6 +173,9 @@ async function authorizedAdmin() {
   const user = await getRequestUser();
   if (!user) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) } as const;
   if (!isOrganizationAdmin(user)) return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) } as const;
+  if (!entitlementsFor(user.organization.plan).dailyBriefing) {
+    return { error: NextResponse.json({ error: 'Daily briefing is available on the Advanced plan.' }, { status: 403 }) } as const;
+  }
   return { user } as const;
 }
 

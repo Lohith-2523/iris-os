@@ -61,6 +61,10 @@ model Organization {
   financialForecasts        FinancialForecast[]
   memberInvites             MemberInvite[]
   onboardingState           OrganizationOnboardingState?
+  messagingDevices          MessagingDevice[]
+  messagingConversations    MessagingConversation[]
+  encryptedMessages         EncryptedMessage[]
+  encryptedAttachments      EncryptedAttachment[]
 }
 
 model OrganizationOnboardingState {
@@ -112,17 +116,22 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  projectMembers           ProjectMember[]
-  reports                  Report[]
-  automations              Automation[]
-  askAtlasMessages         AskAtlasMessage[]
-  clientTasks              ClientTask[]
-  taskComments             TaskComment[]
-  createdEvents            CalendarEvent[]           @relation("CreatedEvents")
-  atlasChatSessions        AtlasChatSession[]
-  preferences              UserPreference?
-  googleCalendarConnection GoogleCalendarConnection?
-  strategiesCreated        Strategy[]
+  projectMembers                ProjectMember[]
+  reports                       Report[]
+  automations                   Automation[]
+  askAtlasMessages              AskAtlasMessage[]
+  clientTasks                   ClientTask[]
+  taskComments                  TaskComment[]
+  createdEvents                 CalendarEvent[]               @relation("CreatedEvents")
+  atlasChatSessions             AtlasChatSession[]
+  preferences                   UserPreference?
+  googleCalendarConnection      GoogleCalendarConnection?
+  strategiesCreated             Strategy[]
+  messagingDevices              MessagingDevice[]
+  messagingMemberships          MessagingConversationMember[]
+  messagingConversationsCreated MessagingConversation[]       @relation("MessagingConversationCreator")
+  encryptedMessagesSent         EncryptedMessage[]            @relation("EncryptedMessageSender")
+  messageReceipts               MessageDeliveryReceipt[]
 
   @@index([orgId])
   @@index([clientId])
@@ -906,4 +915,116 @@ model RecurringRetainer {
 
   @@index([clientId])
   @@index([orgId, startDate])
+}
+
+/// Public device key bundles only. Private identity keys and session state never
+/// leave the user's device.
+model MessagingDevice {
+  id                   String       @id @default(uuid())
+  orgId                String
+  organization         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceLabel          String
+  identityPublicKey    String
+  publicKeyFingerprint String
+  protocolVersion      Int          @default(1)
+  revokedAt            DateTime?
+  lastSeenAt           DateTime     @default(now())
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  messages EncryptedMessage[]
+
+  @@unique([userId, publicKeyFingerprint])
+  @@index([orgId, userId])
+  @@index([userId, revokedAt])
+}
+
+/// Direct agency-owner conversations. participantKey is a canonical sorted pair
+/// of user IDs and prevents duplicate direct threads.
+model MessagingConversation {
+  id             String       @id @default(uuid())
+  orgId          String
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  participantKey String
+  createdById    String
+  createdBy      User         @relation("MessagingConversationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  members  MessagingConversationMember[]
+  messages EncryptedMessage[]
+
+  @@unique([orgId, participantKey])
+  @@index([orgId, updatedAt])
+}
+
+model MessagingConversationMember {
+  conversationId String
+  conversation   MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime              @default(now())
+  lastReadAt     DateTime?
+
+  @@id([conversationId, userId])
+  @@index([userId, conversationId])
+}
+
+/// The server stores opaque protocol envelopes only. Message plaintext, file
+/// names, captions and attachment keys are never columns in this table.
+model EncryptedMessage {
+  id                String                @id @default(uuid())
+  orgId             String
+  organization      Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  conversationId    String
+  conversation      MessagingConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderUserId      String
+  sender            User                  @relation("EncryptedMessageSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  senderDeviceId    String
+  senderDevice      MessagingDevice       @relation(fields: [senderDeviceId], references: [id], onDelete: Restrict)
+  clientMessageId   String
+  encryptedEnvelope String
+  protocolVersion   Int                   @default(1)
+  clientCreatedAt   DateTime
+  expiresAt         DateTime?
+  createdAt         DateTime              @default(now())
+
+  attachments EncryptedAttachment[]
+  receipts    MessageDeliveryReceipt[]
+
+  @@unique([orgId, clientMessageId])
+  @@index([conversationId, createdAt])
+  @@index([orgId, expiresAt])
+}
+
+model EncryptedAttachment {
+  id                String           @id @default(uuid())
+  orgId             String
+  organization      Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  messageId         String
+  message           EncryptedMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  storageObjectId   String
+  category          String
+  byteSize          Int
+  ciphertextSha256  String
+  encryptedMetadata String
+  ciphertext        String
+  createdAt         DateTime         @default(now())
+
+  @@index([messageId])
+  @@index([orgId, createdAt])
+}
+
+model MessageDeliveryReceipt {
+  messageId   String
+  message     EncryptedMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  @@id([messageId, userId])
+  @@index([userId, readAt])
 }

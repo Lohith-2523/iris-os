@@ -591,12 +591,26 @@ export function getWorkspaceDataLoadingSnapshot() {
   return activeNetworkReads > 0;
 }
 
-export async function warmWorkspaceDataCache(urls: string[]) {
-  await Promise.allSettled(
-    Array.from(new Set(urls)).map((url) => workspaceFetch(url, {
-      headers: { 'X-Workspace-Cache-Prefetch': '1' },
-    })),
-  );
+export async function warmWorkspaceDataCache(urls: string[], concurrency = 3) {
+  const queue = Array.from(new Set(urls));
+  const workerCount = Math.max(1, Math.min(concurrency, queue.length));
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < queue.length) {
+      const url = queue[cursor];
+      cursor += 1;
+      try {
+        await workspaceFetch(url, {
+          headers: { 'X-Workspace-Cache-Prefetch': '1' },
+        });
+      } catch {
+        // Warming is opportunistic; each feature retries its critical request.
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 }
 
 export async function workspaceFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {

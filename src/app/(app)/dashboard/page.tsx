@@ -4,12 +4,20 @@ import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { ExpandableCard } from '@/components/ui/expandable-card';
-import { ClientRevenueChart } from '@/components/clients/client-revenue-chart';
 import { Button } from '@/components/ui/button';
+
+const RevenueLineChart = dynamic(
+  () => import('@/components/ui/revenue-line-chart').then((module) => module.RevenueLineChart),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded bg-zinc-900/40" /> },
+);
+const ClientRevenueChart = dynamic(
+  () => import('@/components/clients/client-revenue-chart').then((module) => module.ClientRevenueChart),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded bg-zinc-900/40" /> },
+);
 import {
   Sparkles,
   TrendingUp,
@@ -25,6 +33,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { validateBrowserFile } from '@/lib/file-security';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -244,9 +253,11 @@ export default function DashboardPage() {
     document.body.removeChild(link);
   };
 
-  const handleFinancialUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFinancialUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const validation = await validateBrowserFile(file, 'csv-import', { maxBytes: 5 * 1024 * 1024 });
+    if (!validation.ok) return alert(validation.error);
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -294,9 +305,11 @@ export default function DashboardPage() {
     reader.readAsText(file);
   };
 
-  const handleLeadsUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLeadsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const validation = await validateBrowserFile(file, 'csv-import', { maxBytes: 5 * 1024 * 1024 });
+    if (!validation.ok) return alert(validation.error);
 
     const reader = new FileReader();
     reader.onload = async (event) => {

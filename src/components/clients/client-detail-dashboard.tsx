@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { clientHasMetaEnabledProject } from '@/lib/agency-specializations';
 import {
   ArrowLeft,
   Plus,
@@ -39,6 +40,9 @@ import {
   Save,
   Download,
   FileText,
+  Mail,
+  MapPin,
+  Phone,
 } from 'lucide-react';
 
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -394,6 +398,7 @@ export default function ClientDetailDashboard({
   const [metaAssignmentStatus, setMetaAssignmentStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [metaAssignmentError, setMetaAssignmentError] = React.useState('');
   const adAccountId = assignedAdAccountId || null;
+  const hasMetaEnabledProject = clientHasMetaEnabledProject(client.projects);
 
   React.useEffect(() => {
     const currentAccountId = client.adAccountId || '';
@@ -437,6 +442,13 @@ export default function ClientDetailDashboard({
       setLoadingTasks(false);
     }
 
+    if (!hasMetaEnabledProject) {
+      setMetaCampaigns([]);
+      setMetaLeads([]);
+      setLoadingMeta(false);
+      return;
+    }
+
     setLoadingMeta(true);
     try {
       const res = await fetch('/api/meta-portal');
@@ -459,7 +471,7 @@ export default function ClientDetailDashboard({
     } finally {
       setLoadingMeta(false);
     }
-  }, [adAccountId, client.id]);
+  }, [adAccountId, client.id, hasMetaEnabledProject]);
 
   React.useEffect(() => {
     loadData();
@@ -581,6 +593,7 @@ export default function ClientDetailDashboard({
         body: JSON.stringify({
           action: 'update_task',
           id: taskId,
+          expectedUpdatedAt: tasks.find((task: any) => task.id === taskId)?.updatedAt,
           status: editForm.status,
           progress: editForm.progress,
           blocker: editForm.blocker,
@@ -651,6 +664,15 @@ export default function ClientDetailDashboard({
   const costPerThousandImpressions = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0;
 
   const resolvedAgencyType = (client.agencyType || 'Digital Marketing').toLowerCase();
+  const clientContacts = Array.isArray(client.contacts) ? client.contacts : [];
+  const companyAddress = [
+    client.billingAddressLine1,
+    client.billingAddressLine2,
+    client.billingCity,
+    client.billingState,
+    client.billingPostalCode,
+    client.billingCountry,
+  ].filter(Boolean).join(', ');
 
   return (
     <div className="space-y-6 font-sans text-xs">
@@ -700,10 +722,10 @@ export default function ClientDetailDashboard({
       {/* Main Splits */}
       <div className={activeWorkspaceTab === 'overview' ? 'grid gap-6 md:grid-cols-3' : 'hidden'}>
         {/* Left Column: Account, Team and Tasks */}
-        <div className="md:col-span-1 space-y-6">
+        <div className={hasMetaEnabledProject ? 'space-y-6 md:col-span-1' : 'flex flex-col gap-6 md:col-span-3'}>
           
           {/* Client Account Card */}
-          <Card>
+          <Card className={hasMetaEnabledProject ? '' : 'order-2'}>
             <CardHeader className="pb-3 border-b border-zinc-900">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Account Details</CardTitle>
             </CardHeader>
@@ -724,7 +746,7 @@ export default function ClientDetailDashboard({
           </Card>
 
           {/* Assigned Specialists Card */}
-          <Card>
+          <Card className={hasMetaEnabledProject ? '' : 'order-3'}>
             <CardHeader className="pb-3 border-b border-zinc-900">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Assigned Team</CardTitle>
             </CardHeader>
@@ -747,7 +769,7 @@ export default function ClientDetailDashboard({
           </Card>
 
           {/* Meta Integration & Sync Control */}
-          <Card>
+          {hasMetaEnabledProject && <Card>
             <CardHeader className="pb-3 border-b border-zinc-900 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Meta Integration Controls</CardTitle>
@@ -826,10 +848,10 @@ export default function ClientDetailDashboard({
                 )}
               </div> : <p className="p-3 border border-zinc-800 text-xs text-zinc-500">No Meta ad account is associated with this client.</p>}
             </CardContent>
-          </Card>
+          </Card>}
 
           {/* Task Board Card */}
-          <Card>
+          <Card className={hasMetaEnabledProject ? '' : 'order-1'}>
             <CardHeader className="pb-3 border-b border-zinc-900 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Tasks & Progress</CardTitle>
@@ -1029,10 +1051,10 @@ export default function ClientDetailDashboard({
         </div>
 
         {/* Right Column: Dynamic View Widgets Based on Specialization */}
-        <div className="md:col-span-2 space-y-6">
+        <div className={hasMetaEnabledProject ? 'space-y-6 md:col-span-2' : 'hidden'}>
           
           {/* DIGITAL MARKETING / LEAD GEN WIDGETS */}
-          {(resolvedAgencyType.includes('marketing') || resolvedAgencyType.includes('advertising')) && (
+          {hasMetaEnabledProject && (
             <div className="space-y-6">
               
               {/* Top Section: Ad Campaign Performance & Metrics */}
@@ -1453,6 +1475,92 @@ export default function ClientDetailDashboard({
 
         </div>
       </div>
+
+      <section className={activeWorkspaceTab === 'overview' ? 'grid gap-6 lg:grid-cols-2' : 'hidden'} aria-label="Client company and contact information">
+        <Card>
+          <CardHeader className="border-b border-zinc-900 pb-3">
+            <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <Building className="h-4 w-4 text-zinc-500" />
+              Client company information
+            </CardTitle>
+            <CardDescription className="text-[10px] text-zinc-500">Registered and operational details captured during client onboarding.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-x-6 gap-y-4 pt-5 sm:grid-cols-2">
+            <div>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Company name</span>
+              <span className="mt-1.5 block font-semibold text-zinc-200">{client.name || 'Not provided'}</span>
+            </div>
+            <div>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Legal entity</span>
+              <span className="mt-1.5 block font-semibold text-zinc-200">{client.legalEntityName || 'Not provided'}</span>
+            </div>
+            <div>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Domain</span>
+              <span className="mt-1.5 block font-mono text-zinc-300">{client.domain || 'Not provided'}</span>
+            </div>
+            <div>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Business model</span>
+              <span className="mt-1.5 block text-zinc-300">{client.businessModel || 'Not provided'}</span>
+            </div>
+            <div>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Agency service</span>
+              <span className="mt-1.5 block text-zinc-300">{client.agencyType || 'Not provided'}</span>
+            </div>
+            <div>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">GST / tax number</span>
+              <span className="mt-1.5 block font-mono text-zinc-300">{client.gstNumber || 'Not provided'}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Company address</span>
+              <span className="mt-1.5 flex items-start gap-2 leading-relaxed text-zinc-300">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                {companyAddress || 'Not provided'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="border-b border-zinc-900 pb-3">
+            <CardTitle className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              <User className="h-4 w-4 text-zinc-500" />
+              Client contact information
+            </CardTitle>
+            <CardDescription className="text-[10px] text-zinc-500">Primary and additional contacts associated with this company.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-5">
+            {clientContacts.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-8 text-center text-zinc-500">No client contacts have been added.</div>
+            ) : clientContacts.map((contact: any) => (
+              <div key={contact.id || contact.email} className="rounded-lg border border-zinc-850 bg-zinc-950/25 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 font-semibold text-zinc-300">
+                    {(contact.name || 'C').slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold text-zinc-200">{contact.name || 'Unnamed contact'}</span>
+                    <span className="mt-0.5 block text-[10px] text-zinc-500">{contact.role || 'Client contact'}</span>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <a href={`mailto:${contact.email}`} className="flex min-w-0 items-center gap-2 text-zinc-400 hover:text-zinc-200">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
+                        <span className="truncate font-mono text-[10px]">{contact.email}</span>
+                      </a>
+                      {contact.phone ? (
+                        <a href={`tel:${contact.phone}`} className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200">
+                          <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
+                          <span className="font-mono text-[10px]">{contact.phone}</span>
+                        </a>
+                      ) : (
+                        <span className="flex items-center gap-2 text-zinc-600"><Phone className="h-3.5 w-3.5" /><span className="text-[10px]">Phone not provided</span></span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </section>
 
       {/* Centered Expanded Leads Feed Modal */}
       {isLeadsModalOpen && (

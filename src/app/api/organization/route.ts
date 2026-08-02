@@ -5,6 +5,7 @@ import {
   normalizeInvoiceBrandColor,
   validateInvoiceLogoDataUrl,
 } from '@/lib/invoices/branding';
+import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,23 +88,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Limit check
-      let maxAllowed = 0;
-      const planToCheck = plan !== undefined ? plan : org.plan;
-      const hasAddonToCheck = hasAddon !== undefined ? hasAddon : org.hasAddon;
-      if (planToCheck === 'BASIC') {
-        maxAllowed = hasAddonToCheck ? 2 : 1;
-      } else if (planToCheck === 'PRO') {
-        maxAllowed = 5;
-      } else if (planToCheck === 'ADVANCED') {
-        maxAllowed = 1000; // unlimited
-      } else {
+      const requestedPlan = plan !== undefined ? String(plan).toUpperCase() : org.plan;
+      if (!['BASIC', 'PRO', 'ADVANCED'].includes(requestedPlan)) {
         return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
       }
+      const planToCheck = normalizePlan(requestedPlan);
+      const maxAllowed = entitlementsFor(planToCheck).specializationLimit;
 
       if (agencyTypes && agencyTypes.length > maxAllowed) {
         return NextResponse.json({
-          error: `Selected agency types exceed the limit for the ${planToCheck} plan${planToCheck === 'BASIC' && hasAddonToCheck ? ' with add-on' : ''}. Allowed max: ${maxAllowed}.`
+          error: `A workspace can select up to ${maxAllowed} agency specializations.`
         }, { status: 400 });
       }
 
@@ -123,12 +117,14 @@ export async function POST(request: NextRequest) {
           invoiceBrandColor: invoiceBrandColor !== undefined
             ? normalizeInvoiceBrandColor(invoiceBrandColor)
             : undefined,
-          plan: plan !== undefined ? plan : org.plan,
+          plan: plan !== undefined ? planToCheck : org.plan,
           hasAddon: hasAddon !== undefined ? hasAddon : org.hasAddon,
           agencyTypes: agencyTypes !== undefined ? agencyTypes : org.agencyTypes,
           bankNames: bankNames !== undefined ? bankNames : org.bankNames,
           currency: currency !== undefined ? currency : org.currency,
-          aiSharingConsent: aiSharingConsent !== undefined ? aiSharingConsent : org.aiSharingConsent,
+          aiSharingConsent: planToCheck === 'BASIC'
+            ? false
+            : aiSharingConsent !== undefined ? aiSharingConsent : org.aiSharingConsent,
           metaAccessConsent: typeof metaAccessConsent === 'boolean' ? metaAccessConsent : org.metaAccessConsent,
           metaAccessConsentAt: typeof metaAccessConsent === 'boolean'
             ? (metaAccessConsent ? new Date() : null)

@@ -38,6 +38,7 @@ import {
 } from '@/lib/atlas-ai/execute-automation';
 import { InvoiceServiceError } from '@/lib/invoices/service';
 import { calculateAgencyMetaMetrics } from '@/lib/agency-meta-metrics';
+import { canUseAtlasCapability, entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
 
 const AUTOMATIC_INSIGHT_TTL_MS = 30 * 60 * 1000;
 const CHAT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -392,6 +393,11 @@ export async function POST(request: NextRequest) {
 
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const plan = normalizePlan(user.organization.plan);
+    const entitlements = entitlementsFor(plan);
+    if (!entitlements.aiFeatures) {
+      return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+    }
 
     // Automatic insight requests have a 30-minute response lifetime. Check this
     // before touching the database or an AI provider so remounts are inexpensive.
@@ -697,6 +703,20 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           return NextResponse.json({ error: 'Chat session not found' }, { status: 404 });
         }
 
+        if (plan === 'PRO') {
+          const activeAutomation = activeSession?.workflowType === 'AUTOMATION'
+            ? activeSession.workflowState as Partial<AutomationWorkflowState> | null
+            : null;
+          const isInvoiceWorkflow = activeAutomation?.kind === 'INVOICE';
+          const isInvoiceRequest = isAutomationRequest(query) && /\b(invoice|invoicing|bill|billing)\b/i.test(query);
+          const isAllowedMeeting = activeSession?.workflowType === 'MEETING' || isMeetingRequest(query);
+          if (!isAllowedMeeting && !isInvoiceWorkflow && !isInvoiceRequest) {
+            return NextResponse.json({
+              error: 'On the Pro plan, Atlas AI chat can only create meetings and invoices.',
+            }, { status: 403 });
+          }
+        }
+
         const automationWorkflowActive = activeSession?.workflowType === 'AUTOMATION';
         const delegatedDecisionRequest = isDecisionAutomationRequest(query);
         if (automationWorkflowActive || isAutomationRequest(query) || (delegatedDecisionRequest && org.aiSharingConsent)) {
@@ -807,6 +827,11 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           let workflowState = mergeAutomationWorkflow(currentState, automationResult);
           if (!workflowState) {
             return NextResponse.json({ error: 'Atlas AI could not identify the requested automation.' }, { status: 400 });
+          }
+          if (!canUseAtlasCapability(plan, 'INVOICE') || (plan === 'PRO' && workflowState.kind !== 'INVOICE')) {
+            return NextResponse.json({
+              error: 'On the Pro plan, Atlas AI automation is limited to invoices.',
+            }, { status: 403 });
           }
 
           const missingFields = missingAutomationFields(workflowState);

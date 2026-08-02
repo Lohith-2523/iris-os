@@ -122,9 +122,20 @@ export async function GET(request: NextRequest) {
 
     // Provider leads are attributed to a client at ingestion time. Never infer
     // tenancy from provider IDs or expose organization-wide Meta records.
-    const campaigns = isClient ? [] : await prisma.metaCampaign.findMany({
-      where: { orgId: user.orgId, providerSyncedAt: { not: null } },
-      include: { ads: { where: { providerSyncedAt: { not: null } } } },
+    const campaigns = await prisma.metaCampaign.findMany({
+      where: {
+        orgId: user.orgId,
+        providerSyncedAt: { not: null },
+        ...(isClient ? { adAccountId: clientAdAccountId || '__none__' } : {}),
+      },
+      include: {
+        ads: {
+          where: {
+            providerSyncedAt: { not: null },
+            ...(isClient ? { adAccountId: clientAdAccountId || '__none__' } : {}),
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
     const leads = isClient
@@ -142,8 +153,13 @@ export async function GET(request: NextRequest) {
         });
 
     // Fetch any ads that don't have campaigns
-    const orphanedAds = isClient ? [] : await prisma.metaAd.findMany({
-      where: { orgId: user.orgId, campaignId: null, providerSyncedAt: { not: null } },
+    const orphanedAds = await prisma.metaAd.findMany({
+      where: {
+        orgId: user.orgId,
+        campaignId: null,
+        providerSyncedAt: { not: null },
+        ...(isClient ? { adAccountId: clientAdAccountId || '__none__' } : {}),
+      },
       orderBy: { spend: 'desc' },
     });
 

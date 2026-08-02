@@ -10,7 +10,16 @@
     "build": "prisma generate && next build",
     "start": "prisma generate && next start",
     "init": "prisma generate && prisma db push && prisma db seed",
-    "lint": "eslint"
+    "lint": "eslint",
+    "perf:routes": "node performance-audit/scripts/discover-routes.mjs",
+    "perf:lighthouse": "node performance-audit/scripts/run-lighthouse.mjs",
+    "perf:playwright": "node performance-audit/scripts/audit-routes.mjs",
+    "perf:bundle": "next experimental-analyze --output",
+    "perf:api": "node performance-audit/scripts/audit-routes.mjs",
+    "perf:database": "prisma validate",
+    "perf:load": "node performance-audit/scripts/load-test.mjs",
+    "perf:budget": "node performance-audit/scripts/check-performance-budget.mjs",
+    "perf:all": "npm run perf:routes && npm run build && npm run perf:playwright && npm run perf:load && npm run perf:budget"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.7",
@@ -26,6 +35,7 @@
     "lucide-react": "^1.21.0",
     "next": "^16.2.9",
     "nodemailer": "^9.0.3",
+    "openpgp": "6.3.1",
     "pdf-lib": "^1.17.1",
     "pg": "^8.21.0",
     "radix-ui": "^1.6.0",
@@ -53,6 +63,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "jsdom": "^29.1.1",
+    "lighthouse": "^13.4.1",
     "prisma": "^7.9.1",
     "tailwindcss": "^4.0.0",
     "ts-node": "^10.9.2",

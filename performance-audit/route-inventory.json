@@ -1,0 +1,513 @@
+[
+  {
+    "route": "/agency-leads",
+    "source": "src/app/(app)/agency-leads/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/agency-leads",
+      "/api/integrations"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/analytics",
+    "source": "src/app/(app)/analytics/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static / server-rendered",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/atlas",
+    "source": "src/app/(app)/atlas/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/briefing",
+    "source": "src/app/(app)/briefing/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static / server-rendered",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/calendar",
+    "source": "src/app/(app)/calendar/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/user",
+      "/api/integrations",
+      "/api/calendar",
+      "/api/calendar?id=${id}"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/client-dashboard",
+    "source": "src/app/(app)/client-dashboard/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/meta-portal",
+      "/api/tasks"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "critical",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/client-leads",
+    "source": "src/app/(app)/client-leads/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "SSR / mixed",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/clients/onboard",
+    "source": "src/app/(app)/clients/onboard/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/user",
+      "/api/organization",
+      "/api/data?domain=team",
+      "/api/agency-leads",
+      "/api/clients"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/clients",
+    "source": "src/app/(app)/clients/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/data?domain=clients&include=contacts",
+      "/api/data?domain=team",
+      "/api/user",
+      "/api/strategies",
+      "/api/clients?clientId=${encodeURIComponent(clientPendingDeletion.id)}"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/dashboard",
+    "source": "src/app/(app)/dashboard/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/workspace",
+      "/api/integrations",
+      "/api/data?domain=dashboard",
+      "/api/data?domain=finance",
+      "/api/data?domain=clients",
+      "/api/tasks",
+      "/api/meta-portal",
+      "/api/calendar",
+      "/api/agency-leads",
+      "/api/onboarding/upload",
+      "/api/onboarding/complete"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "critical",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/explorer",
+    "source": "src/app/(app)/explorer/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/data?domain=finance",
+      "/api/transactions",
+      "/api/data?domain=team",
+      "/api/data?domain=client-dashboard",
+      "/api/workspace"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/finance",
+    "source": "src/app/(app)/finance/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/subscriptions",
+      "/api/subscriptions?id=${id}",
+      "/api/retainers",
+      "/api/retainers?id=${encodeURIComponent(id)}",
+      "/api/transactions",
+      "/api/organization",
+      "/api/invoices?outstanding=true",
+      "/api/transactions?id=${encodeURIComponent(transactionId)}",
+      "/api/integrations",
+      "/api/stripe",
+      "/api/paypal",
+      "/api/razorpay",
+      "/api/workspace",
+      "/api/data?domain=finance&timeframe=${encodeURIComponent(timeFrame)}"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "critical",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/invoices",
+    "source": "src/app/(app)/invoices/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/invoices",
+      "/api/projects",
+      "/api/agency-leads",
+      "/api/organization"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/messages",
+    "source": "src/app/(app)/messages/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/messaging",
+      "/api/messaging/messages?${query.toString()}",
+      "/api/messaging/messages"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/projects",
+    "source": "src/app/(app)/projects/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/projects",
+      "/api/data?domain=clients",
+      "/api/data?domain=team",
+      "/api/workspace?include=agencyTypes"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "critical",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/reporting",
+    "source": "src/app/(app)/reporting/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/reports",
+      "/api/data?domain=clients"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/settings",
+    "source": "src/app/(app)/settings/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/integrations",
+      "/api/organization",
+      "/api/user",
+      "/api/calendar"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/strategy",
+    "source": "src/app/(app)/strategy/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/strategies",
+      "/api/strategies/${strategy.id}/pdf"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/tasks",
+    "source": "src/app/(app)/tasks/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/projects",
+      "/api/data?domain=team",
+      "/api/user",
+      "/api/tasks"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "critical",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/team",
+    "source": "src/app/(app)/team/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/workspace",
+      "/api/tasks?assignedToId=${userId}",
+      "/api/data?domain=team",
+      "/api/projects",
+      "/api/member",
+      "/api/atlas-ai",
+      "/api/tasks"
+    ],
+    "expectedDataSize": "medium-to-large",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/teams-dashboard",
+    "source": "src/app/(app)/teams-dashboard/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/user",
+      "/api/tasks",
+      "/api/calendar",
+      "/api/data?domain=team"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/coming-soon",
+    "source": "src/app/coming-soon/page.tsx",
+    "access": "public",
+    "rendering": "static / server-rendered",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/home",
+    "source": "src/app/home/page.tsx",
+    "access": "public",
+    "rendering": "static / server-rendered",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/invite",
+    "source": "src/app/invite/page.tsx",
+    "access": "public",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/invite?token=${token}",
+      "/api/invite"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/login",
+    "source": "src/app/login/page.tsx",
+    "access": "public",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/auth/bootstrap",
+      "/api/user"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "critical",
+    "testState": "anonymous",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/oauth/consent",
+    "source": "src/app/oauth/consent/page.tsx",
+    "access": "authenticated / role-based",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/onboarding/member",
+    "source": "src/app/onboarding/member/page.tsx",
+    "access": "public",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/member?token=${token}",
+      "/api/member"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/onboarding",
+    "source": "src/app/onboarding/page.tsx",
+    "access": "authenticated",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/workspace",
+      "/api/organization"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "high",
+    "testState": "confirmed seeded account with representative workspace",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/",
+    "source": "src/app/page.tsx",
+    "access": "public",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/pricing",
+    "source": "src/app/pricing/page.tsx",
+    "access": "public",
+    "rendering": "static / server-rendered",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/privacy",
+    "source": "src/app/privacy/page.tsx",
+    "access": "public",
+    "rendering": "static / server-rendered",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/signup",
+    "source": "src/app/signup/page.tsx",
+    "access": "public",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "/api/auth/bootstrap"
+    ],
+    "expectedDataSize": "medium",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  },
+  {
+    "route": "/terms",
+    "source": "src/app/terms/page.tsx",
+    "access": "public",
+    "rendering": "static / server-rendered",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Server Component route."
+  },
+  {
+    "route": "/waitlist",
+    "source": "src/app/waitlist/page.tsx",
+    "access": "public",
+    "rendering": "static shell + client-rendered feature",
+    "dataSources": [
+      "none detected in page module"
+    ],
+    "expectedDataSize": "small",
+    "criticality": "medium",
+    "testState": "anonymous",
+    "notes": "Client Component route; inspect hydration, effects, and request fan-out."
+  }
+]

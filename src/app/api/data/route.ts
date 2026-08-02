@@ -237,8 +237,17 @@ export async function GET(request: NextRequest) {
               : {})
           },
           include: {
+            contacts: {
+              select: { id: true, name: true, email: true, phone: true, role: true },
+              orderBy: { createdAt: 'asc' },
+            },
             projects: {
               select: {
+                id: true,
+                name: true,
+                serviceLine: true,
+                status: true,
+                progress: true,
                 startDate: true,
                 endDate: true,
                 paymentType: true,
@@ -282,6 +291,7 @@ export async function GET(request: NextRequest) {
             gstNumber: c.gstNumber,
             adAccountId: c.adAccountId,
             metadata: c.metadata || null,
+            contacts: c.contacts,
             invoices: c.invoices.map((invoice) => ({
               id: invoice.id,
               invoiceNumber: invoice.invoiceNumber,

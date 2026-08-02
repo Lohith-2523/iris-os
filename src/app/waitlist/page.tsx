@@ -2,13 +2,14 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, Menu, X } from 'lucide-react';
 
 // ─── Font shorthands ──────────────────────────────────────────────────────────
-const DISPLAY = "'Space Grotesk', sans-serif";
-const BODY    = "'Geist', sans-serif";
-const MONO    = "'Geist Mono', monospace";
-const JBMONO  = "'JetBrains Mono', monospace";
+const DISPLAY = "var(--font-space-grotesk), sans-serif";
+const BODY    = "var(--font-geist-sans), sans-serif";
+const MONO    = "var(--font-geist-mono), monospace";
+const JBMONO  = "var(--font-mono), monospace";
 
 export default function WaitlistPage() {
   const [scrolled, setScrolled] = React.useState(false);
@@ -81,9 +82,12 @@ export default function WaitlistPage() {
         >
           {/* Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <img
+            <Image
               src="/iris-logo-black-bg.png"
               alt="Iris OS"
+              width={95}
+              height={36}
+              priority
               style={{
                 height: '36px',
                 width: 'auto',

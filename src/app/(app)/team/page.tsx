@@ -26,7 +26,7 @@ import {
   Edit2,
   Activity
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { validateBrowserFile } from '@/lib/file-security';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
@@ -315,7 +315,8 @@ export default function TeamPage() {
     document.body.removeChild(link);
   };
 
-  const downloadXlsxTemplate = () => {
+  const downloadXlsxTemplate = async () => {
+    const XLSX = await import('xlsx');
     const data = [
       ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects"]
     ];
@@ -380,15 +381,13 @@ export default function TeamPage() {
     setUploadStatus('idle');
     setIsParsing(true);
 
-    const isCsv = file.name.endsWith('.csv');
-    const isXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-
-    if (!isCsv && !isXlsx) {
-      setErrorMsg('Unsupported file extension. Please upload a .csv or .xlsx document.');
+    const validation = await validateBrowserFile(file, 'spreadsheet-import', { maxBytes: 5 * 1024 * 1024 });
+    if (!validation.ok) {
+      setErrorMsg(validation.error);
       setIsParsing(false);
       return;
     }
-
+    const isCsv = file.name.toLowerCase().endsWith('.csv');
     try {
       if (isCsv) {
         const reader = new FileReader();
@@ -428,6 +427,7 @@ export default function TeamPage() {
         const reader = new FileReader();
         reader.onload = async (event) => {
           try {
+            const XLSX = await import('xlsx');
             const data = new Uint8Array(event.target?.result as ArrayBuffer);
             const workbook = XLSX.read(data, { type: 'array' });
             const firstSheetName = workbook.SheetNames[0];
@@ -999,7 +999,7 @@ export default function TeamPage() {
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileUpload}
-                        accept=".csv,.xlsx,.xls"
+                        accept=".csv,.xlsx"
                         className="hidden"
                       />
                       <Upload className="h-8 w-8 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
@@ -1329,6 +1329,7 @@ export default function TeamPage() {
                                       body: JSON.stringify({
                                         action: 'update_task',
                                         id: task.id,
+                                        expectedUpdatedAt: task.updatedAt,
                                         status: taskEditForm.status,
                                         progress: taskEditForm.progress,
                                         blocker: taskEditForm.blocker,

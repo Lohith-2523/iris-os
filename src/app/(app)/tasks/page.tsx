@@ -78,6 +78,7 @@ export default function TasksPage() {
   const [kanbanGrouping, setKanbanGrouping] = React.useState<'status' | 'stage'>('status');
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
   const [updatingTaskIds, setUpdatingTaskIds] = React.useState<Set<string>>(new Set());
+  const taskWritesInFlight = React.useRef(new Set<string>());
   const [inlineTaskError, setInlineTaskError] = React.useState('');
 
   // Selected Task Detail Modal State
@@ -314,6 +315,8 @@ export default function TasksPage() {
       setTaskEditError('A task name is required.');
       return;
     }
+    if (taskWritesInFlight.current.has(selectedTask.id)) return;
+    taskWritesInFlight.current.add(selectedTask.id);
 
     setIsSavingTask(true);
     setTaskEditError('');
@@ -324,6 +327,7 @@ export default function TasksPage() {
         body: JSON.stringify({
           action: 'update_task',
           id: selectedTask.id,
+          expectedUpdatedAt: selectedTask.updatedAt,
           ...editTaskForm,
         }),
       });
@@ -339,6 +343,7 @@ export default function TasksPage() {
     } catch (error) {
       setTaskEditError(error instanceof Error ? error.message : 'Unable to save task changes.');
     } finally {
+      taskWritesInFlight.current.delete(selectedTask.id);
       setIsSavingTask(false);
     }
   };
@@ -351,7 +356,8 @@ export default function TasksPage() {
   ), [currentUser]);
 
   const handleInlineTaskUpdate = React.useCallback(async (task: any, changes: TaskInlineChanges) => {
-    if (!canEditTaskInline(task) || updatingTaskIds.has(task.id)) return;
+    if (!canEditTaskInline(task) || taskWritesInFlight.current.has(task.id)) return;
+    taskWritesInFlight.current.add(task.id);
 
     const statusProgress = normalizeTaskStatusProgress(task, changes);
     const patch = {
@@ -369,7 +375,12 @@ export default function TasksPage() {
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_task', id: task.id, ...patch }),
+        body: JSON.stringify({
+          action: 'update_task',
+          id: task.id,
+          expectedUpdatedAt: task.updatedAt,
+          ...patch,
+        }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -382,13 +393,14 @@ export default function TasksPage() {
       setSelectedTask((current: any) => current?.id === task.id ? task : current);
       setInlineTaskError(error instanceof Error ? error.message : 'Unable to update the task.');
     } finally {
+      taskWritesInFlight.current.delete(task.id);
       setUpdatingTaskIds((current) => {
         const next = new Set(current);
         next.delete(task.id);
         return next;
       });
     }
-  }, [canEditTaskInline, updatingTaskIds]);
+  }, [canEditTaskInline]);
 
   const handleTaskDrop = React.useCallback((taskId: string, changes: TaskInlineChanges) => {
     const task = tasks.find((item) => item.id === taskId);
@@ -1051,6 +1063,8 @@ export default function TasksPage() {
                   <select
                     value={selectedTask.stageId || ''}
                     onChange={async (e) => {
+                      if (taskWritesInFlight.current.has(selectedTask.id)) return;
+                      taskWritesInFlight.current.add(selectedTask.id);
                       const newStageId = e.target.value || null;
                       try {
                         const res = await fetch('/api/tasks', {
@@ -1059,6 +1073,7 @@ export default function TasksPage() {
                           body: JSON.stringify({
                             action: 'update_task',
                             id: selectedTask.id,
+                            expectedUpdatedAt: selectedTask.updatedAt,
                             stageId: newStageId
                           })
                         });
@@ -1067,6 +1082,8 @@ export default function TasksPage() {
                         }
                       } catch (err) {
                         console.error('Error shifting stage:', err);
+                      } finally {
+                        taskWritesInFlight.current.delete(selectedTask.id);
                       }
                     }}
                     className="w-full text-[11px] bg-zinc-900/60 border border-zinc-800 p-2 text-white outline-none rounded-md focus:border-zinc-700 font-semibold cursor-pointer"

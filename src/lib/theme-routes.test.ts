@@ -11,4 +11,9 @@ describe('workspace theme routes', () => {
     expect(workspaceThemePaths).toContain('/briefing');
     expect(isWorkspaceThemePath('/briefing')).toBe(true);
   });
+
+  it('keeps secure messaging inside the persisted workspace theme scope', () => {
+    expect(workspaceThemePaths).toContain('/messages');
+    expect(isWorkspaceThemePath('/messages')).toBe(true);
+  });
 });
