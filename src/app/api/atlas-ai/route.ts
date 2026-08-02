@@ -39,6 +39,12 @@ import {
 import { InvoiceServiceError } from '@/lib/invoices/service';
 import { calculateAgencyMetaMetrics } from '@/lib/agency-meta-metrics';
 import { canUseAtlasCapability, entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
+import {
+  AtlasTokenLimitError,
+  estimateInputTokens,
+  reserveAtlasTokens,
+  settleAtlasTokenReservation,
+} from '@/lib/atlas-ai/token-budget';
 
 const AUTOMATIC_INSIGHT_TTL_MS = 30 * 60 * 1000;
 const CHAT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -491,6 +497,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const tokenBudget = { orgId: user.orgId, plan };
 
     // Helper functions 
     const callGemini = async (prompt: string, customFallback?: string) => {
@@ -498,20 +505,43 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
         ? "Atlas AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Atlas AI Analysis' in Settings > AI Settings & Data Privacy."
         : applyBillingCurrency(MOCK_REPLIES.dashboard));
       if (!geminiKey) return fallback;
+      const reservation = await reserveAtlasTokens({
+        ...tokenBudget,
+        provider: 'GEMINI',
+        input: estimateInputTokens(prompt),
+        output: 1024,
+      });
+      let reservationSettled = false;
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 1024 },
+          })
         });
         if (!res.ok) {
+          await settleAtlasTokenReservation(reservation, null);
+          reservationSettled = true;
           console.warn(`Gemini API failed with status ${res.status}. Falling back to mock replies.`);
           return fallback;
         }
-        const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || fallback;
+        const data = await res.json() as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+          usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+        };
+        const output = data.candidates?.[0]?.content?.parts?.[0]?.text || fallback;
+        await settleAtlasTokenReservation(reservation, {
+          input: data.usageMetadata?.promptTokenCount ?? estimateInputTokens(prompt),
+          output: data.usageMetadata?.candidatesTokenCount ?? estimateInputTokens(output),
+        });
+        reservationSettled = true;
+        return output;
       } catch (error) {
+        if (!reservationSettled) await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
+        if (error instanceof AtlasTokenLimitError) throw error;
         console.error('Gemini API call exception. Falling back to mock replies:', error);
         return fallback;
       }
@@ -560,6 +590,13 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
       if (!openaiKey) {
         return await executeGeminiFallback();
       }
+      const reservation = await reserveAtlasTokens({
+        ...tokenBudget,
+        provider: 'GPT',
+        input: estimateInputTokens(systemPrompt, userPrompt),
+        output: 1024,
+      });
+      let reservationSettled = false;
       try {
         const url = 'https://api.openai.com/v1/chat/completions';
         const res = await fetch(url, {
@@ -574,16 +611,30 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.5
+            temperature: 0.5,
+            max_tokens: 1024,
           })
         });
         if (!res.ok) {
+          await settleAtlasTokenReservation(reservation, null);
+          reservationSettled = true;
           console.warn(`ChatGPT API failed with status ${res.status}.`);
           return await executeGeminiFallback();
         }
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content || await executeGeminiFallback();
+        const data = await res.json() as {
+          choices?: Array<{ message?: { content?: string } }>;
+          usage?: { prompt_tokens?: number; completion_tokens?: number };
+        };
+        const output = data.choices?.[0]?.message?.content;
+        await settleAtlasTokenReservation(reservation, {
+          input: data.usage?.prompt_tokens ?? estimateInputTokens(systemPrompt, userPrompt),
+          output: data.usage?.completion_tokens ?? estimateInputTokens(output || ''),
+        });
+        reservationSettled = true;
+        return output || await executeGeminiFallback();
       } catch (error) {
+        if (!reservationSettled) await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
+        if (error instanceof AtlasTokenLimitError) throw error;
         console.error('ChatGPT API call exception:', error);
         return await executeGeminiFallback();
       }
@@ -594,6 +645,13 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
         ? "Atlas AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Atlas AI Analysis' in Settings > AI Settings & Data Privacy."
         : applyBillingCurrency(MOCK_REPLIES.askGeneral(userPrompt));
       if (!anthropicKey) return fallback;
+      const reservation = await reserveAtlasTokens({
+        ...tokenBudget,
+        provider: 'CLAUDE',
+        input: estimateInputTokens(systemPrompt, userPrompt),
+        output: 1024,
+      });
+      let reservationSettled = false;
       try {
         const url = 'https://api.anthropic.com/v1/messages';
         const res = await fetch(url, {
@@ -611,12 +669,25 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           })
         });
         if (!res.ok) {
+          await settleAtlasTokenReservation(reservation, null);
+          reservationSettled = true;
           console.warn(`Atlas AI provider failed with status ${res.status}. Falling back to mock replies.`);
           return fallback;
         }
-        const data = await res.json();
-        return data.content?.[0]?.text || fallback;
+        const data = await res.json() as {
+          content?: Array<{ text?: string }>;
+          usage?: { input_tokens?: number; output_tokens?: number };
+        };
+        const output = data.content?.[0]?.text || fallback;
+        await settleAtlasTokenReservation(reservation, {
+          input: data.usage?.input_tokens ?? estimateInputTokens(systemPrompt, userPrompt),
+          output: data.usage?.output_tokens ?? estimateInputTokens(output),
+        });
+        reservationSettled = true;
+        return output;
       } catch (error) {
+        if (!reservationSettled) await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
+        if (error instanceof AtlasTokenLimitError) throw error;
         console.error('Atlas AI provider call exception. Falling back to mock replies:', error);
         return fallback;
       }
@@ -823,6 +894,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
               })),
             },
             decisionRequested: delegatedDecisionRequest || Boolean(currentState?.decisionMode),
+            tokenBudget,
           });
           let workflowState = mergeAutomationWorkflow(currentState, automationResult);
           if (!workflowState) {
@@ -853,6 +925,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
               userId: user.id,
               baseUrl: publicAppUrl(request),
               workspaceContext: dbContextText,
+              tokenBudget,
               automationKey: sessionId ? `atlas-automation:${sessionId}` : undefined,
             });
             output = createdAutomation.message;
@@ -942,6 +1015,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
               ...teamDirectory.map((entry) => ({ ...entry, kind: 'team' as const })),
               ...clientDirectory.map((entry) => ({ ...entry, kind: 'client' as const })),
             ],
+            tokenBudget,
           });
           let workflowState = mergeMeetingWorkflow(currentState, geminiResult, timeZone);
           const missingFields = missingMeetingFields(workflowState);
@@ -1203,6 +1277,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
     console.error('Error in Atlas AI routing handler:', error);
     if (
       error instanceof GeminiMeetingError
+      || error instanceof AtlasTokenLimitError
       || error instanceof GeminiAutomationError
       || error instanceof AtlasAutomationExecutionError
       || error instanceof InvoiceServiceError

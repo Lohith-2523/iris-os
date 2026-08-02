@@ -1,5 +1,13 @@
 [
   {
+    "date": "2026-08-02",
+    "scope": "app",
+    "macrostructure": "Split Studio",
+    "theme": "Iris OS porcelain and graphite",
+    "enrichment": "supplied full-height auth video",
+    "brief": "Shared login and signup split-screen shell with an abstract porcelain orbit and performance-deferred video"
+  },
+  {
     "date": "2026-07-31",
     "macrostructure": "Narrative Workflow",
     "theme": "CrystalOS light contrast cards",

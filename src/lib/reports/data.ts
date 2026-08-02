@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { generateReportWithGemini } from '@/lib/atlas-ai/gemini-automations';
 import type { AtlasReportDocument, ReportKind, ReportMetric, ReportSection } from './types';
 import { entitlementsFor } from '@/lib/plan-entitlements';
+import { normalizePlan } from '@/lib/plan-entitlements';
+import type { AtlasTokenBudgetContext } from '@/lib/atlas-ai/token-budget';
 
 const money = (value: number, currency: string) => `${currency} ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 const date = (value: Date | null | undefined) => value ? value.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'Not set';
@@ -29,6 +31,7 @@ async function atlasNarrative(input: {
   context: string;
   metrics: ReportMetric[];
   highlights: string[];
+  tokenBudget: AtlasTokenBudgetContext;
 }) {
   if (!input.enabled) return deterministicNarrative(input.kind, input.metrics, input.highlights);
   try {
@@ -37,6 +40,7 @@ async function atlasNarrative(input: {
       type: input.kind,
       focus: 'Provide a concise executive narrative grounded only in the supplied verified metrics and records.',
       workspaceContext: input.context,
+      tokenBudget: input.tokenBudget,
     });
   } catch (error) {
     console.warn('Atlas report narrative fell back to deterministic analysis:', error instanceof Error ? error.message : error);
@@ -211,6 +215,7 @@ export async function buildAtlasReportDocument(orgId: string, kind: ReportKind, 
     context,
     metrics,
     highlights,
+    tokenBudget: { orgId, plan: normalizePlan(organization.plan) },
   });
   const recommendations = highlights.slice(0, 3).map((item, index) => `${index + 1}. Review the supporting records for this signal: ${item}`);
   return {

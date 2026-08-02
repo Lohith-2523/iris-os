@@ -7,6 +7,7 @@ import {
 } from '@/lib/invoices/service';
 import { parseProjectCommercials } from '@/lib/projects/commercial';
 import { generateReportWithGemini } from './gemini-automations';
+import type { AtlasTokenBudgetContext } from './token-budget';
 import type { AutomationWorkflowState } from './automation-workflow';
 
 export class AtlasAutomationExecutionError extends Error {
@@ -40,6 +41,7 @@ export async function executeAtlasAutomation(input: {
   userId: string;
   baseUrl: string;
   workspaceContext: string;
+  tokenBudget: AtlasTokenBudgetContext;
   automationKey?: string;
 }) {
   const { state } = input;
@@ -234,6 +236,7 @@ export async function executeAtlasAutomation(input: {
     type: draft.reportType,
     focus: draft.reportFocus,
     workspaceContext: input.workspaceContext,
+    tokenBudget: input.tokenBudget,
   });
   const report = await prisma.report.create({
     data: {

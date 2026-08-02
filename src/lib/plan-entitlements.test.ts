@@ -23,6 +23,22 @@ describe('plan entitlements', () => {
     });
   });
 
+  it('allocates Atlas token budgets by direction and provider', () => {
+    expect(entitlementsFor('BASIC').atlasTokenLimits).toBeNull();
+    expect(entitlementsFor('PRO').atlasTokenLimits).toEqual({
+      total: 500_000,
+      input: 150_000,
+      output: 350_000,
+      providers: { GEMINI: 200_000, GPT: 150_000, CLAUDE: 150_000 },
+    });
+    expect(entitlementsFor('ADVANCED').atlasTokenLimits).toEqual({
+      total: 1_000_000,
+      input: 300_000,
+      output: 700_000,
+      providers: { GEMINI: 400_000, GPT: 300_000, CLAUDE: 300_000 },
+    });
+  });
+
   it('limits Pro Atlas actions and halves every messaging size/count limit', () => {
     const pro = entitlementsFor('PRO');
     const advanced = entitlementsFor('ADVANCED');

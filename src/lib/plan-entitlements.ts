@@ -2,6 +2,27 @@ export const PLAN_IDS = ['BASIC', 'PRO', 'ADVANCED'] as const;
 
 export type PlanId = (typeof PLAN_IDS)[number];
 export type AtlasCapability = 'MEETING' | 'INVOICE' | 'ALL';
+export type AtlasProvider = 'GEMINI' | 'GPT' | 'CLAUDE';
+
+export type AtlasTokenLimits = {
+  total: number;
+  input: number;
+  output: number;
+  providers: Record<AtlasProvider, number>;
+};
+
+function atlasTokenLimits(total: number): AtlasTokenLimits {
+  return {
+    total,
+    input: total * 0.3,
+    output: total * 0.7,
+    providers: {
+      GEMINI: total * 0.4,
+      GPT: total * 0.3,
+      CLAUDE: total * 0.3,
+    },
+  };
+}
 
 export type MessagingLimits = {
   textBytes: number;
@@ -46,6 +67,7 @@ export const PLAN_ENTITLEMENTS = {
     dailyBriefing: false,
     strategyGeneration: false,
     aiFeatures: false,
+    atlasTokenLimits: null,
     messaging: false,
     messagingLimits: null,
   },
@@ -57,6 +79,7 @@ export const PLAN_ENTITLEMENTS = {
     dailyBriefing: false,
     strategyGeneration: false,
     aiFeatures: true,
+    atlasTokenLimits: atlasTokenLimits(500_000),
     messaging: true,
     messagingLimits: halfLimits(advancedMessagingLimits),
   },
@@ -68,6 +91,7 @@ export const PLAN_ENTITLEMENTS = {
     dailyBriefing: true,
     strategyGeneration: true,
     aiFeatures: true,
+    atlasTokenLimits: atlasTokenLimits(1_000_000),
     messaging: true,
     messagingLimits: advancedMessagingLimits,
   },

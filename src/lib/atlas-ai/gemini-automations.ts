@@ -4,6 +4,12 @@ import {
   geminiAutomationResultSchema,
   type AutomationWorkflowState,
 } from './automation-workflow';
+import {
+  estimateInputTokens,
+  reserveAtlasTokens,
+  settleAtlasTokenReservation,
+  type AtlasTokenBudgetContext,
+} from './token-budget';
 
 export const GEMINI_AUTOMATION_MODEL = 'gemini-3.5-flash';
 
@@ -49,25 +55,47 @@ export class GeminiAutomationError extends Error {
   }
 }
 
-async function callGemini(body: Record<string, unknown>) {
+async function callGemini(body: Record<string, unknown>, tokenBudget: AtlasTokenBudgetContext) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new GeminiAutomationError('Atlas AI automations are not configured.', 503);
   }
-  const response = await fetch(
+  const generationConfig = typeof body.generationConfig === 'object' && body.generationConfig
+    ? body.generationConfig as Record<string, unknown>
+    : {};
+  const budgetedBody = {
+    ...body,
+    generationConfig: { ...generationConfig, maxOutputTokens: 2048 },
+  };
+  const serializedBody = JSON.stringify(budgetedBody);
+  const reservation = await reserveAtlasTokens({
+    ...tokenBudget,
+    provider: 'GEMINI',
+    input: estimateInputTokens(serializedBody),
+    output: 2048,
+  });
+  let response: Response;
+  try {
+    response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_AUTOMATION_MODEL}:generateContent`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify(body),
+      body: serializedBody,
       cache: 'no-store',
     },
-  );
+    );
+  } catch (error) {
+    await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
+    throw error;
+  }
   const payload = await response.json().catch(() => ({})) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
     error?: { message?: string };
   };
   if (!response.ok) {
+    await settleAtlasTokenReservation(reservation, null);
     console.error('Atlas automation provider failed:', response.status, payload.error?.message || 'Unknown error');
     throw new GeminiAutomationError(
       payload.error?.message || 'Atlas AI could not continue this automation.',
@@ -75,6 +103,10 @@ async function callGemini(body: Record<string, unknown>) {
     );
   }
   const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+  await settleAtlasTokenReservation(reservation, {
+    input: payload.usageMetadata?.promptTokenCount ?? estimateInputTokens(serializedBody),
+    output: payload.usageMetadata?.candidatesTokenCount ?? estimateInputTokens(text || ''),
+  });
   if (!text) throw new GeminiAutomationError('Atlas AI returned an empty automation response.');
   return text;
 }
@@ -86,6 +118,7 @@ export async function extractAutomationDetailsWithGemini(input: {
   currency: string;
   directory: AutomationDirectory;
   decisionRequested: boolean;
+  tokenBudget: AtlasTokenBudgetContext;
 }) {
   const prompt = `You are the automation engine inside Atlas AI.
 This workflow MUST use Gemini 3.5 Flash only. Never mention Gemini or any provider to the user; the product is always called Atlas AI.
@@ -212,7 +245,7 @@ USER_MESSAGE: ${input.query}`;
         required: ['kind', 'action', 'draft', 'reply', 'decisionMode', 'decisionRationale', 'decisionEvidence'],
       },
     },
-  });
+  }, input.tokenBudget);
   const parsed = geminiAutomationResultSchema.safeParse(JSON.parse(text));
   if (!parsed.success) {
     throw new GeminiAutomationError('Atlas AI returned invalid automation details. Please rephrase the request.');
@@ -225,6 +258,7 @@ export async function generateReportWithGemini(input: {
   type: string;
   focus: string;
   workspaceContext: string;
+  tokenBudget: AtlasTokenBudgetContext;
 }) {
   const prompt = `You are Atlas AI, an executive reporting system.
 Create a polished ${input.type} report titled "${input.title}" focused on: ${input.focus}.
@@ -237,5 +271,5 @@ ${input.workspaceContext}`;
   return callGemini({
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.2 },
-  });
+  }, input.tokenBudget);
 }

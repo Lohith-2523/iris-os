@@ -3,12 +3,11 @@
 import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 // ─── Font shorthands ──────────────────────────────────────────────────────────
 const DISPLAY = "var(--font-space-grotesk), sans-serif";
 const BODY    = "var(--font-geist-sans), sans-serif";
-const MONO    = "var(--font-geist-mono), monospace";
 const JBMONO  = "var(--font-mono), monospace";
 
 export default function WaitlistPage() {
@@ -18,6 +17,8 @@ export default function WaitlistPage() {
   const [email, setEmail] = React.useState('');
   const [specialization, setSpecialization] = React.useState('Creative & Design Agency');
   const [submitted, setSubmitted] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [focusedName, setFocusedName] = React.useState(false);
   const [focusedEmail, setFocusedEmail] = React.useState(false);
   const [focusedSpec, setFocusedSpec] = React.useState(false);
@@ -28,10 +29,27 @@ export default function WaitlistPage() {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
+    if (!email.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmissionError(null);
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, specialization }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error || 'Unable to join the waitlist. Please try again.');
+      }
       setSubmitted(true);
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : 'Unable to join the waitlist. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -317,6 +335,11 @@ export default function WaitlistPage() {
                 }}
               >
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {submissionError && (
+                    <p role="alert" style={{ margin: 0, color: '#fca5a5', fontSize: '14px', lineHeight: 1.5 }}>
+                      {submissionError}
+                    </p>
+                  )}
                   {/* Name field */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <label
@@ -421,6 +444,7 @@ export default function WaitlistPage() {
 
                   <button
                     type="submit"
+                    disabled={isSubmitting}
                     className="neo-button-accent"
                     style={{
                       fontFamily: BODY,
@@ -432,7 +456,7 @@ export default function WaitlistPage() {
                       marginTop: '8px',
                     }}
                   >
-                    Submit Registration
+                    {isSubmitting ? 'Submitting…' : 'Submit Registration'}
                   </button>
                 </form>
               </div>
@@ -477,7 +501,7 @@ export default function WaitlistPage() {
                   margin: 0,
                 }}
               >
-                You're on the list.
+                You&apos;re on the list.
               </h2>
 
               <p

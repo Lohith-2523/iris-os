@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
-import { entitlementsFor } from '@/lib/plan-entitlements';
+import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
+import { AtlasTokenLimitError } from '@/lib/atlas-ai/token-budget';
 import {
   AtlasStrategyError,
   generateStrategyWithAtlas,
@@ -182,6 +183,7 @@ export async function POST(request: NextRequest) {
       currency: user.organization.currency,
       clients: context.clients,
       projects: context.projects,
+      tokenBudget: { orgId: user.orgId, plan: normalizePlan(user.organization.plan) },
     });
     const inputSnapshot = {
       type,
@@ -220,6 +222,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ strategy }, { status: 201 });
   } catch (error) {
     if (error instanceof AtlasStrategyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    if (error instanceof AtlasTokenLimitError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('Unable to create strategy:', error);

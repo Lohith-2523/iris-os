@@ -4,6 +4,12 @@ import {
   geminiMeetingResultSchema,
   type MeetingWorkflowState,
 } from './meeting-workflow';
+import {
+  estimateInputTokens,
+  reserveAtlasTokens,
+  settleAtlasTokenReservation,
+  type AtlasTokenBudgetContext,
+} from './token-budget';
 
 const GEMINI_MEETING_MODEL = 'gemini-3.5-flash';
 
@@ -26,6 +32,7 @@ export async function extractMeetingDetailsWithGemini(input: {
   timeZone: string;
   currentLocalDateTime: string;
   directory: DirectoryEntry[];
+  tokenBudget: AtlasTokenBudgetContext;
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -62,41 +69,56 @@ ${JSON.stringify(input.directory)}
 USER_MESSAGE:
 ${input.query}`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MEETING_MODEL}:generateContent`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              title: { type: 'STRING' },
-              attendees: { type: 'ARRAY', items: { type: 'STRING' } },
-              startLocal: { type: 'STRING' },
-              action: { type: 'STRING', enum: ['COLLECT', 'READY', 'CONFIRM', 'CANCEL'] },
-              reply: { type: 'STRING' },
-            },
-            required: ['title', 'attendees', 'startLocal', 'action', 'reply'],
-          },
+  const reservation = await reserveAtlasTokens({
+    ...input.tokenBudget,
+    provider: 'GEMINI',
+    input: estimateInputTokens(prompt),
+    output: 1024,
+  });
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MEETING_MODEL}:generateContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
         },
-      }),
-      cache: 'no-store',
-    },
-  );
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: 1024,
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'OBJECT',
+              properties: {
+                title: { type: 'STRING' },
+                attendees: { type: 'ARRAY', items: { type: 'STRING' } },
+                startLocal: { type: 'STRING' },
+                action: { type: 'STRING', enum: ['COLLECT', 'READY', 'CONFIRM', 'CANCEL'] },
+                reply: { type: 'STRING' },
+              },
+              required: ['title', 'attendees', 'startLocal', 'action', 'reply'],
+            },
+          },
+        }),
+        cache: 'no-store',
+      },
+    );
+  } catch (error) {
+    await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
+    throw error;
+  }
 
   const payload = await response.json().catch(() => ({})) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
     error?: { message?: string };
   };
   if (!response.ok) {
+    await settleAtlasTokenReservation(reservation, null);
     console.error('Gemini meeting workflow failed:', response.status, payload.error?.message || 'Unknown error');
     throw new GeminiMeetingError(
       payload.error?.message || 'Gemini could not continue the meeting conversation.',
@@ -105,6 +127,10 @@ ${input.query}`;
   }
 
   const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+  await settleAtlasTokenReservation(reservation, {
+    input: payload.usageMetadata?.promptTokenCount ?? estimateInputTokens(prompt),
+    output: payload.usageMetadata?.candidatesTokenCount ?? estimateInputTokens(text || ''),
+  });
   if (!text) throw new GeminiMeetingError('Gemini returned an empty meeting response.');
 
   const parsedJson = JSON.parse(text);

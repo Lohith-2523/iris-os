@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
       pathname === '/favicon.ico' ||
       pathname === '/robots.txt' ||
       pathname === '/sitemap.xml' ||
-      pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf)$/i);
+      pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|mp4|webm)$/i);
 
     if (pathname !== '/coming-soon' && !isStaticAsset) {
       const url = request.nextUrl.clone();
@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|mp4|webm|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],
