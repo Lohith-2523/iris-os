@@ -49,4 +49,6 @@ next-env.d.ts
 .env*
 /integrations_offline
 /backup-features
+/performance-audit
+
 
