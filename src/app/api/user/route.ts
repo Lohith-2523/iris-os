@@ -21,6 +21,7 @@ export async function GET() {
         name: user.organization.name,
         plan: user.organization.plan,
         currency: user.organization.currency,
+        needsOnboarding: user.organization.onboardingState?.needsOnboarding ?? true,
       },
     });
   } catch (error) {

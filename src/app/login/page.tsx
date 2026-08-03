@@ -51,6 +51,13 @@ export default function LoginPage() {
           }, 100);
           return;
         }
+        if (userData.organization?.needsOnboarding) {
+          setTimeout(() => {
+            setIsLoading(false);
+            router.push('/onboarding');
+          }, 100);
+          return;
+        }
       }
     } catch (e) {
       console.error('Error fetching user role on login:', e);
@@ -128,6 +135,7 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            <Link href="/forgot-password" prefetch={false} className={styles.forgotPasswordLink}>Forgot password?</Link>
           </div>
 
           <button type="submit" disabled={isLoading} className={styles.primaryButton}>

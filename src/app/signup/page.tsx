@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { User, Phone, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
 import styles from '@/components/auth/auth-shell.module.css';
+import { passwordConfirmationError } from '@/lib/password-validation';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -13,7 +14,9 @@ export default function SignupPage() {
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmation, setShowConfirmation] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
@@ -21,6 +24,11 @@ export default function SignupPage() {
     e.preventDefault();
     if (!name || !email || !phone || !password) {
       setErrorMsg('Please fill in all fields.');
+      return;
+    }
+    const confirmationError = passwordConfirmationError(password, confirmPassword);
+    if (confirmationError) {
+      setErrorMsg(confirmationError);
       return;
     }
     setIsLoading(true);
@@ -107,6 +115,17 @@ export default function SignupPage() {
               <input id="signup-password" type={showPassword ? 'text' : 'password'} required placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" className={`${styles.input} ${styles.passwordInput}`} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className={styles.iconButton} aria-label={showPassword ? 'Hide password' : 'Show password'}>
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="signup-confirm-password">Confirm password</label>
+            <div className={styles.inputWrap}>
+              <Lock className={styles.inputIcon} aria-hidden="true" />
+              <input id="signup-confirm-password" type={showConfirmation ? 'text' : 'password'} required placeholder="Enter your password again" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" aria-invalid={Boolean(confirmPassword && password !== confirmPassword)} className={`${styles.input} ${styles.passwordInput}`} />
+              <button type="button" onClick={() => setShowConfirmation(!showConfirmation)} className={styles.iconButton} aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'}>
+                {showConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
