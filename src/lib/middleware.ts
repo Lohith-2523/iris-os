@@ -1,5 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import {
+  canAccessPasswordReset,
+  FORGOT_PASSWORD_PATH,
+  PASSWORD_RECOVERY_COOKIE,
+} from '@/lib/auth-routes'
 
 export async function updateSession(request: NextRequest) {
   try {
@@ -44,6 +49,17 @@ export async function updateSession(request: NextRequest) {
     const user = data?.claims
 
     const pathname = request.nextUrl.pathname
+    if (!canAccessPasswordReset(
+      pathname,
+      Boolean(user),
+      request.cookies.get(PASSWORD_RECOVERY_COOKIE)?.value,
+    )) {
+      const url = request.nextUrl.clone()
+      url.pathname = FORGOT_PASSWORD_PATH
+      url.searchParams.set('recovery_error', 'secure_link_required')
+      return NextResponse.redirect(url)
+    }
+
     const isPublicRoute =
       pathname === '/coming-soon' ||
       pathname === '/' ||
@@ -57,7 +73,6 @@ export async function updateSession(request: NextRequest) {
       pathname === '/invite' ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/forgot-password') ||
-      pathname.startsWith('/reset-password') ||
       pathname === '/auth/callback' ||
       pathname === '/api/member' ||
       pathname === '/api/invite' ||

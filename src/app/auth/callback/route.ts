@@ -6,19 +6,31 @@ import {
   isTransientDatabaseConnectionError,
   withDatabaseConnectionRetry,
 } from '@/lib/database-resilience';
+import {
+  FORGOT_PASSWORD_PATH,
+  isPasswordRecoveryExchange,
+  PASSWORD_RECOVERY_COOKIE,
+  PASSWORD_RECOVERY_COOKIE_VALUE,
+  RESET_PASSWORD_PATH,
+} from '@/lib/auth-routes';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const requestedNext = searchParams.get('next') ?? '/dashboard';
   const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/dashboard';
+  const recoveryFailureUrl = new URL(FORGOT_PASSWORD_PATH, origin);
+  recoveryFailureUrl.searchParams.set('recovery_error', 'invalid_or_expired');
+  const authenticationFailureUrl = next === RESET_PASSWORD_PATH
+    ? recoveryFailureUrl.toString()
+    : `${origin}/login`;
   // The code exchange refreshes auth cookies. Keep those cookies on the same
   // redirect response so the destination request is authenticated.
   const response = NextResponse.redirect(new URL('/dashboard', request.url));
 
   try {
     if (!code) {
-      return NextResponse.redirect(`${origin}/login?auth_error=missing_code`);
+      return NextResponse.redirect(`${authenticationFailureUrl}${authenticationFailureUrl.includes('?') ? '&' : '?'}auth_error=missing_code`);
     }
 
     const cookieHeader = request.headers.get('cookie') ?? '';
@@ -45,14 +57,30 @@ export async function GET(request: Request) {
     });
     const { error, data } = await supabase.auth.exchangeCodeForSession(code);
     if (error || !data?.session?.user?.email) {
-      console.error('Google OAuth callback session exchange failed:', error);
-      return NextResponse.redirect(`${origin}/login?auth_error=oauth_exchange_failed`);
+      console.error('Authentication callback session exchange failed:', error);
+      return NextResponse.redirect(`${authenticationFailureUrl}${authenticationFailureUrl.includes('?') ? '&' : '?'}auth_error=oauth_exchange_failed`);
     }
 
     const session = data.session;
     const email = session.user.email;
     if (!email) {
-      return NextResponse.redirect(`${origin}/login?auth_error=missing_email`);
+      return NextResponse.redirect(`${authenticationFailureUrl}${authenticationFailureUrl.includes('?') ? '&' : '?'}auth_error=missing_email`);
+    }
+    const redirectType = (data as typeof data & { redirectType?: string | null }).redirectType;
+    if (isPasswordRecoveryExchange(next, redirectType)) {
+      response.cookies.set(PASSWORD_RECOVERY_COOKIE, PASSWORD_RECOVERY_COOKIE_VALUE, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 10 * 60,
+      });
+      response.headers.set('Location', new URL(RESET_PASSWORD_PATH, origin).toString());
+      return response;
+    }
+    if (next === RESET_PASSWORD_PATH) {
+      response.headers.set('Location', recoveryFailureUrl.toString());
+      return response;
     }
     if (next.startsWith('/onboarding/member')) {
       const inviteToken = new URL(next, origin).searchParams.get('token');
@@ -76,9 +104,7 @@ export async function GET(request: Request) {
 
     // First-time users and users with unfinished onboarding resume the saved
     // wizard state. Completed workspaces return to their requested page/dashboard.
-    const redirectUrl = next === '/reset-password'
-      ? '/reset-password'
-      : role === 'client'
+    const redirectUrl = role === 'client'
         ? '/client-dashboard'
         : role === 'member'
           ? '/teams-dashboard'
@@ -90,7 +116,10 @@ export async function GET(request: Request) {
     response.headers.set('Location', new URL(redirectUrl, origin).toString());
     return response;
   } catch (error) {
-    console.error('Google OAuth callback failed:', error);
+    console.error('Authentication callback failed:', error);
+    if (next === RESET_PASSWORD_PATH) {
+      return NextResponse.redirect(recoveryFailureUrl);
+    }
     if (isTransientDatabaseConnectionError(error)) {
       return NextResponse.redirect(`${origin}/login?auth_error=workspace_temporarily_unavailable`);
     }

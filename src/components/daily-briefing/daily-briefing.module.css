@@ -174,7 +174,6 @@
   outline-offset: 3px;
 }
 
-.currentCard:disabled,
 .launcher:disabled {
   cursor: not-allowed;
   opacity: 0.55;

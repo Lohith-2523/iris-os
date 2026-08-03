@@ -80,10 +80,10 @@ export function DailyBriefing() {
   const [briefing, setBriefing] = React.useState<BriefingResponse | null>(null);
   const [readCount, setReadCount] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isFiling, setIsFiling] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [timeZone] = React.useState(() => browserTimeZone());
   const [greetingNow, setGreetingNow] = React.useState(() => new Date());
+  const progressSaveQueue = React.useRef<Promise<void>>(Promise.resolve());
 
   React.useEffect(() => {
     const interval = window.setInterval(() => setGreetingNow(new Date()), 60_000);
@@ -120,32 +120,32 @@ export function DailyBriefing() {
   }, [loadBriefing]);
 
   const fileCurrentUpdate = React.useCallback(async () => {
-    if (!briefing || isFiling || readCount >= briefing.payload.items.length) return;
+    if (!briefing || readCount >= briefing.payload.items.length) return;
     const nextCount = readCount + 1;
     const documentWithTransitions = document as Document & {
       startViewTransition?: (callback: () => void) => { finished: Promise<void> };
     };
 
-    setIsFiling(true);
     const commit = () => flushSync(() => setReadCount(nextCount));
     const transition = documentWithTransitions.startViewTransition?.(commit);
     if (!transition) commit();
 
-    try {
-      const response = await fetch('/api/daily-briefing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'progress', readCount: nextCount, timeZone }),
+    void transition?.finished;
+    progressSaveQueue.current = progressSaveQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        const response = await fetch('/api/daily-briefing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'progress', readCount: nextCount, timeZone }),
+        });
+        if (!response.ok) throw new Error('Progress could not be saved. Your next click will retry it.');
+        setError(null);
+      })
+      .catch((progressError) => {
+        setError(progressError instanceof Error ? progressError.message : 'Progress could not be saved.');
       });
-      if (!response.ok) throw new Error('Progress could not be saved. Your next click will retry it.');
-      setError(null);
-      await transition?.finished;
-    } catch (progressError) {
-      setError(progressError instanceof Error ? progressError.message : 'Progress could not be saved.');
-    } finally {
-      setIsFiling(false);
-    }
-  }, [briefing, isFiling, readCount, timeZone]);
+  }, [briefing, readCount, timeZone]);
 
   if (isLoading) {
     return (
@@ -208,7 +208,6 @@ export function DailyBriefing() {
               className={styles.currentCard}
               type="button"
               onClick={() => void fileCurrentUpdate()}
-              disabled={isFiling}
               aria-label={`File ${currentItem.label} update and continue`}
               style={transitionStyle(currentItem)}
               data-item={currentItem.id}
@@ -229,7 +228,7 @@ export function DailyBriefing() {
                 )}
               </div>
               <span className={styles.clickHint}>
-                <span>{isFiling ? 'Filing update…' : 'Click anywhere to file this update'}</span>
+                <span>Click anywhere to file this update</span>
                 <MousePointer2 aria-hidden className="h-4 w-4 shrink-0" />
               </span>
             </button>

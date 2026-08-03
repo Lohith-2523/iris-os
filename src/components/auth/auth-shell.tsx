@@ -81,7 +81,7 @@ export function AuthShell({ title, description, children }: AuthShellProps) {
       </section>
 
       <section className={styles.formPanel} aria-label={title}>
-        <div className={styles.orbit} aria-hidden="true" />
+        <div className={styles.abstractShape} aria-hidden="true" />
         <div className={styles.card}>
           <header className={styles.header}>
             <Image

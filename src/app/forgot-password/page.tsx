@@ -5,12 +5,26 @@ import Link from 'next/link';
 import { ArrowRight, Mail } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
 import styles from '@/components/auth/auth-shell.module.css';
+import { passwordRecoveryRedirectUrl } from '@/lib/auth-routes';
+
+function recoveryErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim() && error.message.trim() !== '{}') {
+    return error.message;
+  }
+  return 'Supabase could not send the reset email. Check the Auth SMTP configuration and try again.';
+}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [isSent, setIsSent] = React.useState(false);
+
+  React.useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('recovery_error')) {
+      setErrorMsg('This password reset link is invalid or has expired. Request a new secure link to continue.');
+    }
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -21,12 +35,12 @@ export default function ForgotPasswordPage() {
       const { createClient } = await import('@/lib/client');
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        redirectTo: passwordRecoveryRedirectUrl(window.location.origin),
       });
       if (error) throw error;
       setIsSent(true);
     } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : 'Unable to send the password reset email.');
+      setErrorMsg(recoveryErrorMessage(error));
     } finally {
       setIsLoading(false);
     }

@@ -1,4 +1,4 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 /* Hallmark · genre: modern-minimal · macrostructure: Split Studio · design-system: design.md · designed-as-app · enrichment: supplied video · contrast: pass (40–41) · nav: none · footer: inline auth switch · slop: pass (42–49) · mobile: source-checked (34, 49–57) */
 .shell {
   position: relative;
@@ -58,15 +58,14 @@
   padding: var(--space-auth-lg) var(--space-auth-md);
 }
 
-.orbit {
+.abstractShape {
   position: absolute;
   top: 50%;
   right: 50%;
-  width: max(46rem, 150vw);
-  height: max(54rem, 118svh);
-  min-height: 54rem;
-  transform: translate(50%, -50%) rotate(-3deg);
-  border-radius: 52% 48% 44% 56% / 46% 42% 58% 54%;
+  width: max(48rem, 165vw);
+  height: max(72rem, 160svh);
+  transform: translate(50%, -50%) rotate(-2deg);
+  border-radius: 50%;
   background: var(--color-auth-paper);
   box-shadow: var(--shadow-auth-orbit);
   pointer-events: none;
@@ -384,12 +383,11 @@
     padding: var(--space-auth-xl) clamp(var(--space-auth-3xl), 7vw, 10rem);
   }
 
-  .orbit {
-    right: clamp(-14.4rem, -10.8vw, -6rem);
-    width: max(55vw, 90svh);
-    height: auto;
-    aspect-ratio: 1;
-    transform: translateY(-50%) rotate(-4deg);
+  .abstractShape {
+    right: clamp(-13rem, -10.8vw, -6rem);
+    width: max(50vw, 46rem);
+    height: max(72rem, 160svh);
+    transform: translateY(-50%) rotate(-2deg);
   }
 }
 
