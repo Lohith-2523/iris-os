@@ -122,7 +122,7 @@ async function createAndSendDocument(input: {
   paymentTerms?: string | null;
   totals: ReturnType<typeof calculateInvoiceItems>;
   automationKey?: string;
-  source?: 'MANUAL' | 'PROJECT_INITIALIZATION' | 'ATLAS_AI';
+  source?: 'MANUAL' | 'PROJECT_INITIALIZATION' | 'ATLAS_AI' | 'PROPOSAL';
   buyerSnapshot?: InvoicePartySnapshot;
   recipient?: { name: string; email: string };
   invoiceNumber?: string;
@@ -387,7 +387,7 @@ export async function createAndSendProformaInvoice(input: {
   termsOfSale?: string;
   lineItems: InvoiceLineItemInput[];
   automationKey?: string;
-  source?: 'MANUAL' | 'ATLAS_AI';
+  source?: 'MANUAL' | 'ATLAS_AI' | 'PROPOSAL';
   taxRate?: number;
   buyerSnapshot?: InvoicePartySnapshot;
   recipient?: { name: string; email: string };
@@ -395,6 +395,7 @@ export async function createAndSendProformaInvoice(input: {
   issuedDate?: Date;
   validUntil?: Date;
   referenceName?: string;
+  sendEmail?: boolean;
 }) {
   let totals: ReturnType<typeof calculateInvoiceItems>;
   try {
@@ -422,6 +423,7 @@ export async function createAndSendProformaInvoice(input: {
     issuedDate: input.issuedDate,
     dueDate: input.validUntil,
     referenceName: input.referenceName,
+    sendEmail: input.sendEmail,
   });
 }
 

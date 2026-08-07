@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { createNotification, notifyOrganizationAdmins } from '@/lib/notifications';
+import { applyFinalizedChangeRequest } from '@/lib/atlas-ai/apply-finalized-change-request';
 
 const schema = z.object({
-  action: z.enum(['create', 'approve', 'request_changes', 'create_change_request', 'resolve_change_request']),
+  action: z.enum(['create', 'approve', 'request_changes', 'create_change_request', 'update_change_request', 'resolve_change_request']),
   id: z.string().uuid().optional(),
   title: z.string().trim().min(2).max(200).optional(),
   url: z.url().optional(),
@@ -16,6 +17,9 @@ const schema = z.object({
   taskId: z.string().uuid().nullable().optional(),
   stageId: z.string().uuid().nullable().optional(),
   needsApproval: z.boolean().optional(),
+  status: z.enum(['PROPOSED', 'DISCUSSION', 'FINALIZED']).optional(),
+  agencyResponse: z.string().trim().max(4000).nullable().optional(),
+  alternateProposal: z.string().trim().max(4000).nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -110,20 +114,67 @@ export async function POST(request: NextRequest) {
         const task = await prisma.clientTask.findFirst({ where: { id: body.taskId, clientId: client.id, ...(body.projectId ? { projectId: body.projectId } : {}) }, select: { id: true } });
         if (!task) return NextResponse.json({ error: 'Task does not belong to this client workspace' }, { status: 400 });
       }
-      const changeRequest = await prisma.changeRequest.create({ data: { title: body.title, details: body.note, requestedById: user.id, requestedByName: user.name, orgId: user.orgId, clientId: client.id, projectId: body.projectId || null, taskId: body.taskId || null } });
-      await notifyOrganizationAdmins({ orgId: user.orgId, type: 'ISSUE', title: 'Client change request', body: `${user.name} requested: ${body.title}`, href: `/clients?clientId=${client.id}&tab=approvals`, actionLabel: 'Review request' });
+      if (!body.projectId) return NextResponse.json({ error: 'A project is required for change requests' }, { status: 400 });
+      const changeRequest = await prisma.changeRequest.create({ data: { title: body.title, details: body.note, status: 'PROPOSED', requestedById: user.id, requestedByName: user.name, orgId: user.orgId, clientId: client.id, projectId: body.projectId, taskId: body.taskId || null } });
+      await notifyOrganizationAdmins({ orgId: user.orgId, type: 'ISSUE', title: 'Project change proposed', body: `${user.name} proposed: ${body.title}`, href: `/clients?clientId=${client.id}&tab=changes`, actionLabel: 'Review proposal' });
       return NextResponse.json({ success: true, changeRequest });
     }
 
     if (!body.id) return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
-    if (body.action === 'resolve_change_request') {
-      if (!isOrganizationAdmin(user) && user.role.toLowerCase() !== 'sub_admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      const changeRequest = await prisma.changeRequest.findFirst({ where: { id: body.id, orgId: user.orgId }, select: { id: true, title: true, clientId: true } });
+    if (body.action === 'update_change_request' || body.action === 'resolve_change_request') {
+      if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Only the agency admin can manage project change requests' }, { status: 403 });
+      const changeRequest = await prisma.changeRequest.findFirst({ where: { id: body.id, orgId: user.orgId } });
       if (!changeRequest) return NextResponse.json({ error: 'Change request not found' }, { status: 404 });
-      await prisma.changeRequest.update({ where: { id: changeRequest.id }, data: { status: 'RESOLVED' } });
+      if (!changeRequest.projectId) return NextResponse.json({ error: 'This change request is not linked to a project' }, { status: 400 });
+      const requestedStatus = body.action === 'resolve_change_request' ? 'FINALIZED' : (body.status || changeRequest.status);
+      const scopeChanged = body.title !== undefined
+        || body.note !== undefined
+        || body.agencyResponse !== undefined
+        || body.alternateProposal !== undefined;
+      const shouldApplyAtlas = requestedStatus === 'FINALIZED'
+        && (changeRequest.status !== 'FINALIZED' || scopeChanged || !changeRequest.atlasAppliedAt);
+      const updated = await prisma.changeRequest.update({
+        where: { id: changeRequest.id },
+        data: {
+          ...(body.title !== undefined ? { title: body.title } : {}),
+          ...(body.note !== undefined && body.note !== null ? { details: body.note } : {}),
+          ...(body.agencyResponse !== undefined ? { agencyResponse: body.agencyResponse || null } : {}),
+          ...(body.alternateProposal !== undefined ? { alternateProposal: body.alternateProposal || null } : {}),
+          status: requestedStatus,
+          finalizedAt: requestedStatus === 'FINALIZED' ? new Date() : null,
+          ...(shouldApplyAtlas ? { atlasAppliedAt: null, atlasSummary: null } : {}),
+        },
+      });
+
+      let atlas = null;
+      if (shouldApplyAtlas) {
+        atlas = await applyFinalizedChangeRequest({
+          id: updated.id,
+          title: updated.title,
+          details: updated.details,
+          agencyResponse: updated.agencyResponse,
+          alternateProposal: updated.alternateProposal,
+          projectId: changeRequest.projectId,
+          clientId: updated.clientId,
+          orgId: updated.orgId,
+        });
+      }
+
+      const finalChangeRequest = await prisma.changeRequest.findUnique({
+        where: { id: updated.id },
+        include: { project: { select: { id: true, name: true } }, task: { select: { id: true, title: true } } },
+      });
       const clientUsers = await prisma.user.findMany({ where: { clientId: changeRequest.clientId, accessRevokedAt: null }, select: { id: true } });
-      await Promise.all(clientUsers.map((recipient) => createNotification({ orgId: user.orgId, userId: recipient.id, type: 'UPDATE', title: 'Change request resolved', body: `${changeRequest.title} has been marked resolved.`, href: '/client-dashboard?tab=approvals', actionLabel: 'View request' })));
-      return NextResponse.json({ success: true });
+      await Promise.all(clientUsers.map((recipient) => createNotification({
+        orgId: user.orgId,
+        userId: recipient.id,
+        type: requestedStatus === 'FINALIZED' ? 'APPROVAL' : 'UPDATE',
+        title: `Change request ${requestedStatus.toLowerCase()}`,
+        body: requestedStatus === 'FINALIZED' ? `${updated.title} was finalized and added to the project plan.` : `${updated.title} moved to discussion.`,
+        href: '/client-dashboard?tab=approvals',
+        actionLabel: 'View request',
+      })));
+      return NextResponse.json({ success: true, changeRequest: finalChangeRequest, atlas });
     }
     if (user.role.toLowerCase() !== 'client') return NextResponse.json({ error: 'Only a client can approve or request changes' }, { status: 403 });
     const deliverable = await prisma.deliverable.findFirst({ where: { id: body.id, orgId: user.orgId, clientId: user.clientId || '__none__' } });

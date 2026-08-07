@@ -82,7 +82,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   
-  const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string; plan: string; accessPermissions?: string[] | null } | null>(null);
+  const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string; plan: string; organizationName?: string; organizationLogoDataUrl?: string | null; accessPermissions?: string[] | null } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const isWorkspaceDataLoading = React.useSyncExternalStore(
     subscribeWorkspaceDataLoading,
@@ -102,7 +102,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (workspaceRes.ok) {
           const workspace = await workspaceRes.json();
           activePlan = workspace.organization.plan || 'BASIC';
-          setUser({ ...data, plan: activePlan });
+          setUser({
+            ...data,
+            plan: activePlan,
+            organizationName: workspace.organization.name || 'Agency Workspace',
+            organizationLogoDataUrl: workspace.organization.invoiceLogoDataUrl || null,
+          });
           setActiveWorkspaceContext({ userName: data.name, currency: workspace.organization.currency });
         } else {
           setUser({ ...data, plan: 'BASIC' });
@@ -161,12 +166,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     pathname !== '/client-dashboard' && 
     pathname !== '/client-leads' &&
     pathname !== '/clients/onboard' &&
+    pathname !== '/settings' &&
     pathname !== '/calendar' &&
     !(messagingAllowed && pathname === '/messages');
   
   const isMemberGated = user?.role?.toLowerCase() === 'member' && 
     pathname !== '/teams-dashboard' && 
     pathname !== '/tasks' &&
+    pathname !== '/settings' &&
     pathname !== '/calendar' &&
     !(messagingAllowed && pathname === '/messages');
 
@@ -175,6 +182,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const routePermission = pathname.split('/').filter(Boolean)[0] || 'dashboard';
   const isSubAdminGated = user?.role?.toLowerCase() === 'sub_admin'
+    && pathname !== '/settings'
     && !(user.accessPermissions || []).includes(routePermission);
 
   const planGate: { feature: string; requiredPlan: PlanId } | null = pathname === '/messages'
@@ -199,7 +207,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="workspace-shell flex h-screen w-screen overflow-hidden bg-[#09090b]">
       <WorkspaceRuntime />
       {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} />
+      <Sidebar className="hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
 
       {/* Mobile Sidebar overlay drawer */}
       {isMobileOpen && (
@@ -212,7 +220,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           {/* Sidebar Drawer */}
           <div className="workspace-drawer relative z-50 flex h-full w-[282px] transform transition-transform duration-300 ease-in-out">
-            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} />
+            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
             <button
               onClick={() => setIsMobileOpen(false)}
               className="workspace-icon-control absolute top-4 -right-12 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"

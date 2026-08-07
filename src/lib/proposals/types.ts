@@ -40,6 +40,13 @@ export const proposalSchema = z.object({
     amount: z.coerce.number().min(0),
     description: requiredText('Payment description', 500),
   })).min(1).max(10),
+  proformaInvoice: z.object({
+    id: z.string().uuid(),
+    invoiceNumber: z.string().trim().min(2).max(80),
+    amount: z.coerce.number().min(0),
+    currency: z.string().trim().min(3).max(8),
+    validUntil: z.string().trim().max(80).optional().default(''),
+  }).optional(),
   assumptions: requiredText('Assumptions'),
   clientResponsibilities: requiredText('Client responsibilities'),
   agencyResponsibilities: requiredText('Agency responsibilities'),

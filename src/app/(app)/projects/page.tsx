@@ -34,6 +34,7 @@ import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/delivery-delays';
 import { agencyServiceLines } from '@/lib/agency-specializations';
+import { ProjectBreakdownDrawer } from '@/components/projects/project-breakdown-drawer';
 
 const clientIdentityIcons: LucideIcon[] = [
   Building2,
@@ -79,6 +80,7 @@ export default function ProjectsPage() {
   const [loading, setLoading] = React.useState(true);
   const [currencyState, setCurrencyState] = React.useState('USD');
   const [availableServiceLines, setAvailableServiceLines] = React.useState<string[]>([]);
+  const [canManageChangeRequests, setCanManageChangeRequests] = React.useState(false);
   const [expandedClientId, setExpandedClientId] = React.useState<string | null>(null);
   const gridRef = React.useRef<HTMLDivElement>(null);
 
@@ -189,6 +191,12 @@ export default function ProjectsPage() {
           ...current,
           serviceLine: serviceLines.includes(current.serviceLine) ? current.serviceLine : serviceLines[0] || '',
         }));
+      }
+
+      const userRes = await fetch('/api/user');
+      if (userRes.ok) {
+        const currentUser = await userRes.json();
+        setCanManageChangeRequests(currentUser.role?.toLowerCase() === 'admin');
       }
     } catch (e) {
       console.error(e);
@@ -603,8 +611,8 @@ export default function ProjectsPage() {
                 className={cn(
                   "project-client-card transition-all duration-300 flex flex-col justify-between border border-zinc-800/80 border-l-8 overflow-hidden relative shadow-lg",
                   isExpanded 
-                    ? "col-span-1 md:col-span-2 row-span-2 h-[500px] bg-zinc-900/50"
-                    : "col-span-1 h-[272px] bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer hover:border-zinc-750/80 hover:scale-[1.01] hover:shadow-indigo-500/5"
+                    ? "col-span-1 md:col-span-2 row-span-2 h-[610px] bg-zinc-900/50"
+                    : "col-span-1 h-[350px] bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer hover:border-zinc-750/80 hover:scale-[1.01] hover:shadow-indigo-500/5"
                 )}
               >
                 {isExpanded ? (
@@ -758,9 +766,9 @@ export default function ProjectsPage() {
                         <span className="font-semibold text-white font-mono">{clientProjects.length}</span>
                       </div>
                       {clientProjects.length > 0 && (
-                        <div className="flex justify-between items-center text-[9.5px] text-zinc-455">
-                          <span>Focus:</span>
-                          <span className="bg-zinc-955 border border-zinc-850 px-1.5 py-0.5 rounded text-[7.5px] text-zinc-300 font-mono uppercase truncate max-w-[140px]">
+                        <div className="flex justify-between items-center gap-1.5 text-[9.5px] text-zinc-455">
+                          <span className="shrink-0">Focus:</span>
+                          <span title={clientProjects[0].serviceLine || 'Paid Ads'} className="max-w-[300px] bg-zinc-955 border border-zinc-850 px-1.5 py-0.5 rounded text-[7.5px] text-zinc-300 font-mono uppercase truncate">
                             {clientProjects[0].serviceLine || 'Paid Ads'}
                           </span>
                         </div>
@@ -1158,7 +1166,7 @@ export default function ProjectsPage() {
       )}
 
       {/* --- VIEW/EDIT PROJECT DETAIL DRAWER --- */}
-      {selectedProject && (
+      {selectedProject && isEditing && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end animate-fadeIn">
           <div className="flex-1" onClick={() => setSelectedProject(null)} />
           
@@ -1637,6 +1645,21 @@ export default function ProjectsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedProject && !isEditing && (
+        <ProjectBreakdownDrawer
+          project={selectedProject}
+          canManageChangeRequests={canManageChangeRequests}
+          onChangeRequestUpdated={() => loadData()}
+          onClose={() => setSelectedProject(null)}
+          onEdit={() => setIsEditing(true)}
+          onOpenTasks={() => {
+            const projectId = selectedProject.id;
+            setSelectedProject(null);
+            router.push(`/tasks?projectId=${projectId}`);
+          }}
+        />
       )}
 
     </div>

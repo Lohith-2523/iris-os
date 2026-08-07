@@ -11,6 +11,7 @@ import { generateLegalDocumentPdf } from '@/lib/legal-documents/pdf';
 import { IrisEmailDeliveryError, sendIrisEmail } from '@/lib/email/iris-email';
 import { agencyViaIrisSenderName } from '@/lib/email/sender-name';
 import { contentWithSignatureAudit, newSigningToken, runSignedDocumentAutomation, signingContentHash } from '@/lib/documents/signing';
+import { getInvoiceForPdf, invoicePdfFromRecord } from '@/lib/invoices/service';
 
 const mutationSchema = z.object({
   action: z.enum(['atlas_create', 'simple_create', 'save', 'send', 'agency_sign']),
@@ -26,6 +27,7 @@ const mutationSchema = z.object({
   }).optional(),
   content: z.unknown().optional(),
   id: z.string().uuid().optional(),
+  proformaInvoiceId: z.string().uuid().optional(),
 });
 
 async function findRecipient(orgId: string, type: 'LEAD' | 'CLIENT', id: string): Promise<DocumentRecipient | null> {
@@ -57,22 +59,31 @@ async function pdfFor(kind: DocumentKind, content: unknown) {
     : generateLegalDocumentPdf(parsed as z.infer<typeof legalDocumentSchema>);
 }
 
-async function sendDocument(record: { id: string; kind: string; title: string; documentNumber: string; recipientName: string; recipientEmail: string; content: Prisma.JsonValue; signingToken?: string | null; recipientSignerName?: string | null; recipientSignedAt?: Date | null; agencySignerName?: string | null; agencySignedAt?: Date | null; fullySignedAt?: Date | null; signedContentHash?: string | null }, organization: { name: string; plan: string }, baseUrl: string) {
+async function sendDocument(record: { id: string; kind: string; title: string; documentNumber: string; recipientName: string; recipientEmail: string; content: Prisma.JsonValue; proformaInvoiceId?: string | null; signingToken?: string | null; recipientSignerName?: string | null; recipientSignedAt?: Date | null; agencySignerName?: string | null; agencySignedAt?: Date | null; fullySignedAt?: Date | null; signedContentHash?: string | null }, organization: { name: string; plan: string }, baseUrl: string) {
   const pdfContent = record.kind === 'PROPOSAL' ? record.content : contentWithSignatureAudit({ ...record, recipientSignerName: record.recipientSignerName || null, recipientSignedAt: record.recipientSignedAt || null, agencySignerName: record.agencySignerName || null, agencySignedAt: record.agencySignedAt || null, fullySignedAt: record.fullySignedAt || null, signedContentHash: record.signedContentHash || null });
   const pdf = await pdfFor(record.kind as DocumentKind, pdfContent);
   const label = record.kind === 'SOW' ? 'statement of work' : record.kind.toLowerCase();
   const signingUrl = record.signingToken && record.kind !== 'PROPOSAL' ? `${baseUrl.replace(/\/$/, '')}/sign-document/${record.signingToken}` : '';
   const signingHtml = signingUrl ? `<p><a href="${signingUrl}" style="display:inline-block;background:#111;color:#fff;padding:12px 18px;text-decoration:none;border-radius:8px">Review and sign document</a></p><p style="font-size:12px;color:#666">This secure signing link is intended for ${record.recipientEmail}.</p>` : '';
   const signingText = signingUrl ? `\n\nReview and sign securely: ${signingUrl}` : '';
+  const linkedProformaText = record.kind === 'PROPOSAL' && record.proformaInvoiceId ? ' The linked proforma invoice is attached as well.' : '';
+  const attachments = [{ filename: `${record.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }];
+  if (record.kind === 'PROPOSAL' && record.proformaInvoiceId) {
+    const proforma = await getInvoiceForPdf(record.proformaInvoiceId);
+    if (proforma?.documentType === 'PROFORMA') {
+      const proformaPdf = await invoicePdfFromRecord(proforma);
+      attachments.push({ filename: `${proforma.invoiceNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`, content: Buffer.from(proformaPdf), contentType: 'application/pdf' });
+    }
+  }
   await sendIrisEmail({
     to: [record.recipientEmail],
     fromName: agencyViaIrisSenderName(organization.name, organization.plan),
     subject: `${record.title} from Iris OS`,
-    html: `<div style="font-family:Arial,sans-serif;color:#111;line-height:1.6"><p>Hello ${record.recipientName.replace(/[<>&]/g, '')},</p><p>Your ${label} is attached for review.</p>${signingHtml}<p>Regards,<br>Iris OS</p></div>`,
-    text: `Hello ${record.recipientName},\n\nYour ${label} is attached for review.${signingText}\n\nRegards,\nIris OS`,
+    html: `<div style="font-family:Arial,sans-serif;color:#111;line-height:1.6"><p>Hello ${record.recipientName.replace(/[<>&]/g, '')},</p><p>Your ${label} is attached for review.${linkedProformaText}</p>${signingHtml}<p>Regards,<br>Iris OS</p></div>`,
+    text: `Hello ${record.recipientName},\n\nYour ${label} is attached for review.${linkedProformaText}${signingText}\n\nRegards,\nIris OS`,
     idempotencyKey: `generated-document-${record.id}-${Date.now()}`,
     tags: [{ name: 'category', value: 'generated_document' }],
-    attachments: [{ filename: `${record.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }],
+    attachments,
   });
 }
 
@@ -154,11 +165,19 @@ export async function POST(request: Request) {
           : null;
   if (!recipient) return NextResponse.json({ error: 'The selected recipient needs a valid email address.' }, { status: 400 });
   if (input.kind !== 'SOW' && recipient.type !== 'LEAD') return NextResponse.json({ error: 'Select a saved lead for proposals and contracts.' }, { status: 400 });
-  const content = input.action === 'atlas_create'
+  const draftedContent = input.action === 'atlas_create'
     ? createDocumentDraft(input.kind, input.prompt || '', recipient, user.organization, user.email)
     : input.action === 'simple_create'
       ? createSimpleDocumentDraft(input.kind, input.simpleDetails!, recipient, user.organization, user.email)
       : validate(input.kind, input.content);
+  const linkedProforma = input.kind === 'PROPOSAL' && input.proformaInvoiceId
+    ? await prisma.invoice.findFirst({ where: { id: input.proformaInvoiceId, orgId: user.orgId, documentType: 'PROFORMA' } })
+    : null;
+  if (input.proformaInvoiceId && !linkedProforma) return NextResponse.json({ error: 'Select a valid proforma invoice from this agency workspace.' }, { status: 400 });
+  if (linkedProforma && (recipient.type !== 'LEAD' || linkedProforma.leadId !== recipient.id)) return NextResponse.json({ error: 'The linked proforma invoice must belong to the proposal lead.' }, { status: 400 });
+  const content = linkedProforma
+    ? { ...(draftedContent as Record<string, unknown>), proformaInvoice: { id: linkedProforma.id, invoiceNumber: linkedProforma.invoiceNumber, amount: linkedProforma.amount, currency: user.organization.currency, validUntil: linkedProforma.dueDate?.toISOString().slice(0, 10) || '' } }
+    : draftedContent;
   const validated = validate(input.kind, content);
   const documentNumber = input.kind === 'PROPOSAL' ? (validated as z.infer<typeof proposalSchema>).proposalNumber : (validated as z.infer<typeof legalDocumentSchema>).documentNumber;
   const signingToken = input.kind === 'PROPOSAL' ? null : newSigningToken();
@@ -168,6 +187,7 @@ export async function POST(request: Request) {
     recipientType: recipient.type, recipientId: recipient.id, recipientName: recipient.name, recipientEmail: recipient.email,
     prompt: input.prompt || (input.simpleDetails ? JSON.stringify(input.simpleDetails) : null), content: validated as unknown as Prisma.InputJsonValue,
     signingToken, signingTokenExpiresAt,
+    ...(linkedProforma ? { proformaInvoiceId: linkedProforma.id } : {}),
   } });
 
   if (input.action === 'atlas_create' || input.action === 'simple_create') {

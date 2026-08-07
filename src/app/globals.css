@@ -2186,6 +2186,21 @@ button {
   background: #f4f6f9 !important;
 }
 
+/* The profile control stays visually quiet in light mode. This must follow
+   the global hover mapping above, otherwise that generic rule fills it. */
+:root.light .workspace-shell .workspace-sidebar .workspace-profile-settings:hover {
+  background: transparent !important;
+  background-image: none !important;
+  border-color: rgba(255, 255, 255, .54) !important;
+}
+
+/* Compact account metadata is intentionally exempt from the application-wide
+   16px text floor so the sidebar remains compact and readable. */
+.workspace-sidebar .workspace-profile-email {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
 :root.light .workspace-loading-overlay {
   background: #ffffff !important;
   opacity: 1 !important;

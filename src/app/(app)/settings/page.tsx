@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Popover } from 'radix-ui';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -11,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { formatUserMessage } from '@/lib/utils';
 import { validateBrowserFile } from '@/lib/file-security';
+import { createClient } from '@/lib/client';
+import { clearWorkspaceUiPreferences } from '@/lib/workspace-ui-storage';
 import {
   getMetaSdkStatus,
   META_SDK_ERROR_EVENT,
@@ -43,7 +46,8 @@ import {
   HelpCircle,
   Trash2,
   Loader2,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 
 function IntegrationLogo({ provider }: { provider: string }) {
@@ -106,7 +110,11 @@ const AGENCY_INDUSTRIES = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const supabase = React.useMemo(() => createClient(), []);
   const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
+  const [currentUser, setCurrentUser] = React.useState<{ id: string; orgId: string; name: string; email: string; role: string; avatarUrl?: string | null; accessPermissions?: string[] | null } | null>(null);
+  const [signingOut, setSigningOut] = React.useState(false);
   const [orgName, setOrgName] = React.useState('Apex Creative Group');
   const [legalEntityName, setLegalEntityName] = React.useState('');
   const [billingAddressLine1, setBillingAddressLine1] = React.useState('');
@@ -370,6 +378,7 @@ export default function SettingsPage() {
           const userRes = await fetch('/api/user');
           if (userRes.ok) {
             const userData = await userRes.json();
+            setCurrentUser(userData);
             setBillingEmail(organizationBillingEmail || userData.email);
           }
         }
@@ -383,6 +392,20 @@ export default function SettingsPage() {
   }, []);
 
   const maxAllowed = 10;
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    clearWorkspaceUiPreferences(currentUser ? { userId: currentUser.id, orgId: currentUser.orgId } : null);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setErrorMessage(formatUserMessage(error.message || 'Unable to sign out.'));
+      setSigningOut(false);
+      return;
+    }
+    router.replace('/login');
+    router.refresh();
+  };
 
   const limitExceeded = React.useMemo(() => {
     return selectedTypes.length > maxAllowed;
@@ -460,6 +483,33 @@ export default function SettingsPage() {
     return <PageSkeleton variant="settings" />;
   }
 
+  const canManageWorkspaceSettings = currentUser?.role?.toLowerCase() === 'admin'
+    || (currentUser?.role?.toLowerCase() === 'sub_admin' && (currentUser.accessPermissions || []).includes('settings'));
+
+  if (!canManageWorkspaceSettings) {
+    return (
+      <div className="mx-auto w-full max-w-3xl space-y-6">
+        <div className="border-b border-zinc-800/60 pb-5">
+          <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Profile Settings</h1>
+          <p className="mt-1 text-xs text-zinc-500">Review your Iris OS account and manage your session.</p>
+        </div>
+        {errorMessage && <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 px-4 py-3 text-rose-300">{errorMessage}</div>}
+        <Card>
+          <CardHeader><CardTitle className="text-sm font-semibold text-white">Account Profile</CardTitle><CardDescription>Your signed-in workspace identity.</CardDescription></CardHeader>
+          <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-700 bg-zinc-800 text-base font-bold text-white">
+                {currentUser?.avatarUrl ? <img src={currentUser.avatarUrl} alt="" className="h-full w-full object-cover" /> : (currentUser?.name || 'User').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+              <div className="min-w-0"><p className="truncate font-semibold text-white">{currentUser?.name || 'Iris OS user'}</p><p className="truncate text-sm text-zinc-500">{currentUser?.email}</p><p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">{currentUser?.role?.replace('_', ' ')}</p></div>
+            </div>
+            <Button type="button" variant="outline" disabled={signingOut} onClick={handleSignOut} className="gap-2 text-rose-400 hover:text-rose-300">{signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}{signingOut ? 'Signing out…' : 'Log out'}</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -518,6 +568,18 @@ export default function SettingsPage() {
 
       {activeTab === 'profile' && (
         <form onSubmit={handleSave} className="space-y-6">
+          <Card>
+            <CardHeader><CardTitle className="text-sm font-semibold text-white">Account Profile</CardTitle><CardDescription>Your signed-in account and session controls.</CardDescription></CardHeader>
+            <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-700 bg-zinc-800 text-base font-bold text-white">
+                  {currentUser?.avatarUrl ? <img src={currentUser.avatarUrl} alt="" className="h-full w-full object-cover" /> : (currentUser?.name || 'User').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0"><p className="truncate font-semibold text-white">{currentUser?.name || 'Iris OS user'}</p><p className="truncate text-sm text-zinc-500">{currentUser?.email}</p></div>
+              </div>
+              <Button type="button" variant="outline" disabled={signingOut} onClick={handleSignOut} className="gap-2 text-rose-400 hover:text-rose-300">{signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}{signingOut ? 'Signing out…' : 'Log out'}</Button>
+            </CardContent>
+          </Card>
           <div className="grid gap-6 md:grid-cols-3">
             {/* Form Settings */}
             <div className="md:col-span-2 space-y-6">

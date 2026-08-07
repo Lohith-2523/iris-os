@@ -30,6 +30,7 @@ import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
+import { ChangeRequestManager } from '@/components/projects/change-request-manager';
 
 // Inline SVGs for Facebook & Instagram to avoid compilation issues
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -119,6 +120,7 @@ export default function ClientDashboardPage() {
   const [orphanedAds, setOrphanedAds] = React.useState<MetaAd[]>([]);
   const [scheduledPosts, setScheduledPosts] = React.useState<ScheduledPost[]>([]);
   const [tasks, setTasks] = React.useState<any[]>([]);
+  const [projects, setProjects] = React.useState<any[]>([]);
   const [userRole, setUserRole] = React.useState<string>('client');
   const [clientName, setClientName] = React.useState<string | null>(null);
   const [hasMetaAccount, setHasMetaAccount] = React.useState(false);
@@ -147,9 +149,10 @@ export default function ClientDashboardPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [res, tasksResponse, deliveryResponse, userResponse] = await Promise.all([
+      const [res, tasksResponse, projectsResponse, deliveryResponse, userResponse] = await Promise.all([
         fetch('/api/meta-portal', { cache: 'no-store' }),
         fetch('/api/tasks', { cache: 'no-store' }),
+        fetch('/api/projects', { cache: 'no-store' }),
         fetch('/api/deliverables', { cache: 'no-store' }),
         fetch('/api/user', { cache: 'no-store' }),
       ]);
@@ -160,6 +163,7 @@ export default function ClientDashboardPage() {
         setOrphanedAds(data.orphanedAds || []);
         setScheduledPosts([]);
         if (tasksResponse.ok) setTasks(await tasksResponse.json());
+        if (projectsResponse.ok) setProjects(await projectsResponse.json());
         if (deliveryResponse.ok) setDeliveryData(await deliveryResponse.json());
         if (userResponse.ok) { const currentUser = await userResponse.json(); setClientId(currentUser.clientId || ''); }
         const role = data.role || 'client';
@@ -215,10 +219,8 @@ export default function ClientDashboardPage() {
   };
 
   const projectOptions = React.useMemo(() => {
-    const projects = new Map<string, string>();
-    for (const task of tasks) if (task.projectId && task.project?.name) projects.set(task.projectId, task.project.name);
-    return [...projects.entries()].map(([id, name]) => ({ id, name }));
-  }, [tasks]);
+    return projects.map((project) => ({ id: project.id, name: project.name }));
+  }, [projects]);
 
   const submitProjectChangeRequest = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -1217,7 +1219,7 @@ export default function ClientDashboardPage() {
                   <textarea required value={changeRequest.details} onChange={(event) => setChangeRequest({ ...changeRequest, details: event.target.value })} placeholder="Describe the change and desired outcome" className="min-h-32 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" />
                   <Button type="submit" disabled={!clientId || !changeRequest.projectId || approvalBusy === 'change-request'}>{approvalBusy === 'change-request' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit change request</Button>
                 </form>
-                <div className="mt-6 space-y-3">{deliveryData.changeRequests.map((item) => <div key={item.id} className="rounded-xl border border-zinc-800 p-3"><div className="flex items-center justify-between"><span className="font-semibold text-white">{item.title}</span><Badge>{item.status}</Badge></div><p className="mt-2 text-zinc-500">{item.details}</p><div className="mt-2 text-zinc-600">{item.project?.name || 'Project-wide request'}</div></div>)}</div>
+                <div className="mt-6"><ChangeRequestManager requests={deliveryData.changeRequests} showProjectName /></div>
               </CardContent>
             </Card>
           </div>

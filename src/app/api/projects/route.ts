@@ -38,7 +38,19 @@ export async function GET(request: NextRequest) {
       allocations: true,
       stages: {
         orderBy: { position: 'asc' as const }
-      }
+      },
+      invoices: {
+        orderBy: { issuedDate: 'desc' as const },
+      },
+      deliverables: {
+        include: {
+          task: { select: { id: true, title: true, stage: { select: { id: true, name: true } } } },
+        },
+        orderBy: { createdAt: 'desc' as const },
+      },
+      changeRequests: {
+        orderBy: { createdAt: 'desc' as const },
+      },
     };
 
     const scopedWhere = {

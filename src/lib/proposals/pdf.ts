@@ -183,6 +183,10 @@ export async function generateProposalPdf(input: ProposalInput) {
   const total = money(subtotal + tax, input.currency);
   page.drawText(total, { x: WIDTH - MARGIN - fonts.bold.widthOfTextAtSize(total, 14), y: y - 41, size: 14, font: fonts.bold, color: accentText });
   y -= 82;
+  if (input.proformaInvoice) {
+    heading('Linked proforma invoice');
+    paragraph(`Proforma invoice ${input.proformaInvoice.invoiceNumber} is included with this proposal. Amount: ${money(input.proformaInvoice.amount, input.proformaInvoice.currency)}${input.proformaInvoice.validUntil ? `. Valid until ${input.proformaInvoice.validUntil}.` : '.'}`);
+  }
   heading('Payment schedule');
   for (const payment of input.paymentSchedule) {
     const paymentLines = wrap(payment.description, fonts.regular, 8, CONTENT_WIDTH);

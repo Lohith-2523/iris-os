@@ -33,7 +33,7 @@ const detailedInvoiceSchema = z.object({
 const proformaInvoiceSchema = z.object({
   mode: z.literal('PROFORMA'),
   leadId: z.string().trim().min(1),
-  invoiceNumber: z.string().trim().min(2).max(80),
+  invoiceNumber: z.string().trim().min(2).max(80).optional(),
   issuedDate: z.string().date(),
   validUntil: z.union([z.string().date(), z.literal('')]).optional().transform((value) => value || undefined),
   referenceName: z.string().trim().min(2).max(200),
@@ -51,6 +51,7 @@ const proformaInvoiceSchema = z.object({
   termsOfSale: z.string().trim().max(4_000).optional(),
   taxRate: z.coerce.number().min(0).max(40).default(18),
   lineItems: z.array(lineItemSchema).min(1).max(8),
+  sendEmail: z.boolean().optional().default(true),
 });
 const createInvoiceSchema = z.discriminatedUnion('mode', [
   projectInvoiceSchema,
@@ -72,6 +73,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const clientId = searchParams.get('clientId')?.trim();
     const projectId = searchParams.get('projectId')?.trim();
+    const leadId = searchParams.get('leadId')?.trim();
+    const documentType = searchParams.get('documentType')?.trim();
     const outstanding = searchParams.get('outstanding') === 'true';
 
     const invoices = await prisma.invoice.findMany({
@@ -82,6 +85,8 @@ export async function GET(request: NextRequest) {
           : {}),
         ...(clientId ? { clientId } : {}),
         ...(projectId ? { projectId } : {}),
+        ...(leadId ? { leadId } : {}),
+        ...(documentType === 'PROFORMA' || documentType === 'INVOICE' ? { documentType } : {}),
         ...(outstanding
           ? { documentType: 'INVOICE', status: { in: ['UNPAID', 'PARTIALLY_PAID'] } }
           : {}),
@@ -163,6 +168,7 @@ export async function POST(request: NextRequest) {
             gstNumber: parsed.data.customerGstNumber?.toUpperCase() || '',
           },
           source: 'MANUAL',
+          sendEmail: parsed.data.sendEmail,
           });
         })()
       : await createAndSendProjectInvoice({
