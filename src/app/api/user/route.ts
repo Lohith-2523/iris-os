@@ -12,10 +12,12 @@ export async function GET() {
       name: user.name,
       username: user.username,
       role: user.role,
+      accessPermissions: user.accessPermissions,
       hasMetaAccount: Boolean(user.client?.adAccountId),
       phone: user.phone,
       avatarUrl: user.avatarUrl,
       orgId: user.orgId,
+      clientId: user.clientId,
       organization: {
         id: user.organization.id,
         name: user.organization.name,

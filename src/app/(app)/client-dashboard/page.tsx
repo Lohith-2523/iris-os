@@ -23,8 +23,10 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
@@ -120,6 +122,13 @@ export default function ClientDashboardPage() {
   const [userRole, setUserRole] = React.useState<string>('client');
   const [clientName, setClientName] = React.useState<string | null>(null);
   const [hasMetaAccount, setHasMetaAccount] = React.useState(false);
+  const [clientId, setClientId] = React.useState('');
+  const [deliveryData, setDeliveryData] = React.useState<{ deliverables: any[]; changeRequests: any[] }>({ deliverables: [], changeRequests: [] });
+  const [changeRequest, setChangeRequest] = React.useState({ title: '', details: '', projectId: '' });
+  const [approvalBusy, setApprovalBusy] = React.useState('');
+  const [approvalError, setApprovalError] = React.useState('');
+  const [deliverableChangeTarget, setDeliverableChangeTarget] = React.useState<any | null>(null);
+  const [deliverableChangeNote, setDeliverableChangeNote] = React.useState('');
 
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
@@ -138,9 +147,11 @@ export default function ClientDashboardPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [res, tasksResponse] = await Promise.all([
+      const [res, tasksResponse, deliveryResponse, userResponse] = await Promise.all([
         fetch('/api/meta-portal', { cache: 'no-store' }),
         fetch('/api/tasks', { cache: 'no-store' }),
+        fetch('/api/deliverables', { cache: 'no-store' }),
+        fetch('/api/user', { cache: 'no-store' }),
       ]);
       if (res.ok) {
         const data = await res.json();
@@ -149,13 +160,16 @@ export default function ClientDashboardPage() {
         setOrphanedAds(data.orphanedAds || []);
         setScheduledPosts([]);
         if (tasksResponse.ok) setTasks(await tasksResponse.json());
+        if (deliveryResponse.ok) setDeliveryData(await deliveryResponse.json());
+        if (userResponse.ok) { const currentUser = await userResponse.json(); setClientId(currentUser.clientId || ''); }
         const role = data.role || 'client';
         setUserRole(role);
         setClientName(data.clientName || '');
         const metaConnected = Boolean(data.hasMetaAccount);
         setHasMetaAccount(metaConnected);
         if (role === 'client') {
-          setActiveTab(metaConnected ? 'campaigns' : 'tasks');
+          const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+          setActiveTab(requestedTab === 'approvals' ? 'approvals' : metaConnected ? 'campaigns' : 'tasks');
         }
       }
     } catch (e) {
@@ -175,6 +189,56 @@ export default function ClientDashboardPage() {
       await loadData();
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const reviewDeliverable = async (action: 'approve' | 'request_changes', id: string, note?: string) => {
+    if (approvalBusy) return;
+    setApprovalBusy(id);
+    setApprovalError('');
+    try {
+      const response = await fetch('/api/deliverables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, id, note }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to update deliverable');
+      setDeliverableChangeTarget(null);
+      setDeliverableChangeNote('');
+      await loadData();
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'Unable to update deliverable');
+    } finally {
+      setApprovalBusy('');
+    }
+  };
+
+  const projectOptions = React.useMemo(() => {
+    const projects = new Map<string, string>();
+    for (const task of tasks) if (task.projectId && task.project?.name) projects.set(task.projectId, task.project.name);
+    return [...projects.entries()].map(([id, name]) => ({ id, name }));
+  }, [tasks]);
+
+  const submitProjectChangeRequest = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!clientId || !changeRequest.projectId || approvalBusy) return;
+    setApprovalBusy('change-request');
+    setApprovalError('');
+    try {
+      const response = await fetch('/api/deliverables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create_change_request', clientId, projectId: changeRequest.projectId, title: changeRequest.title, note: changeRequest.details }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to submit change request');
+      setChangeRequest({ title: '', details: '', projectId: '' });
+      await loadData();
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'Unable to submit change request');
+    } finally {
+      setApprovalBusy('');
     }
   };
 
@@ -308,14 +372,7 @@ export default function ClientDashboardPage() {
   }, [leads, searchQuery, selectedStatus]);
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-zinc-500 text-xs flex items-center gap-2">
-          <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-          <span>Loading client workspace...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton variant="client-portal" />;
   }
 
   if (userRole !== 'client') {
@@ -404,6 +461,7 @@ export default function ClientDashboardPage() {
               <Activity className="h-3.5 w-3.5" />
               <span>Task Updates</span>
             </button>
+            <button onClick={() => setActiveTab('approvals')} className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'approvals' ? 'border-white text-white font-bold' : 'border-transparent text-zinc-400 hover:text-white'}`}><CheckCircle2 className="h-4 w-4" /><span>Deliverables & approvals</span></button>
       </div>
 
       {/* TAB 1: OVERVIEW */}
@@ -1129,6 +1187,43 @@ export default function ClientDashboardPage() {
           </Card>
         </div>
       )}
+      {activeTab === 'approvals' && (
+        <div className="space-y-4">
+          {approvalError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-200">{approvalError}</div>}
+          <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <Card>
+              <CardHeader><CardTitle>Content delivery & approvals</CardTitle><CardDescription>Open content submitted against project stages and tasks, then approve it or request changes.</CardDescription></CardHeader>
+              <CardContent className="space-y-4">
+                {deliveryData.deliverables.map((item) => (
+                  <div key={item.id} className="rounded-2xl border border-zinc-800 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div><a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-white underline underline-offset-4">{item.title}</a><div className="mt-1 text-zinc-500">{item.project?.name || 'Project'}{item.task?.stage?.name ? ` · ${item.task.stage.name}` : ''}{item.task?.title ? ` · ${item.task.title}` : ''}</div></div>
+                      <Badge>{item.status.replaceAll('_', ' ')}</Badge>
+                    </div>
+                    {item.description && <p className="mt-3 text-zinc-400">{item.description}</p>}
+                    {item.approvalNote && <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-zinc-300"><span className="font-semibold">Review note:</span> {item.approvalNote}</div>}
+                    {item.status === 'NEEDS_CLIENT_APPROVAL' && <div className="mt-4 flex flex-wrap gap-2"><Button disabled={Boolean(approvalBusy)} onClick={() => void reviewDeliverable('approve', item.id)}>{approvalBusy === item.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Approve content</Button><Button variant="outline" disabled={Boolean(approvalBusy)} onClick={() => { setApprovalError(''); setDeliverableChangeNote(''); setDeliverableChangeTarget(item); }}>Request changes</Button></div>}
+                  </div>
+                ))}
+                {!deliveryData.deliverables.length && <div className="py-8 text-center text-zinc-500">No deliverables have been submitted yet.</div>}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Project change request</CardTitle><CardDescription>Submit a request that applies to a selected project as a whole.</CardDescription></CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={submitProjectChangeRequest}>
+                  <select required value={changeRequest.projectId} onChange={(event) => setChangeRequest({ ...changeRequest, projectId: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white"><option value="">Select a project</option>{projectOptions.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
+                  <input required value={changeRequest.title} onChange={(event) => setChangeRequest({ ...changeRequest, title: event.target.value })} placeholder="Request title" className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" />
+                  <textarea required value={changeRequest.details} onChange={(event) => setChangeRequest({ ...changeRequest, details: event.target.value })} placeholder="Describe the change and desired outcome" className="min-h-32 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" />
+                  <Button type="submit" disabled={!clientId || !changeRequest.projectId || approvalBusy === 'change-request'}>{approvalBusy === 'change-request' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit change request</Button>
+                </form>
+                <div className="mt-6 space-y-3">{deliveryData.changeRequests.map((item) => <div key={item.id} className="rounded-xl border border-zinc-800 p-3"><div className="flex items-center justify-between"><span className="font-semibold text-white">{item.title}</span><Badge>{item.status}</Badge></div><p className="mt-2 text-zinc-500">{item.details}</p><div className="mt-2 text-zinc-600">{item.project?.name || 'Project-wide request'}</div></div>)}</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+      {deliverableChangeTarget && <div className="fixed inset-0 z-[70] grid place-items-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="deliverable-change-title"><Card className="w-full max-w-xl bg-zinc-950"><CardHeader><CardTitle id="deliverable-change-title">Request changes to {deliverableChangeTarget.title}</CardTitle><CardDescription>Give the delivery team specific, actionable feedback. The task and deliverable will move to Changes requested.</CardDescription></CardHeader><CardContent className="space-y-4"><textarea required value={deliverableChangeNote} onChange={(event) => setDeliverableChangeNote(event.target.value)} placeholder="Describe what should change" className="min-h-36 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /><div className="flex justify-end gap-3"><Button variant="ghost" disabled={Boolean(approvalBusy)} onClick={() => setDeliverableChangeTarget(null)}>Cancel</Button><Button disabled={Boolean(approvalBusy) || deliverableChangeNote.trim().length < 2} onClick={() => void reviewDeliverable('request_changes', deliverableChangeTarget.id, deliverableChangeNote.trim())}>{approvalBusy === deliverableChangeTarget.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Send change request</Button></div></CardContent></Card></div>}
     </div>
   );
 }

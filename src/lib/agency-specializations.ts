@@ -8,6 +8,7 @@ function normalizedSpecialization(value: unknown) {
   return String(value || '')
     .trim()
     .toLowerCase()
+    .replace(/\bagency\b/g, '')
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -31,7 +32,7 @@ export function agencyServiceLines(agencyTypes: unknown): string[] {
   return Array.from(new Set(
     agencyTypes
       .filter((value): value is string => typeof value === 'string')
-      .map((value) => value.trim())
+      .map((value) => value.trim().replace(/\s+Agency(?=\s|\(|$)/i, ''))
       .filter(Boolean),
   ));
 }

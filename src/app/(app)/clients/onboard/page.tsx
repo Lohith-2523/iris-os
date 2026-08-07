@@ -7,10 +7,12 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
 import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
 import { agencyServiceLines } from '@/lib/agency-specializations';
+import { CountryPhoneInput } from '@/components/ui/country-phone-input';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { DateInput } from '@/components/ui/date-input';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -19,12 +21,10 @@ import {
   CheckCircle,
   Building,
   User,
-  Layers,
   Sparkles,
   Wallet,
   AlertTriangle,
   Info,
-  Layers as LayersIcon,
   X,
   Loader2
 } from 'lucide-react';
@@ -61,8 +61,7 @@ export default function ClientOnboardPage() {
   const [availableServiceLines, setAvailableServiceLines] = React.useState<string[]>([]);
 
   // Onboarding Wizard Steps
-  // 1: Company Profile, 2: Client Contact, 3: Client Connections,
-  // 4: Initial Project, 5: Review
+  // 1: Company profile and primary contact, 2: Initial project, 3: Review
   const [step, setStep] = React.useState(1);
 
   // Authentication Mocking States
@@ -82,7 +81,7 @@ export default function ClientOnboardPage() {
     billingCountry: 'India',
     gstNumber: '',
     description: '',
-    // Step 2: Client Contact
+    // Company Profile: Primary Client Contact
     clientName: '',
     clientDesignation: '',
     clientEmail: '',
@@ -114,9 +113,7 @@ export default function ClientOnboardPage() {
     metaEditingMood: '',
     metaDevScope: '',
     metaTechStack: '',
-    // Step 3: Client-level connections
-    adAccountId: '',
-    // Step 4: Initial Project Setup
+    // Initial Project Setup
     createProject: true,
     projectName: '',
     projectServiceLine: '',
@@ -132,10 +129,7 @@ export default function ClientOnboardPage() {
     projectDeliverables: 'Design banner ads, Launch campaign, Optimize conversion metrics',
     projectMemberIds: [] as string[],
     projectStages: [
-      { name: 'Discovery & Plan', startDate: '', endDate: '' },
-      { name: 'Creative Design', startDate: '', endDate: '' },
-      { name: 'Execution & Launch', startDate: '', endDate: '' },
-      { name: 'Optimization', startDate: '', endDate: '' },
+      { name: 'Initial Stage', startDate: '', endDate: '' },
     ],
   });
 
@@ -147,6 +141,7 @@ export default function ClientOnboardPage() {
 
   const [formError, setFormError] = React.useState('');
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const reviewStep = 3;
 
   React.useEffect(() => {
     setPreselectedLeadId(new URLSearchParams(window.location.search).get('leadId'));
@@ -302,20 +297,20 @@ export default function ClientOnboardPage() {
     }
 
     setFormData((prev) => ({ ...prev, createProject }));
-    setStep(5);
+    setStep(3);
     setFormError('');
   };
 
   const handleNextStep = () => {
     if (step === 1 && !formData.name) {
-      setFormError(formatUserMessage('Lohith, Client Company Name is required to proceed.'));
+      setFormError(formatUserMessage('Client Company Name is required to proceed.'));
       return;
     }
-    if (step === 2 && (!formData.clientName || !formData.clientEmail)) {
-      setFormError(formatUserMessage('Client Name and Client Email are required.'));
+    if (step === 1 && (!formData.clientName || !formData.clientEmail || !formData.clientPhone)) {
+      setFormError(formatUserMessage('Client name, email, and phone with country code are required.'));
       return;
     }
-    if (step === 3) {
+    if (step === 1) {
       const start = new Date();
       const defaultStartStr = start.toISOString().split('T')[0];
 
@@ -339,11 +334,11 @@ export default function ClientOnboardPage() {
         };
       });
     }
-    if (step === 4) {
+    if (step === 2) {
       handleProjectStepDecision(formData.createProject);
       return;
     }
-    setStep((prev) => Math.min(prev + 1, 5));
+    setStep((prev) => Math.min(prev + 1, reviewStep));
     setFormError('');
   };
 
@@ -373,7 +368,7 @@ export default function ClientOnboardPage() {
         roiMetric: 0.0,
         upsellOpportunityValue: 0.0,
         sourceLeadId: formData.sourceLeadId || null,
-        adAccountId: formData.adAccountId || null,
+        adAccountId: null,
         contact: {
           name: formData.clientName,
           email: formData.clientEmail,
@@ -782,14 +777,7 @@ export default function ClientOnboardPage() {
   };
 
   if (authLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-zinc-500 text-xs flex items-center gap-2">
-          <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-          <span>Authenticating executive clearance level...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton variant="onboarding" />;
   }
 
   // Admin Verification Denied Screen
@@ -847,7 +835,7 @@ export default function ClientOnboardPage() {
           </Button>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white silver-text-gradient">Client Onboarding Portal</h1>
-            <p className="text-[10px] text-zinc-500 mt-0.5">Administrator Terminal | Step {step} of 5</p>
+            <p className="text-[10px] text-zinc-500 mt-0.5">Administrator Terminal | Step {step} of {reviewStep}</p>
           </div>
         </div>
       </div>
@@ -856,11 +844,9 @@ export default function ClientOnboardPage() {
         {/* Sidebar Steps tracker */}
         <div className="md:col-span-1 space-y-1.5">
           {[
-            { s: 1, name: 'Company Profile', desc: 'Universal business details' },
-            { s: 2, name: 'Client Contact', desc: 'Primary client details' },
-            { s: 3, name: 'Client Connections', desc: 'Client-owned account access' },
-            { s: 4, name: 'Project Setup', desc: 'Commercials, service, and delivery' },
-            { s: 5, name: 'Review & Verify', desc: 'Complete onboarding' },
+            { s: 1, name: 'Company Profile', desc: 'Business and primary contact details' },
+            { s: 2, name: 'Project Setup', desc: 'Commercials, service, and delivery' },
+            { s: reviewStep, name: 'Review & Verify', desc: 'Complete onboarding' },
           ].map((item) => (
             <div
               key={item.s}
@@ -938,13 +924,13 @@ export default function ClientOnboardPage() {
                     </div>
                   </div>
 
-                  <div className="rounded border border-zinc-850 bg-zinc-950/30 p-4 space-y-4">
-                    <div>
+                  <details className="rounded border border-zinc-850 bg-zinc-950/30 p-4 space-y-4">
+                    <summary className="cursor-pointer list-none">
                       <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Client billing profile</span>
                       <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
-                        Optional during onboarding. Address fields are required before an invoice can be generated for this client; GSTIN remains optional.
+                        Expand to add the client address. Address fields are required before an invoice can be generated; GSTIN remains optional.
                       </span>
-                    </div>
+                    </summary>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5 sm:col-span-2">
                         <label className="font-semibold text-zinc-400 block">Address Line 1</label>
@@ -975,7 +961,7 @@ export default function ClientOnboardPage() {
                         <input type="text" name="gstNumber" value={formData.gstNumber} onChange={handleInputChange} placeholder="GSTIN" className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 font-mono uppercase text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none" />
                       </div>
                     </div>
-                  </div>
+                  </details>
 
                   <div className="space-y-1.5">
                     <label className="font-semibold text-zinc-400 block">Business Description</label>
@@ -991,12 +977,12 @@ export default function ClientOnboardPage() {
                 </div>
               )}
 
-              {/* Step 2: Primary contacts */}
-              {step === 2 && (
+              {/* Company profile: primary client contact */}
+              {step === 1 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <User className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Client Information</h2>
+                    <h2 className="text-sm font-semibold text-white">Primary Client Contact</h2>
                   </div>
 
                   <div className="space-y-1.5">
@@ -1059,51 +1045,14 @@ export default function ClientOnboardPage() {
 
                     <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Client Phone</label>
-                      <input
-                        type="tel"
-                        name="clientPhone"
-                        placeholder="e.g. +1-555-019-9234"
-                        value={formData.clientPhone}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                      />
+                      <CountryPhoneInput name="clientPhone" required value={formData.clientPhone} onChange={(clientPhone) => setFormData((current: any) => ({ ...current, clientPhone }))} />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Client-level connections */}
-              {step === 3 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
-                    <LayersIcon className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Client Connections</h2>
-                  </div>
-
-                  <p className="text-[11px] leading-relaxed text-zinc-500">
-                    Commercial terms now belong to each project, so the same client can have different retainers or one-time engagements.
-                  </p>
-
-                  <div className="max-w-xl">
-                    <div className="space-y-1.5">
-                      <label htmlFor="onboarding-meta-ad-account" className="font-semibold text-zinc-400 block">
-                        Associated Meta Ad Account
-                      </label>
-                      <MetaAdAccountSelect
-                        id="onboarding-meta-ad-account"
-                        value={formData.adAccountId}
-                        onChange={(adAccountId) => {
-                          setFormData((current) => ({ ...current, adAccountId }));
-                          setFormError('');
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4: Initial Project Setup */}
-              {step === 4 && (
+              {/* Step 2: Initial Project Setup */}
+              {step === 2 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <Wallet className="h-4 w-4 text-zinc-400" />
@@ -1188,11 +1137,9 @@ export default function ClientOnboardPage() {
                           </div>
                           <div className="space-y-1.5">
                             <label className="font-semibold text-zinc-400 block">Invoice Date *</label>
-                            <input
-                              type="date"
-                              name="projectPaymentStartDate"
+                            <DateInput
                               value={formData.projectPaymentStartDate}
-                              onChange={handleInputChange}
+                              onChange={(value) => setFormData((current) => ({ ...current, projectPaymentStartDate: value }))}
                               className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-mono"
                             />
                           </div>
@@ -1248,22 +1195,18 @@ export default function ClientOnboardPage() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="font-semibold text-zinc-400 block">Start Date *</label>
-                          <input
-                            type="date"
+                          <DateInput
                             required
-                            name="projectStartDate"
                             value={formData.projectStartDate}
-                            onChange={handleInputChange}
+                            onChange={(value) => setFormData((current) => ({ ...current, projectStartDate: value }))}
                             className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-mono"
                           />
                         </div>
                         <div className="space-y-1.5">
                           <label className="font-semibold text-zinc-400 block">Target Deadline Date</label>
-                          <input
-                            type="date"
-                            name="projectDeadline"
+                          <DateInput
                             value={formData.projectDeadline}
-                            onChange={handleInputChange}
+                            onChange={(value) => setFormData((current) => ({ ...current, projectDeadline: value }))}
                             className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none font-mono"
                           />
                         </div>
@@ -1326,11 +1269,9 @@ export default function ClientOnboardPage() {
                                 className="flex-1 text-[11px] bg-zinc-900 border border-zinc-850 px-2 py-1 text-white outline-none focus:border-zinc-750"
                               />
                               <div className="flex items-center gap-1.5 text-[10px] text-zinc-550 shrink-0">
-                                <input
-                                  type="date"
+                                <DateInput
                                   value={stage.startDate}
-                                  onChange={(e) => {
-                                    const dateVal = e.target.value;
+                                  onChange={(dateVal) => {
                                     setFormData((prev) => {
                                       const nextStages = prev.projectStages.map((s, sIdx) => 
                                         sIdx === idx ? { ...s, startDate: dateVal } : s
@@ -1341,11 +1282,9 @@ export default function ClientOnboardPage() {
                                   className="w-26 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
                                 />
                                 <span>to</span>
-                                <input
-                                  type="date"
+                                <DateInput
                                   value={stage.endDate}
-                                  onChange={(e) => {
-                                    const dateVal = e.target.value;
+                                  onChange={(dateVal) => {
                                     setFormData((prev) => {
                                       const nextStages = prev.projectStages.map((s, sIdx) => 
                                         sIdx === idx ? { ...s, endDate: dateVal } : s
@@ -1433,8 +1372,8 @@ export default function ClientOnboardPage() {
                 </div>
               )}
 
-              {/* Step 5: Review & finalize */}
-              {step === 5 && (
+              {/* Final step: Review & finalize */}
+              {step === reviewStep && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <CheckCircle className="h-4 w-4 text-zinc-400" />
@@ -1587,7 +1526,7 @@ export default function ClientOnboardPage() {
                   <span>Back</span>
                 </Button>
  
-                {step === 4 ? (
+                {step === 2 ? (
                   <div className="ml-auto flex items-center gap-2">
                     <Button
                       type="button"
@@ -1606,7 +1545,7 @@ export default function ClientOnboardPage() {
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
-                ) : step < 5 ? (
+                ) : step < reviewStep ? (
                   <Button
                     type="button"
                     onClick={handleNextStep}

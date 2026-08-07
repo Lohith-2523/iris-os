@@ -96,16 +96,16 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className={styles.form} aria-busy={isLoading}>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="login-identity">Username, phone number or email</label>
+            <label className={styles.label} htmlFor="login-identity">Email address</label>
             <div className={styles.inputWrap}>
               <User className={styles.inputIcon} aria-hidden="true" />
               <input
                 id="login-identity"
-                type="text"
-                placeholder="Enter username, phone, or email"
+                type="email"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
+                autoComplete="email"
                 required
                 className={styles.input}
               />

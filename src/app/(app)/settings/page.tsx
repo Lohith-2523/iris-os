@@ -1,11 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Popover } from 'radix-ui';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { formatUserMessage } from '@/lib/utils';
 import { validateBrowserFile } from '@/lib/file-security';
 import {
@@ -42,6 +45,12 @@ import {
   Loader2,
   X
 } from 'lucide-react';
+
+function IntegrationLogo({ provider }: { provider: string }) {
+  if (provider === 'META') return <span className="integration-meta-logo" aria-label="Meta"><Image src="/meta_light.png" alt="Meta" width={128} height={56} unoptimized className="integration-meta-logo-light h-14 w-auto object-contain" /><Image src="/meta_dark.png" alt="Meta" width={128} height={56} unoptimized className="integration-meta-logo-dark h-14 w-auto object-contain" /></span>;
+  if (provider === 'GOOGLE') return <Image src="/google_logo.png" alt="Google" width={115} height={48} unoptimized className="h-12 w-auto object-contain" />;
+  return <Blocks className="h-4 w-4" />;
+}
 
 type MetaAdAccount = {
   id: string;
@@ -448,14 +457,7 @@ export default function SettingsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-zinc-500 text-xs flex items-center gap-2">
-          <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-          <span>Loading organization settings...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton variant="settings" />;
   }
 
   return (
@@ -723,8 +725,9 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
+              <div>
               {/* Agency Industry Selection */}
-              <Card>
+              <Card className="h-full">
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="text-sm font-semibold text-white">Agency Industry Specializations</CardTitle>
@@ -797,7 +800,7 @@ export default function SettingsPage() {
               </Card>
 
               {/* Bank Accounts Card */}
-              <Card>
+              <Card className="hidden">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -912,6 +915,7 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -952,27 +956,8 @@ export default function SettingsPage() {
                   <CardDescription>Configure user access credentials and workspace authorization levels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 font-sans text-xs">
-                  <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
-                    <div>
-                      <span className="block font-semibold text-white">Administrator (ADMIN)</span>
-                      <span className="text-[10px] text-zinc-500">Full operations and billing access.</span>
-                    </div>
-                    <Badge variant="risk-low">2 Users</Badge>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-zinc-900 pb-3">
-                    <div>
-                      <span className="block font-semibold text-white">Member (MEMBER)</span>
-                      <span className="text-[10px] text-zinc-500">Access to project boards and creative assets.</span>
-                    </div>
-                    <Badge variant="risk-low">3 Users</Badge>
-                  </div>
-                  <div className="flex justify-between items-center pb-1">
-                    <div>
-                      <span className="block font-semibold text-white">Client Viewer (CLIENT_VIEWER)</span>
-                      <span className="text-[10px] text-zinc-500">Read-only billing summaries and portal design.</span>
-                    </div>
-                    <Badge variant="risk-low">1 User</Badge>
-                  </div>
+                  <p className="text-zinc-400">View all users and configure client, team member, sub-admin, and admin access. Sub-admin permissions are set per user.</p>
+                  <Link href="/settings/security" className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 font-semibold text-white hover:border-zinc-600"><span>Open Security & Roles</span><span aria-hidden="true">→</span></Link>
                 </CardContent>
               </Card>
 
@@ -1001,6 +986,60 @@ export default function SettingsPage() {
                       Error: Update failed.
                     </span>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Bank Accounts Card */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-sm font-semibold text-white font-sans">Bank Accounts Configuration</CardTitle>
+                      <CardDescription>Add up to 5 Indian banks for ledger entries.</CardDescription>
+                    </div>
+                    <Badge variant={selectedBanks.length >= 5 ? 'risk-high' : 'risk-low'} className="shrink-0 font-mono">{selectedBanks.length}/5 Banks</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 font-sans text-xs">
+                  {selectedBanks.length < 5 ? (
+                    <div className="space-y-1.5">
+                      <label className="block font-semibold text-zinc-400">Select/Search Indian Banks</label>
+                      <div className="flex gap-2">
+                        <input
+                          list="settings-indian-bank-options"
+                          type="text"
+                          placeholder="Search a bank"
+                          value={searchBankInput}
+                          onChange={(event) => setSearchBankInput(event.target.value)}
+                          className="min-w-0 flex-1 rounded border border-zinc-855 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none"
+                        />
+                        <datalist id="settings-indian-bank-options">
+                          {INDIAN_BANKS.filter((bank) => !selectedBanks.includes(bank)).map((bank) => <option key={bank} value={bank} />)}
+                        </datalist>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!searchBankInput.trim() || selectedBanks.includes(searchBankInput.trim())}
+                          onClick={() => {
+                            setSelectedBanks((current) => [...current, searchBankInput.trim()]);
+                            setSearchBankInput('');
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                  ) : <div className="rounded border border-zinc-850 bg-zinc-900/30 p-3 font-medium text-zinc-550">Maximum of 5 bank accounts reached.</div>}
+
+                  <div className="space-y-2 pt-1">
+                    <span className="block text-[9px] font-semibold uppercase tracking-wider text-zinc-400">Configured Accounts</span>
+                    {selectedBanks.length === 0 ? <div className="py-1 text-xs italic text-zinc-650">No banks configured yet.</div> : selectedBanks.map((bank, index) => (
+                      <div key={bank} className="flex items-center justify-between rounded border border-zinc-850 bg-zinc-950/40 p-2.5 font-medium text-white">
+                        <span className="truncate pr-2">{bank}</span>
+                        <button type="button" onClick={() => setSelectedBanks((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="cursor-pointer p-1 text-zinc-550 transition-colors hover:text-red-500" aria-label={`Remove ${bank}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1219,10 +1258,10 @@ export default function SettingsPage() {
                         integrations.map((item) => (
                           <tr key={item.provider} className="hover:bg-zinc-900/10">
                             <td className="p-4 font-bold text-white tracking-wider flex items-center gap-2">
-                              <div className="h-7 w-7 rounded bg-zinc-900 flex items-center justify-center text-zinc-400">
-                                <Blocks className="h-4 w-4" />
+                              <div className={`${item.provider === 'META' || item.provider === 'GOOGLE' ? 'h-[72px] w-32' : 'h-9 w-10 rounded bg-white text-zinc-700'} flex items-center justify-center`}>
+                                <IntegrationLogo provider={item.provider} />
                               </div>
-                              {item.provider}
+                              {item.provider !== 'META' && item.provider !== 'GOOGLE' && item.provider}
                             </td>
                             <td className="p-4">
                               <Badge

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Phone, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
+import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import styles from '@/components/auth/auth-shell.module.css';
 import { passwordConfirmationError } from '@/lib/password-validation';
 
@@ -102,10 +103,7 @@ export default function SignupPage() {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="signup-phone">Phone number</label>
-            <div className={styles.inputWrap}>
-              <Phone className={styles.inputIcon} aria-hidden="true" />
-              <input id="signup-phone" type="tel" required placeholder="+1 (555) 000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" className={styles.input} />
-            </div>
+            <CountryPhoneInput id="signup-phone" required value={phone} onChange={setPhone} placeholder="Phone number" className={styles.input} />
           </div>
 
           <div className={styles.field}>

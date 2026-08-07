@@ -5,6 +5,8 @@ import { calculateLeadEconomics } from '@/lib/lead-economics';
 import { calculateAgencyMetaMetrics } from '@/lib/agency-meta-metrics';
 import { assignAgencyMetaAdAccount, syncAgencyMetaAdAccount } from '@/lib/agency-meta-sync';
 import { MetaIntegrationError } from '@/lib/meta-business';
+import { normalizeRequiredPhone } from '@/lib/phone';
+import { createNotification } from '@/lib/notifications';
 
 function parseEstimatedClientValue(value: unknown) {
   if (value === undefined || value === null || value === '') return null;
@@ -190,26 +192,64 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ...result });
     }
 
+    // Keep leads attached to a visible pipeline stage when a configured stage is removed.
+    if (action === 'migrate_stage_leads') {
+      const sourceStatuses: string[] = Array.isArray(body.sourceStatuses)
+        ? Array.from(new Set((body.sourceStatuses as unknown[]).filter((status): status is string => typeof status === 'string' && status.trim().length > 0).map((status) => status.trim().toLowerCase())))
+        : [];
+      const destinationStatus = typeof body.destinationStatus === 'string' ? body.destinationStatus.trim().toLowerCase() : '';
+      if (!sourceStatuses.length || !destinationStatus) {
+        return NextResponse.json({ error: 'Source and destination stages are required.' }, { status: 400 });
+      }
+      if (sourceStatuses.includes(destinationStatus)) {
+        return NextResponse.json({ error: 'Choose a different destination stage.' }, { status: 400 });
+      }
+      const migrated = await prisma.agencyLead.updateMany({
+        where: { orgId: org.id, status: { in: sourceStatuses, mode: 'insensitive' } },
+        data: { status: destinationStatus, lostReason: destinationStatus === 'lost' ? 'Pipeline stage update' : null, lostDetails: null },
+      });
+      return NextResponse.json({ success: true, migratedCount: migrated.count });
+    }
+
     // 1. Drag and drop stage status update or inline state update
     if (action === 'update_status') {
-      const { leadId, status } = body;
+      const { leadId, status, lostReason, lostDetails } = body;
       if (!leadId || !status) {
         return NextResponse.json({ error: 'Missing leadId or status' }, { status: 400 });
       }
 
+      if (String(status).toLowerCase() === 'lost' && !String(lostReason || '').trim()) {
+        return NextResponse.json({ error: 'Select why the lead was lost.' }, { status: 400 });
+      }
+      const existingLead = await prisma.agencyLead.findUnique({ where: { orgId_leadId: { orgId: org.id, leadId } } });
+      const activity = Array.isArray(existingLead?.activity) ? existingLead.activity : [];
       const updatedLead = await prisma.agencyLead.update({
         where: { orgId_leadId: { orgId: org.id, leadId } },
-        data: { status }
+        data: { status, lostReason: String(status).toLowerCase() === 'lost' ? String(lostReason).trim() : null, lostDetails: String(status).toLowerCase() === 'lost' ? String(lostDetails || '').trim() || null : null, activity: [...activity, { type: 'STATUS_CHANGED', status, at: new Date().toISOString(), by: user.name }] }
       });
 
       return NextResponse.json({ success: true, lead: updatedLead });
     }
 
+    if (action === 'update') {
+      const existing = await prisma.agencyLead.findFirst({ where: { id: body.id, orgId: org.id } });
+      if (!existing) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      const normalizedPhone = normalizeRequiredPhone(body.phone);
+      if (!body.fullName || !body.email || !normalizedPhone) return NextResponse.json({ error: 'Name, email, and phone with country code are required.' }, { status: 400 });
+      const followUpAt = body.followUpAt ? new Date(body.followUpAt) : null;
+      if (followUpAt && Number.isNaN(followUpAt.getTime())) return NextResponse.json({ error: 'Follow-up date is invalid.' }, { status: 400 });
+      const activity = Array.isArray(existing.activity) ? existing.activity : [];
+      const lead = await prisma.agencyLead.update({ where: { id: existing.id }, data: { fullName: String(body.fullName).trim(), email: String(body.email).trim().toLowerCase(), phone: normalizedPhone, approachMethod: String(body.approachMethod || '').trim() || null, funnelName: String(body.funnelName || '').trim() || null, estimatedClientValue: parseEstimatedClientValue(body.estimatedClientValue), followUpAt, activity: [...activity, { type: 'DETAILS_UPDATED', at: new Date().toISOString(), by: user.name }] } });
+      if (followUpAt) await createNotification({ orgId: org.id, userId: user.id, type: 'REMINDER', title: `Follow up with ${lead.fullName}`, body: `The scheduled lead follow-up is due.`, href: `/agency-leads?lead=${lead.id}`, actionLabel: 'Open lead', scheduledAt: followUpAt });
+      return NextResponse.json({ success: true, lead });
+    }
+
     // 2. Single Manual Entry Creation
     if (action === 'create') {
       const { fullName, email, phone, funnelName, status, approachMethod } = body;
-      if (!fullName || !email || !status) {
-        return NextResponse.json({ error: 'Missing required parameters: fullName, email, status' }, { status: 400 });
+      const normalizedPhone = normalizeRequiredPhone(phone);
+      if (!fullName || !email || !status || !normalizedPhone) {
+        return NextResponse.json({ error: 'Name, email, status, and a phone number with country code are required.' }, { status: 400 });
       }
 
       const estimatedClientValue = parseEstimatedClientValue(body.estimatedClientValue);
@@ -218,20 +258,29 @@ export async function POST(request: NextRequest) {
       }
 
       const cleanStatus = status.toLowerCase();
+      if (cleanStatus === 'lost' && !String(body.lostReason || '').trim()) return NextResponse.json({ error: 'Select why the lead was lost.' }, { status: 400 });
+      const followUpAt = body.followUpAt ? new Date(body.followUpAt) : null;
+      if (followUpAt && Number.isNaN(followUpAt.getTime())) return NextResponse.json({ error: 'Follow-up date is invalid.' }, { status: 400 });
       const newLead = await prisma.agencyLead.create({
         data: {
           fullName,
           email,
-          phone: phone || null,
+          phone: normalizedPhone,
           status: cleanStatus,
           funnelName: funnelName || 'Manual Entry',
           estimatedClientValue,
           approachMethod: approachMethod || 'Email',
           collectionMethod: 'Manual Entry',
           sourceProvider: 'MANUAL',
+          followUpAt,
+          lostReason: cleanStatus === 'lost' ? String(body.lostReason).trim() : null,
+          lostDetails: cleanStatus === 'lost' ? String(body.lostDetails || '').trim() || null : null,
+          activity: [{ type: 'CREATED', at: new Date().toISOString(), by: user.name }],
           orgId: org.id
         }
       });
+
+      if (followUpAt) await createNotification({ orgId: org.id, userId: user.id, type: 'REMINDER', title: `Follow up with ${newLead.fullName}`, body: 'The scheduled lead follow-up is due.', href: `/agency-leads?lead=${newLead.id}`, actionLabel: 'Open lead', scheduledAt: followUpAt });
 
       return NextResponse.json({ success: true, lead: newLead });
     }
@@ -246,9 +295,11 @@ export async function POST(request: NextRequest) {
       const importedLeads = [];
       for (const lead of leads) {
         const { fullName, email, phone, funnelName, status, approachMethod } = lead;
-        if (!fullName || !email) continue; // Skip incomplete items
+        const normalizedPhone = normalizeRequiredPhone(phone);
+        if (!fullName || !email || !normalizedPhone) continue; // Skip incomplete items
 
         const cleanStatus = (status || 'procured').toLowerCase();
+        const followUpAt = lead.followUpAt ? new Date(lead.followUpAt) : null;
         const estimatedClientValue = parseEstimatedClientValue(lead.estimatedClientValue);
         if (lead.estimatedClientValue !== undefined && lead.estimatedClientValue !== '' && estimatedClientValue === null) continue;
 
@@ -258,23 +309,26 @@ export async function POST(request: NextRequest) {
           data: {
             fullName,
             email,
-            phone: phone || null,
+            phone: normalizedPhone,
             status: cleanStatus,
             funnelName: funnelName || 'Bulk Import',
             estimatedClientValue,
             approachMethod: approachMethod || 'Email',
+            followUpAt: followUpAt && !Number.isNaN(followUpAt.getTime()) ? followUpAt : null,
           }
         }) : await prisma.agencyLead.create({
           data: {
             fullName,
             email,
-            phone: phone || null,
+            phone: normalizedPhone,
             status: cleanStatus,
             funnelName: funnelName || 'Bulk Import',
             estimatedClientValue,
             approachMethod: approachMethod || 'Email',
             collectionMethod: 'Bulk Import',
             sourceProvider: 'IMPORT',
+            followUpAt: followUpAt && !Number.isNaN(followUpAt.getTime()) ? followUpAt : null,
+            activity: [{ type: 'IMPORTED', at: new Date().toISOString(), by: user.name }],
             orgId: org.id
           }
         });

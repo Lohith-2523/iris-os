@@ -5,6 +5,7 @@ import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 import {
   ClipboardList,
   Calendar as CalendarIcon,
@@ -316,14 +317,7 @@ export default function TeamsDashboardPage() {
   }, [currentDate]);
 
   if (loading && !currentUser) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-zinc-500 text-xs flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Synchronizing teams workspace...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton variant="team-dashboard" />;
   }
 
   if (currentUser && currentUser.role?.toLowerCase() !== 'member') {
@@ -391,7 +385,7 @@ export default function TeamsDashboardPage() {
           {/* Kanban Columns Grid */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-4 items-stretch overflow-x-auto min-h-[500px]">
             {([
-              { id: 'TODO', label: 'Todo / Pending', border: 'border-zinc-900 bg-zinc-950/10' },
+              { id: 'TODO', label: 'To-do / Pending', border: 'border-zinc-900 bg-zinc-950/10' },
               { id: 'IN_PROGRESS', label: 'In Progress', border: 'border-amber-900/20 bg-amber-950/5' },
               { id: 'BLOCKED', label: 'Blocked', border: 'border-rose-900/20 bg-rose-950/5' },
               { id: 'COMPLETED', label: 'Completed', border: 'border-emerald-900/20 bg-emerald-950/5' }
@@ -618,7 +612,7 @@ export default function TeamsDashboardPage() {
                     onChange={(e) => handleUpdateStatus(selectedTask.id, e.target.value as Task['status'])}
                     className="mt-1 bg-zinc-900 border border-zinc-800 text-white rounded px-2.5 py-1 text-xs focus:outline-none capitalize font-semibold cursor-pointer"
                   >
-                    <option value="TODO">Todo</option>
+                    <option value="TODO">To-do</option>
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="BLOCKED">Blocked</option>
                     <option value="COMPLETED">Completed</option>

@@ -27,7 +27,7 @@ import {
   ArrowUpRight,
   Activity,
   ArrowRight,
-  Megaphone,
+  Bell,
   Zap,
   X,
   Calendar
@@ -47,6 +47,8 @@ export default function DashboardPage() {
   const [tasksList, setTasksList] = React.useState<any[]>([]);
   const [calendarEvents, setCalendarEvents] = React.useState<any[]>([]);
   const [agencyLeadsData, setAgencyLeadsData] = React.useState<any>(null);
+  const [currentUserName, setCurrentUserName] = React.useState('there');
+  const [notifications, setNotifications] = React.useState<any[]>([]);
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
@@ -73,6 +75,7 @@ export default function DashboardPage() {
     }
     const googleConnectedParam = searchParams.get('google_connected');
     fetch('/api/workspace').then(async (res) => res.ok ? res.json() : Promise.reject()).then((workspace) => {
+      setCurrentUserName(workspace.user?.name?.split(' ')[0] || 'there');
       const checklist = workspace.onboarding?.checklist || {};
       const connected = new Set((workspace.integrations || []).filter((item: any) => item.status === 'CONNECTED').map((item: any) => item.provider));
       const nextState = {
@@ -178,6 +181,12 @@ export default function DashboardPage() {
           if (agencyLeadsRes.ok) {
             const agencyLeadsJson = await agencyLeadsRes.json();
             setAgencyLeadsData(agencyLeadsJson);
+          }
+
+          const notificationRes = await fetch('/api/notifications');
+          if (notificationRes.ok) {
+            const notificationJson = await notificationRes.json();
+            setNotifications(notificationJson.notifications || []);
           }
       } catch (e) {
         console.error(e);
@@ -500,12 +509,17 @@ export default function DashboardPage() {
   return (
     <div className="dashboard-canvas space-y-6">
       {/* Page Header */}
-      <div className="dashboard-header flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Agency Command Center</h1>
-          <p className="text-xs text-zinc-500">Real-time financial, operational, and paid creative performance intelligence.</p>
+      <div className="dashboard-header dashboard-command-center relative isolate flex flex-col gap-2 overflow-hidden md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
+        <div aria-hidden="true" className="dashboard-command-center-banner absolute inset-0 pointer-events-none" />
+        <div className="relative z-10">
+          <div className="dashboard-welcome-card inline-flex items-center gap-3 rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
+            <span className="font-black uppercase tracking-[0.18em] text-zinc-400">Iris OS</span>
+            <span className="h-6 w-px bg-zinc-700" />
+            <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Welcome, {currentUserName}</h1>
+          </div>
+          <p className="mt-3 text-zinc-500">Real-time financial, operational, and paid creative performance intelligence.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="relative z-10 flex items-center gap-3">
           <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300 py-1 px-3">
             Q2 Fiscal Year 2026
           </Badge>
@@ -936,14 +950,12 @@ export default function DashboardPage() {
                     <div className="text-xl font-bold font-mono text-white">
                       {agencyLeadsList.length} Total
                     </div>
-                    <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-mono font-bold">Warm Queue</span>
                   </div>
                   <div className="space-y-2">
                     {warmAgencyLeads.slice(0, 2).map((l: any) => (
                       <div key={l.id || l.leadId} className="flex justify-between items-center bg-zinc-900/35 border border-zinc-900/60 p-2 rounded-md">
                         <div className="truncate pr-2">
                           <span className="block text-[11px] font-semibold text-zinc-250 truncate">{l.fullName}</span>
-                          <span className="block text-[9px] font-mono text-zinc-555 truncate">{l.email}</span>
                         </div>
                         <Badge variant="risk-medium" className="text-[8px] px-1 py-0 uppercase shrink-0 rounded-md">
                           Warm
@@ -958,127 +970,52 @@ export default function DashboardPage() {
               </ExpandableCard>
 
               <ExpandableCard 
-                className="min-h-[250px] flex-1 flex flex-col justify-between overflow-hidden cursor-default hover:ring-0"
+                className="min-h-[200px] flex-1 flex flex-col justify-between overflow-hidden cursor-default hover:ring-0"
                 disableExpand={true}
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Quick Actions</CardTitle>
                   <Zap className="h-4 w-4 text-zinc-500" />
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-center items-center gap-3 min-h-[140px] pt-2 pb-6">
+                <CardContent className="flex-1 flex flex-col justify-center items-center gap-3 min-h-[112px] pt-2 pb-6">
                   <div className="flex flex-col gap-3.5 w-full items-center justify-center">
-                    <Button 
-                      size="lg" 
-                      className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-900 border border-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-800/80 rounded-md h-11" 
-                      variant="outline" 
-                      onClick={(e) => { e.stopPropagation(); window.location.href = '/meta-portal/leads'; }}
-                    >
-                      Pipeline
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-900 border border-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-800/80 rounded-md h-11" 
-                      variant="outline" 
-                      onClick={(e) => { e.stopPropagation(); window.location.href = '/meta-portal'; }}
-                    >
-                      Ads Manager
-                    </Button>
                     <Button
                       size="lg"
                       className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-100 border border-zinc-300 text-zinc-950 hover:bg-white rounded-md h-11"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = `/atlas?q=${encodeURIComponent('Create an invoice')}`;
+                        window.location.href = '/clients/onboard';
                       }}
                     >
-                      Automatic Invoice
+                      Add Client
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-900 border border-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-800/80 rounded-md h-11"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = '/atlas';
+                      }}
+                    >
+                      Ask Atlas
                     </Button>
                   </div>
                 </CardContent>
               </ExpandableCard>
 
-              <ExpandableCard 
-                className="flex-1 flex flex-col justify-between overflow-hidden"
-                expandedContent={
-                  <div className="flex h-full min-h-0 flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Leads Pipeline Overview</h3>
-                      <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-400 text-[9px] uppercase font-mono">
-                        {metaData?.leads?.length || 0} Total Leads
-                      </Badge>
-                    </div>
-                    
-                    <div className="min-h-0 flex-1 divide-y divide-zinc-900 overflow-y-auto border-t border-zinc-900 pr-1">
-                      {metaData?.leads && metaData.leads.length > 0 ? (
-                        metaData.leads.map((l: any) => {
-                          const isWarmFirstTwo = warmLeads.slice(0, 2).some((wl: any) => wl.leadId === l.leadId);
-                          if (isWarmFirstTwo) return null;
-                          
-                          return (
-                            <div key={l.id || l.leadId} className="flex items-center justify-between py-2 text-xs">
-                              <div className="truncate pr-2">
-                                <span className="block font-semibold text-zinc-250 truncate">{l.fullName}</span>
-                                <span className="block text-[10px] text-zinc-500 font-mono mt-0.5 truncate">{l.email}</span>
-                              </div>
-                              <Badge 
-                                variant={
-                                  l.status?.toLowerCase() === 'closed' ? 'risk-low' :
-                                  l.status?.toLowerCase() === 'lost' ? 'outline' :
-                                  l.status?.toLowerCase() === 'warm' ? 'risk-medium' : 'default'
-                                }
-                                className="text-[9px] px-1.5 py-0 uppercase shrink-0"
-                              >
-                                {l.status}
-                              </Badge>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="text-center text-zinc-650 text-[11px] py-4">No other leads found.</div>
-                      )}
-                    </div>
-
-                  </div>
-                }
-                expandedFooter={
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = '/meta-portal/leads';
-                    }}
-                    className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
-                  >
-                    <span>See more</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                }
-              >
+              <ExpandableCard className="flex-1 flex flex-col justify-between overflow-hidden" expandedContent={<div className="divide-y divide-zinc-900">{notifications.map((item) => <button key={item.id} onClick={() => item.href && router.push(item.href)} className="block w-full py-3 text-left"><div className="font-semibold text-white">{item.title}</div><div className="mt-1 text-zinc-500">{item.body}</div></button>)}{notifications.length === 0 && <div className="py-8 text-center text-zinc-500">No pending notifications.</div>}</div>}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Meta Leads</CardTitle>
-                  <Megaphone className="h-4 w-4 text-zinc-500" />
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Notifications</CardTitle>
+                  <Bell className="h-4 w-4 text-zinc-500" />
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <div className="text-xl font-bold font-mono text-white">
-                      {adReports.totalLeads} Total
-                    </div>
-                    <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-mono font-bold">Warm Queue</span>
+                    <div className="text-xl font-bold font-mono text-white">{notifications.filter((item) => !item.readAt).length} Unread</div>
                   </div>
                   <div className="space-y-2">
-                    {warmLeads.slice(0, 2).map((l: any) => (
-                      <div key={l.id || l.leadId} className="flex justify-between items-center bg-zinc-900/35 border border-zinc-900/60 p-2 rounded-none">
-                        <div className="truncate pr-2">
-                          <span className="block text-[11px] font-semibold text-zinc-250 truncate">{l.fullName}</span>
-                          <span className="block text-[9px] font-mono text-zinc-550 truncate">{l.email}</span>
-                        </div>
-                        <Badge variant="risk-medium" className="text-[8px] px-1 py-0 uppercase shrink-0">
-                          Warm
-                        </Badge>
-                      </div>
-                    ))}
-                    {warmLeads.length === 0 && (
-                      <div className="text-[10px] text-zinc-600 italic py-1">No warm leads currently.</div>
-                    )}
+                    {notifications.slice(0, 2).map((item) => <button key={item.id} onClick={() => item.href && router.push(item.href)} className="block w-full rounded-xl border border-zinc-900 bg-zinc-900/35 p-2 text-left"><span className="block truncate font-semibold text-zinc-200">{item.title}</span><span className="block truncate text-zinc-500">{item.type}</span></button>)}
+                    {notifications.length === 0 && <div className="text-zinc-600 italic py-1">You’re all caught up.</div>}
                   </div>
                 </CardContent>
               </ExpandableCard>
@@ -1146,7 +1083,6 @@ export default function DashboardPage() {
                     <div className="text-xl font-bold font-mono text-white">
                       {clientsList.length} Total
                     </div>
-                    <span className="text-[9px] text-zinc-550 uppercase tracking-widest font-mono font-bold">Top Earners</span>
                   </div>
                   <div className="space-y-2">
                     {top2Clients.map((client: any) => (
@@ -1205,7 +1141,7 @@ export default function DashboardPage() {
                         <div key={t.id} className="flex items-center justify-between text-[11px] py-1 border-b border-zinc-900/40">
                           <span className="text-zinc-300 truncate pr-2 font-medium">{t.title}</span>
                           <Badge className="scale-90 text-[9px] uppercase font-mono font-bold shrink-0" variant={t.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'}>
-                            {t.status === 'IN_PROGRESS' ? 'Active' : 'Todo'}
+                            {t.status === 'IN_PROGRESS' ? 'Active' : 'To-do'}
                           </Badge>
                         </div>
                       ))

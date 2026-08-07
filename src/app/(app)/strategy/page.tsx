@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 
 type StrategyType = 'UPSELL' | 'MARKETING' | 'FINANCIAL';
 
@@ -252,6 +253,8 @@ export default function StrategyPage() {
       setDownloadingId(null);
     }
   };
+
+  if (loading) return <PageSkeleton variant="strategy" />;
 
   return (
     <div className="space-y-6">

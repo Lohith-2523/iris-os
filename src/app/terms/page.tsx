@@ -1,680 +1,110 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowRight } from 'lucide-react';
-import { MarketingHeader } from '@/components/marketing/marketing-header';
+import { LegalPolicyPage, type LegalSection } from '@/components/legal/legal-policy-page';
 
-// ─── Font shorthands ──────────────────────────────────────────────────────────
-const DISPLAY = "var(--font-space-grotesk), sans-serif";
-const BODY    = "var(--font-geist-sans), sans-serif";
-const MONO    = "var(--font-geist-mono), monospace";
-const JBMONO  = "var(--font-mono), monospace";
+const sections: LegalSection[] = [
+  {
+    id: 'acceptance', title: 'Agreement and eligibility',
+    paragraphs: [
+      'These Terms of Service (“Terms”) form a binding agreement between Shards Media, operating Iris OS (“Iris OS”, “we”, “us”, or “our”), and the person or organization accessing Iris OS (“Customer”, “you”, or “your”). By creating an account, accepting an invitation, purchasing a subscription, signing a document through Iris OS, or using the services, you accept these Terms and the Privacy Policy.',
+      'You represent that you are legally capable of entering this agreement and, when acting for an organization, have authority to bind it. If you do not agree, do not use Iris OS. Additional order forms, data-processing terms, or enterprise terms control to the extent they expressly conflict with these Terms.',
+    ],
+  },
+  {
+    id: 'service', title: 'Iris OS services',
+    paragraphs: ['Iris OS provides agency operations, lead and client management, projects, tasks, financial records, reporting, messaging, document generation and electronic signatures, integrations, and Atlas AI features. Features, limits, and availability vary by plan, configuration, geography, and third-party service availability. We may improve or replace functionality while preserving the material value of a paid service. Preview, beta, or experimental features may change or be withdrawn.'],
+  },
+  {
+    id: 'accounts', title: 'Accounts, roles, and customer administration',
+    bullets: [
+      'You must provide accurate account information, protect credentials, use multi-factor authentication when available, and promptly report suspected compromise.',
+      'The agency administrator controls workspace membership, roles, sub-admin permissions, client access, integrations, AI settings, and customer data. Actions by authorized users are treated as Customer actions.',
+      'You are responsible for obtaining appropriate authority, notices, consent, and lawful bases before entering, importing, connecting, or instructing Iris OS to process information about leads, clients, personnel, document recipients, or other individuals.',
+      'You must promptly revoke access for people who no longer require it and are responsible for reviewing access logs, permissions, generated documents, and automation settings.',
+    ],
+  },
+  {
+    id: 'plans', title: 'Subscriptions, billing, and plan changes',
+    paragraphs: ['Paid subscriptions renew at the frequency shown at purchase until cancelled. Fees, taxes, plan limits, and payment timing are displayed in the applicable checkout or order. Upgrades may take effect immediately with applicable prorating; downgrades and cancellations normally take effect at the end of the current paid period. Except where law or an order form requires otherwise, fees are non-refundable and unused time is not credited. We may suspend paid functionality after notice when payment is overdue.'],
+  },
+  {
+    id: 'customer-data', title: 'Customer data and processing instructions',
+    paragraphs: [
+      'Customer retains its rights in data, files, prompts, documents, brand assets, and other content submitted to Iris OS (“Customer Data”). Customer grants Iris OS and its contracted providers a limited right to host, copy, transmit, transform, display, and otherwise process Customer Data only to provide, secure, support, and improve the services as described in these Terms, the Privacy Policy, the Customer’s configuration, and lawful instructions.',
+      'Customer is responsible for Customer Data legality, accuracy, quality, notices, retention instructions, and rights of third parties. Customer must not upload data it is prohibited from disclosing or direct Iris OS to process data unlawfully. Iris OS may remove or restrict content where reasonably necessary to address illegality, security risk, infringement, or a violation of these Terms.',
+    ],
+  },
+  {
+    id: 'atlas-ai', title: 'Atlas AI access, outputs, and customer control',
+    paragraphs: [
+      'Atlas AI can generate drafts, reports, strategies, proposals, contracts, statements of work, summaries, classifications, forecasts, recommendations, and customer-authorized workflow actions. Atlas may access a prompt and the workspace context selected by the user or permitted by organization settings. Optional access to live financial, lead, campaign, client, project, or other workspace data requires the applicable organization authorization or consent and can be disabled in settings.',
+      'When AI workspace access is disabled, Atlas must not retrieve the disabled live datasets for new requests. Customer understands that a direct prompt, file upload, or explicit document-generation instruction may itself contain Customer Data and constitutes an instruction to process that submitted content for the requested output.',
+    ],
+    bullets: [
+      'Outputs are probabilistic and may be inaccurate, incomplete, outdated, non-unique, or unsuitable. Customer must independently review outputs before relying on them, publishing them, sending them, signing them, or using them for financial, legal, employment, eligibility, safety, or other consequential purposes.',
+      'Atlas provides operational assistance and does not replace qualified legal, tax, accounting, financial, medical, employment, or other professional advice.',
+      'Customer must maintain meaningful human oversight. Customer may not configure Atlas to make a solely automated decision with legal or similarly significant effects unless the processing is lawful and all required notices, safeguards, explanations, intervention, objection, and review rights are implemented.',
+      'Customer may not use Atlas to unlawfully discriminate, infer highly sensitive characteristics, manipulate vulnerable people, create deceptive impersonations, violate privacy or intellectual-property rights, or generate unlawful content.',
+      'Iris OS does not use Customer workspace content to train a generalized Iris OS model without separate, specific permission. Contracted AI providers may process inputs and outputs under their applicable enterprise or API terms and Iris OS data-protection requirements.',
+    ],
+  },
+  {
+    id: 'automations', title: 'Automations and generated actions',
+    paragraphs: ['An automation may create or update records, draft or send communications, generate documents, schedule events, convert a signed lead into a client, or create projects and tasks. Customer authorizes actions it explicitly initiates or enables. Customer must review automation configuration and resulting records. Iris OS may pause an automation that is ambiguous, unsafe, unauthorized, technically invalid, or likely to cause material harm. Automated onboarding depends on sufficient, accurate signed-document details; incomplete records may be flagged for human review.'],
+  },
+  {
+    id: 'esign', title: 'Documents and electronic signatures',
+    paragraphs: [
+      'Iris OS may provide native or third-party document delivery and electronic-signature workflows. A signer who types a legal name, confirms consent, and submits a signature intends that act to constitute an electronic signature to the extent permitted by applicable law. Iris OS may record signer name, timestamp, document hash, authentication or link context, and privacy-preserving technical audit data.',
+      'Customer is responsible for determining whether electronic signatures are appropriate for a document, identifying signers, obtaining authority and consent, satisfying disclosure and record-retention duties, and providing any legally required alternative. Iris OS does not verify capacity, authority, identity beyond the implemented workflow, or enforceability in every jurisdiction. Once a signature is recorded, Iris OS may make the document immutable and preserve the executed copy and audit trail.',
+    ],
+  },
+  {
+    id: 'integrations', title: 'Third-party services and integrations',
+    paragraphs: ['Customer may connect services such as advertising platforms, calendars, design tools, email, payment services, AI infrastructure, or electronic-signature providers. Enabling an integration authorizes Iris OS to exchange the data and permissions needed for the selected function. Third-party services are governed by their own terms and privacy practices. Customer is responsible for its accounts, licenses, permissions, and lawful use. Iris OS is not responsible for third-party outages, policy changes, data supplied by those services, or actions taken outside Iris OS. Disconnecting an integration stops new access but may not delete data already imported or records retained under law or Customer instructions.'],
+  },
+  {
+    id: 'privacy-security', title: 'Privacy, confidentiality, and security',
+    paragraphs: ['Our processing of personal data is described in the Privacy Policy and any applicable data-processing agreement. Each party will protect the other party’s confidential information using reasonable care and use it only for the agreement, except for information lawfully public, independently developed, rightfully received without restriction, or required to be disclosed by law. We maintain safeguards designed for the service, but no internet service is completely secure. Customer is responsible for endpoint security, access management, lawful exports, and backups it requires outside Iris OS.'],
+  },
+  {
+    id: 'acceptable-use', title: 'Acceptable use',
+    bullets: [
+      'Do not access Iris OS unlawfully, probe or bypass security, interfere with availability, introduce malware, scrape beyond documented interfaces, or attempt unauthorized tenant or account access.',
+      'Do not upload unlawful, infringing, defamatory, fraudulent, abusive, exploitative, or malicious content, or use Iris OS to spam, deceive, stalk, discriminate, or violate another person’s rights.',
+      'Do not reverse engineer or copy protected service components except to the limited extent a restriction is prohibited by law.',
+      'Do not resell, sublicense, benchmark publicly, or use Iris OS to build a competing service without written permission.',
+      'Do not submit regulated secrets, payment-card data, health data, biometric identifiers, children’s data, or other highly sensitive information unless the relevant Iris OS feature expressly supports it and Customer has implemented all legal and contractual safeguards.',
+    ],
+  },
+  {
+    id: 'ownership', title: 'Intellectual property and feedback',
+    paragraphs: ['Iris OS and its software, interfaces, designs, documentation, trademarks, models, workflows, and underlying technology are owned by Shards Media or its licensors. Subject to payment and compliance, Customer receives a limited, non-exclusive, non-transferable right to use the service during the subscription. Customer owns Customer Data and, as between the parties and to the extent permitted by law, its generated outputs, excluding Iris OS technology, third-party material, and pre-existing content. Feedback may be used without restriction or identification, but does not authorize use of Customer Data for generalized model training.'],
+  },
+  {
+    id: 'suspension-termination', title: 'Suspension, termination, and data export',
+    paragraphs: ['Either party may terminate as allowed by the applicable plan or order. We may suspend access where reasonably necessary for security, non-payment, legal compliance, material breach, or risk to the service or others, and will provide notice when practicable. Upon termination, Customer’s access ends and Customer should export required data before the effective date. We will delete or return Customer Data according to the Privacy Policy, applicable agreement, backup lifecycle, and legal retention duties. Provisions concerning payment, ownership, confidentiality, disclaimers, liability, disputes, and lawful retention survive.'],
+  },
+  {
+    id: 'warranties', title: 'Disclaimers',
+    paragraphs: ['TO THE MAXIMUM EXTENT PERMITTED BY LAW, IRIS OS, ATLAS AI, OUTPUTS, INTEGRATIONS, AND BETA FEATURES ARE PROVIDED “AS IS” AND “AS AVAILABLE”. WE DISCLAIM IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY, AND UNINTERRUPTED OPERATION. WE DO NOT GUARANTEE BUSINESS RESULTS, LEAD CONVERSION, CAMPAIGN PERFORMANCE, REVENUE, LEGAL ENFORCEABILITY, MODEL ACCURACY, OR THIRD-PARTY AVAILABILITY. NOTHING IN THESE TERMS EXCLUDES A WARRANTY OR CONSUMER RIGHT THAT CANNOT LAWFULLY BE EXCLUDED.'],
+  },
+  {
+    id: 'liability', title: 'Limitation of liability',
+    paragraphs: ['TO THE MAXIMUM EXTENT PERMITTED BY LAW, NEITHER PARTY WILL BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, PUNITIVE, OR CONSEQUENTIAL LOSS, OR LOSS OF PROFITS, REVENUE, GOODWILL, BUSINESS, OR DATA, ARISING FROM THESE TERMS. EXCEPT FOR PAYMENT OBLIGATIONS, FRAUD, WILLFUL MISCONDUCT, INFRINGEMENT, BREACH OF CONFIDENTIALITY, OR LIABILITY THAT CANNOT BE LIMITED, EACH PARTY’S AGGREGATE LIABILITY WILL NOT EXCEED THE FEES PAID OR PAYABLE FOR THE SERVICE GIVING RISE TO THE CLAIM DURING THE TWELVE MONTHS BEFORE THE EVENT. Local law may require different limitations, which will apply to that extent.'],
+  },
+  {
+    id: 'indemnity', title: 'Indemnity',
+    paragraphs: ['Customer will defend and indemnify Shards Media and its affiliates against third-party claims arising from Customer Data, unlawful Customer instructions, Customer’s breach of these Terms, or Customer’s use of outputs, integrations, automations, or documents in violation of law or third-party rights. We will provide reasonable notice and cooperation and permit Customer to control the defense, provided no settlement admits fault or imposes obligations on us without consent. This obligation does not apply to the extent a claim was caused by our breach or willful misconduct.'],
+  },
+  {
+    id: 'law-disputes', title: 'Governing law and disputes',
+    paragraphs: ['Unless an order form states otherwise, these Terms are governed by the laws applicable to Shards Media’s principal place of business, without regard to conflict-of-law rules. The parties will first attempt good-faith informal resolution. Any mandatory consumer forum, privacy complaint right, small-claims right, or statutory jurisdiction remains available where it cannot lawfully be waived. Any arbitration or exclusive forum provision applies only to the extent enforceable and after any legally required notice or opt-out opportunity.'],
+  },
+  {
+    id: 'changes-contact', title: 'Changes and contact',
+    paragraphs: ['We may update these Terms for legal, security, provider, or product changes. Material changes will receive notice appropriate to the change and applicable law. Continued use after the effective date constitutes acceptance where permitted; if consent is legally required, we will request it. For legal questions, email studio@shardsmedia.com with the subject “LEGAL: IRIS OS TERMS”. Privacy requests should be sent to cto.admin@irisos.app.'],
+  },
+];
 
-export default function TermsOfServicePage() {
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: `
-          radial-gradient(ellipse 80% 60% at 10% 10%, rgba(255,255,255,0.055) 0%, transparent 55%),
-          radial-gradient(ellipse 60% 50% at 90% 15%, rgba(255,255,255,0.04) 0%, transparent 50%),
-          radial-gradient(ellipse 70% 60% at 50% 95%, rgba(255,255,255,0.025) 0%, transparent 55%),
-          #0a0a0a
-        `,
-        color: '#e8e8e8',
-        fontFamily: BODY,
-      }}
-      className="relative select-none"
-    >
-      <MarketingHeader />
-
-      {/* Hero Banner */}
-      <section
-        style={{
-          paddingTop: '140px',
-          paddingBottom: '60px',
-          paddingLeft: '24px',
-          paddingRight: '24px',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* Badge */}
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 16px',
-              background: '#111111',
-              boxShadow: '4px 4px 10px #040404, -4px -4px 10px #1e1e1e',
-              borderRadius: '50px',
-              marginBottom: '28px',
-              fontFamily: JBMONO,
-              fontWeight: 400,
-              fontSize: '11px',
-              color: 'rgba(232,232,232,0.55)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            <div
-              style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.6)',
-                boxShadow: '0 0 8px rgba(255,255,255,0.4)',
-              }}
-            />
-            Legal Terms
-          </span>
-
-          <h1
-            className="gradient-text"
-            style={{
-              fontFamily: DISPLAY,
-              fontWeight: 700,
-              fontSize: 'clamp(32px, 5vw, 56px)',
-              lineHeight: 1.1,
-              letterSpacing: '-0.03em',
-              marginBottom: '16px',
-              textTransform: 'uppercase',
-              margin: '0 0 16px 0',
-            }}
-          >
-            Terms of Service
-          </h1>
-
-          <p
-            style={{
-              fontFamily: MONO,
-              fontSize: '11px',
-              color: 'rgba(232,232,232,0.4)',
-              letterSpacing: '0.05em',
-              margin: 0,
-            }}
-          >
-            Last Updated: June 27, 2026 • Shards Media
-          </p>
-        </div>
-      </section>
-
-      {/* Main content grid */}
-      <section className="max-w-6xl mx-auto py-12 px-6 grid gap-10 md:grid-cols-12">
-        {/* Document Index (Left side in desktop) */}
-        <aside className="md:col-span-4 space-y-4">
-          <div
-            className="neo-raised animate-fade-in-up"
-            style={{
-              padding: '24px',
-              position: 'sticky',
-              top: '120px',
-              border: '1px solid rgba(255,255,255,0.05)',
-            }}
-          >
-            <span
-              style={{
-                display: 'block',
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '13px',
-                color: '#e8e8e8',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                borderBottom: '1px solid rgba(255,255,255,0.1)',
-                paddingBottom: '12px',
-                marginBottom: '16px',
-              }}
-            >
-              Document Sections
-            </span>
-            <nav
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-                fontFamily: JBMONO,
-                fontSize: '11px',
-                textTransform: 'uppercase',
-              }}
-            >
-              {[
-                { id: 'acceptance', label: '1. Acceptance of Terms' },
-                { id: 'accounts', label: '2. Account Credentials' },
-                { id: 'billing', label: '3. Subscription Billing' },
-                { id: 'integrations', label: '4. Third-Party Connections' },
-                { id: 'acceptable-use', label: '5. Platform Acceptable Use' },
-                { id: 'liability', label: '6. Limitation of Liability' },
-                { id: 'governing-law', label: '7. Governing Law' },
-                { id: 'contact', label: '8. Legal Contact' },
-              ].map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  style={{
-                    color: 'rgba(232,232,232,0.45)',
-                    textDecoration: 'none',
-                    transition: 'color 0.2s, padding-left 0.2s',
-                  }}
-                  className="hover:text-white hover:pl-1"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
-        {/* Legal Text (Right side) */}
-        <article className="md:col-span-8 space-y-8">
-          {/* Section 1 */}
-          <section
-            id="acceptance"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              1. Acceptance of Terms & Services
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              Welcome to Iris OS (the &quot;Platform&quot; or &quot;Services&quot;), operated by Shards Media (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;). 
-              By registering an account, purchasing a subscription tier, or accessing the workspace console, you, the user (&quot;Customer&quot;, &quot;you&quot;), 
-              agree to be legally bound by these Terms of Service, which incorporate all compliance requirements under GDPR, the Digital Personal Data 
-              Protection (DPDP) Act, and applicable global commerce and technology regulations. If you do not agree to these terms, do not access 
-              the Platform.
-            </p>
-          </section>
-
-          {/* Section 2 */}
-          <section
-            id="accounts"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              2. Account Registration & Credentials Gating
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              To deploy an agency workspace, you must create a corporate profile linked to a valid business email. You are fully responsible 
-              for securing access keys and authorization credentials. Iris OS supports secondary enterprise authentication gateways, 
-              including Google Authentication and Notion Authentication APIs.
-            </p>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: '#e8e8e8',
-                fontWeight: 600,
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              You agree to safeguard your authentication secrets. Shards Media cannot and will not be liable for unauthorized data extraction, 
-              ledger manipulation, or operational damage resulting from leaked account credentials or third-party token exposure.
-            </p>
-          </section>
-
-          {/* Section 3 */}
-          <section
-            id="billing"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              3. Subscription Billing, Upgrades, & Cancellations
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              Platform services are divided into three standard tiers:
-            </p>
-            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
-              {[
-                { title: 'Basic Plan ($99/mo)', desc: 'Restricts access to a single agency specialization (plus optional $29 add-on).' },
-                { title: 'Pro Plan ($299/mo)', desc: 'Grants workspace clearance for up to 5 agency specializations.' },
-                { title: 'Advanced Plan ($599/mo)', desc: 'Grants unlimited clearance for all 10+ agency specializations.' }
-              ].map((li, idx) => (
-                <li
-                  key={idx}
-                  style={{
-                    fontFamily: BODY,
-                    fontSize: '14px',
-                    color: 'rgba(232,232,232,0.65)',
-                    lineHeight: 1.7,
-                  }}
-                >
-                  <strong style={{ color: '#e8e8e8' }}>{li.title}:</strong> {li.desc}
-                </li>
-              ))}
-            </ul>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              Subscriptions are billed monthly on a recurring schedule based on the date of purchase. Upgrades take effect immediately 
-              with pro-rated charges applied. Downgrades or cancellations will take effect at the end of the current billing cycle. 
-              Refunds are not issued for partial monthly billing cycles.
-            </p>
-          </section>
-
-          {/* Section 4 */}
-          <section
-            id="integrations"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              4. Third-Party Connections & API Integrations
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              Iris OS integrates directly with external platforms, including Google Services, Notion API, Canva design interfaces, 
-              and Meta Ads portals. By enabling these integrations:
-            </p>
-            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
-              {[
-                'You warrant that you hold sufficient administrative permissions to connect these data endpoints.',
-                'You authorize Iris OS to retrieve and store connection tokens required to sync files and performance metrics.',
-                'You acknowledge that company connections are governed by third-party developer policies, and Shards Media is not responsible for API outages or service termination on external platforms.',
-                'You retain the right to terminate third-party API connections at any time. For Meta integrations, you can deauthorize the application or initiate user data deletion request flows to purge all campaign, ad, and lead records from active databases.'
-              ].map((item, idx) => (
-                <li
-                  key={idx}
-                  style={{
-                    fontFamily: BODY,
-                    fontSize: '14px',
-                    color: 'rgba(232,232,232,0.65)',
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Section 5 */}
-          <section
-            id="atlas-ai"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              5. Atlas AI Processing & Optional Data-Sharing
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              Iris OS contains AI-powered analysis features (&quot;Atlas AI&quot;) that utilize approved language-model capabilities to analyze your manual cost ledgers and agency leads.
-            </p>
-            <ul className="space-y-3" style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
-              {[
-                'Opt-In Consent: By default, database records are not shared with AI models. You must explicitly opt-in to enable Atlas AI analysis of your financial transactions and leads database.',
-                'Control & Revocation: You can decline this sharing or instantly revoke/decline access at any time via Settings > AI Settings & Data Privacy.',
-                'Fallback Mode: If consent is disabled or revoked, Atlas AI automatically shifts to a general reasoning mode without accessing your live transaction tables or lead databases.'
-              ].map((item, idx) => (
-                <li
-                  key={idx}
-                  style={{
-                    fontFamily: BODY,
-                    fontSize: '14px',
-                    color: 'rgba(232,232,232,0.65)',
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Section 6 */}
-          <section
-            id="acceptable-use"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              6. Platform Acceptable Use & Intellectual Property
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              All software, layout designs, core algorithms, database schemas, and AI heuristics (Atlas AI) remain the exclusive
-              intellectual property of Shards Media. You are granted a limited, revocable, non-transferable, and non-exclusive license 
-              to use the software solely to manage internal agency operations. You may not reverse engineer, modify, or resell 
-              Platform components.
-            </p>
-          </section>
-
-          {/* Section 7 */}
-          <section
-            id="liability"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              7. Limitation of Liability
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              THE SERVICES ARE PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; WITHOUT WARRANTY OF ANY KIND. TO THE FULLEST EXTENT PERMITTED BY LAW, 
-              SHARDS MEDIA AND ITS AFFILIATES SHALL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOSS OF REVENUE, 
-              BUSINESS INTERRUPTION, LOSS OF CAMPAIGN METRICS, OR CORRUPTION OF FINANCIAL DATA ARISING OUT OF YOUR USE OF THE WORKSPACE.
-            </p>
-          </section>
-
-          {/* Section 8 */}
-          <section
-            id="governing-law"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              8. Governing Law & Dispute Resolution
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              These Terms of Service are governed by the laws of the State of Delaware (United States) or applicable international 
-              governing laws for cross-border transactions, without regard to conflicts of law provisions. Any dispute arising under 
-              these terms shall be resolved exclusively through binding arbitration.
-            </p>
-          </section>
-
-          {/* Section 9 */}
-          <section
-            id="contact"
-            className="neo-raised"
-            style={{
-              padding: '32px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: DISPLAY,
-                fontWeight: 700,
-                fontSize: '18px',
-                color: '#e8e8e8',
-                borderBottom: '1px solid rgba(255,255,255,0.08)',
-                paddingBottom: '12px',
-                margin: 0,
-              }}
-            >
-              9. Legal Contact Information
-            </h2>
-            <p
-              style={{
-                fontFamily: BODY,
-                fontSize: '14px',
-                color: 'rgba(232,232,232,0.65)',
-                lineHeight: 1.7,
-                margin: 0,
-              }}
-            >
-              For legal inquiries, dispute notifications, or general concerns regarding these terms:
-            </p>
-            <div
-              className="neo-inset"
-              style={{
-                padding: '20px',
-                fontFamily: MONO,
-                fontSize: '12px',
-                color: 'rgba(232,232,232,0.5)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                border: '1px solid rgba(255,255,255,0.03)',
-                borderRadius: '16px',
-              }}
-            >
-              <div><strong style={{ color: '#e8e8e8' }}>Entity:</strong> Shards Media</div>
-              <div><strong style={{ color: '#e8e8e8' }}>Email:</strong> studio@shardsmedia.com</div>
-              <div><strong style={{ color: '#e8e8e8' }}>Subject Header:</strong> LEGAL: TERMS OF SERVICE INQUIRY</div>
-            </div>
-          </section>
-        </article>
-      </section>
-
-      {/* Footer */}
-      <footer
-        style={{
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-          padding: '48px 24px',
-          marginTop: '60px',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px',
-            width: '100%',
-          }}
-        >
-          <Image src="/iris-logo-black-bg.png" alt="Iris OS" width={74} height={28} style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
-          <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
-            © 2026 Iris OS, Inc. All rights reserved.
-          </span>
-          <div style={{ display: 'flex', gap: '24px' }}>
-            {[
-              { label: 'Privacy', href: '/privacy' },
-              { label: 'Terms', href: '/terms' },
-              { label: 'Security', href: '#' },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                style={{
-                  fontFamily: BODY,
-                  fontSize: '13px',
-                  color: 'rgba(232,232,232,0.3)',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s ease',
-                }}
-                className="hover:text-[rgba(232,232,232,0.65)]"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+export default function TermsPage() {
+  return <LegalPolicyPage title="Terms of Service" badge="Iris OS service agreement" updated="August 6, 2026" introduction="These terms govern use of Iris OS, Atlas AI, document and e-signature workflows, integrations, automations, and agency workspaces." sections={sections} />;
 }

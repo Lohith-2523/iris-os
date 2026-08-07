@@ -30,7 +30,9 @@ const prismaModelSignature = JSON.stringify(
       .sort((left, right) => left.name.localeCompare(right.name)),
   },
 );
-const requiredModelDelegates = ['project'] as const;
+const requiredModelDelegates = Prisma.dmmf.datamodel.models.map(
+  (model) => `${model.name.charAt(0).toLowerCase()}${model.name.slice(1)}`,
+);
 
 function hasRequiredModelDelegates(client: PrismaClient) {
   const delegates = client as unknown as Record<string, unknown>;

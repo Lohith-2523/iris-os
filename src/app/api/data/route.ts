@@ -292,6 +292,7 @@ export async function GET(request: NextRequest) {
             adAccountId: c.adAccountId,
             metadata: c.metadata || null,
             contacts: c.contacts,
+            projects: c.projects.map((project) => ({ ...project, startDate: project.startDate.toISOString(), endDate: project.endDate?.toISOString() || null, paymentStartDate: project.paymentStartDate?.toISOString() || null })),
             invoices: c.invoices.map((invoice) => ({
               id: invoice.id,
               invoiceNumber: invoice.invoiceNumber,
@@ -338,7 +339,8 @@ export async function GET(request: NextRequest) {
         const users = await prisma.user.findMany({
           where: {
             orgId,
-            role: { in: ['admin', 'member'] },
+            role: { in: ['admin', 'member', 'sub_admin'] },
+            accessRevokedAt: null,
           },
           orderBy: { name: 'asc' }
         });

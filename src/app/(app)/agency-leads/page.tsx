@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { WhatsappLogo } from '@phosphor-icons/react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,14 +22,19 @@ import {
   Download,
   Upload,
   FileSpreadsheet,
+  FileText,
   Check,
   Loader2,
   Trash2,
-  Megaphone
+  Megaphone,
+  GripVertical
 } from 'lucide-react';
 import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { validateBrowserFile } from '@/lib/file-security';
+import { CountryPhoneInput } from '@/components/ui/country-phone-input';
+import { DateTimeInput } from '@/components/ui/date-input';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 
 interface AgencyLead {
   id: string;
@@ -44,9 +50,28 @@ interface AgencyLead {
   createdTime: string;
   convertedClient?: { id: string; name: string } | null;
   sourceProvider?: string | null;
+  adId?: string | null;
   adName?: string | null;
+  campaignId?: string | null;
+  formId?: string | null;
   adAccountId?: string | null;
+  followUpAt?: string | null;
+  lostReason?: string | null;
+  lostDetails?: string | null;
+  activity?: Array<{ type: string; status?: string; at: string; by?: string }> | null;
 }
+
+type LeadStage = { id: string; label: string; color: string };
+const MAX_LEAD_STAGES = 8;
+const DEFAULT_LEAD_STAGES: LeadStage[] = [
+  { id: 'procured', label: 'Procured', color: '#A1A1AA' },
+  { id: 'warm', label: 'Warm', color: '#F59E0B' },
+  { id: 'cold', label: 'Cold', color: '#64748B' },
+  { id: 'lost', label: 'Lost', color: '#E11D48' },
+  { id: 'closed', label: 'Closed', color: '#10B981' },
+];
+
+const whatsAppHref = (phone: string) => `https://wa.me/${phone.replace(/\D/g, '')}`;
 
 interface LeadMetrics {
   marketingSpend: number;
@@ -62,11 +87,11 @@ interface AgencyMetaData {
   accounts: Array<{ adAccountId: string; accountName: string; lastSync: string | null }>;
   campaignCount: number;
   metrics: { spend: number; impressions: number; reach: number; clicks: number; leadsCount: number; ctr: number | null; cpc: number | null; cpm: number | null; costPerLead: number | null };
-  ads: Array<{ id: string; name: string; spend: number; impressions: number; clicks: number; leadsCount: number; campaign: { name: string } | null }>;
+  ads: Array<{ id: string; adId: string; name: string; spend: number; impressions: number; reach?: number; clicks: number; leadsCount: number; campaign: { campaignId: string; name: string } | null }>;
 }
 
 interface MetaConnectionData {
-  discoveredAdAccounts: Array<{ id: string; name: string }>;
+  discoveredAdAccounts?: Array<{ id: string; name: string }>;
   selectedAdAccountIds: string[];
 }
 
@@ -81,6 +106,7 @@ export default function AgencyLeadsPage() {
   const [agencyMeta, setAgencyMeta] = React.useState<AgencyMetaData | null>(null);
   const [metaConnection, setMetaConnection] = React.useState<MetaConnectionData | null>(null);
   const [selectedMetaAccountId, setSelectedMetaAccountId] = React.useState('');
+  const [selectedCampaign, setSelectedCampaign] = React.useState('all');
   const [metaBusy, setMetaBusy] = React.useState(false);
   const [metaError, setMetaError] = React.useState('');
   const [metrics, setMetrics] = React.useState<LeadMetrics>({
@@ -100,6 +126,7 @@ export default function AgencyLeadsPage() {
     estimatedClientValue: '',
     status: 'procured',
     approachMethod: 'Email'
+    ,followUpAt: '', lostReason: '', lostDetails: ''
   });
   const [formSubmitting, setFormSubmitting] = React.useState(false);
   const [formSuccess, setFormSuccess] = React.useState(false);
@@ -114,13 +141,24 @@ export default function AgencyLeadsPage() {
 
   // Selected lead for detail modal
   const [selectedLead, setSelectedLead] = React.useState<AgencyLead | null>(null);
+  const [leadDraft, setLeadDraft] = React.useState<any>(null);
+  const [leadStages, setLeadStages] = React.useState<LeadStage[]>(DEFAULT_LEAD_STAGES);
+  const [workspacePreferences, setWorkspacePreferences] = React.useState<Record<string, unknown>>({});
+  const [showStageEditor, setShowStageEditor] = React.useState(false);
+  const [draggedStageId, setDraggedStageId] = React.useState<string | null>(null);
+  const [stagePendingRemoval, setStagePendingRemoval] = React.useState<LeadStage | null>(null);
+  const [replacementStageId, setReplacementStageId] = React.useState('');
+  const [savingStages, setSavingStages] = React.useState(false);
+  const [stageEditorError, setStageEditorError] = React.useState('');
+  const [savingLead, setSavingLead] = React.useState(false);
+  const [lostDialog, setLostDialog] = React.useState<{ leadId: string; reason: string; details: string } | null>(null);
 
   // Spend value for calculating CAC/ROAS on this page
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [res, integrationsRes] = await Promise.all([fetch('/api/agency-leads'), fetch('/api/integrations')]);
+      const [res, integrationsRes, workspaceRes] = await Promise.all([fetch('/api/agency-leads'), fetch('/api/integrations'), fetch('/api/workspace')]);
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
@@ -138,6 +176,14 @@ export default function AgencyLeadsPage() {
         const integrations = await integrationsRes.json();
         const meta = integrations.find((item: { provider: string }) => item.provider === 'META');
         setMetaConnection(meta?.meta || null);
+      }
+      if (workspaceRes.ok) {
+        const workspace = await workspaceRes.json();
+        const preferences = workspace.organization?.preferences || {};
+        setWorkspacePreferences(preferences);
+        if (Array.isArray(preferences.leadStages) && preferences.leadStages.length) {
+          setLeadStages(preferences.leadStages.slice(0, MAX_LEAD_STAGES));
+        }
       }
     } catch (e) {
       console.error('Failed to load agency leads data:', e);
@@ -218,6 +264,11 @@ export default function AgencyLeadsPage() {
     loadData();
   }, []);
 
+  React.useEffect(() => {
+    if (selectedLead) setLeadDraft({ ...selectedLead, followUpAt: selectedLead.followUpAt ? new Date(selectedLead.followUpAt).toISOString().slice(0, 16) : '' });
+    else setLeadDraft(null);
+  }, [selectedLead]);
+
   const handleSyncData = async () => {
     setSyncing(true);
     try {
@@ -228,7 +279,11 @@ export default function AgencyLeadsPage() {
   };
 
   // Update lead status
-  const handleUpdateStatus = async (leadId: string, newStatus: string) => {
+  const handleUpdateStatus = async (leadId: string, newStatus: string, lostReason?: string, lostDetails?: string) => {
+    if (newStatus === 'lost' && !lostReason) {
+      setLostDialog({ leadId, reason: '', details: '' });
+      return;
+    }
     const previousLeads = [...leads];
     setLeads((prev) =>
       prev.map((l) => (l.leadId === leadId ? { ...l, status: newStatus } : l))
@@ -241,7 +296,7 @@ export default function AgencyLeadsPage() {
       const res = await fetch('/api/agency-leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_status', leadId, status: newStatus }),
+        body: JSON.stringify({ action: 'update_status', leadId, status: newStatus, lostReason, lostDetails }),
       });
 
       if (!res.ok) {
@@ -304,8 +359,8 @@ export default function AgencyLeadsPage() {
     setFormSuccess(false);
     setFormError('');
 
-    if (!manualForm.fullName.trim() || !manualForm.email.trim()) {
-      setFormError('Full Name and Email Address are required.');
+    if (!manualForm.fullName.trim() || !manualForm.email.trim() || !manualForm.phone.trim()) {
+      setFormError('Full name, email address, and phone with country code are required.');
       setFormSubmitting(false);
       return;
     }
@@ -330,6 +385,7 @@ export default function AgencyLeadsPage() {
           estimatedClientValue: '',
           status: 'procured',
           approachMethod: 'Email'
+          ,followUpAt: '', lostReason: '', lostDetails: ''
         });
         // Return to the live pipeline as soon as the new lead is saved.
         setActiveTab('pipeline');
@@ -347,7 +403,7 @@ export default function AgencyLeadsPage() {
 
   // --- TEMPLATE DOWNLOAD HANDLERS ---
   const downloadCsvTemplate = () => {
-    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Funnel Name,Status,Approach Method,Estimated Client Value\nIRIS_OS_AGENCY_LEAD_IMPORT_v1,Vikram Patel,vikram@apex.co,+91 98765 43210,Enterprise Outreach,procured,Email,250000\nIRIS_OS_AGENCY_LEAD_IMPORT_v1,Aditi Sharma,aditi@apex.co,+91 99887 76655,Direct Inbound,warm,LinkedIn,120000";
+    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Other Details,Status,Lead Source,Estimated Client Value,Follow Up Date,Follow Up Time\nIRIS_OS_AGENCY_LEAD_IMPORT_v2,Vikram Patel,vikram@apex.co,+919876543210,Enterprise prospect,procured,Cold Outreach,250000,2026-08-10,14:30\nIRIS_OS_AGENCY_LEAD_IMPORT_v2,Aditi Sharma,aditi@apex.co,+919988776655,Requested proposal,warm,Referral,120000,2026-08-12,11:00";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -360,16 +416,21 @@ export default function AgencyLeadsPage() {
   };
 
   const downloadXlsxTemplate = async () => {
-    const XLSX = await import('xlsx');
-    const data = [
-      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Funnel Name", "Status", "Approach Method", "Estimated Client Value"],
-      ["IRIS_OS_AGENCY_LEAD_IMPORT_v1", "Vikram Patel", "vikram@apex.co", "+91 98765 43210", "Enterprise Outreach", "procured", "Email", 250000],
-      ["IRIS_OS_AGENCY_LEAD_IMPORT_v1", "Aditi Sharma", "aditi@apex.co", "+91 99887 76655", "Direct Inbound", "warm", "LinkedIn", 120000]
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "irisos_agency_leads_template.xlsx");
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Leads Import');
+    sheet.addRow(['Iris OS_Template_Identifier (DO NOT MODIFY)', 'Full Name', 'Email ID', 'Phone Number', 'Other Details', 'Status', 'Lead Source', 'Estimated Client Value', 'Follow Up Date', 'Follow Up Time']);
+    sheet.addRow(['IRIS_OS_AGENCY_LEAD_IMPORT_v2', 'Vikram Patel', 'vikram@apex.co', '+919876543210', 'Enterprise prospect', 'procured', 'Cold Outreach', 250000, '2026-08-10', '14:30']);
+    sheet.columns = [{ width: 45 }, { width: 24 }, { width: 30 }, { width: 22 }, { width: 34 }, { width: 18 }, { width: 20 }, { width: 24 }, { width: 20 }, { width: 18 }];
+    for (let row = 2; row <= 1000; row += 1) {
+      sheet.getCell(`F${row}`).dataValidation = { type: 'list', allowBlank: false, formulae: [`"${leadStages.map((stage) => stage.id).join(',')}"`] };
+      sheet.getCell(`G${row}`).dataValidation = { type: 'list', allowBlank: false, formulae: ['"Instagram,Facebook,WhatsApp,Cold Outreach,Ads,Referral,Email,Phone,LinkedIn"'] };
+      sheet.getCell(`I${row}`).dataValidation = { type: 'date', allowBlank: true, operator: 'between', formulae: [new Date('2020-01-01'), new Date('2100-12-31')] };
+      sheet.getCell(`J${row}`).dataValidation = { type: 'custom', allowBlank: true, formulae: [`OR(J${row}="",AND(J${row}>=0,J${row}<1))`] };
+    }
+    const buffer = await workbook.xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'irisos_agency_leads_template.xlsx'; anchor.click(); URL.revokeObjectURL(url);
   };
 
   // --- BATCH FILE UPLOAD HANDLERS ---
@@ -396,7 +457,7 @@ export default function AgencyLeadsPage() {
         const reader = new FileReader();
         reader.onload = async (event) => {
           const text = event.target?.result as string;
-          const hasIdentifier = text.includes('IRIS_OS_AGENCY_LEAD_IMPORT_v1');
+          const hasIdentifier = text.includes('IRIS_OS_AGENCY_LEAD_IMPORT_v2');
 
           if (hasIdentifier) {
             const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -411,7 +472,8 @@ export default function AgencyLeadsPage() {
                   funnelName: cols[4] || 'Bulk Import',
                   status: cols[5] || 'procured',
                   approachMethod: cols[6] || 'Email',
-                  estimatedClientValue: cols[7] || ''
+                  estimatedClientValue: cols[7] || '',
+                  followUpAt: cols[8] ? `${cols[8]}T${cols[9] || '09:00'}` : ''
                 });
               }
             }
@@ -447,7 +509,7 @@ export default function AgencyLeadsPage() {
 
             let hasIdentifier = false;
             for (const r of rows) {
-              if (r.some((c: any) => String(c).includes('IRIS_OS_AGENCY_LEAD_IMPORT_v1'))) {
+              if (r.some((c: any) => String(c).includes('IRIS_OS_AGENCY_LEAD_IMPORT_v2'))) {
                 hasIdentifier = true;
                 break;
               }
@@ -465,7 +527,8 @@ export default function AgencyLeadsPage() {
                     funnelName: String(r[4] || 'Bulk Import'),
                     status: String(r[5] || 'procured'),
                     approachMethod: String(r[6] || 'Email'),
-                    estimatedClientValue: r[7] === undefined || r[7] === null ? '' : String(r[7])
+                    estimatedClientValue: r[7] === undefined || r[7] === null ? '' : String(r[7]),
+                    followUpAt: r[8] ? `${String(r[8]).slice(0, 10)}T${String(r[9] || '09:00').slice(0, 5)}` : ''
                   });
                 }
               }
@@ -531,6 +594,109 @@ export default function AgencyLeadsPage() {
     setStagedLeads(updated);
   };
 
+  const addLeadStage = () => {
+    setLeadStages((current) => {
+      if (current.length >= MAX_LEAD_STAGES) return current;
+      const stageNumber = current.length + 1;
+      return [...current, { id: `custom-stage-${stageNumber}`, label: `Stage ${stageNumber}`, color: '#94A3B8' }];
+    });
+  };
+
+  const persistLeadStages = async (stages: LeadStage[], closeEditor = false) => {
+    const stagesToSave = stages.slice(0, MAX_LEAD_STAGES);
+    setSavingStages(true);
+    setStageEditorError('');
+    try {
+      const response = await fetch('/api/workspace', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ organization: { preferences: { ...workspacePreferences, leadStages: stagesToSave } } }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Unable to save pipeline stages.');
+      setLeadStages(stagesToSave);
+      setWorkspacePreferences((current) => ({ ...current, leadStages: stagesToSave }));
+      if (closeEditor) setShowStageEditor(false);
+      return true;
+    } catch (error) {
+      setStageEditorError(formatUserMessage(error instanceof Error ? error.message : 'Unable to save pipeline stages.'));
+      return false;
+    } finally {
+      setSavingStages(false);
+    }
+  };
+
+  const saveLeadStages = () => void persistLeadStages(leadStages, true);
+
+  const reorderLeadStages = (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return;
+    setLeadStages((current) => {
+      const sourceIndex = current.findIndex((stage) => stage.id === sourceId);
+      const targetIndex = current.findIndex((stage) => stage.id === targetId);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+      const reordered = [...current];
+      const [moved] = reordered.splice(sourceIndex, 1);
+      reordered.splice(targetIndex, 0, moved);
+      return reordered;
+    });
+  };
+
+  const leadStageStatusAliases = (stageId: string) => {
+    if (stageId === 'procured') return ['procured', 'new'];
+    if (stageId === 'warm') return ['warm', 'cold-call in progress'];
+    if (stageId === 'cold') return ['cold', 'call back required'];
+    if (stageId === 'lost') return ['lost', 'unqualified'];
+    return [stageId];
+  };
+
+  const openStageRemoval = (stage: LeadStage) => {
+    const replacement = leadStages.find((item) => item.id !== stage.id);
+    setReplacementStageId(replacement?.id || '');
+    setStagePendingRemoval(stage);
+    setStageEditorError('');
+  };
+
+  const removeLeadStage = async () => {
+    if (!stagePendingRemoval || !replacementStageId) return;
+    const nextStages = leadStages.filter((stage) => stage.id !== stagePendingRemoval.id);
+    if (!nextStages.length) {
+      setStageEditorError('Keep at least one pipeline stage.');
+      return;
+    }
+    const sourceStatuses = leadStageStatusAliases(stagePendingRemoval.id);
+    const affectedLeads = leads.filter((lead) => sourceStatuses.includes(lead.status?.toLowerCase() || ''));
+    setSavingStages(true);
+    setStageEditorError('');
+    try {
+      if (affectedLeads.length) {
+        const response = await fetch('/api/agency-leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'migrate_stage_leads', sourceStatuses, destinationStatus: replacementStageId }) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Unable to move leads from this stage.');
+      }
+      const response = await fetch('/api/workspace', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ organization: { preferences: { ...workspacePreferences, leadStages: nextStages } } }) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Unable to remove the pipeline stage.');
+      setLeads((current) => current.map((lead) => sourceStatuses.includes(lead.status?.toLowerCase() || '') ? { ...lead, status: replacementStageId } : lead));
+      setLeadStages(nextStages);
+      setWorkspacePreferences((current) => ({ ...current, leadStages: nextStages }));
+      setStagePendingRemoval(null);
+      setReplacementStageId('');
+    } catch (error) {
+      setStageEditorError(formatUserMessage(error instanceof Error ? error.message : 'Unable to remove the pipeline stage.'));
+    } finally {
+      setSavingStages(false);
+    }
+  };
+
+  const saveLeadDetails = async () => {
+    if (!leadDraft) return;
+    setSavingLead(true);
+    try {
+      const response = await fetch('/api/agency-leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', ...leadDraft }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to save lead');
+      setSelectedLead(payload.lead);
+      await loadData();
+    } catch (cause) { alert(cause instanceof Error ? cause.message : 'Unable to save lead'); }
+    finally { setSavingLead(false); }
+  };
+
   // Filtered Leads
   const filteredLeads = React.useMemo(() => {
     return leads.filter((l) => {
@@ -552,27 +718,36 @@ export default function AgencyLeadsPage() {
   const warmLeads = leads.filter((l) => l.status?.toLowerCase() === 'warm' || l.status?.toLowerCase() === 'cold-call in progress').length;
   const coldLeads = leads.filter((l) => l.status?.toLowerCase() === 'cold' || l.status?.toLowerCase() === 'call back required').length;
 
-  // Efficiency indicators based solely on stored lead stages.
+  const hasAgencyMetaAccount = (agencyMeta?.accounts.length || 0) > 0;
   const conversionRate = totalLeads > 0 ? (closedLeads / totalLeads) * 100 : 0;
-
-  // Kanban Columns
-  const columns = [
-    { id: 'procured', label: 'Procured', count: procuredLeads, bg: 'border-zinc-800 bg-zinc-950/20' },
-    { id: 'warm', label: 'Warm', count: warmLeads, bg: 'border-amber-900/30 bg-amber-950/10' },
-    { id: 'cold', label: 'Cold', count: coldLeads, bg: 'border-blue-900/30 bg-blue-950/10' },
-    { id: 'lost', label: 'Lost', count: lostLeads, bg: 'border-rose-900/30 bg-rose-950/10' },
-    { id: 'closed', label: 'Closed', count: closedLeads, bg: 'border-emerald-900/30 bg-emerald-950/10' },
+  const leadSummaryMetrics = [
+    { label: 'Total leads', value: totalLeads, icon: Users },
+    { label: 'Won leads', value: closedLeads, icon: Award },
+    { label: 'Lost leads', value: lostLeads, icon: X },
+    { label: 'Win rate', value: `${conversionRate.toFixed(1)}%`, icon: TrendingUp },
   ];
 
+  // Kanban Columns
+  const columns = leadStages;
+  const metaCampaigns = React.useMemo(() => {
+    const map = new Map<string, { id: string; name: string; impressions: number }>();
+    for (const ad of agencyMeta?.ads || []) {
+      if (!ad.campaign) continue;
+      const current = map.get(ad.campaign.campaignId) || { id: ad.campaign.campaignId, name: ad.campaign.name, impressions: 0 };
+      current.impressions += ad.impressions;
+      map.set(current.id, current);
+    }
+    return [...map.values()].sort((left, right) => right.impressions - left.impressions);
+  }, [agencyMeta]);
+  const visibleMetaAds = React.useMemo(() => (agencyMeta?.ads || []).filter((ad) => selectedCampaign === 'all' || ad.campaign?.campaignId === selectedCampaign).sort((left, right) => right.impressions - left.impressions), [agencyMeta, selectedCampaign]);
+  const selectedMetaMetrics = React.useMemo(() => {
+    if (selectedCampaign === 'all') return agencyMeta?.metrics;
+    const totals = visibleMetaAds.reduce((sum, ad) => ({ spend: sum.spend + ad.spend, impressions: sum.impressions + ad.impressions, reach: sum.reach + (ad.reach || 0), clicks: sum.clicks + ad.clicks, leadsCount: sum.leadsCount + ad.leadsCount }), { spend: 0, impressions: 0, reach: 0, clicks: 0, leadsCount: 0 });
+    return { ...totals, ctr: totals.impressions ? totals.clicks / totals.impressions * 100 : null, cpc: totals.clicks ? totals.spend / totals.clicks : null, cpm: totals.impressions ? totals.spend / totals.impressions * 1000 : null, costPerLead: totals.leadsCount ? totals.spend / totals.leadsCount : null };
+  }, [agencyMeta, selectedCampaign, visibleMetaAds]);
+
   if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-zinc-500 text-xs flex items-center gap-2">
-          <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-          <span>Synchronizing Agency Leads database...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton variant="leads" />;
   }
 
   return (
@@ -584,11 +759,19 @@ export default function AgencyLeadsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
             Agency Leads Hub
           </h1>
-          <p className="text-xs text-zinc-500">
-            Manage, import, and track manually imported client leads through the stage pipeline.
-          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {leadSummaryMetrics.map(({ label, value, icon: Icon }) => (
+              <div key={label} className="min-w-[116px] rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</span>
+                  <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
+                </div>
+                <span className="mt-1 block font-mono text-lg font-bold text-white">{value}</span>
+              </div>
+            ))}
+          </div>
           {/* Tab Selection */}
           <div className="agency-leads-tabs workspace-segmented-control flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-lg">
             <button
@@ -637,34 +820,10 @@ export default function AgencyLeadsPage() {
         </div>
       </div>
 
-      {/* Leads metrics header banner */}
-      <div className="agency-leads-summary grid gap-4 sm:grid-cols-2 lg:grid-cols-5 bg-zinc-950/30 p-4 border border-zinc-900 rounded-lg">
-        <div className="border-r border-zinc-900/60 last:border-0 pr-4">
-          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Procured Leads</span>
-          <span className="text-lg font-bold font-mono text-white block mt-1">{procuredLeads}</span>
-        </div>
-        <div className="border-r border-zinc-900/60 last:border-0 pr-4 pl-0 lg:pl-4">
-          <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Warm & Cold</span>
-          <span className="text-lg font-bold font-mono text-zinc-300 block mt-1">{warmLeads + coldLeads}</span>
-        </div>
-        <div className="border-r border-zinc-900/60 last:border-0 pr-4 pl-0 lg:pl-4">
-          <span className="text-[9px] font-bold text-rose-455 uppercase tracking-wider block">Lost Leads</span>
-          <span className="text-lg font-bold font-mono text-rose-400 block mt-1">{lostLeads}</span>
-        </div>
-        <div className="border-r border-zinc-900/60 last:border-0 pr-4 pl-0 lg:pl-4">
-          <span className="text-[9px] font-bold text-emerald-455 uppercase tracking-wider block">Closed Deals</span>
-          <span className="text-lg font-bold font-mono text-emerald-400 block mt-1">{closedLeads}</span>
-        </div>
-        <div className="pl-0 lg:pl-4">
-          <span className="text-[9px] font-bold text-violet-400 uppercase tracking-wider block">Pipeline Total</span>
-          <span className="text-lg font-bold font-mono text-white block mt-1">{totalLeads}</span>
-        </div>
-      </div>
-
       {activeTab === 'pipeline' ? (
         <>
           {/* Conversions & Efficiency reports */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          {false && <div className="grid gap-4 sm:grid-cols-3">
             <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
               <CardContent className="pt-4 flex items-center justify-between">
                 <div>
@@ -681,7 +840,7 @@ export default function AgencyLeadsPage() {
                 <div>
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Average ROAS</span>
                   <span className="text-xl font-bold font-mono text-white block mt-1">
-                    {metrics.averageRoas === null ? '—' : `${metrics.averageRoas.toFixed(2)}x`}
+                    {metrics.averageRoas === null ? '—' : `${metrics.averageRoas!.toFixed(2)}x`}
                   </span>
                 </div>
                 <TrendingUp className="h-8 w-8 text-zinc-700" />
@@ -693,13 +852,13 @@ export default function AgencyLeadsPage() {
                 <div>
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Average CAC Bound</span>
                   <span className="text-xl font-bold font-mono text-white block mt-1">
-                    {metrics.averageCac === null ? '—' : formatCurrency(metrics.averageCac, 2)}
+                    {metrics.averageCac === null ? '—' : formatCurrency(metrics.averageCac!, 2)}
                   </span>
                 </div>
                 <Users className="h-8 w-8 text-zinc-700" />
               </CardContent>
             </Card>
-          </div>
+          </div>}
 
           {/* Filters */}
           <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between pb-2">
@@ -714,14 +873,90 @@ export default function AgencyLeadsPage() {
                 className="min-w-0 flex-1 bg-transparent py-1.5 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none font-sans"
               />
             </div>
-            <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 font-mono">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Full administrator editor workspace active</span>
-            </div>
+            <Button type="button" variant="outline" onClick={() => setShowStageEditor((value) => !value)}>Customize stages</Button>
           </div>
 
+          {showStageEditor && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Pipeline stage names & accents</CardTitle>
+                <CardDescription>Drag stages into the preferred order, then choose a name and accent. You can configure up to {MAX_LEAD_STAGES} stages.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {leadStages.map((stage, index) => (
+                  <div
+                    key={stage.id}
+                    draggable
+                    onDragStart={(event) => {
+                      setDraggedStageId(stage.id);
+                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.setData('text/plain', stage.id);
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = 'move';
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const sourceId = draggedStageId || event.dataTransfer.getData('text/plain');
+                      if (sourceId) reorderLeadStages(sourceId, stage.id);
+                      setDraggedStageId(null);
+                    }}
+                    onDragEnd={() => setDraggedStageId(null)}
+                    className={`grid grid-cols-[auto_minmax(0,1fr)_120px_auto] gap-3 rounded-xl border p-2 transition ${draggedStageId === stage.id ? 'border-zinc-500 bg-zinc-900/80 opacity-60' : 'border-zinc-800 bg-zinc-950/30'}`}
+                  >
+                    <button type="button" className="cursor-grab touch-none rounded-lg px-1 text-zinc-500 hover:text-white active:cursor-grabbing" aria-label={`Drag ${stage.label} to reorder`} title="Drag to reorder">
+                      <GripVertical className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                    <input value={stage.label} onChange={(event) => setLeadStages((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item))} className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" aria-label={`Stage ${index + 1} name`} />
+                    <input type="color" value={stage.color} onChange={(event) => setLeadStages((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, color: event.target.value } : item))} className="h-full w-full rounded-xl border border-zinc-800 bg-zinc-900 p-2" aria-label={`${stage.label} accent colour`} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => openStageRemoval(stage)} disabled={leadStages.length <= 1 || savingStages} className="text-zinc-500 hover:bg-red-500/10 hover:text-red-400" aria-label={`Remove ${stage.label}`} title="Remove stage">
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                ))}
+                {stageEditorError && <p role="alert" className="text-sm text-red-400">{stageEditorError}</p>}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <span className="text-sm text-zinc-500">{leadStages.length} / {MAX_LEAD_STAGES} stages</span>
+                  <div className="flex flex-wrap gap-3">
+                    <Button type="button" variant="outline" onClick={addLeadStage} disabled={leadStages.length >= MAX_LEAD_STAGES || savingStages}>Add stage</Button>
+                    <Button type="button" onClick={saveLeadStages} disabled={savingStages}>{savingStages && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}{savingStages ? 'Saving…' : 'Save stage settings'}</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {stagePendingRemoval && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="remove-stage-title">
+              <Card className="w-full max-w-lg border-zinc-800 bg-zinc-950 shadow-2xl">
+                <CardHeader>
+                  <CardTitle id="remove-stage-title">Remove “{stagePendingRemoval.label}” stage?</CardTitle>
+                  <CardDescription>
+                    Leads in this stage will be moved to another stage so no pipeline records are hidden or lost.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <label className="block space-y-2 text-sm font-medium text-zinc-200">
+                    Move existing leads to
+                    <select value={replacementStageId} onChange={(event) => setReplacementStageId(event.target.value)} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white">
+                      {leadStages.filter((stage) => stage.id !== stagePendingRemoval.id).map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
+                    </select>
+                  </label>
+                  <p className="text-sm text-zinc-500">{leads.filter((lead) => leadStageStatusAliases(stagePendingRemoval.id).includes(lead.status?.toLowerCase() || '')).length} lead(s) will move with this stage removal.</p>
+                  {stageEditorError && <p role="alert" className="text-sm text-red-400">{stageEditorError}</p>}
+                  <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={() => { setStagePendingRemoval(null); setStageEditorError(''); }} disabled={savingStages}>Cancel</Button>
+                    <Button type="button" onClick={() => void removeLeadStage()} disabled={!replacementStageId || savingStages} className="bg-red-600 text-white hover:bg-red-500">{savingStages && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}{savingStages ? 'Removing…' : 'Remove stage'}</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* KANBAN BOARD */}
-          <div className="agency-leads-kanban-board grid gap-4 grid-cols-1 md:grid-cols-5 items-stretch overflow-x-auto min-h-[500px]">
+          <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+          <div className="agency-leads-kanban-board grid min-w-max grid-cols-1 items-stretch gap-4 min-h-[715px]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(286px, 1fr))` }}>
             {columns.map((col) => {
               const colLeads = filteredLeads.filter(
                 (l) =>
@@ -738,11 +973,12 @@ export default function AgencyLeadsPage() {
                   data-stage={col.id}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, col.id)}
-                  className={`agency-leads-kanban-column flex flex-col rounded-lg border p-3 ${col.bg} transition-all duration-150 min-h-[450px]`}
+                  className="agency-leads-kanban-column flex min-h-[644px] flex-col rounded-lg border bg-[#0a0a0a] p-3 text-zinc-900 transition-all duration-150"
+                  style={{ '--stage-color': col.color } as React.CSSProperties}
                 >
                   {/* Column Header */}
                   <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5 mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">
+                    <span className="agency-leads-kanban-title text-xs font-bold uppercase tracking-wider">
                       {col.label}
                     </span>
                     <Badge variant="outline" className="text-[9px] font-mono border-zinc-800 text-zinc-400 rounded-md">
@@ -751,7 +987,7 @@ export default function AgencyLeadsPage() {
                   </div>
 
                   {/* Column Cards */}
-                  <div className="flex-1 flex flex-col gap-2 overflow-y-auto max-h-[600px] scrollbar-none">
+                  <div className="flex max-h-[858px] flex-1 flex-col gap-2 overflow-y-auto scrollbar-none">
                     {colLeads.length === 0 ? (
                       <div className="h-full flex items-center justify-center border border-dashed border-zinc-900 p-6 text-center text-[10px] text-zinc-650 italic rounded-md">
                         Drop leads here
@@ -781,11 +1017,13 @@ export default function AgencyLeadsPage() {
                             {lead.email || 'Email not provided'}
                           </span>
                           {lead.sourceProvider === 'META' && <Badge variant="outline" className="mt-2 border-blue-900/50 text-[8px] text-blue-300">Meta lead</Badge>}
-                          {lead.funnelName && (
-                            <span className="text-[9px] text-zinc-600 font-sans block mt-2 border-t border-zinc-900 pt-1.5 truncate">
-                              Funnel: {lead.funnelName}
-                            </span>
-                          )}
+                          <span className="text-[9px] text-zinc-600 font-sans block mt-2 border-t border-zinc-900 pt-1.5 truncate">
+                            Approach: {lead.approachMethod || 'Not set'}
+                          </span>
+                          <div className={`mt-3 grid gap-2 ${lead.phone ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {lead.phone && <a href={whatsAppHref(lead.phone)} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()} className="agency-leads-whatsapp-button flex items-center justify-center gap-2 rounded-lg border px-2 py-2 font-semibold"><WhatsappLogo aria-hidden="true" className="h-4 w-4" weight="fill" />WhatsApp</a>}
+                            <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedLead(lead); }} className="flex items-center justify-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/70 px-2 py-2 font-semibold text-zinc-200 transition-colors hover:border-zinc-600 hover:bg-zinc-800 hover:text-white"><Eye className="h-4 w-4" />View more</button>
+                          </div>
                           {col.id === 'closed' && (
                             <Button
                               type="button"
@@ -807,6 +1045,7 @@ export default function AgencyLeadsPage() {
                 </div>
               );
             })}
+          </div>
           </div>
         </>
       ) : activeTab === 'entry' ? (
@@ -858,22 +1097,16 @@ export default function AgencyLeadsPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-550">Phone Number (Optional)</label>
-                    <input
-                      type="text"
-                      className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-xs text-white placeholder-zinc-600 focus:border-zinc-700 focus:outline-none transition-all"
-                      placeholder="e.g. +91 98765 43210"
-                      value={manualForm.phone}
-                      onChange={(e) => setManualForm(prev => ({ ...prev, phone: e.target.value }))}
-                    />
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-550">Phone Number</label>
+                    <CountryPhoneInput required value={manualForm.phone} onChange={(phone) => setManualForm(prev => ({ ...prev, phone }))} />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-550">Funnel Source</label>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-550">Other Details</label>
                     <input
                       type="text"
                       className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-xs text-white placeholder-zinc-600 focus:border-zinc-700 focus:outline-none transition-all"
-                      placeholder="e.g. Enterprise Outreach"
+                      placeholder="Context, needs, referral notes, or campaign detail"
                       value={manualForm.funnelName}
                       onChange={(e) => setManualForm(prev => ({ ...prev, funnelName: e.target.value }))}
                     />
@@ -901,11 +1134,7 @@ export default function AgencyLeadsPage() {
                         value={manualForm.status}
                         onChange={(e) => setManualForm(prev => ({ ...prev, status: e.target.value }))}
                       >
-                        <option value="procured">Procured</option>
-                        <option value="warm">Warm</option>
-                        <option value="cold">Cold</option>
-                        <option value="lost">Lost</option>
-                        <option value="closed">Closed</option>
+                        {leadStages.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
                       </select>
                     </div>
 
@@ -916,14 +1145,21 @@ export default function AgencyLeadsPage() {
                         value={manualForm.approachMethod}
                         onChange={(e) => setManualForm(prev => ({ ...prev, approachMethod: e.target.value }))}
                       >
+                        <option value="Instagram">Instagram</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Cold Outreach">Cold Outreach</option>
+                        <option value="Ads">Ads</option>
+                        <option value="Referral">Referral</option>
                         <option value="Email">Email</option>
                         <option value="Phone">Phone</option>
                         <option value="LinkedIn">LinkedIn</option>
-                        <option value="Ad Campaign">Ad Campaign</option>
-                        <option value="Direct Outreach">Direct Outreach</option>
                       </select>
                     </div>
                   </div>
+
+                  <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase tracking-widest text-zinc-550">Follow up date & time</label><DateTimeInput value={manualForm.followUpAt} onChange={(value) => setManualForm((current) => ({ ...current, followUpAt: value }))} className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2" dateInputClassName="min-w-0 rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-white" timeInputClassName="rounded-md border border-zinc-800 bg-zinc-900/50 px-2 py-2 text-white" /></div>
+                  {manualForm.status === 'lost' && <div className="space-y-3 rounded-xl border border-rose-900/50 bg-rose-950/10 p-4"><label className="font-bold text-white">Why was the lead lost?</label><select required value={manualForm.lostReason} onChange={(event) => setManualForm((current) => ({ ...current, lostReason: event.target.value }))} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white"><option value="">Select a reason</option><option>Budget constraints</option><option>No response</option><option>Chose a competitor</option><option>Timing not right</option><option>Not a good fit</option><option>Duplicate or invalid lead</option><option>Other</option></select><textarea value={manualForm.lostDetails} onChange={(event) => setManualForm((current) => ({ ...current, lostDetails: event.target.value }))} placeholder="Optional additional details" className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></div>}
 
                   <Button
                     type="submit"
@@ -1057,11 +1293,11 @@ export default function AgencyLeadsPage() {
                                 />
                               </TableCell>
                               <TableCell className="py-1">
-                                <input
-                                  type="text"
-                                  className="bg-transparent border-0 text-zinc-400 focus:outline-none focus:ring-0 w-28 text-[11px] font-mono"
+                                <CountryPhoneInput
+                                  required
                                   value={item.phone}
-                                  onChange={(e) => handleStagedChange(idx, 'phone', e.target.value)}
+                                  onChange={(phone) => handleStagedChange(idx, 'phone', phone)}
+                                  className="w-36"
                                 />
                               </TableCell>
                               <TableCell className="py-1">
@@ -1162,7 +1398,7 @@ export default function AgencyLeadsPage() {
                   <div className="flex gap-2">
                     <select value={selectedMetaAccountId} onChange={(event) => setSelectedMetaAccountId(event.target.value)} className="min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white">
                       <option value="">Select your agency ad account</option>
-                      {metaConnection.discoveredAdAccounts.map((account) => <option key={account.id} value={account.id}>{account.name} ({account.id})</option>)}
+                      {(metaConnection.discoveredAdAccounts || []).map((account) => <option key={account.id} value={account.id}>{account.name} ({account.id})</option>)}
                     </select>
                     <Button onClick={() => void assignMetaAccount()} disabled={metaBusy || !selectedMetaAccountId}>Add & sync</Button>
                   </div>
@@ -1175,32 +1411,53 @@ export default function AgencyLeadsPage() {
                 ))}
               </CardContent>
             </Card>
-            <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
-              <CardHeader><CardTitle className="text-sm text-white">Advertising performance</CardTitle><CardDescription>{agencyMeta?.campaignCount || 0} campaigns across agency-owned accounts.</CardDescription></CardHeader>
+            {hasAgencyMetaAccount ? (
+              <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
+              <CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle className="text-sm text-white">Advertising performance</CardTitle><CardDescription>{agencyMeta?.campaignCount || 0} campaigns, ordered by impressions.</CardDescription></div><select value={selectedCampaign} onChange={(event) => setSelectedCampaign(event.target.value)} className="rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white"><option value="all">All campaigns</option>{metaCampaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name} · {campaign.impressions.toLocaleString()} impressions</option>)}</select></div></CardHeader>
               <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {[
-                  ['Spend', formatCurrency(agencyMeta?.metrics.spend || 0, 2)], ['Impressions', (agencyMeta?.metrics.impressions || 0).toLocaleString()], ['Reach', (agencyMeta?.metrics.reach || 0).toLocaleString()],
-                  ['Clicks', (agencyMeta?.metrics.clicks || 0).toLocaleString()], ['CTR', agencyMeta?.metrics.ctr == null ? '—' : `${agencyMeta.metrics.ctr.toFixed(2)}%`], ['CPC', agencyMeta?.metrics.cpc == null ? '—' : formatCurrency(agencyMeta.metrics.cpc, 2)],
-                  ['CPM', agencyMeta?.metrics.cpm == null ? '—' : formatCurrency(agencyMeta.metrics.cpm, 2)], ['Leads', String(agencyMeta?.metrics.leadsCount || 0)], ['Cost / lead', agencyMeta?.metrics.costPerLead == null ? '—' : formatCurrency(agencyMeta.metrics.costPerLead, 2)],
+                  ['Spend', formatCurrency(selectedMetaMetrics?.spend || 0, 2)], ['Impressions', (selectedMetaMetrics?.impressions || 0).toLocaleString()], ['Reach', (selectedMetaMetrics?.reach || 0).toLocaleString()],
+                  ['Clicks', (selectedMetaMetrics?.clicks || 0).toLocaleString()], ['CTR', selectedMetaMetrics?.ctr == null ? '—' : `${selectedMetaMetrics.ctr.toFixed(2)}%`], ['CPC', selectedMetaMetrics?.cpc == null ? '—' : formatCurrency(selectedMetaMetrics.cpc, 2)],
+                  ['CPM', selectedMetaMetrics?.cpm == null ? '—' : formatCurrency(selectedMetaMetrics.cpm, 2)], ['Leads', String(selectedMetaMetrics?.leadsCount || 0)], ['Cost / lead', selectedMetaMetrics?.costPerLead == null ? '—' : formatCurrency(selectedMetaMetrics.costPerLead, 2)],
                 ].map(([label, value]) => <div key={label} className="rounded-md border border-zinc-850 p-3"><div className="text-[9px] uppercase tracking-wider text-zinc-500">{label}</div><div className="mt-1 font-mono text-sm font-bold text-white">{value}</div></div>)}
               </CardContent>
-            </Card>
+              </Card>
+            ) : (
+              <Card className="flex min-h-64 items-center justify-center rounded-md border-dashed border-zinc-800/80 bg-zinc-950/20">
+                <CardContent className="max-w-sm py-10 text-center">
+                  <Megaphone className="mx-auto h-8 w-8 text-zinc-700" />
+                  <p className="mt-4 text-sm font-semibold text-white">No Meta data to display</p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    Connect and sync an agency-owned Meta ad account to populate campaign and advertising performance.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
-          <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
+          {hasAgencyMetaAccount && (
+            <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
             <CardHeader><CardTitle className="text-sm text-white">Top Meta ads</CardTitle><CardDescription>Provider-reported delivery and spend with leads retrieved into the agency pipeline.</CardDescription></CardHeader>
             <CardContent><Table><TableHeader><TableRow><TableHead>Ad</TableHead><TableHead>Campaign</TableHead><TableHead>Spend</TableHead><TableHead>Impressions</TableHead><TableHead>Clicks</TableHead><TableHead>Leads</TableHead></TableRow></TableHeader><TableBody>
-              {(agencyMeta?.ads || []).map((ad) => <TableRow key={ad.id}><TableCell className="text-white">{ad.name}</TableCell><TableCell>{ad.campaign?.name || '—'}</TableCell><TableCell>{formatCurrency(ad.spend, 2)}</TableCell><TableCell>{ad.impressions.toLocaleString()}</TableCell><TableCell>{ad.clicks.toLocaleString()}</TableCell><TableCell>{ad.leadsCount}</TableCell></TableRow>)}
-              {(agencyMeta?.ads || []).length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-zinc-500">Connect and sync an agency Meta account to see performance.</TableCell></TableRow>}
+              {visibleMetaAds.map((ad) => <TableRow key={ad.id}><TableCell className="text-white">{ad.name}</TableCell><TableCell>{ad.campaign?.name || '—'}</TableCell><TableCell>{formatCurrency(ad.spend, 2)}</TableCell><TableCell>{ad.impressions.toLocaleString()}</TableCell><TableCell>{ad.clicks.toLocaleString()}</TableCell><TableCell>{ad.leadsCount}</TableCell></TableRow>)}
+              {visibleMetaAds.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-zinc-500">No ads match this campaign.</TableCell></TableRow>}
+              </TableBody></Table></CardContent>
+            </Card>
+          )}
+          <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
+            <CardHeader><CardTitle>Meta form leads</CardTitle><CardDescription>Only leads captured from Meta ad instant forms appear here. Each also remains in the pipeline with Ads as its source.</CardDescription></CardHeader>
+            <CardContent><Table><TableHeader><TableRow><TableHead>Lead</TableHead><TableHead>Ad</TableHead><TableHead>Campaign</TableHead><TableHead>Form</TableHead><TableHead>Captured</TableHead><TableHead>Action</TableHead></TableRow></TableHeader><TableBody>
+              {leads.filter((lead) => lead.sourceProvider === 'META').map((lead) => { const ad = (agencyMeta?.ads || []).find((item) => item.adId === lead.adId); return <TableRow key={lead.id}><TableCell><button type="button" className="text-left font-semibold text-white hover:underline" onClick={() => { setSelectedLead(lead); setLeadDraft({ fullName: lead.fullName, email: lead.email, phone: lead.phone || '', status: lead.status, approachMethod: lead.approachMethod || 'Ads', funnelName: lead.funnelName || '', estimatedClientValue: String(lead.estimatedClientValue || ''), followUpAt: lead.followUpAt ? new Date(lead.followUpAt).toISOString().slice(0, 16) : '' }); }}>{lead.fullName}<span className="block text-zinc-500">{lead.email || lead.phone}</span></button></TableCell><TableCell>{lead.adName || 'Meta lead ad'}</TableCell><TableCell>{ad?.campaign?.name || lead.campaignId || '—'}</TableCell><TableCell>{lead.formId || '—'}</TableCell><TableCell>{new Date(lead.createdTime).toLocaleString()}</TableCell><TableCell>{lead.phone && <a className="font-semibold text-emerald-300 hover:underline" href={whatsAppHref(lead.phone)} target="_blank" rel="noreferrer">WhatsApp</a>}</TableCell></TableRow>; })}
+              {!leads.some((lead) => lead.sourceProvider === 'META') && <TableRow><TableCell colSpan={6} className="py-10 text-center text-zinc-500">No Meta instant-form leads have been retrieved yet.</TableCell></TableRow>}
             </TableBody></Table></CardContent>
           </Card>
         </div>
       )}
 
       {/* LEAD DETAILS DIALOG MODAL */}
-      {selectedLead && (
+      {selectedLead && leadDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedLead(null)} />
-          <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 shadow-2xl p-2 font-sans text-xs rounded-md">
+          <Card className="relative z-10 max-h-[92vh] w-full max-w-3xl overflow-y-auto bg-[#0d0e12] border-zinc-800 shadow-2xl p-2 font-sans text-xs rounded-md">
             <CardHeader className="border-b border-zinc-900 pb-3 flex flex-row items-center justify-between">
               <div>
                 <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest font-mono">Lead Identity Card</span>
@@ -1233,11 +1490,11 @@ export default function AgencyLeadsPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Email Address</span>
-                  <span className="text-white font-mono mt-0.5 block break-all">{selectedLead.email || 'Not provided'}</span>
+                  <input type="email" required value={leadDraft.email} onChange={(event) => setLeadDraft({ ...leadDraft, email: event.target.value })} className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-2 text-white" />
                 </div>
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Phone Number</span>
-                  <span className="text-white font-mono mt-0.5 block">{selectedLead.phone || 'N/A'}</span>
+                  <CountryPhoneInput required value={leadDraft.phone || ''} onChange={(phone) => setLeadDraft({ ...leadDraft, phone })} />
                 </div>
               </div>
 
@@ -1245,7 +1502,7 @@ export default function AgencyLeadsPage() {
               <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-zinc-900">
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Approach Method</span>
-                  <span className="text-zinc-300 mt-0.5 block font-semibold">{selectedLead.approachMethod || 'Email'}</span>
+                  <select value={leadDraft.approachMethod || 'Email'} onChange={(event) => setLeadDraft({ ...leadDraft, approachMethod: event.target.value })} className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-2 text-white"><option>Instagram</option><option>Facebook</option><option>WhatsApp</option><option>Cold Outreach</option><option>Ads</option><option>Referral</option><option>Email</option><option>Phone</option><option>LinkedIn</option></select>
                 </div>
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Collection Method</span>
@@ -1256,8 +1513,8 @@ export default function AgencyLeadsPage() {
               {/* Approach and funnel info */}
               <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-zinc-900">
                 <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Funnel Source</span>
-                  <span className="text-zinc-300 mt-0.5 block">{selectedLead.funnelName || 'General Intake'}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Other Details</span>
+                  <textarea value={leadDraft.funnelName || ''} onChange={(event) => setLeadDraft({ ...leadDraft, funnelName: event.target.value })} className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-2 text-white" />
                 </div>
                 <div>
                   <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Acquisition Date</span>
@@ -1271,6 +1528,8 @@ export default function AgencyLeadsPage() {
                 </div>
               </div>
 
+              <div className="grid gap-3 sm:grid-cols-2 border-t border-zinc-900 pt-3"><div><span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Lead name</span><input value={leadDraft.fullName} onChange={(event) => setLeadDraft({ ...leadDraft, fullName: event.target.value })} className="mt-1 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-2 text-white" /></div><div><span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Follow-up date & time</span><DateTimeInput value={leadDraft.followUpAt || ''} onChange={(value) => setLeadDraft({ ...leadDraft, followUpAt: value })} className="mt-1 grid grid-cols-[minmax(0,1fr)_7rem] gap-2" dateInputClassName="min-w-0 rounded-xl border border-zinc-800 bg-zinc-900 p-2 text-white" timeInputClassName="rounded-xl border border-zinc-800 bg-zinc-900 p-2 text-white" /></div></div>
+
               {/* Status Select action */}
               <div className="pt-3 border-t border-zinc-900">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block mb-1.5">Lead Status Indicator</span>
@@ -1279,15 +1538,17 @@ export default function AgencyLeadsPage() {
                   onChange={(e) => handleUpdateStatus(selectedLead.leadId, e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-2.5 py-1.5 focus:outline-none focus:border-zinc-700 capitalize font-semibold text-xs cursor-pointer"
                 >
-                  <option value="procured">Procured</option>
-                  <option value="warm">Warm</option>
-                  <option value="cold">Cold</option>
-                  <option value="lost">Lost</option>
-                  <option value="closed">Closed</option>
+                  {leadStages.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
                 </select>
               </div>
 
-              <div className="flex justify-end pt-2">
+              <div className="border-t border-zinc-900 pt-3"><span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 block">Lead activity</span><div className="mt-2 max-h-32 space-y-2 overflow-y-auto">{(selectedLead.activity || []).slice().reverse().map((activity, index) => <div key={`${activity.at}-${index}`} className="rounded-xl border border-zinc-900 p-2 text-zinc-400">{activity.type.replaceAll('_', ' ')}{activity.status ? ` · ${activity.status}` : ''}<span className="block text-zinc-600">{new Date(activity.at).toLocaleString()} {activity.by ? `· ${activity.by}` : ''}</span></div>)}{!(selectedLead.activity || []).length && <div className="text-zinc-600">No activity logged yet.</div>}</div></div>
+
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
+                {selectedLead.phone && <a href={`https://wa.me/${selectedLead.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl border border-zinc-700 px-4 py-2 font-semibold text-white">WhatsApp</a>}
+                <Button type="button" variant="outline" onClick={() => router.push(`/proposals?tab=create&leadId=${encodeURIComponent(selectedLead.id)}`)}><FileText className="h-4 w-4" />Send proposal</Button>
+                <Button type="button" variant="outline" onClick={() => router.push(`/calendar?lead=${encodeURIComponent(selectedLead.id)}&name=${encodeURIComponent(selectedLead.fullName)}`)}>Schedule meeting</Button>
+                <Button type="button" disabled={savingLead} onClick={() => void saveLeadDetails()}>{savingLead ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving</> : 'Save & notify follow-up'}</Button>
                 <Button
                   variant="secondary"
                   onClick={() => setSelectedLead(null)}
@@ -1300,6 +1561,7 @@ export default function AgencyLeadsPage() {
           </Card>
         </div>
       )}
+      {lostDialog && <div className="fixed inset-0 z-[70] grid place-items-center bg-black/75 p-4"><Card className="w-full max-w-xl"><CardHeader><CardTitle>Why was the lead lost?</CardTitle><CardDescription>Select a common reason. Additional details are optional.</CardDescription></CardHeader><CardContent className="space-y-4"><select required value={lostDialog.reason} onChange={(event) => setLostDialog({ ...lostDialog, reason: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white"><option value="">Select a reason</option><option>Budget constraints</option><option>No response</option><option>Chose a competitor</option><option>Timing not right</option><option>Not a good fit</option><option>Duplicate or invalid lead</option><option>Other</option></select><textarea value={lostDialog.details} onChange={(event) => setLostDialog({ ...lostDialog, details: event.target.value })} placeholder="Optional additional details" className="min-h-28 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /><div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setLostDialog(null)}>Cancel</Button><Button disabled={!lostDialog.reason} onClick={async () => { const dialog = lostDialog; setLostDialog(null); await handleUpdateStatus(dialog.leadId, 'lost', dialog.reason, dialog.details); }}>Mark as lost</Button></div></CardContent></Card></div>}
     </div>
   );
 }

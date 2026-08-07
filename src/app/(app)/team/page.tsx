@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -24,21 +25,26 @@ import {
   Check,
   Loader2,
   Edit2,
-  Activity
+  Activity,
+  UserMinus
 } from 'lucide-react';
 import { validateBrowserFile } from '@/lib/file-security';
+import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
-const isInternalTeamUser = (user: { role?: string }) => ['admin', 'member'].includes(user.role?.toLowerCase() || '');
+const isInternalTeamUser = (user: { role?: string }) => ['admin', 'member', 'sub_admin'].includes(user.role?.toLowerCase() || '');
 
 export default function TeamPage() {
   const [isSkippedAll, setIsSkippedAll] = React.useState(false);
+  const [canManageTeam, setCanManageTeam] = React.useState(false);
   // Main stateful active team list
   const [teamList, setTeamList] = React.useState<any[]>([]);
+  const [isLoadingTeam, setIsLoadingTeam] = React.useState(true);
   React.useEffect(() => {
     fetch('/api/workspace').then((res) => res.ok ? res.json() : null).then((workspace) => {
       setIsSkippedAll(Boolean(workspace?.onboarding?.checklist?.skippedAll));
+      setCanManageTeam(workspace?.user?.role?.toLowerCase() === 'admin');
     }).catch(() => undefined);
   }, []);
 
@@ -46,6 +52,11 @@ export default function TeamPage() {
   const [selectedMember, setSelectedMember] = React.useState<any | null>(null);
   const [memberTasks, setMemberTasks] = React.useState<any[]>([]);
   const [loadingMemberTasks, setLoadingMemberTasks] = React.useState(false);
+  const [memberPendingOffboarding, setMemberPendingOffboarding] = React.useState<any | null>(null);
+  const [offboardingFeedback, setOffboardingFeedback] = React.useState('');
+  const [isOffboardingMember, setIsOffboardingMember] = React.useState(false);
+  const [offboardingError, setOffboardingError] = React.useState('');
+  const [teamNotice, setTeamNotice] = React.useState('');
   const [editingTaskId, setEditingTaskId] = React.useState<string | null>(null);
   const [taskEditForm, setTaskEditForm] = React.useState({
     status: 'TODO',
@@ -87,6 +98,8 @@ export default function TeamPage() {
         }
       } catch (e) {
         console.error('Error fetching team list:', e);
+      } finally {
+        setIsLoadingTeam(false);
       }
     }
     loadTeam();
@@ -512,6 +525,32 @@ export default function TeamPage() {
     closeModal();
   };
 
+  const offboardMember = async () => {
+    if (!memberPendingOffboarding || isOffboardingMember || offboardingFeedback.trim().length < 5) return;
+    setIsOffboardingMember(true);
+    setOffboardingError('');
+    try {
+      const response = await fetch('/api/security/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'offboard', userId: memberPendingOffboarding.id, feedback: offboardingFeedback.trim() }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to offboard team member');
+      setTeamList((current) => current.filter((member) => member.id !== memberPendingOffboarding.id));
+      setSelectedMember(null);
+      setMemberPendingOffboarding(null);
+      setOffboardingFeedback('');
+      setTeamNotice(payload.emailSent ? 'Member offboarded, access revoked, and feedback email sent.' : 'Member offboarded and access revoked. The feedback email could not be delivered.');
+    } catch (error) {
+      setOffboardingError(error instanceof Error ? error.message : 'Unable to offboard team member');
+    } finally {
+      setIsOffboardingMember(false);
+    }
+  };
+
+  if (isLoadingTeam) return <PageSkeleton variant="team" />;
+
   return (
     <div className="space-y-6 font-sans">
       {/* Header */}
@@ -533,7 +572,7 @@ export default function TeamPage() {
             <Filter className="h-3.5 w-3.5" />
             <span>Filter Team</span>
           </Button>
-          <Button
+          {canManageTeam && <Button
             variant="default"
             size="sm"
             onClick={() => setIsAddModalOpen(true)}
@@ -541,7 +580,7 @@ export default function TeamPage() {
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add Member</span>
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -561,6 +600,8 @@ export default function TeamPage() {
         </Card>
 
       </div>
+
+      {teamNotice && <div role="status" className="flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-900/50 p-4 text-zinc-200"><span>{teamNotice}</span><button type="button" onClick={() => setTeamNotice('')} aria-label="Dismiss team update"><X className="h-4 w-4" /></button></div>}
 
       {/* Filters Control Panel */}
       {showFilters && (
@@ -795,13 +836,7 @@ export default function TeamPage() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Phone Number</label>
-                        <input
-                          type="text"
-                          value={singleForm.phone}
-                          onChange={(e) => setSingleForm({ ...singleForm, phone: e.target.value })}
-                          placeholder="e.g. +91 98765 43210"
-                          className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md font-mono"
-                        />
+                        <CountryPhoneInput required value={singleForm.phone} onChange={(phone) => setSingleForm({ ...singleForm, phone })} />
                       </div>
                     </div>
 
@@ -1069,6 +1104,7 @@ export default function TeamPage() {
                               <TableRow>
                                 <TableHead className="w-1/4">Name</TableHead>
                                 <TableHead className="w-1/4">Email</TableHead>
+                                <TableHead className="min-w-[260px]">Phone</TableHead>
                                 <TableHead>Role</TableHead>
                                 <TableHead className="w-[120px]">Projects</TableHead>
                                 <TableHead className="text-right w-12"></TableHead>
@@ -1092,6 +1128,9 @@ export default function TeamPage() {
                                       onChange={(e) => handleStagedChange(idx, 'email', e.target.value)}
                                       className="w-full text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-zinc-300 outline-none rounded-md font-mono"
                                     />
+                                  </TableCell>
+                                  <TableCell className="p-2">
+                                    <CountryPhoneInput required value={user.phone} onChange={(phone) => handleStagedChange(idx, 'phone', phone)} />
                                   </TableCell>
                                   <TableCell className="p-2">
                                     <input
@@ -1266,7 +1305,7 @@ export default function TeamPage() {
                                   onChange={(e) => setTaskEditForm(prev => ({ ...prev, status: e.target.value }))}
                                   className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-md"
                                 >
-                                  <option value="TODO">To Do</option>
+                                  <option value="TODO">To-do</option>
                                   <option value="IN_PROGRESS">In Progress</option>
                                   <option value="COMPLETED">Completed</option>
                                   <option value="BLOCKED">Blocked</option>
@@ -1370,7 +1409,36 @@ export default function TeamPage() {
                 </div>
               )}
             </div>
+            {canManageTeam && selectedMember.role?.toLowerCase() !== 'admin' && (
+              <div className="mt-5 border-t border-zinc-900 pt-4">
+                <Button type="button" variant="ghost" className="w-full text-rose-300 hover:bg-rose-950/20 hover:text-rose-200" onClick={() => { setOffboardingFeedback(''); setOffboardingError(''); setMemberPendingOffboarding(selectedMember); }}>
+                  <UserMinus className="mr-2 h-4 w-4" /> Offboard & revoke access
+                </Button>
+              </div>
+            )}
           </div>
+        </div>
+      )}
+
+      {memberPendingOffboarding && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="offboard-member-title">
+          <Card className="w-full max-w-xl border-rose-900/40 bg-zinc-950 shadow-2xl">
+            <CardHeader>
+              <CardTitle id="offboard-member-title">Offboard {memberPendingOffboarding.name}</CardTitle>
+              <CardDescription>The member will immediately lose access to the teams dashboard. Their project assignments will be removed, active tasks will become unassigned, and this feedback will be emailed to them.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <textarea required value={offboardingFeedback} onChange={(event) => setOffboardingFeedback(event.target.value)} placeholder="Provide clear offboarding feedback and handover notes" className="min-h-36 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white outline-none focus:border-zinc-600" />
+              <div className="flex items-center justify-between gap-3"><span className="text-zinc-500">Minimum 5 characters</span><span className="font-mono text-zinc-500">{offboardingFeedback.trim().length}</span></div>
+              {offboardingError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-rose-200">{offboardingError}</div>}
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="ghost" disabled={isOffboardingMember} onClick={() => setMemberPendingOffboarding(null)}>Cancel</Button>
+                <Button type="button" disabled={isOffboardingMember || offboardingFeedback.trim().length < 5} className="bg-rose-700 text-white hover:bg-rose-600" onClick={() => void offboardMember()}>
+                  {isOffboardingMember ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Revoking access…</> : <><UserMinus className="mr-2 h-4 w-4" />Confirm offboarding</>}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

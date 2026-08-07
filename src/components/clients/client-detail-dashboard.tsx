@@ -385,7 +385,10 @@ export default function ClientDetailDashboard({
   const [metaLeads, setMetaLeads] = React.useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = React.useState(true);
   const [loadingMeta, setLoadingMeta] = React.useState(true);
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<'overview' | 'billing'>('overview');
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<'overview' | 'projects' | 'approvals' | 'billing'>(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'approvals' ? 'approvals' : 'overview');
+  const [deliveryData, setDeliveryData] = React.useState<{ deliverables: any[]; changeRequests: any[] }>({ deliverables: [], changeRequests: [] });
+  const [contentActionBusy, setContentActionBusy] = React.useState('');
+  const [contentActionError, setContentActionError] = React.useState('');
 
   // Meta Portal Relocated States
   const [isLeadsModalOpen, setIsLeadsModalOpen] = React.useState(false);
@@ -436,6 +439,11 @@ export default function ClientDetailDashboard({
         const data = await res.json();
         setTasks(data);
       }
+      const deliveryResponse = await fetch('/api/deliverables');
+      if (deliveryResponse.ok) {
+        const payload = await deliveryResponse.json();
+        setDeliveryData({ deliverables: (payload.deliverables || []).filter((item: any) => item.clientId === client.id), changeRequests: (payload.changeRequests || []).filter((item: any) => item.clientId === client.id) });
+      }
     } catch (e) {
       console.error('Error loading tasks:', e);
     } finally {
@@ -476,6 +484,22 @@ export default function ClientDetailDashboard({
   React.useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const resolveChangeRequest = async (id: string) => {
+    if (contentActionBusy) return;
+    setContentActionBusy(id);
+    setContentActionError('');
+    try {
+      const response = await fetch('/api/deliverables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'resolve_change_request', id }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to resolve change request');
+      await loadData();
+    } catch (error) {
+      setContentActionError(error instanceof Error ? error.message : 'Unable to resolve change request');
+    } finally {
+      setContentActionBusy('');
+    }
+  };
 
   const handleSyncAccount = async () => {
     if (!adAccountId) return;
@@ -673,6 +697,10 @@ export default function ClientDetailDashboard({
     client.billingPostalCode,
     client.billingCountry,
   ].filter(Boolean).join(', ');
+  const clientProjects = Array.isArray(client.projects) ? client.projects : [];
+  const revenue = (client.invoices || []).reduce((sum: number, invoice: any) => sum + Number(invoice.paidAmount || 0), 0);
+  const receivables = (client.invoices || []).reduce((sum: number, invoice: any) => sum + Number(invoice.balanceDue || 0), 0);
+  const overallProgress = clientProjects.length ? Math.round(clientProjects.reduce((sum: number, project: any) => sum + Number(project.progress || 0), 0) / clientProjects.length) : 0;
 
   return (
     <div className="space-y-6 font-sans text-xs">
@@ -709,7 +737,11 @@ export default function ClientDetailDashboard({
         <button type="button" onClick={() => setActiveWorkspaceTab('billing')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'billing' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
           Billing & invoices
         </button>
+        <button type="button" onClick={() => setActiveWorkspaceTab('projects')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'projects' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Project breakdown</button>
+        <button type="button" onClick={() => setActiveWorkspaceTab('approvals')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'approvals' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Deliverables & approvals</button>
       </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Card><CardHeader><CardDescription>Revenue</CardDescription><CardTitle>{formatCurrency(revenue)}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Receivables</CardDescription><CardTitle>{formatCurrency(receivables)}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Team members</CardDescription><CardTitle>{assignedSpecialist ? 1 : 0}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Tasks</CardDescription><CardTitle>{tasks.length}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Overall progress</CardDescription><CardTitle>{overallProgress}%</CardTitle></CardHeader></Card></div>
 
       {activeWorkspaceTab === 'billing' && (
         <ClientBillingPanel
@@ -718,6 +750,10 @@ export default function ClientDetailDashboard({
           canGenerateInvoices={canManageMetaAccounts}
         />
       )}
+
+      {activeWorkspaceTab === 'projects' && <div className="grid gap-4">{clientProjects.map((project: any, index: number) => { const projectTasks = tasks.filter((task: any) => task.projectId === project.id); const projectDeliverables = deliveryData.deliverables.filter((item: any) => item.projectId === project.id); return <Card key={project.id}><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle>{index + 1}. {project.name}</CardTitle><CardDescription>{project.serviceLine || 'Service delivery'} · {project.status.replaceAll('_', ' ')}</CardDescription></div><Badge>{project.progress}%</Badge></div></CardHeader><CardContent className="grid gap-4 md:grid-cols-3"><div><div className="font-semibold text-white">Tasks</div><div className="mt-2 text-zinc-400">{projectTasks.length} total · {projectTasks.filter((task: any) => task.status === 'COMPLETED').length} completed</div></div><div><div className="font-semibold text-white">Deliverables</div><div className="mt-2 text-zinc-400">{projectDeliverables.length} links submitted</div></div><div><div className="font-semibold text-white">Approval queue</div><div className="mt-2 text-zinc-400">{projectDeliverables.filter((item: any) => item.status === 'NEEDS_CLIENT_APPROVAL').length} awaiting client</div></div></CardContent></Card>; })}{!clientProjects.length && <Card><CardContent className="p-8 text-center text-zinc-500">No projects created for this client.</CardContent></Card>}</div>}
+
+      {activeWorkspaceTab === 'approvals' && <div className="space-y-4">{contentActionError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-200">{contentActionError}</div>}<div className="grid gap-6 lg:grid-cols-2"><Card><CardHeader><CardTitle>Deliverables</CardTitle><CardDescription>Content links submitted against project stages and tasks.</CardDescription></CardHeader><CardContent className="space-y-3">{deliveryData.deliverables.map((item) => <div key={item.id} className="rounded-xl border border-zinc-800 p-4"><div className="flex items-center justify-between gap-3"><a href={item.url} target="_blank" rel="noreferrer" className="font-semibold text-white underline underline-offset-4">{item.title}</a><Badge>{item.status.replaceAll('_', ' ')}</Badge></div><div className="mt-2 text-zinc-500">{item.project?.name || 'Client deliverable'}{item.task?.stage?.name ? ` · ${item.task.stage.name}` : ''}{item.task?.title ? ` · ${item.task.title}` : ''}</div>{item.description && <p className="mt-3 text-zinc-400">{item.description}</p>}{item.approvalNote && <p className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3 text-amber-300">Client note: {item.approvalNote}</p>}</div>)}{!deliveryData.deliverables.length && <div className="text-zinc-500">No deliverables submitted.</div>}</CardContent></Card><Card><CardHeader><CardTitle>Change requests</CardTitle><CardDescription>Requests raised by the client for a task or project.</CardDescription></CardHeader><CardContent className="space-y-3">{deliveryData.changeRequests.map((item) => <div key={item.id} className="rounded-xl border border-zinc-800 p-4"><div className="flex items-center justify-between gap-3"><div className="font-semibold text-white">{item.title}</div><Badge>{item.status}</Badge></div><div className="mt-2 text-zinc-500">{item.project?.name || 'Project-wide request'}{item.task?.title ? ` · ${item.task.title}` : ''}</div><p className="mt-2 text-zinc-400">{item.details}</p>{item.status !== 'RESOLVED' && <Button className="mt-3" size="sm" disabled={Boolean(contentActionBusy)} onClick={() => void resolveChangeRequest(item.id)}>{contentActionBusy === item.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Mark resolved</Button>}</div>)}{!deliveryData.changeRequests.length && <div className="text-zinc-500">No change requests.</div>}</CardContent></Card></div></div>}
 
       {/* Main Splits */}
       <div className={activeWorkspaceTab === 'overview' ? 'grid gap-6 md:grid-cols-3' : 'hidden'}>
@@ -958,7 +994,7 @@ export default function ClientDetailDashboard({
                                   onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
                                   className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-none"
                                 >
-                                  <option value="TODO">To Do</option>
+                                  <option value="TODO">To-do</option>
                                   <option value="IN_PROGRESS">In Progress</option>
                                   <option value="COMPLETED">Completed</option>
                                   <option value="BLOCKED">Blocked</option>
@@ -1764,7 +1800,7 @@ export default function ClientDetailDashboard({
                     onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md"
                   >
-                    <option value="TODO">To Do</option>
+                    <option value="TODO">To-do</option>
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="COMPLETED">Completed</option>
                     <option value="BLOCKED">Blocked</option>

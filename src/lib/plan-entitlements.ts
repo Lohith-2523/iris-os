@@ -65,6 +65,7 @@ export const PLAN_ENTITLEMENTS = {
     clientLimit: 5,
     atlasCapabilities: [] as AtlasCapability[],
     dailyBriefing: false,
+    signedDocumentAutomation: false,
     strategyGeneration: false,
     aiFeatures: false,
     atlasTokenLimits: null,
@@ -77,6 +78,7 @@ export const PLAN_ENTITLEMENTS = {
     clientLimit: 15,
     atlasCapabilities: ['MEETING', 'INVOICE'] as AtlasCapability[],
     dailyBriefing: false,
+    signedDocumentAutomation: false,
     strategyGeneration: false,
     aiFeatures: true,
     atlasTokenLimits: atlasTokenLimits(500_000),
@@ -89,6 +91,7 @@ export const PLAN_ENTITLEMENTS = {
     clientLimit: 30,
     atlasCapabilities: ['ALL'] as AtlasCapability[],
     dailyBriefing: true,
+    signedDocumentAutomation: true,
     strategyGeneration: true,
     aiFeatures: true,
     atlasTokenLimits: atlasTokenLimits(1_000_000),
@@ -104,6 +107,11 @@ export function normalizePlan(plan: unknown): PlanId {
 
 export function entitlementsFor(plan: unknown) {
   return PLAN_ENTITLEMENTS[normalizePlan(plan)];
+}
+
+export function planIncludes(currentPlan: unknown, requiredPlan: PlanId) {
+  const rank: Record<PlanId, number> = { BASIC: 0, PRO: 1, ADVANCED: 2 };
+  return rank[normalizePlan(currentPlan)] >= rank[requiredPlan];
 }
 
 export function canUseAtlasCapability(plan: unknown, capability: Exclude<AtlasCapability, 'ALL'>) {

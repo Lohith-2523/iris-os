@@ -18,7 +18,8 @@ import {
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
 import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
-import { isSelectedAgencyServiceLine } from '@/lib/agency-specializations';
+import { clientHasMetaEnabledProject, isSelectedAgencyServiceLine } from '@/lib/agency-specializations';
+import { normalizeRequiredPhone } from '@/lib/phone';
 
 class ClientPlanLimitError extends Error {}
 
@@ -70,7 +71,7 @@ export async function PATCH(request: NextRequest) {
 
     const existingClient = await prisma.client.findFirst({
       where: { id: clientId, orgId: user.orgId },
-      select: { id: true },
+      select: { id: true, projects: { select: { serviceLine: true } } },
     });
     if (!existingClient) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
@@ -80,6 +81,9 @@ export async function PATCH(request: NextRequest) {
     const adAccountId = hasAdAccountUpdate
       ? await resolveAssignableMetaAdAccountId(user.orgId, body.adAccountId)
       : undefined;
+    if (hasAdAccountUpdate && adAccountId && !clientHasMetaEnabledProject(existingClient.projects)) {
+      return NextResponse.json({ error: 'Client integrations become available after a Digital Marketing, Social Media Management, or Paid Advertising project has been created.' }, { status: 400 });
+    }
     if (hasAdAccountUpdate && adAccountId) {
       const assignedClient = await prisma.client.findFirst({
         where: {
@@ -184,6 +188,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing client name parameter' }, { status: 400 });
     }
 
+    if (adAccountId) {
+      return NextResponse.json({ error: 'Configure client integrations after the qualifying project has been created.' }, { status: 400 });
+    }
+
     const validatedAdAccountId = await resolveAssignableMetaAdAccountId(org.id, adAccountId);
     if (validatedAdAccountId) {
       const assignedClient = await prisma.client.findFirst({
@@ -251,6 +259,8 @@ export async function POST(request: NextRequest) {
     const token = crypto.randomUUID();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
+    const normalizedContactPhone = normalizeRequiredPhone(contact?.phone);
+    if (!normalizedContactPhone) return NextResponse.json({ error: 'Client contact phone with country code is required.' }, { status: 400 });
     const inviteEmail = contact?.email || `contact@${domain || 'example.com'}`;
     const inviteName = contact?.name || `${name} Contact`;
     const inviteUrl = new URL('/invite', publicAppUrl(request));
@@ -291,7 +301,7 @@ export async function POST(request: NextRequest) {
             create: {
               name: contact.name || 'Primary Client Contact',
               email: contact.email || 'contact@example.com',
-              phone: contact.phone || null,
+              phone: normalizedContactPhone,
               role: contact.role || 'Primary Client Contact',
             }
           } : undefined

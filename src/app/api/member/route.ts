@@ -9,6 +9,7 @@ import {
 } from '@/lib/email/iris-email';
 import { memberOnboardingEmail } from '@/lib/email/iris-templates';
 import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+import { normalizeRequiredPhone } from '@/lib/phone';
 
 class TeamPlanLimitError extends Error {}
 
@@ -57,8 +58,9 @@ export async function POST(request: NextRequest) {
       const { name, email, phone, agencyTypes, projects } = body;
       const normalizedEmail = String(email || '').trim().toLowerCase();
 
-      if (!name || !email || !agencyTypes || !Array.isArray(agencyTypes) || agencyTypes.length === 0) {
-        return NextResponse.json({ error: 'Missing required parameters. Name, Email, and at least one Agency Type are mandatory.' }, { status: 400 });
+      const normalizedPhone = normalizeRequiredPhone(phone);
+      if (!name || !email || !normalizedPhone || !agencyTypes || !Array.isArray(agencyTypes) || agencyTypes.length === 0) {
+        return NextResponse.json({ error: 'Name, email, phone with country code, and at least one specialization are mandatory.' }, { status: 400 });
       }
       assertIrisEmailConfigured();
 
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
             email: normalizedEmail,
             name,
             role: 'member',
-            phone: phone || null,
+            phone: normalizedPhone,
             agencyTypes,
             orgId: requestingUser.orgId,
             preferences: { create: {} },
@@ -117,7 +119,7 @@ export async function POST(request: NextRequest) {
           data: {
             name,
             email: normalizedEmail,
-            phone: phone || null,
+            phone: normalizedPhone,
             agencyTypes,
             projects: assignedProjectIds,
             token,

@@ -1,0 +1,55 @@
+import { z } from 'zod';
+
+const requiredText = (label: string, max = 8_000) => z.string().trim().min(2, `${label} is required`).max(max);
+
+export const proposalSchema = z.object({
+  proposalNumber: requiredText('Proposal number', 80),
+  title: requiredText('Proposal title', 180),
+  issueDate: z.iso.date(),
+  validUntil: z.iso.date(),
+  agencyName: requiredText('Agency name', 160),
+  agencyEmail: z.email(),
+  agencyPhone: z.string().trim().max(40).optional().default(''),
+  agencyAddress: requiredText('Agency address', 500),
+  brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  logoDataUrl: z.string().max(5_000_000).optional().default(''),
+  clientName: requiredText('Client contact name', 160),
+  clientCompany: requiredText('Client company', 160),
+  clientEmail: z.email(),
+  clientPhone: z.string().trim().max(40).optional().default(''),
+  clientAddress: requiredText('Client address', 500),
+  projectName: requiredText('Project name', 180),
+  introduction: requiredText('Cover letter', 5_000),
+  executiveSummary: requiredText('Executive summary'),
+  objectives: requiredText('Objectives'),
+  scope: requiredText('Scope of work'),
+  deliverables: requiredText('Deliverables'),
+  exclusions: requiredText('Out-of-scope items'),
+  timeline: requiredText('Timeline and milestones'),
+  currency: z.string().trim().min(3).max(8),
+  taxRate: z.coerce.number().min(0).max(100).default(0),
+  services: z.array(z.object({
+    name: requiredText('Service name', 160),
+    description: requiredText('Service description', 800),
+    duration: requiredText('Service duration', 100),
+    price: z.coerce.number().min(0),
+  })).min(1).max(12),
+  paymentSchedule: z.array(z.object({
+    phase: requiredText('Payment phase', 120),
+    due: requiredText('Payment due point', 160),
+    amount: z.coerce.number().min(0),
+    description: requiredText('Payment description', 500),
+  })).min(1).max(10),
+  assumptions: requiredText('Assumptions'),
+  clientResponsibilities: requiredText('Client responsibilities'),
+  agencyResponsibilities: requiredText('Agency responsibilities'),
+  changeControl: requiredText('Change-control process'),
+  confidentiality: requiredText('Confidentiality terms'),
+  intellectualProperty: requiredText('Intellectual-property terms'),
+  termination: requiredText('Termination terms'),
+  governingLaw: requiredText('Governing law'),
+  additionalTerms: z.string().trim().max(10_000).optional().default(''),
+  nextSteps: requiredText('Next steps'),
+});
+
+export type ProposalInput = z.infer<typeof proposalSchema>;

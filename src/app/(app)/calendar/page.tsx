@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { DateInput } from '@/components/ui/date-input';
 
 // Helper for formatting time (e.g., "10:00 AM")
 function formatTime(dateStr: string | Date) {
@@ -509,6 +511,8 @@ export default function CalendarPage() {
 
   // Hours array for Grid (8 AM to 8 PM)
   const hoursArray = Array.from({ length: 13 }, (_, i) => i + 8); // [8, 9, 10, ... 20]
+
+  if (loading) return <PageSkeleton variant="calendar" />;
 
   return (
     <div className="space-y-6 select-none font-sans text-xs">
@@ -1146,13 +1150,12 @@ export default function CalendarPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="font-semibold text-zinc-400 block">Start Date</label>
-                    <input
-                      type="date"
+                    <DateInput
                       required
                       value={formStartDate}
-                      onChange={(e) => {
-                        setFormStartDate(e.target.value);
-                        setFormEndDate(e.target.value);
+                      onChange={(value) => {
+                        setFormStartDate(value);
+                        setFormEndDate(value);
                       }}
                       className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2 px-3 text-white focus:border-zinc-750 focus:outline-none transition-all"
                     />
@@ -1173,11 +1176,10 @@ export default function CalendarPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="font-semibold text-zinc-400 block">End Date</label>
-                    <input
-                      type="date"
+                    <DateInput
                       required
                       value={formEndDate}
-                      onChange={(e) => setFormEndDate(e.target.value)}
+                      onChange={(value) => setFormEndDate(value)}
                       className="w-full rounded border border-zinc-850 bg-zinc-900/40 py-2 px-3 text-white focus:border-zinc-750 focus:outline-none transition-all"
                     />
                   </div>

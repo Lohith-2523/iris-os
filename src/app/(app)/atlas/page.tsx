@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Send, Bot, User, Trash2, MessageSquare, Plus } from 'lucide-react';
+import { Send, User, Trash2, MessageSquare, Plus } from 'lucide-react';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { AtlasAIService } from '@/lib/atlas-ai/service';
 import { formatUserMessage } from '@/lib/utils';
@@ -136,7 +136,7 @@ export default function AtlasPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Atlas Command Center</h1>
             <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300 py-0.5 px-2 flex items-center gap-1 font-semibold">
-              <AtlasIcon className="h-3 w-3" />
+              <AtlasIcon className="atlas-proprietary-engine-icon h-3 w-3" />
               <span>Proprietary AI Engine</span>
             </Badge>
           </div>
@@ -233,7 +233,7 @@ export default function AtlasPage() {
                     ? 'bg-zinc-800 border-zinc-700 text-zinc-200' 
                     : 'bg-zinc-100 border-zinc-200 text-zinc-950 font-bold'
                 }`}>
-                  {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                  {msg.role === 'user' ? <User className="h-4 w-4" /> : <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4" />}
                 </div>
 
                 {/* Message Bubble */}
@@ -252,7 +252,7 @@ export default function AtlasPage() {
             {isLoading && (
               <div className="flex gap-3 text-xs mr-auto items-center">
                 <div className="h-8 w-8 rounded-none bg-zinc-100 border border-zinc-200 text-zinc-950 font-bold flex items-center justify-center animate-pulse">
-                  <Bot className="h-4 w-4 animate-spin" />
+                  <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4 animate-spin" />
                 </div>
                 <div className="rounded-none p-4 bg-[#121215] border border-zinc-850 text-zinc-500 font-sans italic">
                   Atlas is working...

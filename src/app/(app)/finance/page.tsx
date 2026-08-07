@@ -33,6 +33,7 @@ import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
+import { DateInput } from '@/components/ui/date-input';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
@@ -2170,11 +2171,10 @@ export default function FinancePage() {
                         </div>
                         <div className="space-y-1">
                           <label className="font-semibold text-zinc-400 block text-[9px] uppercase tracking-wider">Start Date</label>
-                          <input
-                            type="date"
+                          <DateInput
                             required
                             value={subStartDate}
-                            onChange={(e) => setSubStartDate(e.target.value)}
+                            onChange={(value) => setSubStartDate(value)}
                             className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                           />
                         </div>
@@ -2292,11 +2292,10 @@ export default function FinancePage() {
                   <form onSubmit={handleManualSubmit} className="space-y-4 font-sans text-xs">
                     <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Date</label>
-                      <input
-                        type="date"
+                      <DateInput
                         required
                         value={formDate}
-                        onChange={(e) => setFormDate(e.target.value)}
+                        onChange={(value) => setFormDate(value)}
                         className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                       />
                     </div>
@@ -2596,11 +2595,10 @@ export default function FinancePage() {
                   <label className="block text-[10px] font-semibold uppercase text-zinc-400">
                     Invoice Date
                   </label>
-                  <input
-                    type="date"
+                  <DateInput
                     required
                     value={editRetainerStartDate}
-                    onChange={(event) => setEditRetainerStartDate(event.target.value)}
+                    onChange={(value) => setEditRetainerStartDate(value)}
                     className="w-full rounded border border-zinc-855 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
                   />
                 </div>

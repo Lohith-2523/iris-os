@@ -1,6 +1,7 @@
 export const TASK_STATUS_OPTIONS = [
   { value: 'TODO', label: 'Yet to start' },
   { value: 'IN_PROGRESS', label: 'In progress' },
+  { value: 'NEEDS_CLIENT_APPROVAL', label: 'Need approval from client' },
   { value: 'BLOCKED', label: 'Blocked' },
   { value: 'COMPLETED', label: 'Completed' },
 ] as const;
@@ -20,6 +21,8 @@ export function normalizeTaskStatusProgress(
 
   if (changes.status === 'COMPLETED') {
     progress = 100;
+  } else if (changes.status === 'NEEDS_CLIENT_APPROVAL') {
+    progress = 100;
   } else if (changes.status === 'TODO') {
     progress = 0;
   } else if (changes.status === 'IN_PROGRESS' && progress === 0) {
@@ -27,10 +30,12 @@ export function normalizeTaskStatusProgress(
   }
 
   if (changes.progress !== undefined) {
-    if (progress === 100) {
+    if (progress === 100 && status !== 'NEEDS_CLIENT_APPROVAL') {
       status = 'COMPLETED';
     } else if (status === 'COMPLETED') {
       status = progress === 0 ? 'TODO' : 'IN_PROGRESS';
+    } else if (status === 'NEEDS_CLIENT_APPROVAL' && progress < 100) {
+      status = 'IN_PROGRESS';
     } else if (progress > 0 && status === 'TODO') {
       status = 'IN_PROGRESS';
     }

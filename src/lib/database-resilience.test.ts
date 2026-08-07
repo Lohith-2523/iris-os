@@ -26,12 +26,20 @@ describe('isTransientDatabaseConnectionError', () => {
     })).toBe(true);
     expect(isTransientDatabaseConnectionError({ code: 'P2024' })).toBe(true);
     expect(isTransientDatabaseConnectionError({
+      code: 'P2028',
+      message: 'Transaction API error: Unable to start a transaction in the given time.',
+    })).toBe(true);
+    expect(isTransientDatabaseConnectionError({
       cause: { code: '53300', message: 'too many connections' },
     })).toBe(true);
   });
 
   it('does not retry validation or application errors', () => {
     expect(isTransientDatabaseConnectionError({ code: 'P2002' })).toBe(false);
+    expect(isTransientDatabaseConnectionError({
+      code: 'P2028',
+      message: 'Transaction already closed: A query cannot be executed on a committed transaction.',
+    })).toBe(false);
     expect(isTransientDatabaseConnectionError(new Error('Invalid invite'))).toBe(false);
   });
 });

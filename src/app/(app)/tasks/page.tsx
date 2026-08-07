@@ -26,15 +26,19 @@ import {
   Send,
   Layers,
   Pencil
+  ,Trash2
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { normalizeTaskStatusProgress, TASK_STATUS_OPTIONS } from '@/lib/tasks/status-progress';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { DateInput } from '@/components/ui/date-input';
 
 type TaskInlineChanges = {
   status?: string;
   progress?: number;
   stageId?: string | null;
+  approvalStatus?: string;
 };
 
 function taskStatusLabelClass(status: string) {
@@ -45,9 +49,18 @@ function taskStatusLabelClass(status: string) {
       return 'border-rose-400/30 bg-rose-400/10 text-rose-200';
     case 'IN_PROGRESS':
       return 'border-indigo-400/30 bg-indigo-400/10 text-indigo-200';
+    case 'NEEDS_CLIENT_APPROVAL':
+      return 'border-amber-400/30 bg-amber-400/10 text-amber-200';
     default:
       return 'border-zinc-700 bg-zinc-900 text-zinc-300';
   }
+}
+
+function taskApprovalLabel(status?: string) {
+  if (status === 'NEEDS_CLIENT_APPROVAL') return 'Need approval from client';
+  if (status === 'CHANGES_REQUESTED') return 'Changes requested';
+  if (status === 'APPROVED') return 'Client approved';
+  return 'No approval required';
 }
 
 function taskEditorValues(task: any) {
@@ -60,6 +73,7 @@ function taskEditorValues(task: any) {
     timeline: task.timeline || '',
     deadline: task.deadline ? new Date(task.deadline).toISOString().slice(0, 10) : '',
     blocker: task.blocker || '',
+    approvalStatus: task.approvalStatus || 'NOT_REQUIRED',
   };
 }
 
@@ -67,6 +81,7 @@ export default function TasksPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlProjectId = searchParams.get('projectId');
+  const urlTaskId = searchParams.get('taskId');
 
   const [projects, setProjects] = React.useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string>(urlProjectId || 'all');
@@ -94,8 +109,17 @@ export default function TasksPage() {
     progress: 0,
     timeline: '1 Week',
     deadline: '',
-    stageId: ''
+    stageId: '',
+    approvalStatus: 'NOT_REQUIRED'
   });
+  const [isCreatingTask, setIsCreatingTask] = React.useState(false);
+  const createTaskInFlight = React.useRef(false);
+  const [createTaskError, setCreateTaskError] = React.useState('');
+  const [deliverableForm, setDeliverableForm] = React.useState({ title: '', url: '', description: '' });
+  const [isSubmittingDeliverable, setIsSubmittingDeliverable] = React.useState(false);
+  const [taskPendingDeletion, setTaskPendingDeletion] = React.useState<any | null>(null);
+  const [isDeletingTask, setIsDeletingTask] = React.useState(false);
+  const [deleteTaskError, setDeleteTaskError] = React.useState('');
 
   // Task Interaction Form States
   const [newUpdateContent, setNewUpdateContent] = React.useState('');
@@ -112,6 +136,7 @@ export default function TasksPage() {
     timeline: '',
     deadline: '',
     blocker: '',
+    approvalStatus: 'NOT_REQUIRED',
   });
 
   // Reset kanban grouping when "All Projects" is selected
@@ -216,11 +241,20 @@ export default function TasksPage() {
     loadTasks();
   }, [selectedProjectId, loadTasks]);
 
+  React.useEffect(() => {
+    if (!urlTaskId || !tasks.length || selectedTask?.id === urlTaskId) return;
+    const requestedTask = tasks.find((task) => task.id === urlTaskId);
+    if (requestedTask) setSelectedTask(requestedTask);
+  }, [selectedTask?.id, tasks, urlTaskId]);
+
   // Create Task Handler
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createForm.title || selectedProjectId === 'all') return;
+    if (!createForm.title || selectedProjectId === 'all' || createTaskInFlight.current) return;
 
+    createTaskInFlight.current = true;
+    setIsCreatingTask(true);
+    setCreateTaskError('');
     try {
       const res = await fetch('/api/tasks', {
         method: 'POST',
@@ -237,26 +271,69 @@ export default function TasksPage() {
           timeline: createForm.timeline,
           deadline: createForm.deadline || null,
           stageId: createForm.stageId || null
+          ,approvalStatus: createForm.approvalStatus
         })
       });
 
-      if (res.ok) {
-        setIsCreateOpen(false);
-        setCreateForm({
-          title: '',
-          description: '',
-          assignedToId: '',
-          status: 'TODO',
-          progress: 0,
-          timeline: '1 Week',
-          deadline: '',
-          stageId: ''
-        });
-        loadTasks();
-      }
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Unable to create task');
+      setIsCreateOpen(false);
+      setCreateForm({
+        title: '',
+        description: '',
+        assignedToId: '',
+        status: 'TODO',
+        progress: 0,
+        timeline: '1 Week',
+        deadline: '',
+        stageId: '',
+        approvalStatus: 'NOT_REQUIRED'
+      });
+      await loadTasks();
     } catch (e) {
       console.error(e);
+      setCreateTaskError(e instanceof Error ? e.message : 'Unable to create task');
+    } finally {
+      createTaskInFlight.current = false;
+      setIsCreatingTask(false);
     }
+  };
+
+  const deleteTask = async () => {
+    if (!taskPendingDeletion || isDeletingTask) return;
+    setIsDeletingTask(true);
+    setDeleteTaskError('');
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_task', id: taskPendingDeletion.id }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to delete task');
+      setTasks((current) => current.filter((task) => task.id !== taskPendingDeletion.id));
+      setSelectedTask(null);
+      setTaskPendingDeletion(null);
+    } catch (error) {
+      setDeleteTaskError(error instanceof Error ? error.message : 'Unable to delete task');
+    } finally {
+      setIsDeletingTask(false);
+    }
+  };
+
+  const submitDeliverable = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedTask) return;
+    setIsSubmittingDeliverable(true);
+    try {
+      const response = await fetch('/api/deliverables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', ...deliverableForm, clientId: selectedTask.clientId, projectId: selectedTask.projectId, taskId: selectedTask.id, stageId: selectedTask.stageId, needsApproval: ['NEEDS_CLIENT_APPROVAL', 'CHANGES_REQUESTED'].includes(selectedTask.approvalStatus) }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to submit deliverable');
+      setDeliverableForm({ title: '', url: '', description: '' });
+      setSelectedTask((current: any) => ({ ...current, outputUrl: payload.deliverable.url, deliverables: [...(current.deliverables || []), payload.deliverable] }));
+      await loadTasks();
+    } catch (cause) { alert(cause instanceof Error ? cause.message : 'Unable to submit deliverable'); }
+    finally { setIsSubmittingDeliverable(false); }
   };
 
   // Add Task Update
@@ -350,7 +427,7 @@ export default function TasksPage() {
 
   const canEditTaskInline = React.useCallback((task: any) => Boolean(
     currentUser && (
-      currentUser.role?.toLowerCase() === 'admin' ||
+      currentUser.role?.toLowerCase() === 'admin' || currentUser.role?.toLowerCase() === 'sub_admin' ||
       (currentUser.role?.toLowerCase() === 'member' && task.assignedToId === currentUser.id)
     )
   ), [currentUser]);
@@ -359,10 +436,13 @@ export default function TasksPage() {
     if (!canEditTaskInline(task) || taskWritesInFlight.current.has(task.id)) return;
     taskWritesInFlight.current.add(task.id);
 
-    const statusProgress = normalizeTaskStatusProgress(task, changes);
+    const synchronizedChanges = changes.status === 'NEEDS_CLIENT_APPROVAL'
+      ? { ...changes, approvalStatus: 'NEEDS_CLIENT_APPROVAL' }
+      : changes;
+    const statusProgress = normalizeTaskStatusProgress(task, synchronizedChanges);
     const patch = {
-      ...changes,
-      ...(changes.status !== undefined || changes.progress !== undefined ? statusProgress : {}),
+      ...synchronizedChanges,
+      ...(synchronizedChanges.status !== undefined || synchronizedChanges.progress !== undefined ? statusProgress : {}),
     };
     const optimisticTask = { ...task, ...patch };
 
@@ -417,7 +497,7 @@ export default function TasksPage() {
   const classifiedTasks = React.useMemo(() => {
     return {
       yetToStart: tasks.filter(t => t.status === 'TODO'),
-      pendingActive: tasks.filter(t => t.status === 'IN_PROGRESS'),
+      pendingActive: tasks.filter(t => t.status === 'IN_PROGRESS' || t.status === 'NEEDS_CLIENT_APPROVAL'),
       blocked: tasks.filter(t => t.status === 'BLOCKED'),
       completed: tasks.filter(t => t.status === 'COMPLETED'),
     };
@@ -429,6 +509,8 @@ export default function TasksPage() {
     )
   );
   const canAssignTask = currentUser?.role?.toLowerCase() === 'admin';
+
+  if (loading) return <PageSkeleton variant="tasks" />;
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden font-sans text-xs">
@@ -562,7 +644,8 @@ export default function TasksPage() {
           </div>
         ) : viewMode === 'kanban' ? (
           /* KANBAN BOARD WITH CLASS-WISE COLUMNS OR STAGE-WISE COLUMNS */
-          <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-4 pr-6 scrollbar-none">
+          <div className="min-h-0 flex-1 overflow-x-auto overscroll-x-contain pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-700">
+            <div className="flex min-w-max gap-4 pr-6">
             {kanbanGrouping === 'status' ? (
               <>
                 <KanbanColumn
@@ -646,6 +729,7 @@ export default function TasksPage() {
                   })}
               </>
             )}
+            </div>
           </div>
         ) : (
           /* REGULAR LIST VIEW TABLE */
@@ -660,17 +744,18 @@ export default function TasksPage() {
                   <TableHead>Specialist</TableHead>
                   <TableHead>Timeline</TableHead>
                   <TableHead>Progress</TableHead>
+                  <TableHead>Client Approval</TableHead>
                   <TableHead className="text-right">Routing Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map(task => (
+                {tasks.map((task, index) => (
                   <TableRow
                     key={task.id}
                     className="cursor-pointer hover:bg-zinc-900/30"
                     onClick={() => setSelectedTask(task)}
                   >
-                    <TableCell className="font-semibold text-white">{task.title}</TableCell>
+                    <TableCell className="font-semibold text-white">{index + 1}. {task.title}</TableCell>
                     <TableCell className="text-zinc-400 font-semibold">{task.client?.name}</TableCell>
                     <TableCell className="text-zinc-500 font-medium">{task.project?.name || 'N/A'}</TableCell>
                     <TableCell className="text-zinc-450 font-mono">{task.stage?.name || 'Backlog'}</TableCell>
@@ -691,6 +776,7 @@ export default function TasksPage() {
                         {updatingTaskIds.has(task.id) && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
                       </div>
                     </TableCell>
+                    <TableCell><Badge variant="outline" className="whitespace-nowrap">{taskApprovalLabel(task.approvalStatus)}</Badge></TableCell>
                     <TableCell className="text-right">
                       <div
                         className="flex justify-end"
@@ -731,6 +817,7 @@ export default function TasksPage() {
             </div>
 
             <form onSubmit={handleCreateTask} className="space-y-4">
+              {createTaskError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-rose-200">{createTaskError}</div>}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Task Title *</label>
                 <input
@@ -795,13 +882,16 @@ export default function TasksPage() {
                     onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 cursor-pointer"
                   >
-                    <option value="TODO">To Do</option>
+                    <option value="TODO">To-do</option>
                     <option value="IN_PROGRESS">In Progress</option>
+                    <option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option>
                     <option value="COMPLETED">Completed</option>
                     <option value="BLOCKED">Blocked</option>
                   </select>
                 </div>
               </div>
+
+              <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Client approval</label><select value={createForm.approvalStatus} onChange={(event) => setCreateForm({ ...createForm, approvalStatus: event.target.value })} className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-white"><option value="NOT_REQUIRED">No client approval required</option><option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option></select></div>
 
               <div className="grid gap-4 grid-cols-2">
                 <div className="space-y-1.5">
@@ -816,10 +906,9 @@ export default function TasksPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Deadline</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={createForm.deadline}
-                    onChange={(e) => setCreateForm({ ...createForm, deadline: e.target.value })}
+                    onChange={(value) => setCreateForm({ ...createForm, deadline: value })}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 font-mono"
                   />
                 </div>
@@ -836,9 +925,10 @@ export default function TasksPage() {
                 </Button>
                 <Button
                   type="submit"
+                  disabled={isCreatingTask}
                   className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-md text-xs font-semibold px-6"
                 >
-                  Create Task
+                  {isCreatingTask ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating task…</> : 'Confirm / Create task'}
                 </Button>
               </div>
             </form>
@@ -945,13 +1035,15 @@ export default function TasksPage() {
                           setEditTaskForm((current) => ({
                             ...current,
                             status,
-                            progress: status === 'COMPLETED' ? 100 : current.progress,
+                            progress: ['COMPLETED', 'NEEDS_CLIENT_APPROVAL'].includes(status) ? 100 : current.progress,
+                            approvalStatus: status === 'NEEDS_CLIENT_APPROVAL' ? 'NEEDS_CLIENT_APPROVAL' : current.approvalStatus,
                           }));
                         }}
                         className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
                       >
-                        <option value="TODO">To Do</option>
+                        <option value="TODO">To-do</option>
                         <option value="IN_PROGRESS">In Progress</option>
+                        <option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option>
                         <option value="COMPLETED">Completed</option>
                         <option value="BLOCKED">Blocked</option>
                       </select>
@@ -1001,10 +1093,9 @@ export default function TasksPage() {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-semibold text-zinc-500">Deadline</label>
-                      <input
-                        type="date"
+                      <DateInput
                         value={editTaskForm.deadline}
-                        onChange={(event) => setEditTaskForm((current) => ({ ...current, deadline: event.target.value }))}
+                        onChange={(value) => setEditTaskForm((current) => ({ ...current, deadline: value }))}
                         className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
                       />
                     </div>
@@ -1023,6 +1114,8 @@ export default function TasksPage() {
                       </select>
                     </div>
                   )}
+
+                  <div className="space-y-1.5"><label className="text-[9px] font-semibold text-zinc-500">Client approval</label><select value={editTaskForm.approvalStatus} onChange={(event) => setEditTaskForm((current) => ({ ...current, approvalStatus: event.target.value }))} className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-2 py-2 text-white"><option value="NOT_REQUIRED">No client approval required</option><option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option>{editTaskForm.approvalStatus === 'APPROVED' && <option value="APPROVED" disabled>Client approved</option>}{editTaskForm.approvalStatus === 'CHANGES_REQUESTED' && <option value="CHANGES_REQUESTED" disabled>Changes requested by client</option>}</select><span className="block text-zinc-600">Approval outcomes are controlled by the client review workflow.</span></div>
 
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-semibold text-zinc-500">Blocker or intervention notes</label>
@@ -1104,6 +1197,10 @@ export default function TasksPage() {
                   <p className="text-zinc-400 leading-relaxed bg-zinc-900/10 p-2.5 border border-zinc-800/80 rounded-xl">{selectedTask.description}</p>
                 </div>
               )}
+
+              <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/20 p-3"><div className="flex items-center justify-between"><div><span className="font-bold text-white">Deliverables</span><span className="mt-1 block text-zinc-500">{selectedTask.project?.name || 'Project'}{selectedTask.stage?.name ? ` · ${selectedTask.stage.name}` : ''} · {selectedTask.title}</span></div><Badge>{selectedTask.approvalStatus === 'NEEDS_CLIENT_APPROVAL' ? 'Need approval from client' : selectedTask.approvalStatus?.replaceAll('_', ' ') || 'No approval required'}</Badge></div><form onSubmit={submitDeliverable} className="space-y-2"><input required value={deliverableForm.title} onChange={(event) => setDeliverableForm({ ...deliverableForm, title: event.target.value })} placeholder="Deliverable title" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><input required type="url" value={deliverableForm.url} onChange={(event) => setDeliverableForm({ ...deliverableForm, url: event.target.value })} placeholder="https:// link to the deliverable" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><textarea value={deliverableForm.description} onChange={(event) => setDeliverableForm({ ...deliverableForm, description: event.target.value })} placeholder="Optional context" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><Button type="submit" disabled={isSubmittingDeliverable}>{isSubmittingDeliverable && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add deliverable link</Button></form><div className="space-y-2">{(selectedTask.deliverables || []).map((item: any) => <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-zinc-800 p-3 text-white"><div className="flex items-center justify-between gap-3"><span className="font-semibold">{item.title}</span><Badge>{item.status.replaceAll('_', ' ')}</Badge></div>{item.description && <span className="mt-2 block text-zinc-500">{item.description}</span>}{item.approvalNote && <span className="mt-2 block text-amber-300">Client note: {item.approvalNote}</span>}</a>)}</div></div>
+
+              {currentUser?.role?.toLowerCase() !== 'client' && <Button type="button" variant="ghost" className="w-full text-rose-300" onClick={() => { setDeleteTaskError(''); setTaskPendingDeletion(selectedTask); }}><Trash2 className="mr-2 h-4 w-4" /> Delete task</Button>}
 
               {/* Task chain explorer */}
               {(selectedTask.parentTask || (selectedTask.nextTasks && selectedTask.nextTasks.length > 0) || selectedTask.outputUrl) && (
@@ -1224,6 +1321,26 @@ export default function TasksPage() {
         </div>
       )}
 
+      {taskPendingDeletion && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-task-title">
+          <Card className="w-full max-w-lg border-rose-900/40 bg-zinc-950 shadow-2xl">
+            <CardHeader>
+              <CardTitle id="delete-task-title">Delete task</CardTitle>
+              <CardDescription>This permanently removes “{taskPendingDeletion.title}”, its activity, comments, and linked deliverable records. This action cannot be undone.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {deleteTaskError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-rose-200">{deleteTaskError}</div>}
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="ghost" disabled={isDeletingTask} onClick={() => setTaskPendingDeletion(null)}>Cancel</Button>
+                <Button type="button" disabled={isDeletingTask} className="bg-rose-700 text-white hover:bg-rose-600" onClick={() => void deleteTask()}>
+                  {isDeletingTask ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting task…</> : <><Trash2 className="mr-2 h-4 w-4" />Delete permanently</>}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
 
     </div>
   );
@@ -1256,36 +1373,82 @@ function InlineProgressSlider({
     onCommit(progress);
   };
 
+  const progressFromPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    return Math.max(0, Math.min(100, Math.round(((event.clientX - bounds.left) / bounds.width) * 100)));
+  };
+
+  const updateFromPointer = (event: React.PointerEvent<HTMLDivElement>, shouldCommit = false) => {
+    const progress = progressFromPointer(event);
+    setDraftProgress(progress);
+    if (shouldCommit) commit(progress);
+  };
+
+  const updateFromKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    let nextProgress = draftProgress;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') nextProgress = Math.max(0, draftProgress - 1);
+    else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') nextProgress = Math.min(100, draftProgress + 1);
+    else if (event.key === 'PageDown') nextProgress = Math.max(0, draftProgress - 10);
+    else if (event.key === 'PageUp') nextProgress = Math.min(100, draftProgress + 10);
+    else if (event.key === 'Home') nextProgress = 0;
+    else if (event.key === 'End') nextProgress = 100;
+    else return;
+    event.preventDefault();
+    setDraftProgress(nextProgress);
+    commit(nextProgress);
+  };
+
   return (
     <div className={compact ? 'flex min-w-0 items-center gap-1.5' : 'flex min-w-0 flex-1 items-center gap-2'}>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={1}
-        value={draftProgress}
-        onChange={(event) => setDraftProgress(Number(event.target.value))}
-        onPointerUp={(event) => commit(Number(event.currentTarget.value))}
-        onTouchEnd={(event) => commit(Number(event.currentTarget.value))}
-        onBlur={(event) => commit(Number(event.currentTarget.value))}
-        onKeyUp={(event) => {
-          if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
-            commit(Number(event.currentTarget.value));
-          }
-        }}
-        disabled={!canEdit || isUpdating}
-        draggable={false}
+      <div
+        role="slider"
+        tabIndex={canEdit && !isUpdating ? 0 : -1}
+        aria-disabled={!canEdit || isUpdating}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={draftProgress}
         aria-label={`Set progress for ${task.title}`}
         aria-valuetext={`${draftProgress}% complete`}
-        title={canEdit ? 'Drag to set task progress' : 'Only admins or the assigned member can update this task'}
-        style={{ '--task-progress': `${draftProgress}%` } as React.CSSProperties}
-        className={`task-progress-slider h-1.5 min-w-0 flex-1 rounded-full ${
-          canEdit && !isUpdating ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-50'
+        title={canEdit ? 'Drag or use arrow keys to set task progress' : 'Only admins or the assigned member can update this task'}
+        onPointerDown={(event) => {
+          if (!canEdit || isUpdating) return;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          updateFromPointer(event);
+        }}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) updateFromPointer(event);
+        }}
+        onPointerUp={(event) => {
+          if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+          updateFromPointer(event, true);
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }}
+        onKeyDown={updateFromKey}
+        className={`min-w-0 flex-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+          canEdit && !isUpdating ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
         }`}
-      />
+      >
+        <TaskProgressRail progress={draftProgress} />
+      </div>
       <span className={`w-8 shrink-0 text-right font-mono text-[9px] font-semibold ${compact ? 'text-zinc-400' : 'text-zinc-300'}`}>
         {draftProgress}%
       </span>
+    </div>
+  );
+}
+
+function TaskProgressRail({ progress, compact = false }: { progress: number; compact?: boolean }) {
+  const normalizedProgress = Math.max(0, Math.min(100, Number(progress) || 0));
+  return (
+    <div
+      aria-hidden="true"
+      style={{ '--task-progress': `${normalizedProgress}%` } as React.CSSProperties}
+      className={`task-progress-rail ${compact ? 'task-progress-rail-compact' : ''}`}
+    >
+      <div className="task-progress-rail-track">
+        <div className="task-progress-rail-fill" />
+        <div className="task-progress-rail-dot" />
+      </div>
     </div>
   );
 }
@@ -1336,18 +1499,18 @@ function KanbanColumn({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsDragOver(false);
       }}
       onDrop={handleDrop}
-      className={`w-72 shrink-0 border bg-zinc-900/10 rounded-2xl flex flex-col h-full border-t-4 shadow-xl backdrop-blur-sm overflow-hidden transition-colors ${highlightColor} ${
+      className={`w-96 shrink-0 border bg-zinc-900/10 rounded-2xl flex flex-col h-full border-t-4 shadow-xl backdrop-blur-sm overflow-hidden transition-colors ${highlightColor} ${
         isDragOver ? 'border-indigo-400 bg-indigo-500/10 ring-1 ring-inset ring-indigo-400/40' : 'border-zinc-800/80'
       }`}
     >
-      <div className="p-3.5 border-b border-zinc-800/60 bg-zinc-900/20 flex justify-between items-center rounded-t-2xl">
+      <div className="p-4 border-b border-zinc-800/60 bg-zinc-900/20 flex justify-between items-center rounded-t-2xl">
         <span className="font-bold text-zinc-300 uppercase text-[9.5px] tracking-wider truncate mr-2" title={title}>{title}</span>
         <Badge variant="outline" className="rounded-full bg-zinc-950 border-zinc-800 text-[8.5px] px-2 py-0.5 font-mono text-zinc-400">
           {count}
         </Badge>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 scrollbar-none">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none">
         {tasks.map((task) => (
           <div
             key={task.id}
@@ -1357,7 +1520,7 @@ function KanbanColumn({
               event.dataTransfer.setData('text/plain', task.id);
               event.dataTransfer.effectAllowed = 'move';
             }}
-            className={`border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/70 hover:border-zinc-700/80 rounded-xl p-3.5 space-y-3.5 hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/5 ${
+            className={`w-full min-w-0 border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/70 hover:border-zinc-700/80 rounded-xl p-4 space-y-4 hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-500/5 ${
               canEditTask(task) ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
             }`}
           >
@@ -1372,11 +1535,12 @@ function KanbanColumn({
               </div>
               <span className="block font-semibold text-white text-xs mt-0.5 tracking-wide leading-snug">{task.title}</span>
               {task.description && <span className="block text-[9px] text-zinc-500 mt-1 leading-normal truncate">{task.description}</span>}
+              {task.approvalStatus && task.approvalStatus !== 'NOT_REQUIRED' && <Badge variant="outline" className="mt-2 max-w-full whitespace-normal text-left">{taskApprovalLabel(task.approvalStatus)}</Badge>}
             </div>
 
             {/* Inline status and progress controls */}
             <div
-              className="grid grid-cols-[1fr_6rem] gap-2"
+              className="grid grid-cols-[1fr_7rem] gap-3"
               onClick={(event) => event.stopPropagation()}
               onPointerDown={(event) => event.stopPropagation()}
               onDragStart={(event) => {
@@ -1405,7 +1569,7 @@ function KanbanColumn({
               />
             </div>
 
-            {/* Micro progress bar */}
+            {/* Progress rail */}
             <div className="space-y-1">
               <div className="flex justify-between text-[8px] text-zinc-650 font-mono">
                 <span>{updatingTaskIds.has(task.id) ? 'Saving changes' : 'Progress'}</span>
@@ -1414,18 +1578,7 @@ function KanbanColumn({
                   {task.progress}%
                 </span>
               </div>
-              <div className="h-1 bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-900">
-                <div
-                  style={{ width: `${task.progress}%` }}
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    task.status === 'COMPLETED'
-                      ? 'bg-emerald-500'
-                      : task.status === 'BLOCKED'
-                      ? 'bg-rose-500'
-                      : 'bg-indigo-500'
-                  }`}
-                />
-              </div>
+              <TaskProgressRail progress={task.progress} compact />
             </div>
 
             {/* Specialist & Timeline */}

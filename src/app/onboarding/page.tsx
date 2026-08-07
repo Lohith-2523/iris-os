@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, ShieldCheck, Building, User, CreditCard, Calendar, Key } from 'lucide-react';
+import { Check, ArrowRight, ShieldCheck, Building, User, CreditCard, Calendar, Key, Loader2 } from 'lucide-react';
+import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 
 const PLANS = [
   {
@@ -83,6 +84,7 @@ export default function OnboardingPage() {
   const [agencyName, setAgencyName] = React.useState('');
   const [username, setUsername] = React.useState('');
   const [currency, setCurrency] = React.useState('USD');
+  const [agencyDetails, setAgencyDetails] = React.useState({ legalEntityName: '', billingEmail: '', phone: '', website: '', addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', country: '', taxNumber: '', specialization: 'Digital Marketing Agency', bankName: '' });
   
   // Pricing state
   const [selectedPlanId, setSelectedPlanId] = React.useState<'basic' | 'pro' | 'advanced'>('pro');
@@ -100,6 +102,8 @@ export default function OnboardingPage() {
   const [cardCvv, setCardCvv] = React.useState('');
   const [paymentLog, setPaymentLog] = React.useState<string[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [advancingStep, setAdvancingStep] = React.useState<'agency' | 'pricing' | 'consent' | null>(null);
+  const transitionLockRef = React.useRef(false);
 
   const [email, setEmail] = React.useState('');
   React.useEffect(() => {
@@ -116,6 +120,7 @@ export default function OnboardingPage() {
         setUsername(draft.username || workspace.user.username || workspace.user.name || '');
         setCardName(workspace.user.name || '');
         setCurrency(draft.currency || workspace.organization.currency || 'USD');
+        setAgencyDetails({ legalEntityName: draft.legalEntityName || workspace.organization.legalEntityName || '', billingEmail: draft.billingEmail || workspace.organization.billingEmail || workspace.user.email || '', phone: draft.phone || workspace.user.phone || '', website: draft.website || workspace.organization.preferences?.website || '', addressLine1: draft.addressLine1 || workspace.organization.billingAddressLine1 || '', addressLine2: draft.addressLine2 || workspace.organization.billingAddressLine2 || '', city: draft.city || workspace.organization.billingCity || '', state: draft.state || workspace.organization.billingState || '', postalCode: draft.postalCode || workspace.organization.billingPostalCode || '', country: draft.country || workspace.organization.billingCountry || '', taxNumber: draft.taxNumber || workspace.organization.gstNumber || '', specialization: draft.specialization || workspace.organization.agencyTypes?.[0] || 'Digital Marketing Agency', bankName: draft.bankName || workspace.organization.bankNames?.[0] || '' });
         setSelectedPlanId(draft.selectedPlanId || 'pro');
         setTermsAgreed(Boolean(draft.termsAgreed));
         setAiSharingConsent(Boolean(draft.aiSharingConsent));
@@ -136,51 +141,91 @@ export default function OnboardingPage() {
   }, [router]);
 
   const saveProgress = async (currentStep: number) => {
-    await fetch('/api/workspace', {
+    const response = await fetch('/api/workspace', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         onboarding: {
           needsOnboarding: true,
           currentStep,
-          draft: { agencyName, username, currency, selectedPlanId, termsAgreed, aiSharingConsent, metaAccessConsent },
+          draft: { agencyName, username, currency, selectedPlanId, termsAgreed, aiSharingConsent, metaAccessConsent, ...agencyDetails },
         },
       }),
     });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'Unable to save onboarding progress.');
+    }
+  };
+
+  const beginTransition = (current: 'agency' | 'pricing' | 'consent') => {
+    if (transitionLockRef.current) return false;
+    transitionLockRef.current = true;
+    setAdvancingStep(current);
+    return true;
+  };
+
+  const endTransition = () => {
+    transitionLockRef.current = false;
+    setAdvancingStep(null);
   };
 
   const handleAgencySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agencyName || !username) {
+    if (transitionLockRef.current) return;
+    if (!agencyName || !username || !agencyDetails.legalEntityName || !agencyDetails.billingEmail || !agencyDetails.phone || !agencyDetails.addressLine1 || !agencyDetails.city || !agencyDetails.country || !agencyDetails.specialization || !agencyDetails.bankName) {
       alert('Please fill out all agency profile fields.');
       return;
     }
-    await saveProgress(1);
-    setStep('pricing');
+    if (!beginTransition('agency')) return;
+    try {
+      await saveProgress(1);
+      setStep('pricing');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to save onboarding progress.');
+    } finally {
+      endTransition();
+    }
   };
 
   const handlePricingNext = async () => {
-    await saveProgress(2);
-    setStep('consent');
+    if (!beginTransition('pricing')) return;
+    try {
+      await saveProgress(2);
+      setStep('consent');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to save onboarding progress.');
+    } finally {
+      endTransition();
+    }
   };
 
   const handleConsentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (transitionLockRef.current) return;
     if (!termsAgreed) {
       alert('You must read and agree to the Privacy Policy and Terms of Service to continue.');
       return;
     }
-    await saveProgress(3);
-    setStep('payment');
+    if (!beginTransition('consent')) return;
+    try {
+      await saveProgress(3);
+      setStep('payment');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to save onboarding progress.');
+    } finally {
+      endTransition();
+    }
   };
 
   const handlePaymentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (transitionLockRef.current) return;
     if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
       alert('Please fill out all billing credentials.');
       return;
     }
-    
+    transitionLockRef.current = true;
     setIsProcessing(true);
     const logs = [
       'Initializing Supabase Payment Gateway transaction...',
@@ -209,7 +254,18 @@ export default function OnboardingPage() {
             aiSharingConsent: selectedPlanId === 'basic' ? false : aiSharingConsent,
             metaAccessConsent,
             username: username,
-            billingEmail: email,
+            billingEmail: agencyDetails.billingEmail,
+            legalEntityName: agencyDetails.legalEntityName,
+            billingAddressLine1: agencyDetails.addressLine1,
+            billingAddressLine2: agencyDetails.addressLine2,
+            billingCity: agencyDetails.city,
+            billingState: agencyDetails.state,
+            billingPostalCode: agencyDetails.postalCode,
+            billingCountry: agencyDetails.country,
+            gstNumber: agencyDetails.taxNumber,
+            agencyTypes: [agencyDetails.specialization],
+            bankNames: [agencyDetails.bankName],
+            preferences: { website: agencyDetails.website, agencyPhone: agencyDetails.phone },
           })
         }).then(async (res) => {
           if (res.ok) {
@@ -223,11 +279,13 @@ export default function OnboardingPage() {
           } else {
             const errData = await res.json().catch(() => ({}));
             setIsProcessing(false);
+            transitionLockRef.current = false;
             alert(`Failed to register organization: ${errData.error || res.statusText || 'Unknown error'}${errData.details ? ` (${errData.details})` : ''}`);
           }
         }).catch((err) => {
           console.error('Error updating organization plan on onboarding completion:', err);
           setIsProcessing(false);
+          transitionLockRef.current = false;
           alert('Network error while registering organization.');
         });
       }
@@ -272,7 +330,7 @@ export default function OnboardingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 py-6">
-              <form onSubmit={handleAgencySubmit} className="space-y-4">
+              <form onSubmit={handleAgencySubmit} className="onboarding-agency-form space-y-4">
                 <div className="space-y-1.5">
                   <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Agency Workspace Name</label>
                   <div className="relative">
@@ -322,9 +380,24 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer pt-1 mt-4">
-                  <span>Continue to Plan Selection</span>
-                  <ArrowRight className="h-4 w-4" />
+                <div className="grid gap-4 border-t border-zinc-800 pt-4 md:grid-cols-2">
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Legal entity name *</span><input required value={agencyDetails.legalEntityName} onChange={(event) => setAgencyDetails({ ...agencyDetails, legalEntityName: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Billing email *</span><input required type="email" value={agencyDetails.billingEmail} onChange={(event) => setAgencyDetails({ ...agencyDetails, billingEmail: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5 md:col-span-2"><span className="block font-semibold text-zinc-400">Agency phone *</span><CountryPhoneInput required value={agencyDetails.phone} onChange={(phone) => setAgencyDetails({ ...agencyDetails, phone })} /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Website</span><input type="url" value={agencyDetails.website} onChange={(event) => setAgencyDetails({ ...agencyDetails, website: event.target.value })} placeholder="https://" className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Service specialization *</span><select required value={agencyDetails.specialization} onChange={(event) => setAgencyDetails({ ...agencyDetails, specialization: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white"><option>Digital Marketing Agency</option><option>Social Media Management Agency</option><option>SEO Agency</option><option>Paid Advertising Agency (PPC)</option><option>Web Design & Development Agency</option><option>Branding & Creative Agency</option><option>Content Marketing Agency</option><option>Video Production Agency</option><option>Public Relations Agency</option><option>Full Service Agency</option></select></label>
+                  <label className="space-y-1.5 md:col-span-2"><span className="block font-semibold text-zinc-400">Address line 1 *</span><input required value={agencyDetails.addressLine1} onChange={(event) => setAgencyDetails({ ...agencyDetails, addressLine1: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5 md:col-span-2"><span className="block font-semibold text-zinc-400">Address line 2</span><input value={agencyDetails.addressLine2} onChange={(event) => setAgencyDetails({ ...agencyDetails, addressLine2: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">City *</span><input required value={agencyDetails.city} onChange={(event) => setAgencyDetails({ ...agencyDetails, city: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">State / region</span><input value={agencyDetails.state} onChange={(event) => setAgencyDetails({ ...agencyDetails, state: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Postal code</span><input value={agencyDetails.postalCode} onChange={(event) => setAgencyDetails({ ...agencyDetails, postalCode: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Country *</span><input required value={agencyDetails.country} onChange={(event) => setAgencyDetails({ ...agencyDetails, country: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Tax / GST number</span><input value={agencyDetails.taxNumber} onChange={(event) => setAgencyDetails({ ...agencyDetails, taxNumber: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Primary bank account *</span><input required value={agencyDetails.bankName} onChange={(event) => setAgencyDetails({ ...agencyDetails, bankName: event.target.value })} placeholder="Bank name or account label" className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                </div>
+
+                <Button type="submit" disabled={advancingStep !== null} aria-busy={advancingStep === 'agency'} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-black hover:bg-zinc-250 cursor-pointer pt-1 mt-4">
+                  {advancingStep === 'agency' ? <><Loader2 className="h-4 w-4 animate-spin text-black" /><span className="text-black">Saving agency details...</span></> : <><span className="text-black">Continue to Plan Selection</span><ArrowRight className="h-4 w-4 text-black" /></>}
                 </Button>
               </form>
             </CardContent>
@@ -347,20 +420,21 @@ export default function OnboardingPage() {
               {/* Left Column Plan (Unselected) */}
               <button
                 type="button"
+                disabled={advancingStep !== null}
                 onClick={() => setSelectedPlanId(ordered.left.id as any)}
-                className="md:col-span-3 text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
+                className="onboarding-plan-card-compact md:col-span-3 min-w-0 overflow-hidden text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
               >
                 <div>
                   <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.left.name}</span>
-                  <span className="block font-mono text-2xl font-extrabold mt-1 text-white">${ordered.left.price}</span>
+                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">${ordered.left.price}</span>
                   <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.left.tagline}</span>
                 </div>
-                <div className="font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
+                <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
                   {ordered.left.features.slice(0, 3).map((f, i) => (
                     <span key={i} className="block">• {f}</span>
                   ))}
                 </div>
-                <span className="block text-[9px] font-bold uppercase text-red-500 group-hover:underline mt-4">Select Plan</span>
+                <span className="block shrink-0 text-[9px] font-bold uppercase text-red-500 group-hover:underline mt-4">Select Plan</span>
               </button>
 
               {/* Center Column Plan (Selected & Highlighted Big) */}
@@ -393,10 +467,11 @@ export default function OnboardingPage() {
                 <div className="mt-6 pt-4 border-t border-zinc-800">
                   <Button
                     onClick={handlePricingNext}
+                    disabled={advancingStep !== null}
+                    aria-busy={advancingStep === 'pricing'}
                     className="w-full h-10 font-bold text-xs bg-white text-zinc-950 hover:bg-zinc-200 cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>Proceed to Payments</span>
-                    <ArrowRight className="h-4 w-4" />
+                    {advancingStep === 'pricing' ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Saving plan...</span></> : <><span>Proceed to Payments</span><ArrowRight className="h-4 w-4" /></>}
                   </Button>
                 </div>
               </div>
@@ -404,20 +479,21 @@ export default function OnboardingPage() {
               {/* Right Column Plan (Unselected) */}
               <button
                 type="button"
+                disabled={advancingStep !== null}
                 onClick={() => setSelectedPlanId(ordered.right.id as any)}
-                className="md:col-span-3 text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
+                className="onboarding-plan-card-compact md:col-span-3 min-w-0 overflow-hidden text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
               >
                 <div>
                   <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.right.name}</span>
-                  <span className="block font-mono text-2xl font-extrabold mt-1 text-white">${ordered.right.price}</span>
+                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">${ordered.right.price}</span>
                   <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.right.tagline}</span>
                 </div>
-                <div className="font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
+                <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
                   {ordered.right.features.slice(0, 3).map((f, i) => (
                     <span key={i} className="block">• {f}</span>
                   ))}
                 </div>
-                <span className="block text-[9px] font-bold uppercase text-red-500 group-hover:underline mt-4">Select Plan</span>
+                <span className="block shrink-0 text-[9px] font-bold uppercase text-red-500 group-hover:underline mt-4">Select Plan</span>
               </button>
 
             </div>
@@ -518,6 +594,7 @@ export default function OnboardingPage() {
                 <div className="flex gap-3 pt-2">
                   <Button
                     type="button"
+                    disabled={advancingStep !== null}
                     onClick={() => setStep('pricing')}
                     className="flex-1 h-10 font-bold text-xs bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-850 cursor-pointer"
                   >
@@ -525,10 +602,11 @@ export default function OnboardingPage() {
                   </Button>
                   <Button
                     type="submit"
+                    disabled={advancingStep !== null}
+                    aria-busy={advancingStep === 'consent'}
                     className="flex-1 h-10 font-bold text-xs bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    <span>Continue</span>
-                    <ArrowRight className="h-4 w-4" />
+                    {advancingStep === 'consent' ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Saving consent...</span></> : <><span>Continue</span><ArrowRight className="h-4 w-4" /></>}
                   </Button>
                 </div>
               </form>
@@ -643,9 +721,8 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer pt-1 mt-4">
-                    <span>Submit & Process Payment</span>
-                    <ArrowRight className="h-4 w-4" />
+                  <Button type="submit" disabled={isProcessing} aria-busy={isProcessing} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer pt-1 mt-4">
+                    {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Processing payment...</span></> : <><span>Submit & Process Payment</span><ArrowRight className="h-4 w-4" /></>}
                   </Button>
                 </form>
               )}

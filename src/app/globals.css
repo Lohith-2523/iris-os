@@ -1,7 +1,14 @@
 @import "tailwindcss";
+
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "../../tokens.css";
+
+/* Increase the application surface scale by 10%. Body copy and controls keep
+   the explicit 16px accessibility floor defined below. */
+html {
+  font-size: 17.6px;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -904,6 +911,12 @@ h6,
   line-height: 1.08;
 }
 
+.dashboard-command-center-banner {
+  z-index: 0;
+  background: center / cover no-repeat url('/workspace_banner_dark.png');
+  opacity: .7;
+}
+
 .dashboard-canvas .workspace-card {
   background: rgba(17,17,18,.78) !important;
   box-shadow: 0 14px 34px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.045) !important;
@@ -976,6 +989,23 @@ h6,
   border-radius: 12px !important;
   box-shadow: inset 5px 5px 12px #040404, inset -5px -5px 12px #1a1a1a !important;
   color: #e8e8e8 !important;
+}
+
+/* Agency registration remains a dark form in both workspace themes. Keep all
+   form copy and entered values readable while preserving the light primary
+   action at its footer. */
+.onboarding-agency-form :is(label, label span, input, select, textarea, option) {
+  color: #ffffff !important;
+}
+
+.onboarding-agency-form input::placeholder,
+.onboarding-agency-form textarea::placeholder {
+  color: #a1a1aa !important;
+}
+
+.onboarding-agency-form button[type='submit'],
+.onboarding-agency-form button[type='submit'] :is(span, svg) {
+  color: #09090b !important;
 }
 
 /* Keep date controls legible against the dark input surface. The native
@@ -1095,6 +1125,17 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
   background: rgba(255,255,255,.74) !important;
   border-color: rgba(73,88,115,.16) !important;
   box-shadow: 0 14px 34px rgba(110,125,148,.15), inset 0 1px 0 rgba(255,255,255,.92);
+}
+
+:root.light .workspace-shell .dashboard-welcome-card {
+  background: #ffffff !important;
+  border-color: rgba(73,88,115,.18) !important;
+  box-shadow: 0 8px 20px rgba(110,125,148,.13), inset 0 1px 0 #ffffff !important;
+}
+
+:root.light .workspace-shell .dashboard-command-center-banner {
+  display: block;
+  background-image: url('/workspace_banner_light.jpg');
 }
 
 :root.light .workspace-shell .dashboard-canvas .workspace-card {
@@ -1754,8 +1795,8 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
 
 .task-progress-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   border: 2px solid rgb(39 39 42);
   border-radius: 9999px;
   background: linear-gradient(145deg, rgb(255 255 255), rgb(161 161 170));
@@ -1763,12 +1804,203 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
 }
 
 .task-progress-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   border: 2px solid rgb(39 39 42);
   border-radius: 9999px;
   background: linear-gradient(145deg, rgb(255 255 255), rgb(161 161 170));
   box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+}
+
+/* Shared task progress rail: a solid filled path with a large position dot.
+   Used by the Tasks list and Kanban cards instead of native range controls. */
+.task-progress-rail {
+  position: relative;
+  height: 1.5rem;
+  width: 100%;
+}
+
+.task-progress-rail-track {
+  position: absolute;
+  inset: 50% .55rem auto;
+  height: .3rem;
+  transform: translateY(-50%);
+  overflow: visible;
+  border-radius: 9999px;
+  background: rgb(39 39 42);
+}
+
+.task-progress-rail-fill {
+  height: 100%;
+  width: var(--task-progress);
+  border-radius: inherit;
+  background: rgb(244 244 245);
+  transition: width 160ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.task-progress-rail-dot {
+  position: absolute;
+  top: 50%;
+  left: var(--task-progress);
+  width: 1rem;
+  height: 1rem;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgb(39 39 42);
+  border-radius: 9999px;
+  background: linear-gradient(145deg, rgb(255 255 255), rgb(161 161 170));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+  transition: left 160ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.task-progress-rail-compact {
+  height: 1rem;
+}
+
+.task-progress-rail-compact .task-progress-rail-track {
+  height: .25rem;
+}
+
+.task-progress-rail-compact .task-progress-rail-dot {
+  width: .75rem;
+  height: .75rem;
+}
+
+/* Product accessibility baseline: no visible application copy may render
+   below 16px. Headings retain their larger scale. */
+body {
+  font-size: 16px;
+}
+
+:where(.text-xs, .text-sm, .text-base, [class*="text-["]) {
+  font-size: 16px !important;
+  line-height: 1.45 !important;
+}
+
+/* The two non-selected pricing cards are deliberately compact. Their copy
+   must fit inside the fixed-height cards rather than inheriting the global
+   16px application minimum. */
+.onboarding-plan-card-compact :is(span, div) {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+.onboarding-plan-card-compact .onboarding-plan-card-features > span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+input,
+select,
+textarea,
+button {
+  font-size: 16px;
+}
+
+.page-skeleton {
+  --skeleton-block: rgb(39 39 42);
+  --skeleton-highlight: rgb(82 82 91);
+  --skeleton-panel: rgb(24 24 27);
+  --skeleton-border: rgb(39 39 42);
+  background: #0c0c0e;
+  isolation: isolate;
+  opacity: 1;
+}
+
+.page-skeleton .skeleton-block {
+  background-color: var(--skeleton-block);
+  background-image: linear-gradient(
+    100deg,
+    var(--skeleton-block) 0%,
+    var(--skeleton-block) 38%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-block) 62%,
+    var(--skeleton-block) 100%
+  );
+  background-position: 120% 0;
+  background-repeat: no-repeat;
+  background-size: 240% 100%;
+  animation: page-skeleton-shimmer 1.35s linear infinite;
+  will-change: background-position;
+}
+
+.page-skeleton .skeleton-panel {
+  background: var(--skeleton-panel);
+  border-color: var(--skeleton-border);
+}
+
+.page-skeleton .skeleton-panel :is(.border, .border-b) {
+  border-color: var(--skeleton-border);
+}
+
+:root.light .page-skeleton {
+  --skeleton-block: rgb(203 213 225);
+  --skeleton-highlight: rgb(241 245 249);
+  --skeleton-panel: rgb(255 255 255);
+  --skeleton-border: rgb(203 213 225);
+  background: #ffffff;
+}
+
+@keyframes page-skeleton-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
+@keyframes page-skeleton-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+
+.workspace-bootstrap-loader .relative > svg {
+  display: none;
+}
+
+.workspace-bootstrap-loader .relative::after {
+  content: '';
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  background: center / contain no-repeat url('/iris-logo-white-transparent.svg');
+  animation: workspace-bootstrap-logo-spin 1.4s linear infinite;
+}
+
+:root.light .workspace-bootstrap-loader {
+  background: #ffffff !important;
+  color: #09090b !important;
+}
+
+:root.light .workspace-bootstrap-loader .relative::after {
+  background-image: url('/iris-logo-black-transparent.svg');
+}
+
+.integration-meta-logo-light {
+  display: none !important;
+}
+
+:root.light .integration-meta-logo-light {
+  display: block !important;
+}
+
+:root.light .integration-meta-logo-dark {
+  display: none !important;
+}
+
+@keyframes workspace-bootstrap-logo-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-skeleton .skeleton-block {
+    animation: page-skeleton-breathe 1.8s ease-in-out infinite !important;
+    background-image: none;
+  }
+
+  .workspace-bootstrap-loader :is(.animate-spin, [class*="animate-[spin_"]),
+  .workspace-bootstrap-loader .relative::after {
+    animation: none !important;
+  }
 }
 
 /* Light workspace material policy: true black structure, white content, and
@@ -1955,7 +2187,24 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
 }
 
 :root.light .workspace-loading-overlay {
-  background: rgba(241, 245, 249, .84) !important;
+  background: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* Atlas opens frequently from the global launcher. Keep this loading surface
+   fully opaque so a previous command-center frame can never bleed through. */
+:root.light .workspace-loading-overlay:has(.page-skeleton--atlas),
+:root.light .page-skeleton--atlas {
+  background: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.atlas-proprietary-engine-icon {
+  color: #ffffff !important;
+}
+
+.atlas-chat-avatar-icon {
+  color: #09090b !important;
 }
 
 :root.light .workspace-loading-card {
@@ -1985,6 +2234,20 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
     #dfe4eb var(--task-progress),
     #dfe4eb 100%
   ) !important;
+}
+
+:root.light .workspace-shell .task-progress-rail-track {
+  background: #dfe4eb;
+}
+
+:root.light .workspace-shell .task-progress-rail-fill {
+  background: #000000;
+}
+
+:root.light .workspace-shell .task-progress-rail-dot {
+  border-color: #dfe4eb;
+  background: linear-gradient(145deg, #ffffff, #94a3b8);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 24%);
 }
 
 /* Hallmark · light-mode material pass · designed-as-app · contrast: pass (40–41)
@@ -2409,4 +2672,147 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
   background: color-mix(in srgb, var(--client-identity-accent) 10%, white) !important;
   border-color: color-mix(in srgb, var(--client-identity-accent) 35%, white) !important;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--client-identity-accent) 13%, transparent);
+}
+
+/* Lead stages use the workspace canvas as their pillar surface. The
+   configurable stage colour is reserved for hierarchy: outline, underglow,
+   and title. The light-theme override below keeps this surface white. */
+.workspace-shell .agency-leads-kanban-column {
+  background: #0a0a0a !important;
+  border-color: var(--stage-color) !important;
+  box-shadow:
+    0 16px 30px -22px var(--stage-color),
+    0 0 18px color-mix(in srgb, var(--stage-color) 16%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+}
+
+.workspace-shell .agency-leads-kanban-column > :first-child {
+  border-color: #dbe3ed !important;
+}
+
+.workspace-shell .agency-leads-kanban-column > :first-child > span,
+.workspace-shell .agency-leads-kanban-title {
+  color: var(--stage-color) !important;
+  text-shadow: none !important;
+}
+
+.workspace-shell .agency-leads-kanban-column .workspace-badge {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+.workspace-shell .agency-leads-kanban-card {
+  background: #0a0a0a !important;
+  border-color: #27272a !important;
+  color: #f4f4f5 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .2) !important;
+}
+
+.workspace-shell .agency-leads-kanban-card:hover {
+  background: #18181b !important;
+  border-color: color-mix(in srgb, var(--stage-color) 58%, #3f3f46) !important;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--stage-color) 13%, rgba(0, 0, 0, .28)) !important;
+}
+
+.workspace-shell .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
+  color: #e4e4e7 !important;
+}
+
+.workspace-shell .agency-leads-kanban-card a {
+  border-color: #3f3f46 !important;
+  color: #f4f4f5 !important;
+}
+
+.workspace-shell .agency-leads-kanban-card a:hover {
+  background: #27272a !important;
+}
+
+.workspace-shell .agency-leads-kanban-column .border-dashed {
+  border-color: #3f3f46 !important;
+  background: #0a0a0a !important;
+  color: #a1a1aa !important;
+}
+
+/* Override the former stage-filled light-theme treatment at equal-or-greater
+   specificity; configurable colours remain accents only. */
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] {
+  background: #ffffff !important;
+  border-color: var(--stage-color) !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] > :first-child {
+  border-color: #dbe3ed !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] > :first-child > .agency-leads-kanban-title {
+  color: var(--stage-color) !important;
+  text-shadow: none !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .workspace-badge {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card,
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card {
+  background: #f8fafc !important;
+  border-color: #dbe3ed !important;
+  color: #172033 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card:hover {
+  background: #ffffff !important;
+  border-color: color-mix(in srgb, var(--stage-color) 58%, #cbd5e1) !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
+  color: #263247 !important;
+}
+
+:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .border-dashed {
+  border-color: #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #64748b !important;
+}
+
+.workspace-shell .agency-leads-kanban-card a.agency-leads-whatsapp-button {
+  border-color: #2f9e5b !important;
+  background: rgba(47, 158, 91, .13) !important;
+  color: #006324 !important;
+}
+
+.workspace-shell .agency-leads-kanban-card a.agency-leads-whatsapp-button svg {
+  color: #006324 !important;
+}
+
+.workspace-shell .agency-leads-kanban-card a.agency-leads-whatsapp-button:hover {
+  border-color: #006324 !important;
+  background: rgba(47, 158, 91, .2) !important;
+}
+
+/* International phone controls follow the active surface contrast. */
+:root.light .country-phone-code-button,
+:root.light .country-phone-number-input,
+:root.light .country-phone-dropdown,
+:root.light .country-phone-search {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #09090b !important;
+}
+
+:root.light .country-phone-dropdown input,
+:root.light .country-phone-option {
+  color: #09090b !important;
+}
+
+:root.light .country-phone-option:hover {
+  background: #f1f5f9 !important;
+}
+
+:root.light .country-phone-dropdown input::placeholder,
+:root.light .country-phone-number-input::placeholder {
+  color: #64748b !important;
 }

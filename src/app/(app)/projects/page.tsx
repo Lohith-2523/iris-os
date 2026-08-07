@@ -30,6 +30,8 @@ import {
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { DateInput } from '@/components/ui/date-input';
 import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/delivery-delays';
 import { agencyServiceLines } from '@/lib/agency-specializations';
 
@@ -496,6 +498,8 @@ export default function ProjectsPage() {
     };
   }, [expandedClientId]);
 
+  if (loading) return <PageSkeleton variant="projects" />;
+
   return (
     <div className="space-y-6 font-sans text-xs">
       {/* Top Banner Row */}
@@ -909,11 +913,10 @@ export default function ProjectsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Invoice Date *</label>
-                    <input
-                      type="date"
+                    <DateInput
                       required
                       value={newProjectForm.paymentStartDate}
-                      onChange={(e) => handleCreationInputChange('paymentStartDate', e.target.value)}
+                      onChange={(value) => handleCreationInputChange('paymentStartDate', value)}
                       className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-mono"
                     />
                   </div>
@@ -964,19 +967,17 @@ export default function ProjectsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Start Date</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={newProjectForm.startDate}
-                    onChange={(e) => handleCreationInputChange('startDate', e.target.value)}
+                    onChange={(value) => handleCreationInputChange('startDate', value)}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Target Deadline</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={newProjectForm.deadline}
-                    onChange={(e) => handleCreationInputChange('deadline', e.target.value)}
+                    onChange={(value) => handleCreationInputChange('deadline', value)}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-mono"
                   />
                 </div>
@@ -1040,11 +1041,9 @@ export default function ProjectsPage() {
                         className="flex-1 text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none"
                       />
                       <div className="flex items-center gap-1 text-[10px] text-zinc-550 shrink-0 font-mono">
-                        <input
-                          type="date"
+                        <DateInput
                           value={stage.startDate}
-                          onChange={(e) => {
-                            const dateVal = e.target.value;
+                          onChange={(dateVal) => {
                             setNewProjectForm(prev => {
                               const newStages = prev.stages.map((s, i) => i === idx ? { ...s, startDate: dateVal } : s);
                               return { ...prev, stages: newStages };
@@ -1053,11 +1052,9 @@ export default function ProjectsPage() {
                           className="w-24 bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
                         />
                         <span>to</span>
-                        <input
-                          type="date"
+                        <DateInput
                           value={stage.endDate}
-                          onChange={(e) => {
-                            const dateVal = e.target.value;
+                          onChange={(dateVal) => {
                             setNewProjectForm(prev => {
                               const newStages = prev.stages.map((s, i) => i === idx ? { ...s, endDate: dateVal } : s);
                               return { ...prev, stages: newStages };
@@ -1272,11 +1269,10 @@ export default function ProjectsPage() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-semibold text-zinc-500">Invoice Date</label>
-                        <input
-                          type="date"
+                        <DateInput
                           required
                           value={editForm.paymentStartDate}
-                          onChange={(e) => handleEditInputChange('paymentStartDate', e.target.value)}
+                          onChange={(value) => handleEditInputChange('paymentStartDate', value)}
                           className="w-full bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-white outline-none font-mono"
                         />
                       </div>
@@ -1303,19 +1299,17 @@ export default function ProjectsPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Start Date</label>
-                      <input
-                        type="date"
+                      <DateInput
                         value={editForm.startDate}
-                        onChange={(e) => handleEditInputChange('startDate', e.target.value)}
+                        onChange={(value) => handleEditInputChange('startDate', value)}
                         className="w-full bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-white outline-none font-mono"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Target Deadline</label>
-                      <input
-                        type="date"
+                      <DateInput
                         value={editForm.endDate}
-                        onChange={(e) => handleEditInputChange('endDate', e.target.value)}
+                        onChange={(value) => handleEditInputChange('endDate', value)}
                         className="w-full bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-white outline-none font-mono"
                       />
                     </div>
@@ -1426,11 +1420,9 @@ export default function ProjectsPage() {
                             className="flex-1 text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-white outline-none"
                           />
                           <div className="flex items-center gap-0.5 text-[9px] text-zinc-550 shrink-0 font-mono">
-                            <input
-                              type="date"
+                            <DateInput
                               value={stage.startDate ? stage.startDate.split('T')[0] : ''}
-                              onChange={(e) => {
-                                const dateVal = e.target.value;
+                              onChange={(dateVal) => {
                                 setEditForm((prev: any) => {
                                   const newStages = prev.stages.map((s: any, i: number) => i === idx ? { ...s, startDate: dateVal } : s);
                                   return { ...prev, stages: newStages };
@@ -1439,11 +1431,9 @@ export default function ProjectsPage() {
                               className="w-22 bg-zinc-900 border border-zinc-800 px-0.5 text-zinc-300 text-[8px] outline-none"
                             />
                             <span>to</span>
-                            <input
-                              type="date"
+                            <DateInput
                               value={stage.endDate ? stage.endDate.split('T')[0] : ''}
-                              onChange={(e) => {
-                                const dateVal = e.target.value;
+                              onChange={(dateVal) => {
                                 setEditForm((prev: any) => {
                                   const newStages = prev.stages.map((s: any, i: number) => i === idx ? { ...s, endDate: dateVal } : s);
                                   return { ...prev, stages: newStages };

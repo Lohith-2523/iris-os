@@ -3,46 +3,26 @@
 import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { ArrowRight, Plus, Sparkles, Trash2, X } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { Plus, Trash2, X } from 'lucide-react';
 import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 
-const ClientPortfolioValueChart = dynamic(
-  () => import('@/components/clients/client-revenue-chart').then((module) => module.ClientPortfolioValueChart),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded bg-zinc-900/40" /> },
-);
-
-type SavedStrategy = {
-  id: string;
-  type: string;
-  title: string;
-  content: string;
-  createdAt: string;
-};
-
-function summarizeStrategy(content: string) {
-  const plainText = content
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/[*_`>|-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return plainText.length > 360 ? `${plainText.slice(0, 357).trimEnd()}...` : plainText;
-}
 
 export default function ClientsPage() {
+  const searchParams = useSearchParams();
   const [dbClients, setDbClients] = React.useState<any[]>([]);
   const [team, setTeam] = React.useState<any[]>([]);
   const [selectedClientId, setSelectedClientId] = React.useState<string | null>(null);
-  const [latestStrategy, setLatestStrategy] = React.useState<SavedStrategy | null>(null);
   const [canManageClients, setCanManageClients] = React.useState(false);
   const [clientPendingDeletion, setClientPendingDeletion] = React.useState<any | null>(null);
   const [deleteAcknowledged, setDeleteAcknowledged] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState('');
+  const [isLoadingClients, setIsLoadingClients] = React.useState(true);
 
   React.useEffect(() => {
     async function load() {
@@ -65,13 +45,10 @@ export default function ClientsPage() {
           setCanManageClients(currentUser.role?.toLowerCase() === 'admin');
         }
 
-        const strategyRes = await fetch('/api/strategies');
-        if (strategyRes.ok) {
-          const strategyJson = await strategyRes.json();
-          setLatestStrategy(strategyJson.strategies?.[0] || null);
-        }
       } catch (e) {
         console.error(e);
+      } finally {
+        setIsLoadingClients(false);
       }
     }
     load();
@@ -79,15 +56,16 @@ export default function ClientsPage() {
 
   const clients = dbClients;
 
-  const portfolioYear = clients[0]?.portfolioYear || new Date().getFullYear();
-  const totalPortfolioValue = clients.reduce((sum, c) => sum + (c.contractValue || 0), 0);
-  const chartClients = clients.map(c => ({
-    id: c.id,
-    name: c.name,
-    portfolioValue: c.contractValue || 0,
-  })).sort((a, b) => b.portfolioValue - a.portfolioValue);
+  const activeClients = clients.filter((client) => client.status === 'ACTIVE');
+  const deletedClients = clients.filter((client) => client.status !== 'ACTIVE');
+  const activeProjects = clients.flatMap((client) => client.projects || []).filter((project) => ['IN_PROGRESS', 'OVERDUE'].includes(project.status));
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
+
+  React.useEffect(() => {
+    const requestedClientId = searchParams.get('clientId');
+    if (requestedClientId && clients.some((client) => client.id === requestedClientId)) setSelectedClientId(requestedClientId);
+  }, [clients, searchParams]);
 
   const openDeleteConfirmation = (client: any) => {
     setClientPendingDeletion(client);
@@ -126,6 +104,8 @@ export default function ClientsPage() {
     }
   };
 
+  if (isLoadingClients) return <PageSkeleton variant="clients" />;
+
   if (selectedClient) {
     return (
       <ClientDetailDashboard
@@ -147,8 +127,7 @@ export default function ClientsPage() {
       {/* Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Client Portfolio</h1>
-          <p className="text-xs text-zinc-500">Review signed project contract values without annualization or revenue forecasting.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Clients</h1>
         </div>
         <div className="flex items-center gap-3">
 
@@ -161,24 +140,13 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card hoverEffect>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{portfolioYear} Portfolio Value</CardTitle>
-            <span className="rounded border border-zinc-700 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500">Face value</span>
-          </CardHeader>
-          <CardContent>
-            <div className="font-mono text-2xl font-bold tracking-tight text-white">{formatCurrency(totalPortfolioValue)}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <div className="grid gap-4 sm:grid-cols-3"><Card><CardHeader><CardDescription>Total clients</CardDescription><CardTitle className="text-3xl">{clients.length}</CardTitle><p className="text-zinc-500">{activeClients.length} active · {deletedClients.length} deleted/inactive</p></CardHeader></Card><Card><CardHeader><CardDescription>Active clients</CardDescription><CardTitle className="text-3xl">{activeClients.length}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Active projects</CardDescription><CardTitle className="text-3xl">{activeProjects.length}</CardTitle></CardHeader></Card></div>
 
 
       {/* Main Split */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6">
         {/* Table of clients */}
-        <div className="md:col-span-2 space-y-6">
-          <ClientPortfolioValueChart clients={chartClients} />
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Active Accounts List</CardTitle>
@@ -192,15 +160,13 @@ export default function ClientsPage() {
                     <TableHead>Domain</TableHead>
                     <TableHead>Assigned Specialist</TableHead>
                     <TableHead className="text-center">Renewal</TableHead>
-                    <TableHead className="text-center">Churn Risk</TableHead>
-                    <TableHead className="text-right">Contract Value</TableHead>
                     {canManageClients && <TableHead className="w-[68px] text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clients.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={canManageClients ? 7 : 6} className="text-center py-8 text-zinc-500">
+                      <TableCell colSpan={canManageClients ? 5 : 4} className="text-center py-8 text-zinc-500">
                         No clients registered.
                       </TableCell>
                     </TableRow>
@@ -228,10 +194,6 @@ export default function ClientsPage() {
                           <TableCell className="text-center text-xs text-zinc-300">
                             {c.renewalDate || 'Not scheduled'}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <span className="font-mono text-xs text-zinc-300 font-semibold">{c.churnRiskScore}%</span>
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-semibold">{formatCurrency(c.contractValue || 0)}</TableCell>
                           {canManageClients && (
                             <TableCell className="text-right">
                               <Button
@@ -260,42 +222,6 @@ export default function ClientsPage() {
           </Card>
         </div>
 
-        {/* Strategy summary */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-200">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <CardTitle className="pt-3 text-sm font-semibold text-white">Atlas AI Strategy</CardTitle>
-              <CardDescription>
-                {latestStrategy ? 'A concise view of your latest generated strategy.' : 'Generate a strategy from your client and project portfolio.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {latestStrategy ? (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">{latestStrategy.type.replaceAll('_', ' ')}</p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-200">{latestStrategy.title}</p>
-                    <p className="mt-2 text-xs leading-5 text-zinc-500">{summarizeStrategy(latestStrategy.content)}</p>
-                  </div>
-                  <Link href="/strategy">
-                    <Button variant="outline" size="sm" className="w-full gap-2">
-                      Open strategy <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <Link href="/strategy">
-                  <Button className="w-full gap-2">
-                    <Sparkles className="h-4 w-4" /> Create a strategy
-                  </Button>
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       {clientPendingDeletion && (

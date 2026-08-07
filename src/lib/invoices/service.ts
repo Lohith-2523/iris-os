@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/db';
 import { IrisEmailDeliveryError, sendIrisEmail } from '@/lib/email/iris-email';
 import { invoiceDeliveryEmail } from '@/lib/email/iris-templates';
+import { agencyViaIrisSenderName } from '@/lib/email/sender-name';
 import {
   billingSnapshot,
   invoiceDueDate,
@@ -267,6 +268,7 @@ async function createAndSendDocument(input: {
   try {
     await sendIrisEmail({
       to: [recipient.email],
+      fromName: agencyViaIrisSenderName(organization.name, organization.plan),
       subject: email.subject,
       html: email.html,
       text: email.text,

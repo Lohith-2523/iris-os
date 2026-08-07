@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { isTaskStatus, normalizeTaskStatusProgress } from '@/lib/tasks/status-progress';
+import { createNotification, notifyOrganizationAdmins } from '@/lib/notifications';
 
 function isTaskWriteConflict(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -11,8 +12,10 @@ function isTaskWriteConflict(error: unknown) {
 }
 
 function canEditTask(user: { id: string; role: string }, task: { assignedToId: string | null }) {
-  return isOrganizationAdmin(user) || (user.role.toLowerCase() === 'member' && task.assignedToId === user.id);
+  return isOrganizationAdmin(user) || user.role.toLowerCase() === 'sub_admin' || (user.role.toLowerCase() === 'member' && task.assignedToId === user.id);
 }
+
+const taskApprovalStatuses = new Set(['NOT_REQUIRED', 'NEEDS_CLIENT_APPROVAL', 'APPROVED', 'CHANGES_REQUESTED']);
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,6 +45,7 @@ export async function GET(request: NextRequest) {
       },
       parentTask: true,
       nextTasks: true,
+      deliverables: true,
     };
 
     const role = user.role.toLowerCase();
@@ -94,10 +98,11 @@ export async function POST(request: NextRequest) {
       },
       parentTask: true,
       nextTasks: true
+      ,deliverables: true
     };
 
     if (action === 'create_task') {
-      const { title, description, status, progress, clientId, assignedToId, projectId, stageId, timeline, deadline } = body;
+      const { title, description, status, progress, clientId, assignedToId, projectId, stageId, timeline, deadline, approvalStatus } = body;
 
       if (!title || !clientId) {
         return NextResponse.json({ error: 'Missing title or clientId' }, { status: 400 });
@@ -132,15 +137,22 @@ export async function POST(request: NextRequest) {
           assignedToId: assignedToId || null,
           timeline: timeline || null,
           deadline: deadline ? new Date(deadline) : null,
+          approvalStatus: requestedStatus === 'NEEDS_CLIENT_APPROVAL' || approvalStatus === 'NEEDS_CLIENT_APPROVAL' ? 'NEEDS_CLIENT_APPROVAL' : 'NOT_REQUIRED',
         },
         include: taskInclude
       });
+
+      if (deadline) {
+        const scheduledAt = new Date(deadline);
+        await notifyOrganizationAdmins({ orgId: requestUser.orgId, type: 'DELAY', title: 'Task deadline reached', body: `${title} is due now. Review its progress and resolve any delay.`, href: `/tasks?projectId=${projectId || ''}`, actionLabel: 'Review task', scheduledAt });
+        if (assignedToId) await createNotification({ orgId: requestUser.orgId, userId: assignedToId, type: 'REMINDER', title: 'Task follow-up due', body: `${title} is due now. Add a progress update or complete it.`, href: `/tasks?projectId=${projectId || ''}`, actionLabel: 'Update task', scheduledAt });
+      }
 
       return NextResponse.json({ success: true, task: newTask });
     }
 
     if (action === 'update_task') {
-      const { id, title, description, status, progress, blocker, update, assignedToId, projectId, stageId, timeline, deadline, expectedUpdatedAt } = body;
+      const { id, title, description, status, progress, blocker, update, assignedToId, projectId, stageId, timeline, deadline, approvalStatus, expectedUpdatedAt } = body;
 
       if (!id) {
         return NextResponse.json({ error: 'Missing task ID' }, { status: 400 });
@@ -172,6 +184,12 @@ export async function POST(request: NextRequest) {
       }
       if (status !== undefined && !isTaskStatus(status)) {
         return NextResponse.json({ error: 'Invalid task status' }, { status: 400 });
+      }
+      if (approvalStatus !== undefined && !taskApprovalStatuses.has(approvalStatus)) {
+        return NextResponse.json({ error: 'Invalid client approval status' }, { status: 400 });
+      }
+      if (approvalStatus !== undefined && ['APPROVED', 'CHANGES_REQUESTED'].includes(approvalStatus) && approvalStatus !== existingTask.approvalStatus) {
+        return NextResponse.json({ error: 'Approved and changes-requested states can only be set through the client approval workflow.' }, { status: 400 });
       }
       const normalizedStatusProgress = normalizeTaskStatusProgress(
         { status: existingTask.status, progress: existingTask.progress },
@@ -219,33 +237,29 @@ export async function POST(request: NextRequest) {
 
       let updatedTask;
       try {
-        updatedTask = await prisma.$transaction(async (tx) => {
-          // A stale/duplicate UI write should fail quickly instead of holding a
-          // request open behind another task editor for 10-50 seconds.
-          await tx.$executeRawUnsafe("SET LOCAL lock_timeout = '750ms'");
-
-          if (update) {
-            await tx.taskUpdate.create({ data: { content: update, taskId: id } });
-          }
-
-          return tx.clientTask.update({
-            where: expectedVersion ? { id, updatedAt: expectedVersion } : { id },
-            data: {
-              title: normalizedTitle,
-              description: description !== undefined ? (description === '' ? null : String(description)) : undefined,
-              status: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.status : undefined,
-              progress: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.progress : undefined,
-              blocker: blocker !== undefined ? (blocker === '' ? null : blocker) : undefined,
-              update: update !== undefined ? (update === '' ? null : update) : undefined,
-              assignedToId: assignedToId !== undefined ? (assignedToId === '' || assignedToId === null ? null : assignedToId) : undefined,
-              projectId: projectId !== undefined ? (projectId === '' || projectId === null ? null : projectId) : undefined,
-              stageId: stageId !== undefined ? (stageId === '' || stageId === null ? null : stageId) : undefined,
-              timeline: timeline !== undefined ? (timeline === '' ? null : String(timeline)) : undefined,
-              deadline: deadline !== undefined ? normalizedDeadline : undefined,
-            },
-            include: taskInclude,
-          });
-        }, { maxWait: 1_000, timeout: 3_000 });
+        // A nested write is atomic, but unlike an interactive transaction it does
+        // not keep a pooled connection checked out while Prisma loads the task's
+        // related records for the response. That prevents the transaction from
+        // expiring under normal connection-pool pressure.
+        updatedTask = await prisma.clientTask.update({
+          where: expectedVersion ? { id, updatedAt: expectedVersion } : { id },
+          data: {
+            title: normalizedTitle,
+            description: description !== undefined ? (description === '' ? null : String(description)) : undefined,
+            status: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.status : undefined,
+            progress: status !== undefined || normalizedProgress !== undefined ? normalizedStatusProgress.progress : undefined,
+            blocker: blocker !== undefined ? (blocker === '' ? null : blocker) : undefined,
+            update: update !== undefined ? (update === '' ? null : update) : undefined,
+            updates: update ? { create: { content: update } } : undefined,
+            assignedToId: assignedToId !== undefined ? (assignedToId === '' || assignedToId === null ? null : assignedToId) : undefined,
+            projectId: projectId !== undefined ? (projectId === '' || projectId === null ? null : projectId) : undefined,
+            stageId: stageId !== undefined ? (stageId === '' || stageId === null ? null : stageId) : undefined,
+            timeline: timeline !== undefined ? (timeline === '' ? null : String(timeline)) : undefined,
+            deadline: deadline !== undefined ? normalizedDeadline : undefined,
+            approvalStatus: status === 'NEEDS_CLIENT_APPROVAL' ? 'NEEDS_CLIENT_APPROVAL' : approvalStatus !== undefined ? approvalStatus : undefined,
+          },
+          include: taskInclude,
+        });
       } catch (error) {
         if (isTaskWriteConflict(error)) {
           return NextResponse.json(
@@ -256,6 +270,7 @@ export async function POST(request: NextRequest) {
         throw error;
       }
 
+      if (status === 'BLOCKED') await notifyOrganizationAdmins({ orgId: requestUser.orgId, type: 'ISSUE', title: 'Task blocked', body: `${updatedTask.title} is blocked${blocker ? `: ${blocker}` : '.'}`, href: `/tasks?projectId=${updatedTask.projectId || ''}`, actionLabel: 'Review task' });
       return NextResponse.json({ success: true, task: updatedTask });
     }
 
@@ -273,6 +288,7 @@ export async function POST(request: NextRequest) {
       if (!task || task.client.orgId !== requestUser.orgId) {
         return NextResponse.json({ error: 'Task not found' }, { status: 404 });
       }
+      if (!canEditTask(requestUser, task)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
       await prisma.clientTask.delete({
         where: { id },

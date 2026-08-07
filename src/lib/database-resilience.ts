@@ -39,8 +39,10 @@ export function isTransientDatabaseConnectionError(error: unknown) {
     const candidate = current as ErrorLike;
     const code = typeof candidate.code === 'string' ? candidate.code.toUpperCase() : '';
     const message = typeof candidate.message === 'string' ? candidate.message : '';
+    const transactionStartTimeout = code === 'P2028'
+      && /unable to start a transaction in the given time/i.test(message);
 
-    if (TRANSIENT_DATABASE_CODES.has(code) || TRANSIENT_DATABASE_MESSAGE.test(message)) {
+    if (TRANSIENT_DATABASE_CODES.has(code) || transactionStartTimeout || TRANSIENT_DATABASE_MESSAGE.test(message)) {
       return true;
     }
 

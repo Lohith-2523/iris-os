@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { DateInput } from '@/components/ui/date-input';
 
 type PageTab = 'OVERVIEW' | 'TAX' | 'PROFORMA';
 type LineItemForm = { description: string; quantity: number; unitPrice: number };
@@ -373,6 +375,8 @@ export default function InvoicesPage() {
     </Card>
   );
 
+  if (loading) return <PageSkeleton variant="invoices" />;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 border-b border-zinc-800/60 pb-5 md:flex-row md:items-center md:justify-between">
@@ -541,8 +545,8 @@ export default function InvoicesPage() {
                 </label>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   <label className="space-y-1.5"><RequiredLabel>Proforma number</RequiredLabel><input required value={proformaForm.invoiceNumber} onChange={(event) => setProformaForm((current) => ({ ...current, invoiceNumber: event.target.value }))} maxLength={80} placeholder="PF-2026-001" className={fieldClass} /></label>
-                  <label className="space-y-1.5"><RequiredLabel>Issue date</RequiredLabel><input required type="date" value={proformaForm.issuedDate} onChange={(event) => setProformaForm((current) => ({ ...current, issuedDate: event.target.value }))} className={fieldClass} /></label>
-                  <label className="space-y-1.5"><span className="font-semibold text-zinc-400">Valid until <span className="text-zinc-600">(optional)</span></span><input type="date" value={proformaForm.validUntil} onChange={(event) => setProformaForm((current) => ({ ...current, validUntil: event.target.value }))} className={fieldClass} /></label>
+                  <label className="space-y-1.5"><RequiredLabel>Issue date</RequiredLabel><DateInput required value={proformaForm.issuedDate} onChange={(value) => setProformaForm((current) => ({ ...current, issuedDate: value }))} className={fieldClass} /></label>
+                  <label className="space-y-1.5"><span className="font-semibold text-zinc-400">Valid until <span className="text-zinc-600">(optional)</span></span><DateInput value={proformaForm.validUntil} onChange={(value) => setProformaForm((current) => ({ ...current, validUntil: value }))} className={fieldClass} /></label>
                   <label className="space-y-1.5"><RequiredLabel>Reference / quotation title</RequiredLabel><input required value={proformaForm.referenceName} onChange={(event) => setProformaForm((current) => ({ ...current, referenceName: event.target.value }))} maxLength={200} placeholder="Website redesign quotation" className={fieldClass} /></label>
                 </div>
                 <label className="block space-y-1.5"><RequiredLabel>Description</RequiredLabel><textarea required value={proformaForm.description} onChange={(event) => setProformaForm((current) => ({ ...current, description: event.target.value }))} maxLength={2000} rows={3} placeholder="Describe the proposed work or supply" className={fieldClass} /></label>

@@ -164,6 +164,19 @@ export async function POST(request: NextRequest) {
       select: { id: true, createdAt: true },
     });
     await tx.messagingConversation.update({ where: { id: input.conversationId }, data: { updatedAt: new Date() } });
+    if (recipientIds.length) {
+      await tx.notification.createMany({
+        data: recipientIds.map((userId) => ({
+          orgId: user.orgId,
+          userId,
+          type: 'MESSAGE',
+          title: `New message from ${user.name}`,
+          body: 'Open the encrypted conversation to read and respond.',
+          href: `/messages?conversationId=${input.conversationId}`,
+          actionLabel: 'Open conversation',
+        })),
+      });
+    }
     return created;
   });
   publishMessagingChange(input.conversationId);

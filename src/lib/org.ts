@@ -43,14 +43,14 @@ export async function getRequestUser(_request?: unknown) {
     include: userWithWorkspace,
   });
 
-  if (userByAuthId) return userByAuthId;
+  if (userByAuthId) return userByAuthId.accessRevokedAt ? null : userByAuthId;
 
   const userByEmail = await prisma.user.findFirst({
     where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
     include: userWithWorkspace,
   });
 
-  if (!userByEmail) return null;
+  if (!userByEmail || userByEmail.accessRevokedAt) return null;
   if (!hasVerifiedEmail(identity)) throw new WorkspaceIdentityConflictError();
 
   // A verified email can reclaim a legacy or partially provisioned workspace

@@ -6,6 +6,7 @@ import { getMessagingProtocol } from '@/lib/messaging/protocol';
 import { safeDownloadName, validateBrowserFile, type SafeAttachmentCategory } from '@/lib/file-security';
 import type { MessagingLimits } from '@/lib/plan-entitlements';
 import styles from './messages.module.css';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 
 type Person = { id: string; name: string; email: string; role: string; avatarUrl?: string | null };
 type Conversation = {
@@ -398,7 +399,7 @@ export default function MessagesPage() {
   }
 
   if (!pageReady) {
-    return <section className={styles.loadingShell} role="status"><LoaderCircle className={styles.loadingSpinner} size={24} /><span>Loading secure messages…</span></section>;
+    return <PageSkeleton variant="messages" />;
   }
 
   return (

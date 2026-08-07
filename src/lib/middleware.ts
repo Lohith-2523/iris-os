@@ -71,11 +71,13 @@ export async function updateSession(request: NextRequest) {
       pathname.startsWith('/signup') ||
       pathname.startsWith('/onboarding/member') ||
       pathname === '/invite' ||
+      pathname.startsWith('/sign-document/') ||
       pathname.startsWith('/login') ||
       pathname.startsWith('/forgot-password') ||
       pathname === '/auth/callback' ||
       pathname === '/api/member' ||
       pathname === '/api/invite' ||
+      pathname.startsWith('/api/document-signing/') ||
       pathname === '/api/webhooks/meta' ||
       pathname === '/api/meta-ads/deauthorize' ||
       pathname === '/api/meta-ads/delete-data' ||

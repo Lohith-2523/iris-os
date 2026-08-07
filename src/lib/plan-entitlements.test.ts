@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUseAtlasCapability, entitlementsFor, normalizePlan } from './plan-entitlements';
+import { canUseAtlasCapability, entitlementsFor, normalizePlan, planIncludes } from './plan-entitlements';
 
 describe('plan entitlements', () => {
   it('makes all ten specializations available to every plan', () => {
@@ -18,6 +18,7 @@ describe('plan entitlements', () => {
     expect(entitlementsFor('BASIC')).toMatchObject({
       aiFeatures: false,
       dailyBriefing: false,
+      signedDocumentAutomation: false,
       strategyGeneration: false,
       messaging: false,
     });
@@ -45,10 +46,19 @@ describe('plan entitlements', () => {
     expect(canUseAtlasCapability('PRO', 'MEETING')).toBe(true);
     expect(canUseAtlasCapability('PRO', 'INVOICE')).toBe(true);
     expect(pro.dailyBriefing).toBe(false);
+    expect(pro.signedDocumentAutomation).toBe(false);
+    expect(advanced.signedDocumentAutomation).toBe(true);
     expect(pro.strategyGeneration).toBe(false);
     for (const key of Object.keys(advanced.messagingLimits!) as Array<keyof NonNullable<typeof advanced.messagingLimits>>) {
       expect(pro.messagingLimits![key]).toBe(advanced.messagingLimits![key] / 2);
     }
+  });
+
+  it('compares plan access without hiding higher-tier features', () => {
+    expect(planIncludes('BASIC', 'PRO')).toBe(false);
+    expect(planIncludes('PRO', 'PRO')).toBe(true);
+    expect(planIncludes('PRO', 'ADVANCED')).toBe(false);
+    expect(planIncludes('ADVANCED', 'PRO')).toBe(true);
   });
 
   it('defaults unknown plans to Basic instead of granting access', () => {

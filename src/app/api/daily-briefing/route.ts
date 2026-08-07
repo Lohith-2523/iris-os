@@ -5,6 +5,7 @@ import { buildDailyBriefing, DAILY_BRIEFING_VERSION, dailyBriefingBusinessDate, 
 import { getDeliveryDelaySummary } from '@/lib/delivery-delays';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { entitlementsFor } from '@/lib/plan-entitlements';
+import { withDatabaseConnectionRetry } from '@/lib/database-resilience';
 
 type StoredDailyBriefing = {
   id: string;
@@ -15,6 +16,12 @@ type StoredDailyBriefing = {
   openedAt: string | null;
   completedAt: string | null;
 };
+
+type DailyBriefingReadClient = Pick<Prisma.TransactionClient,
+  'clientTask' | 'transaction' | 'invoice' | 'calendarEvent' | 'project' | 'agencyLead' | 'client'
+>;
+
+const DAILY_BRIEFING_TRANSACTION_OPTIONS = { maxWait: 15_000, timeout: 5_000 } as const;
 
 function settingsObject(value: Prisma.JsonValue | null | undefined) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {} as Record<string, Prisma.JsonValue>;
@@ -36,7 +43,7 @@ async function updateStoredBriefing(
   businessDate: string,
   update: (briefing: StoredDailyBriefing) => StoredDailyBriefing,
 ) {
-  return prisma.$transaction(async (tx) => {
+  return withDatabaseConnectionRetry(() => prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`daily-briefing:${userId}`}))`;
     const preference = await tx.userPreference.findUnique({ where: { userId }, select: { settings: true } });
     const settings = settingsObject(preference?.settings);
@@ -53,13 +60,13 @@ async function updateStoredBriefing(
       update: { settings: nextSettings },
     });
     return next;
-  });
+  }, DAILY_BRIEFING_TRANSACTION_OPTIONS), { maxAttempts: 3, delaysMs: [150, 400] });
 }
 
 async function generateDailyBriefing(
   user: NonNullable<Awaited<ReturnType<typeof getRequestUser>>>,
   timeZone: string,
-  db: Prisma.TransactionClient,
+  db: DailyBriefingReadClient,
 ) {
   const now = new Date();
   const historyStart = new Date(now.getTime() - 75 * 24 * 60 * 60 * 1000);
@@ -139,34 +146,49 @@ async function generateDailyBriefing(
 
 async function ensureDailyBriefing(user: NonNullable<Awaited<ReturnType<typeof getRequestUser>>>, timeZone: string) {
   const businessDate = dailyBriefingBusinessDate(new Date(), timeZone);
-  return prisma.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`daily-briefing:${user.id}`}))`;
-    const preference = await tx.userPreference.findUnique({ where: { userId: user.id }, select: { settings: true } });
-    const settings = settingsObject(preference?.settings);
-    const existing = storedBriefing(settings, businessDate);
-    if (existing) return existing;
 
-    const payload = await generateDailyBriefing(user, timeZone, tx);
-    const briefing: StoredDailyBriefing = {
-      id: `${user.id}:${businessDate}`,
-      businessDate,
-      timeZone,
-      payload,
-      readCount: 0,
-      openedAt: null,
-      completedAt: null,
-    };
+  // Most requests already have today's briefing. Avoid acquiring an
+  // interactive transaction—and therefore a dedicated pooled connection—for
+  // this read-only fast path.
+  const preference = await prisma.userPreference.findUnique({
+    where: { userId: user.id },
+    select: { settings: true },
+  });
+  const existing = storedBriefing(preference?.settings, businessDate);
+  if (existing) return existing;
+
+  // Build the expensive snapshot before taking the advisory lock. The final
+  // transaction only rechecks and writes, keeping its connection occupancy to
+  // a few milliseconds under normal conditions.
+  const payload = await generateDailyBriefing(user, timeZone, prisma);
+  const generatedBriefing: StoredDailyBriefing = {
+    id: `${user.id}:${businessDate}`,
+    businessDate,
+    timeZone,
+    payload,
+    readCount: 0,
+    openedAt: null,
+    completedAt: null,
+  };
+
+  return withDatabaseConnectionRetry(() => prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`daily-briefing:${user.id}`}))`;
+    const currentPreference = await tx.userPreference.findUnique({ where: { userId: user.id }, select: { settings: true } });
+    const settings = settingsObject(currentPreference?.settings);
+    const concurrentlyCreated = storedBriefing(settings, businessDate);
+    if (concurrentlyCreated) return concurrentlyCreated;
+
     const nextSettings = {
       ...settings,
-      dailyBriefing: briefing as unknown as Prisma.InputJsonValue,
+      dailyBriefing: generatedBriefing as unknown as Prisma.InputJsonValue,
     } as Prisma.InputJsonObject;
     await tx.userPreference.upsert({
       where: { userId: user.id },
       create: { userId: user.id, settings: nextSettings },
       update: { settings: nextSettings },
     });
-    return briefing;
-  }, { timeout: 15_000 });
+    return generatedBriefing;
+  }, DAILY_BRIEFING_TRANSACTION_OPTIONS), { maxAttempts: 3, delaysMs: [150, 400] });
 }
 
 async function authorizedAdmin() {

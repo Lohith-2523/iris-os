@@ -8,8 +8,9 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
 import { clearWorkspaceUiPreferences, readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
+import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
-import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
+import { normalizePlan, planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import {
   LayoutDashboard,
   Wallet,
@@ -26,6 +27,7 @@ import {
   Calendar,
   FileSpreadsheet,
   ReceiptText,
+  FilePenLine,
   MessageSquare,
 } from 'lucide-react';
 
@@ -41,6 +43,7 @@ type NavigationItem = {
   icon: React.ComponentType<{ className?: string }>;
   highlight?: boolean;
   badge?: string;
+  requiredPlan?: PlanId;
 };
 
 type NavigationGroup = {
@@ -53,6 +56,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   const router = useRouter();
   const supabase = React.useMemo(() => createClient(), []);
   const [orgName, setOrgName] = React.useState('Organization');
+  const [orgLogoDataUrl, setOrgLogoDataUrl] = React.useState('');
   const [plan, setPlan] = React.useState('');
   const [user, setUser] = React.useState<{
     id?: string;
@@ -60,11 +64,12 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     name: string;
     email: string;
     role: string;
+    accessPermissions?: string[] | null;
   } | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
+  const [upgradePrompt, setUpgradePrompt] = React.useState<{ feature: string; href: string; requiredPlan: PlanId } | null>(null);
   const resolvedPlan = normalizePlan(workspacePlan || plan);
-  const messagingAllowed = entitlementsFor(resolvedPlan).messaging;
   const resolvedRole = (workspaceRole || user?.role || '').toLowerCase();
 
   const loadOrg = React.useCallback(async () => {
@@ -73,6 +78,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       if (res.ok) {
         const data = await res.json();
         setOrgName(data.organization.name || 'Agency Workspace');
+        setOrgLogoDataUrl(data.organization.invoiceLogoDataUrl || '');
         setPlan(data.organization.plan || '');
         setUser(data.user);
         setUiScope({ userId: data.user.id, orgId: data.organization.id });
@@ -143,24 +149,31 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       ],
     },
     {
+      label: 'Documents',
+      items: [
+        { name: 'Proposals', href: '/proposals', icon: FilePenLine },
+        { name: 'Contracts', href: '/documents', icon: FileText },
+      ],
+    },
+    {
       label: 'Delivery',
       items: [
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'Tasks', href: '/tasks', icon: Activity },
         { name: 'Team', href: '/team', icon: UserCheck },
         { name: 'Calendar', href: '/calendar', icon: Calendar },
-        ...(messagingAllowed ? [{ name: 'Messages', href: '/messages', icon: MessageSquare }] : []),
+        { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
       ],
     },
     {
       label: 'Intelligence',
       items: [
         { name: 'Reporting', href: '/reporting', icon: FileText },
-        ...(resolvedPlan === 'ADVANCED' ? [{ name: 'Strategy', href: '/strategy', icon: TrendingUp }] : []),
-        ...(resolvedPlan !== 'BASIC' ? [{ name: 'Atlas AI', href: '/atlas', icon: AtlasIcon, highlight: true }] : []),
+        { name: 'Strategy', href: '/strategy', icon: TrendingUp, requiredPlan: 'ADVANCED' },
+        { name: 'Atlas AI', href: '/atlas', icon: AtlasIcon, highlight: true, requiredPlan: 'PRO' },
       ],
     },
-  ], [messagingAllowed, resolvedPlan]);
+  ], []);
 
   const visibleGroups = React.useMemo<NavigationGroup[]>(() => {
     if (resolvedRole === 'client') {
@@ -169,7 +182,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         items: [
           { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
           { name: 'Calendar', href: '/calendar', icon: Calendar },
-          ...(messagingAllowed ? [{ name: 'Messages', href: '/messages', icon: MessageSquare }] : []),
+          { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
         ],
       }];
     }
@@ -180,14 +193,20 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
           { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard },
           { name: 'Tasks', href: '/tasks', icon: Activity },
           { name: 'Calendar', href: '/calendar', icon: Calendar },
-          ...(messagingAllowed ? [{ name: 'Messages', href: '/messages', icon: MessageSquare }] : []),
+          { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
         ],
       }];
     }
+    if (resolvedRole === 'sub_admin') {
+      const permissions = user?.accessPermissions || [];
+      return navigationGroups
+        .map((group) => ({ ...group, items: group.items.filter((item) => permissions.includes(item.href.split('/').filter(Boolean)[0])) }))
+        .filter((group) => group.items.length > 0);
+    }
     return navigationGroups;
-  }, [navigationGroups, resolvedRole, messagingAllowed]);
+  }, [navigationGroups, resolvedRole, user?.accessPermissions]);
 
-  const settingsItem: NavigationItem | null = resolvedRole === 'admin'
+  const settingsItem: NavigationItem | null = resolvedRole === 'admin' || (resolvedRole === 'sub_admin' && (user?.accessPermissions || []).includes('settings'))
     ? { name: 'Settings', href: '/settings', icon: Settings }
     : null;
 
@@ -214,7 +233,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     <div
       className={cn(
         'workspace-sidebar flex h-full flex-col border-r border-zinc-800 bg-[#09090b] text-zinc-400 transition-all duration-300 relative shrink-0',
-        isCollapsed ? 'w-20' : 'w-64',
+        isCollapsed ? 'w-20' : 'w-[282px]',
         className
       )}
       {...props}
@@ -243,16 +262,15 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
             <img 
               src="/iris-logo-white-transparent.png" 
               alt="Iris OS Logo" 
-              className="h-8 w-8 object-contain" 
+              className="h-10 w-10 object-contain" 
             />
           ) : (
             <div className="flex items-center gap-2">
               <img 
                 src="/iris-logo-black-bg.png" 
                 alt="Iris OS Logo" 
-                className="h-8 object-contain" 
+                className="h-12 object-contain" 
               />
-              <span className="block text-[10px] text-zinc-500 font-medium self-end pb-0.5">Enterprise Suite</span>
             </div>
           )}
         </Link>
@@ -265,8 +283,15 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
           isCollapsed ? "p-1.5 justify-center" : "px-3 py-2"
         )}>
           <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded bg-zinc-100 text-zinc-800 border border-zinc-200 dark:bg-zinc-700 dark:text-white dark:border-none flex items-center justify-center text-[10px] font-bold shrink-0">
-              {initials || 'AP'}
+            <div className="h-5 w-5 overflow-hidden rounded bg-zinc-100 text-zinc-800 border border-zinc-200 dark:bg-zinc-700 dark:text-white dark:border-none flex items-center justify-center text-[10px] font-bold shrink-0">
+              {orgLogoDataUrl ? (
+                <img
+                  src={orgLogoDataUrl}
+                  alt={`${orgName} logo`}
+                  className="h-full w-full object-cover"
+                  onError={() => setOrgLogoDataUrl('')}
+                />
+              ) : (initials || 'AP')}
             </div>
             {!isCollapsed && <span className="text-xs font-semibold text-zinc-200 truncate">{orgName}</span>}
           </div>
@@ -287,12 +312,18 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
               {group.items.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
             const Icon = item.icon;
+            const isLocked = Boolean(item.requiredPlan && !planIncludes(resolvedPlan, item.requiredPlan));
 
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                onClick={() => {
+                onClick={(event) => {
+                  if (isLocked && item.requiredPlan) {
+                    event.preventDefault();
+                    setUpgradePrompt({ feature: item.name, href: item.href, requiredPlan: item.requiredPlan });
+                    return;
+                  }
                   prepareWorkspaceDataCacheForRouteChange(item.href);
                   onCloseMobile?.();
                 }}
@@ -377,6 +408,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
                   <span className="text-[10px] text-zinc-500 mt-1 block truncate">
                     {user.email} {resolvedPlan ? `(${resolvedPlan})` : ''}
                   </span>
+                  <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-600">Enterprise Suite</span>
                 </div>
               )}
             </div>
@@ -406,6 +438,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
           </div>
         )}
       </div>
+      <SubscriptionPlanDialog open={Boolean(upgradePrompt)} currentPlan={resolvedPlan} feature={upgradePrompt?.feature || 'this feature'} requiredPlan={upgradePrompt?.requiredPlan || 'PRO'} canManage={resolvedRole === 'admin'} onClose={() => setUpgradePrompt(null)} onPlanChanged={(nextPlan) => { const destination = upgradePrompt?.href; setPlan(nextPlan); setUpgradePrompt(null); onCloseMobile?.(); if (destination) { prepareWorkspaceDataCacheForRouteChange(destination); router.push(destination); } }} />
     </div>
   );
 }

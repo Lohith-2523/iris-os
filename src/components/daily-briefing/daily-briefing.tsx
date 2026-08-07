@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { DailyBriefingItem, DailyBriefingPayload } from '@/lib/daily-briefing';
 import { dailyBriefingGreeting } from '@/lib/daily-briefing';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 import styles from './daily-briefing.module.css';
 
 type BriefingResponse = {
@@ -147,13 +148,7 @@ export function DailyBriefing() {
       });
   }, [briefing, readCount, timeZone]);
 
-  if (isLoading) {
-    return (
-      <div className={`${styles.loadingState} ${styles.immersiveState}`} role="status" aria-live="polite">
-        <span>Atlas is assembling your morning scan…</span>
-      </div>
-    );
-  }
+  if (isLoading) return <PageSkeleton variant="briefing" />;
 
   if (!briefing) {
     return (

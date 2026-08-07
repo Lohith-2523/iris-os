@@ -202,7 +202,7 @@ export async function executeAtlasAutomation(input: {
         source: 'ATLAS_AI',
       });
       return {
-        message: `Proforma invoice **${invoice.invoiceNumber}** was created for lead **${lead.fullName}** and delivery status is **${invoice.deliveryStatus.toLowerCase()}**.`,
+        message: `Proforma invoice **${invoice.invoiceNumber}** was created for lead **${lead.fullName}** and delivery status is **${invoice.deliveryStatus.toLowerCase()}**. [Open or download the invoice PDF](/api/invoices/${invoice.id}/pdf).`,
         entity: { type: 'invoice', id: invoice.id, href: '/invoices' },
         invalidateTags: ['invoices', 'finance', 'clients', 'dashboard'],
       };
@@ -225,7 +225,7 @@ export async function executeAtlasAutomation(input: {
       source: 'ATLAS_AI',
     });
     return {
-      message: `Invoice **${invoice.invoiceNumber}** was created for **${project.name}** and delivery status is **${invoice.deliveryStatus.toLowerCase()}**.`,
+      message: `Invoice **${invoice.invoiceNumber}** was created for **${project.name}** and delivery status is **${invoice.deliveryStatus.toLowerCase()}**. [Open or download the invoice PDF](/api/invoices/${invoice.id}/pdf).`,
       entity: { type: 'invoice', id: invoice.id, href: '/invoices' },
       invalidateTags: ['invoices', 'finance', 'projects', 'clients', 'dashboard'],
     };
@@ -249,7 +249,7 @@ export async function executeAtlasAutomation(input: {
     },
   });
   return {
-    message: `Report **${report.title}** was generated and saved to Executive Reporting.`,
+    message: `Report **${report.title}** was generated and saved to Executive Reporting. [Open or download the report PDF](/api/reports/${report.id}/pdf).`,
     entity: { type: 'report', id: report.id, href: '/reporting' },
     invalidateTags: ['reports', 'reporting', 'dashboard'],
   };

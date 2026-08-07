@@ -3,7 +3,8 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import nodemailer, { type Transporter } from 'nodemailer';
 
-export const IRIS_EMAIL_FROM = 'Iris OS <noreply@irisos.app>';
+export const IRIS_EMAIL_ADDRESS = 'noreply@irisos.app';
+export const IRIS_EMAIL_FROM = `Iris OS <${IRIS_EMAIL_ADDRESS}>`;
 
 export class IrisEmailDeliveryError extends Error {
   constructor(message: string, readonly status = 502) {
@@ -14,6 +15,7 @@ export class IrisEmailDeliveryError extends Error {
 
 type SendIrisEmailInput = {
   to: string[];
+  fromName?: string;
   subject: string;
   html: string;
   text: string;
@@ -125,10 +127,11 @@ export async function sendIrisEmail(input: SendIrisEmailInput) {
   const messageIdToken = createHash('sha256')
     .update(input.idempotencyKey)
     .digest('hex');
+  const fromName = input.fromName?.replace(/[\r\n<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
 
   try {
     const info = await smtpTransport(config).sendMail({
-      from: IRIS_EMAIL_FROM,
+      from: fromName ? { name: fromName, address: IRIS_EMAIL_ADDRESS } : IRIS_EMAIL_FROM,
       to,
       subject: input.subject,
       html: input.html,

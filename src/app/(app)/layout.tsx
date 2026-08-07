@@ -8,10 +8,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { setActiveWorkspaceContext } from '@/lib/utils';
 import { setAtlasAIWorkspaceScope } from '@/lib/atlas-ai/service';
-import { DailyBriefingLauncher } from '@/components/daily-briefing/daily-briefing-launcher';
 import { AuthSync } from '@/components/app-shell/auth-sync';
 import { MetaSdkLoader } from '@/components/integrations/meta-sdk-loader';
 import { FileInputSecurityGuard } from '@/components/security/file-input-security-guard';
+import { AtlasFloatingLauncher } from '@/components/atlas/atlas-floating-launcher';
+import { PageSkeleton, WorkspaceBootstrapLoader, pageSkeletonVariantForPath } from '@/components/ui/page-skeletons';
+import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
+import { planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import {
   configureWorkspaceDataCache,
   getWorkspaceDataLoadingSnapshot,
@@ -79,10 +82,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   
-  const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string; plan: string } | null>(null);
+  const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string; plan: string; accessPermissions?: string[] | null } | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [isBriefingGateResolved, setIsBriefingGateResolved] = React.useState(false);
-  const [hasUnreadBriefing, setHasUnreadBriefing] = React.useState(false);
   const isWorkspaceDataLoading = React.useSyncExternalStore(
     subscribeWorkspaceDataLoading,
     getWorkspaceDataLoadingSnapshot,
@@ -155,53 +156,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return stopWorkspaceDataBackgroundChecks;
   }, [user]);
 
-  React.useEffect(() => {
-    if (!user) return;
-    if (user.role.toLowerCase() !== 'admin' || user.plan !== 'ADVANCED' || window.location.pathname === '/briefing') {
-      setIsBriefingGateResolved(true);
-      return;
-    }
-
-    setIsBriefingGateResolved(false);
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
-    let isCurrent = true;
-
-    const checkBriefingStatus = async (openOnUnread: boolean) => {
-      try {
-        const response = await fetch(`/api/daily-briefing?intent=status&timeZone=${encodeURIComponent(timeZone)}`, {
-          cache: 'no-store',
-        });
-        if (!response.ok) throw new Error('Daily briefing status unavailable');
-        const status = await response.json() as { shouldOpen?: boolean };
-        if (!isCurrent) return;
-        const shouldOpen = Boolean(status.shouldOpen);
-        setHasUnreadBriefing(shouldOpen);
-        if (openOnUnread && shouldOpen) {
-          setIsBriefingGateResolved(true);
-          router.replace('/briefing?source=daily');
-          return;
-        }
-      } catch (error) {
-        console.error('Unable to check the daily briefing:', error);
-      } finally {
-        if (isCurrent && openOnUnread) setIsBriefingGateResolved(true);
-      }
-    };
-
-    void checkBriefingStatus(true);
-    const interval = window.setInterval(() => void checkBriefingStatus(false), 60 * 60 * 1_000);
-    return () => {
-      isCurrent = false;
-      window.clearInterval(interval);
-    };
-  }, [router, user]);
-
-  React.useEffect(() => {
-    const markBriefingRead = () => setHasUnreadBriefing(false);
-    window.addEventListener('daily-briefing-opened', markBriefingRead);
-    return () => window.removeEventListener('daily-briefing-opened', markBriefingRead);
-  }, []);
-
   const messagingAllowed = user?.plan !== 'BASIC';
   const isClientGated = user?.role?.toLowerCase() === 'client' && 
     pathname !== '/client-dashboard' && 
@@ -219,21 +173,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isAdminGated = user?.role?.toLowerCase() === 'admin' && 
     (pathname === '/client-dashboard' || pathname === '/client-leads' || pathname === '/teams-dashboard');
 
-  const isPlanGated = Boolean(user && (
-    (pathname === '/messages' && user.plan === 'BASIC')
-    || (pathname === '/atlas' && user.plan === 'BASIC')
-    || (pathname === '/briefing' && user.plan !== 'ADVANCED')
-    || (pathname === '/strategy' && user.plan !== 'ADVANCED')
-  ));
+  const routePermission = pathname.split('/').filter(Boolean)[0] || 'dashboard';
+  const isSubAdminGated = user?.role?.toLowerCase() === 'sub_admin'
+    && !(user.accessPermissions || []).includes(routePermission);
 
-  if (loading || (user?.role.toLowerCase() === 'admin' && user.plan === 'ADVANCED' && !isBriefingGateResolved)) {
+  const planGate: { feature: string; requiredPlan: PlanId } | null = pathname === '/messages'
+    ? { feature: 'Messages', requiredPlan: 'PRO' }
+    : pathname === '/atlas'
+      ? { feature: 'Atlas AI', requiredPlan: 'PRO' }
+      : pathname === '/strategy'
+          ? { feature: 'Strategy', requiredPlan: 'ADVANCED' }
+          : null;
+  const isPlanGated = Boolean(user && planGate && !planIncludes(user.plan, planGate.requiredPlan));
+
+  if (loading) {
     return (
-      <div className="workspace-shell flex h-screen w-screen items-center justify-center bg-[#09090b]">
+      <div className="workspace-shell min-h-screen w-screen bg-[#09090b]">
         <WorkspaceRuntime />
-        <div className="workspace-session-status workspace-loading-card text-zinc-500 text-xs flex items-center gap-2" role="status">
-          <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-zinc-400" />
-          <span>Loading workspace...</span>
-        </div>
+        <WorkspaceBootstrapLoader />
       </div>
     );
   }
@@ -254,7 +211,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           />
 
           {/* Sidebar Drawer */}
-          <div className="workspace-drawer relative z-50 flex h-full w-64 transform transition-transform duration-300 ease-in-out">
+          <div className="workspace-drawer relative z-50 flex h-full w-[282px] transform transition-transform duration-300 ease-in-out">
             <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} />
             <button
               onClick={() => setIsMobileOpen(false)}
@@ -276,27 +233,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           className="workspace-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0c0c0e] p-4 sm:p-6 lg:p-8"
           aria-busy={isWorkspaceDataLoading}
         >
-          {isWorkspaceDataLoading && pathname !== '/briefing' && (
+          {isWorkspaceDataLoading && (
             <div
-              className="workspace-overlay workspace-loading-overlay fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/82 p-6 backdrop-blur-md"
+              className="workspace-loading-overlay absolute inset-0 z-40 overflow-hidden bg-[#0c0c0e] p-4 sm:p-6 lg:p-8"
               role="status"
               aria-live="polite"
             >
-              <div className="workspace-session-status workspace-loading-card w-full max-w-sm rounded-2xl border border-zinc-700/80 bg-zinc-900/92 p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.5)]">
-                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-zinc-700 border-t-zinc-100" />
-                <h2 className="mt-4 text-sm font-semibold text-white">Loading workspace data</h2>
-              </div>
+              <PageSkeleton variant={pageSkeletonVariantForPath(pathname)} />
             </div>
           )}
-           {isPlanGated ? (
-            <div className="flex h-[70vh] flex-col items-center justify-center font-sans text-xs">
-              <div className="workspace-access-card w-full max-w-md bg-[#0d0e12] border border-zinc-800 p-6 rounded-lg shadow-2xl space-y-6 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded bg-zinc-900 border border-zinc-800 text-zinc-400"><Lock className="h-5 w-5" /></div>
-                <div className="space-y-1.5">
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider">Plan upgrade required</h2>
-                  <p className="text-[11px] text-zinc-500 max-w-xs mx-auto leading-normal">This feature is not included with the workspace’s current {user?.plan.toLowerCase()} plan.</p>
-                </div>
-                <Button onClick={() => router.push('/settings')} className="w-full h-9 font-semibold bg-white text-zinc-950 hover:bg-zinc-200">View plan settings</Button>
+           {isSubAdminGated ? (
+            <div className="flex h-[70vh] flex-col items-center justify-center">
+              <div className="workspace-access-card w-full max-w-lg space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-7 text-center">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl border border-zinc-800 bg-zinc-900"><Lock className="h-6 w-6" /></div>
+                <div><h2 className="font-bold text-white">Access not assigned</h2><p className="mt-2 text-zinc-400">The agency admin has not granted your sub-admin account access to this page.</p></div>
+                <Button onClick={() => router.push('/dashboard')}>Return to dashboard</Button>
               </div>
             </div>
           ) : isAdminGated ? (
@@ -378,7 +329,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </main>
       </div>
-      {user?.role.toLowerCase() === 'admin' && user.plan === 'ADVANCED' && <DailyBriefingLauncher hasUnreadBriefing={hasUnreadBriefing} />}
+      <SubscriptionPlanDialog open={isPlanGated} currentPlan={user?.plan} feature={planGate?.feature || 'this feature'} requiredPlan={planGate?.requiredPlan || 'PRO'} canManage={user?.role.toLowerCase() === 'admin'} onClose={() => router.push('/dashboard')} onPlanChanged={(nextPlan) => setUser(current => current ? { ...current, plan: nextPlan } : current)} />
+      <AtlasFloatingLauncher workspacePlan={user?.plan} canManagePlan={user?.role.toLowerCase() === 'admin'} />
     </div>
   );
 }

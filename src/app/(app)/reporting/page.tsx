@@ -9,6 +9,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { BarChart3, BriefcaseBusiness, Building2, Download, Eye, FileText, Loader2, Megaphone, RefreshCw, Sparkles, Users, X } from 'lucide-react';
 import { formatUserMessage } from '@/lib/utils';
 import type { ReportKind } from '@/lib/reports/types';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 
 type ReportArchive = {
   id: string;
@@ -100,6 +101,8 @@ export default function ReportingPage() {
   };
 
   const selectedOption = REPORT_OPTIONS.find((option) => option.kind === selectedKind)!;
+
+  if (loading) return <PageSkeleton variant="reporting" />;
 
   return (
     <div className="space-y-6">

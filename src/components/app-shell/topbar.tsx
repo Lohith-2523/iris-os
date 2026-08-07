@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { formatUserMessage } from '@/lib/utils';
 import { AtlasIcon } from '../ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
+import { NotificationCenter } from '@/components/notifications/notification-center';
 import {
   applyWorkspaceTheme,
   hasPersistedWorkspaceTheme,
@@ -182,6 +183,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
         {/* Right: Search & Theme Toggle */}
         <div className="flex items-center gap-3">
+          <NotificationCenter />
           <Button
             variant="ghost"
             size="icon"

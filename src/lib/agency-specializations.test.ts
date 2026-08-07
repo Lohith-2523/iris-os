@@ -9,8 +9,8 @@ import {
 describe('agency specialization service lines', () => {
   it('uses the unique specializations selected in agency settings', () => {
     expect(agencyServiceLines(['SEO Agency', ' SEO Agency ', 'Graphic Design Agency'])).toEqual([
-      'SEO Agency',
-      'Graphic Design Agency',
+      'SEO',
+      'Graphic Design',
     ]);
   });
 
