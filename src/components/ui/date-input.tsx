@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { CalendarDays } from 'lucide-react';
 
 function isoDate(value: string | null | undefined) {
   const match = String(value || '').match(/^(\d{4}-\d{2}-\d{2})/);
@@ -38,10 +39,11 @@ type DateInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' |
   max?: string;
 };
 
-export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', ...props }: DateInputProps) {
+export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, max, className, ...props }: DateInputProps) {
   const normalizedValue = isoDate(value);
   const [draft, setDraft] = React.useState(() => formatDateForInput(normalizedValue));
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const calendarInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setDraft(formatDateForInput(normalizedValue));
@@ -63,19 +65,52 @@ export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', ...prop
     if (!nextDraft) onChange('');
   };
 
-  return <input
-    {...props}
-    ref={inputRef}
-    type="text"
-    inputMode="numeric"
-    autoComplete="off"
-    placeholder={placeholder}
-    value={draft}
-    onChange={handleChange}
-    onBlur={() => validate(draft)}
-    pattern="\\d{2}/\\d{2}/\\d{4}"
-    title="Use DD/MM/YYYY"
-  />;
+  const openCalendar = () => {
+    const calendar = calendarInputRef.current;
+    if (!calendar) return;
+    calendar.focus({ preventScroll: true });
+    try {
+      calendar.showPicker();
+    } catch {
+      calendar.click();
+    }
+  };
+
+  return <div className="relative min-w-0">
+    <input
+      {...props}
+      ref={inputRef}
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      placeholder={placeholder}
+      value={draft}
+      onChange={handleChange}
+      onBlur={() => validate(draft)}
+      pattern="\\d{2}/\\d{2}/\\d{4}"
+      title="Use DD/MM/YYYY"
+      className={`${className || ''} pr-10`}
+    />
+    <button type="button" onClick={openCalendar} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground" aria-label="Choose date from calendar" title="Choose date from calendar">
+      <CalendarDays className="h-4 w-4" aria-hidden="true" />
+    </button>
+    <input
+      ref={calendarInputRef}
+      type="date"
+      value={normalizedValue}
+      min={min}
+      max={max}
+      tabIndex={-1}
+      aria-hidden="true"
+      className="absolute h-px w-px overflow-hidden opacity-0 pointer-events-none"
+      onChange={(event) => {
+        const nextDate = event.target.value;
+        setDraft(formatDateForInput(nextDate));
+        inputRef.current?.setCustomValidity('');
+        onChange(nextDate);
+      }}
+    />
+  </div>;
 }
 
 type DateTimeInputProps = Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> & {
