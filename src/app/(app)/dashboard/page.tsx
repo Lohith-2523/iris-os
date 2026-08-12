@@ -100,47 +100,6 @@ export default function DashboardPage() {
   }, []);
 
   React.useEffect(() => {
-    const statusChangeCallback = (response: any) => {
-      if (response.status === 'connected') {
-        console.log('Meta connected via FB SDK:', response);
-        setOnboardingState(prev => {
-          const next = { ...prev, meta: 'connected' as const };
-          void persistChecklist(next);
-          return next;
-        });
-        fetch('/api/integrations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            provider: 'META',
-            action: 'connect_sdk',
-            authResponse: response.authResponse
-          })
-        }).catch(err => console.error('Failed to sync FB connection to backend:', err));
-      } else {
-        console.log('Meta login status check failed or disconnected:', response.status);
-      }
-    };
-
-    const checkFbLogin = () => {
-      if (typeof window !== 'undefined' && (window as any).FB) {
-        (window as any).FB.getLoginStatus(function(response: any) {
-          statusChangeCallback(response);
-        });
-      }
-    };
-
-    const interval = setInterval(() => {
-      if (typeof window !== 'undefined' && (window as any).FB) {
-        clearInterval(interval);
-        checkFbLogin();
-      }
-    }, 550);
-
-    return () => clearInterval(interval);
-  }, [persistChecklist]);
-
-  React.useEffect(() => {
     async function load() {
       try {
         const res = await fetch('/api/data?domain=dashboard');
