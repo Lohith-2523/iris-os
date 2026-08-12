@@ -145,7 +145,7 @@ export default function SettingsPage() {
   const [showMetaAccountPicker, setShowMetaAccountPicker] = React.useState(false);
   const [metaConnection, setMetaConnection] = React.useState<MetaConnectionDetails | null>(null);
   const [selectedMetaAccountIds, setSelectedMetaAccountIds] = React.useState<string[]>([]);
-  const [metaConnectionStatus, setMetaConnectionStatus] = React.useState<'idle' | 'authorizing' | 'loading' | 'saving'>('idle');
+  const [metaConnectionStatus, setMetaConnectionStatus] = React.useState<'idle' | 'authorizing' | 'loading' | 'saving' | 'logging_out'>('idle');
   const [metaConnectionError, setMetaConnectionError] = React.useState('');
   const [metaSdkStatus, setMetaSdkStatus] = React.useState<MetaSdkStatus>('loading');
 
@@ -405,6 +405,36 @@ export default function SettingsPage() {
     }
     router.replace('/login');
     router.refresh();
+  };
+
+  const handleLogoutMeta = async () => {
+    setMetaConnectionStatus('logging_out');
+    setMetaConnectionError('');
+
+    try {
+      const response = await fetch('/api/integrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'META', action: 'disconnect' }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to clear the Meta authorization.');
+
+      if (typeof window !== 'undefined' && window.FB && metaSdkStatus === 'ready') {
+        await new Promise<void>((resolve) => {
+          window.FB?.logout(() => resolve());
+        });
+      }
+
+      setShowMetaAccountPicker(false);
+      setMetaConnection(null);
+      setSelectedMetaAccountIds([]);
+      await fetchIntegrations();
+    } catch (error) {
+      setMetaConnectionError(formatUserMessage(error instanceof Error ? error.message : 'Unable to log out of Meta.'));
+    } finally {
+      setMetaConnectionStatus('idle');
+    }
   };
 
   const limitExceeded = React.useMemo(() => {
@@ -1409,39 +1439,54 @@ export default function SettingsPage() {
                                     </Button>
                                   </div>
                                 ) : (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    disabled={
-                                      item.provider === 'META' &&
-                                      (
-                                        metaConnectionStatus !== 'idle' ||
-                                        (item.status !== 'SYNCING' && metaSdkStatus === 'loading')
-                                      )
-                                    }
-                                    onClick={() => {
-                                      if (item.provider === 'META') {
-                                        if (item.status === 'SYNCING' && item.hasConfig) {
-                                          loadMetaAccounts();
-                                        } else {
-                                          handleConnectMeta();
-                                        }
-                                      } else if (item.provider === 'GOOGLE') {
-                                        window.location.assign('/api/integrations/google/start?returnTo=/calendar');
+                                  <div className="flex gap-2 justify-end">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      disabled={
+                                        item.provider === 'META' &&
+                                        (
+                                          metaConnectionStatus !== 'idle' ||
+                                          (item.status !== 'SYNCING' && metaSdkStatus === 'loading')
+                                        )
                                       }
-                                    }}
-                                    className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
-                                  >
-                                    {item.provider === 'META' &&
-                                    (metaConnectionStatus !== 'idle' || metaSdkStatus === 'loading') ? (
-                                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                      onClick={() => {
+                                        if (item.provider === 'META') {
+                                          if (item.status === 'SYNCING' && item.hasConfig) {
+                                            loadMetaAccounts();
+                                          } else {
+                                            handleConnectMeta();
+                                          }
+                                        } else if (item.provider === 'GOOGLE') {
+                                          window.location.assign('/api/integrations/google/start?returnTo=/calendar');
+                                        }
+                                      }}
+                                      className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
+                                    >
+                                      {item.provider === 'META' &&
+                                      (metaConnectionStatus !== 'idle' || metaSdkStatus === 'loading') ? (
+                                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                      ) : null}
+                                      {item.provider === 'META' && item.status !== 'SYNCING' && metaSdkStatus === 'loading'
+                                        ? 'Loading Facebook'
+                                        : item.provider === 'META' && item.status === 'SYNCING'
+                                          ? 'Complete setup'
+                                          : 'Connect Account'}
+                                    </Button>
+                                    {item.provider === 'META' && item.status === 'SYNCING' && item.hasConfig ? (
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={handleLogoutMeta}
+                                        disabled={metaConnectionStatus !== 'idle'}
+                                        className="h-8 text-rose-450 hover:bg-rose-950/10 hover:text-rose-350 text-xs font-semibold"
+                                      >
+                                        <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                                        Log out of Meta
+                                      </Button>
                                     ) : null}
-                                    {item.provider === 'META' && item.status !== 'SYNCING' && metaSdkStatus === 'loading'
-                                      ? 'Loading Facebook'
-                                      : item.provider === 'META' && item.status === 'SYNCING'
-                                        ? 'Complete setup'
-                                        : 'Connect Account'}
-                                  </Button>
+                                  </div>
                                 )
                               ) : null}
                             </td>
@@ -1591,6 +1636,20 @@ export default function SettingsPage() {
                 {selectedMetaAccountIds.length} account{selectedMetaAccountIds.length === 1 ? '' : 's'} selected
               </span>
               <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleLogoutMeta}
+                  disabled={metaConnectionStatus !== 'idle'}
+                  className="text-rose-450 hover:bg-rose-950/10 hover:text-rose-350"
+                >
+                  {metaConnectionStatus === 'logging_out' ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="mr-1.5 h-4 w-4" />
+                  )}
+                  Log out of Meta
+                </Button>
                 <Button type="button" variant="ghost" onClick={() => setShowMetaAccountPicker(false)}>
                   Cancel
                 </Button>

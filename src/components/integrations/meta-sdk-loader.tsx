@@ -15,6 +15,7 @@ type FacebookSdk = {
     xfbml: boolean;
     version: string;
   }) => void;
+  logout: (callback: (response: { status: string }) => void) => void;
   AppEvents?: {
     logPageView?: () => void;
   };
