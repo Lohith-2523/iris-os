@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getRequestUser } from '@/lib/org';
+import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { ledgerRevenueEntries, sumLedgerRevenue } from '@/lib/finance/ledger-revenue';
 import { clientPortfolioValueForYear } from '@/lib/clients/portfolio-value';
 import { buildFinancialHistory, type FinancialTimeframe } from '@/lib/finance/financial-history';
+import { serializeClientOnboardingInvite } from '@/lib/clients/onboarding-invite';
 
 type RevenueTransaction = {
   invoiceId: string | null;
@@ -246,6 +247,7 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 serviceLine: true,
+                metaIntegrationEnabled: true,
                 status: true,
                 progress: true,
                 startDate: true,
@@ -254,6 +256,13 @@ export async function GET(request: NextRequest) {
                 paymentAmount: true,
                 paymentFrequency: true,
                 paymentStartDate: true,
+                members: {
+                  select: {
+                    user: {
+                      select: { id: true, name: true, email: true, avatarUrl: true },
+                    },
+                  },
+                },
               },
             },
             invoices: {
@@ -262,6 +271,11 @@ export async function GET(request: NextRequest) {
               },
               orderBy: { issuedDate: 'desc' },
             },
+            invites: {
+              select: { token: true, email: true, used: true, expiresAt: true },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
           },
           orderBy: { name: 'asc' }
         });
@@ -269,6 +283,7 @@ export async function GET(request: NextRequest) {
         const portfolioYear = new Date().getUTCFullYear();
         const formattedClients = clients.map(c => {
           const contractValue = clientPortfolioValueForYear(c.projects, portfolioYear);
+          const onboardingInvite = serializeClientOnboardingInvite(c.invites[0], isOrganizationAdmin(user));
 
           return {
             id: c.id,
@@ -292,7 +307,14 @@ export async function GET(request: NextRequest) {
             adAccountId: c.adAccountId,
             metadata: c.metadata || null,
             contacts: c.contacts,
-            projects: c.projects.map((project) => ({ ...project, startDate: project.startDate.toISOString(), endDate: project.endDate?.toISOString() || null, paymentStartDate: project.paymentStartDate?.toISOString() || null })),
+            onboardingInvite,
+            projects: c.projects.map((project) => ({
+              ...project,
+              members: project.members.map(({ user: member }) => member),
+              startDate: project.startDate.toISOString(),
+              endDate: project.endDate?.toISOString() || null,
+              paymentStartDate: project.paymentStartDate?.toISOString() || null,
+            })),
             invoices: c.invoices.map((invoice) => ({
               id: invoice.id,
               invoiceNumber: invoice.invoiceNumber,
@@ -351,6 +373,7 @@ export async function GET(request: NextRequest) {
           email: u.email,
           role: u.role,
           phone: u.phone || null,
+          avatarUrl: u.avatarUrl || null,
           projects: '',
           status: '',
         }));

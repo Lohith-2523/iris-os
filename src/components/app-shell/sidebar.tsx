@@ -282,7 +282,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
           isCollapsed ? "p-1.5 justify-center" : "px-3 py-2"
         )}>
           <div className="flex items-center gap-2">
-            <div className="h-5 w-5 overflow-hidden rounded bg-zinc-100 text-zinc-800 border border-zinc-200 dark:bg-zinc-700 dark:text-white dark:border-none flex items-center justify-center text-[10px] font-bold shrink-0">
+            <div className="h-10 w-10 overflow-hidden rounded bg-zinc-100 text-zinc-800 border border-zinc-200 dark:bg-zinc-700 dark:text-white dark:border-none flex items-center justify-center text-[10px] font-bold shrink-0">
               {orgLogoDataUrl ? (
                 <img
                   src={orgLogoDataUrl}
@@ -380,8 +380,8 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
             aria-label="Open profile settings"
             className={cn("workspace-profile-settings group flex items-center rounded-xl border border-transparent outline-none transition-colors hover:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-500", isCollapsed ? "justify-center p-1.5" : "gap-2.5 p-2")}
           >
-              <div className="h-7 w-7 overflow-hidden rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 text-white font-bold text-[10px] shrink-0">
-                {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : userInitials}
+              <div className="h-7 w-7 overflow-hidden rounded-md bg-zinc-800 flex items-center justify-center border border-zinc-700 text-white font-bold text-[10px] shrink-0">
+                {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-contain" /> : userInitials}
               </div>
               {!isCollapsed && (
                 <div className="truncate">

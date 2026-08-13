@@ -7,6 +7,7 @@ import { assignAgencyMetaAdAccount, syncAgencyMetaAdAccount } from '@/lib/agency
 import { MetaIntegrationError } from '@/lib/meta-business';
 import { normalizeRequiredPhone } from '@/lib/phone';
 import { createNotification } from '@/lib/notifications';
+import { getKanbanLeadCutoff } from '@/lib/lead-archive';
 
 function parseEstimatedClientValue(value: unknown) {
   if (value === undefined || value === null || value === '') return null;
@@ -20,9 +21,14 @@ export async function GET(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const canManageAgencyMeta = isOrganizationAdmin(user);
-    const [leads, expenseTransactions, closedLeadCount, sourcedProjectPayments, agencyMetaAccounts] = await Promise.all([
+    const kanbanOnly = request.nextUrl.searchParams.get('view') === 'kanban';
+    const kanbanCutoff = getKanbanLeadCutoff();
+    const [leads, archivedLeadCount, expenseTransactions, closedLeadCount, sourcedProjectPayments, agencyMetaAccounts] = await Promise.all([
       prisma.agencyLead.findMany({
-        where: { orgId: user.orgId },
+        where: {
+          orgId: user.orgId,
+          ...(kanbanOnly ? { createdTime: { gte: kanbanCutoff } } : {}),
+        },
         orderBy: { createdTime: 'desc' },
         include: {
           convertedClient: {
@@ -30,6 +36,9 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
+      kanbanOnly
+        ? prisma.agencyLead.count({ where: { orgId: user.orgId, createdTime: { lt: kanbanCutoff } } })
+        : Promise.resolve(0),
       prisma.transaction.findMany({
         where: {
           orgId: user.orgId,
@@ -103,6 +112,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       leads,
+      archive: kanbanOnly ? {
+        archivedLeadCount,
+        retentionDays: 30,
+        cutoff: kanbanCutoff,
+      } : null,
       metrics,
       role: user.role || 'admin',
       meta: canManageAgencyMeta ? {

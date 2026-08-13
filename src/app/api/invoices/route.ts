@@ -7,6 +7,7 @@ import {
   InvoiceServiceError,
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
+import { calculateInvoiceItemsWithOverallTax } from '@/lib/invoices/calculations';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -58,6 +59,17 @@ const createInvoiceSchema = z.discriminatedUnion('mode', [
   detailedInvoiceSchema,
   proformaInvoiceSchema,
 ]);
+
+const updateInvoiceSchema = z.object({
+  id: z.string().trim().min(1),
+  invoiceNumber: z.string().trim().min(2).max(80),
+  description: z.string().trim().max(2_000).nullable().optional(),
+  termsOfSale: z.string().trim().max(4_000).nullable().optional(),
+  dueDate: z.union([z.string().date(), z.literal('')]).optional(),
+  issuedDate: z.string().date(),
+  taxRate: z.coerce.number().min(0).max(40),
+  lineItems: z.array(lineItemSchema).min(1).max(8),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -192,5 +204,53 @@ export async function POST(request: NextRequest) {
     }
     console.error('Unable to create invoice:', error);
     return NextResponse.json({ error: 'Unable to create the invoice.' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getRequestUser(request);
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const parsed = updateInvoiceSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invoice details are invalid.' }, { status: 400 });
+    const existing = await prisma.invoice.findFirst({ where: { id: parsed.data.id, orgId: user.orgId }, select: { id: true, paidAmount: true } });
+    if (!existing) return NextResponse.json({ error: 'Invoice not found.' }, { status: 404 });
+    const totals = calculateInvoiceItemsWithOverallTax(parsed.data.lineItems, parsed.data.taxRate);
+    if (existing.paidAmount > totals.total) return NextResponse.json({ error: 'The updated total cannot be lower than the amount already paid.' }, { status: 400 });
+    const invoice = await prisma.invoice.update({
+      where: { id: existing.id },
+      data: {
+        invoiceNumber: parsed.data.invoiceNumber,
+        description: parsed.data.description || null,
+        termsOfSale: parsed.data.termsOfSale || null,
+        dueDate: parsed.data.dueDate ? new Date(`${parsed.data.dueDate}T00:00:00.000Z`) : null,
+        issuedDate: new Date(`${parsed.data.issuedDate}T00:00:00.000Z`),
+        subtotal: totals.subtotal,
+        taxRate: totals.taxRate,
+        taxAmount: totals.taxAmount,
+        amount: totals.total,
+        lineItems: totals.lineItems,
+        pdfGeneratedAt: null,
+      },
+    });
+    return NextResponse.json({ success: true, invoice });
+  } catch (error) {
+    console.error('Unable to update invoice:', error);
+    return NextResponse.json({ error: 'Unable to update the invoice. Check that its number is unique.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getRequestUser(request);
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const id = request.nextUrl.searchParams.get('id')?.trim();
+    if (!id) return NextResponse.json({ error: 'Invoice id is required.' }, { status: 400 });
+    const result = await prisma.invoice.deleteMany({ where: { id, orgId: user.orgId } });
+    if (!result.count) return NextResponse.json({ error: 'Invoice not found.' }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Unable to delete invoice:', error);
+    return NextResponse.json({ error: 'Unable to delete the invoice.' }, { status: 500 });
   }
 }

@@ -78,7 +78,7 @@
   --color-auth-google-green: oklch(0.64 0.16 145);
   --color-auth-google-yellow: oklch(0.82 0.17 84);
   --color-auth-google-red: oklch(0.62 0.21 30);
-  --font-auth-display: 'Clash Display', 'Geist', system-ui, sans-serif;
+  --font-auth-display: var(--font-clash-display), 'Clash Display', var(--font-geist-sans), system-ui, sans-serif;
   --font-auth-body: 'Sansation', 'Geist', system-ui, sans-serif;
   --font-auth-mono: 'Geist Mono', ui-monospace, monospace;
   --space-auth-xs: 0.5rem;

@@ -15,16 +15,30 @@ export function NotificationCenter() {
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [showReminder, setShowReminder] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [popup, setPopup] = React.useState<Notification | null>(null);
   const [reminder, setReminder] = React.useState({ title: '', scheduledAt: '', href: '/dashboard' });
+  const initialized = React.useRef(false);
+  const knownNotificationIds = React.useRef(new Set<string>());
 
   const load = React.useCallback(async () => {
     const response = await fetch('/api/notifications', { cache: 'no-store' });
     if (!response.ok) return;
     const payload = await response.json();
-    setItems(payload.notifications || []);
+    const nextItems: Notification[] = payload.notifications || [];
+    if (initialized.current) {
+      const countersignNotification = nextItems.find(item => !item.readAt && item.actionLabel === 'Countersign now' && !knownNotificationIds.current.has(item.id));
+      if (countersignNotification) setPopup(countersignNotification);
+    } else initialized.current = true;
+    knownNotificationIds.current = new Set(nextItems.map(item => item.id));
+    setItems(nextItems);
     setUnreadCount(payload.unreadCount || 0);
   }, []);
   React.useEffect(() => { void load(); const timer = window.setInterval(() => void load(), 30_000); return () => window.clearInterval(timer); }, [load]);
+  React.useEffect(() => {
+    if (!popup) return;
+    const timer = window.setTimeout(() => setPopup(null), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [popup]);
 
   const post = async (body: Record<string, unknown>) => {
     const response = await fetch('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -47,6 +61,10 @@ export function NotificationCenter() {
   };
 
   return <div className="relative">
+    {popup && <div role="alert" className="fixed right-5 top-20 z-[100] w-[min(92vw,410px)] rounded-2xl border border-zinc-700 bg-zinc-950 p-4 text-white shadow-2xl">
+      <div className="flex items-start justify-between gap-4"><div><div className="font-bold">{popup.title}</div><p className="mt-1 leading-relaxed text-zinc-400">{popup.body}</p></div><button type="button" onClick={() => setPopup(null)} aria-label="Dismiss notification" className="text-zinc-500 hover:text-white"><X className="h-4 w-4" /></button></div>
+      <Button type="button" size="sm" className="mt-3" onClick={() => { setPopup(null); void openNotification(popup); }}>{popup.actionLabel}</Button>
+    </div>}
     <button type="button" onClick={() => setOpen((value) => !value)} className="relative grid h-11 w-11 place-items-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}>
       <Bell className="h-5 w-5" />
       {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-6 rounded-full bg-white px-1.5 py-0.5 text-center text-xs font-bold text-zinc-950">{unreadCount > 99 ? '99+' : unreadCount}</span>}

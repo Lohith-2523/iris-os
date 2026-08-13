@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -263,7 +264,7 @@ export default function OnboardingPage() {
             billingPostalCode: agencyDetails.postalCode,
             billingCountry: agencyDetails.country,
             gstNumber: agencyDetails.taxNumber,
-            agencyTypes: [agencyDetails.specialization],
+            agencyTypes: parseAgencyIndustryList(agencyDetails.specialization),
             bankNames: [agencyDetails.bankName],
             preferences: { website: agencyDetails.website, agencyPhone: agencyDetails.phone },
           })
@@ -385,7 +386,7 @@ export default function OnboardingPage() {
                   <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Billing email *</span><input required type="email" value={agencyDetails.billingEmail} onChange={(event) => setAgencyDetails({ ...agencyDetails, billingEmail: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
                   <label className="space-y-1.5 md:col-span-2"><span className="block font-semibold text-zinc-400">Agency phone *</span><CountryPhoneInput required value={agencyDetails.phone} onChange={(phone) => setAgencyDetails({ ...agencyDetails, phone })} /></label>
                   <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Website</span><input type="url" value={agencyDetails.website} onChange={(event) => setAgencyDetails({ ...agencyDetails, website: event.target.value })} placeholder="https://" className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
-                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Service specialization *</span><select required value={agencyDetails.specialization} onChange={(event) => setAgencyDetails({ ...agencyDetails, specialization: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white"><option>Digital Marketing Agency</option><option>Social Media Management Agency</option><option>SEO Agency</option><option>Paid Advertising Agency (PPC)</option><option>Web Design & Development Agency</option><option>Branding & Creative Agency</option><option>Content Marketing Agency</option><option>Video Production Agency</option><option>Public Relations Agency</option><option>Full Service Agency</option></select></label>
+                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Industry specializations *</span><input required value={agencyDetails.specialization} onChange={(event) => setAgencyDetails({ ...agencyDetails, specialization: event.target.value })} placeholder="Healthcare, B2B SaaS, Hospitality" className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /><span className="block text-[10px] text-zinc-500">Enter a comma-separated list.</span></label>
                   <label className="space-y-1.5 md:col-span-2"><span className="block font-semibold text-zinc-400">Address line 1 *</span><input required value={agencyDetails.addressLine1} onChange={(event) => setAgencyDetails({ ...agencyDetails, addressLine1: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
                   <label className="space-y-1.5 md:col-span-2"><span className="block font-semibold text-zinc-400">Address line 2</span><input value={agencyDetails.addressLine2} onChange={(event) => setAgencyDetails({ ...agencyDetails, addressLine2: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
                   <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">City *</span><input required value={agencyDetails.city} onChange={(event) => setAgencyDetails({ ...agencyDetails, city: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>

@@ -12,6 +12,7 @@ import { AuthSync } from '@/components/app-shell/auth-sync';
 import { MetaSdkLoader } from '@/components/integrations/meta-sdk-loader';
 import { FileInputSecurityGuard } from '@/components/security/file-input-security-guard';
 import { AtlasFloatingLauncher } from '@/components/atlas/atlas-floating-launcher';
+import { canShowAtlasLauncher } from '@/lib/workspace-launchers';
 import { PageSkeleton, WorkspaceBootstrapLoader, pageSkeletonVariantForPath } from '@/components/ui/page-skeletons';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { planIncludes, type PlanId } from '@/lib/plan-entitlements';
@@ -338,7 +339,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <SubscriptionPlanDialog open={isPlanGated} currentPlan={user?.plan} feature={planGate?.feature || 'this feature'} requiredPlan={planGate?.requiredPlan || 'PRO'} canManage={user?.role.toLowerCase() === 'admin'} onClose={() => router.push('/dashboard')} onPlanChanged={(nextPlan) => setUser(current => current ? { ...current, plan: nextPlan } : current)} />
-      <AtlasFloatingLauncher workspacePlan={user?.plan} canManagePlan={user?.role.toLowerCase() === 'admin'} />
+      {user && canShowAtlasLauncher(user.role) && (
+        <AtlasFloatingLauncher workspacePlan={user.plan} canManagePlan={user.role.toLowerCase() === 'admin'} />
+      )}
     </div>
   );
 }

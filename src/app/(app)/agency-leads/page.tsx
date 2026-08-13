@@ -33,8 +33,9 @@ import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { validateBrowserFile } from '@/lib/file-security';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
-import { DateTimeInput } from '@/components/ui/date-input';
+import { DateInput, DateTimeInput } from '@/components/ui/date-input';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { LEAD_EXPORT_TIMEFRAMES, resolveLeadExportTimeframe, type LeadExportTimeframe } from '@/lib/lead-export-timeframe';
 
 interface AgencyLead {
   id: string;
@@ -72,6 +73,20 @@ const DEFAULT_LEAD_STAGES: LeadStage[] = [
 ];
 
 const whatsAppHref = (phone: string) => `https://wa.me/${phone.replace(/\D/g, '')}`;
+
+function localIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function defaultExportRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - 30);
+  return { from: localIsoDate(start), to: localIsoDate(end) };
+}
 
 interface LeadMetrics {
   marketingSpend: number;
@@ -152,16 +167,23 @@ export default function AgencyLeadsPage() {
   const [stageEditorError, setStageEditorError] = React.useState('');
   const [savingLead, setSavingLead] = React.useState(false);
   const [lostDialog, setLostDialog] = React.useState<{ leadId: string; reason: string; details: string } | null>(null);
+  const [archivedLeadCount, setArchivedLeadCount] = React.useState(0);
+  const [exportOpen, setExportOpen] = React.useState(false);
+  const [exportTimeframe, setExportTimeframe] = React.useState<LeadExportTimeframe>('1_month');
+  const [exportRange, setExportRange] = React.useState(defaultExportRange);
+  const [exporting, setExporting] = React.useState(false);
+  const [exportError, setExportError] = React.useState('');
 
   // Spend value for calculating CAC/ROAS on this page
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [res, integrationsRes, workspaceRes] = await Promise.all([fetch('/api/agency-leads'), fetch('/api/integrations'), fetch('/api/workspace')]);
+      const [res, integrationsRes, workspaceRes] = await Promise.all([fetch('/api/agency-leads?view=kanban'), fetch('/api/integrations'), fetch('/api/workspace')]);
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
+        setArchivedLeadCount(data.archive?.archivedLeadCount || 0);
         setMetrics(data.metrics || {
           marketingSpend: 0,
           closedLeadCount: 0,
@@ -594,6 +616,49 @@ export default function AgencyLeadsPage() {
     setStagedLeads(updated);
   };
 
+  const exportLeads = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (exportTimeframe === 'custom' && (!exportRange.from || !exportRange.to)) {
+      setExportError('Choose a start and end date.');
+      return;
+    }
+    if (exportTimeframe === 'custom' && exportRange.from > exportRange.to) {
+      setExportError('The start date must be on or before the end date.');
+      return;
+    }
+
+    setExporting(true);
+    setExportError('');
+    try {
+      const today = localIsoDate(new Date());
+      const presetRange = resolveLeadExportTimeframe(exportTimeframe, today);
+      const queryValues = exportTimeframe === 'custom' ? exportRange : presetRange;
+      if (!queryValues) throw new Error('Unable to resolve the selected timeframe.');
+      const query = new URLSearchParams(queryValues);
+      const response = await globalThis.fetch(`/api/agency-leads/export?${query.toString()}`, { cache: 'no-store' });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Unable to export leads.');
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('content-disposition') || '';
+      const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'crystalos-leads.xlsx';
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setExportOpen(false);
+    } catch (error) {
+      setExportError(formatUserMessage(error instanceof Error ? error.message : 'Unable to export leads.'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const addLeadStage = () => {
     setLeadStages((current) => {
       if (current.length >= MAX_LEAD_STAGES) return current;
@@ -753,15 +818,15 @@ export default function AgencyLeadsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
-        <div>
+      <div className="agency-leads-header flex flex-col gap-2 border-b border-zinc-800/60 pb-5 md:flex-row md:items-center md:justify-between">
+        <div className="agency-leads-heading">
           <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Agency Pipeline</span>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
             Agency Leads Hub
           </h1>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="agency-leads-header-actions flex flex-wrap items-center justify-end gap-3">
+          <div className="agency-leads-summary-grid grid grid-cols-2 gap-2 sm:grid-cols-4">
             {leadSummaryMetrics.map(({ label, value, icon: Icon }) => (
               <div key={label} className="min-w-[116px] rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 shadow-sm">
                 <div className="flex items-center justify-between gap-2">
@@ -810,9 +875,18 @@ export default function AgencyLeadsPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => { setExportError(''); setExportOpen(true); }}
+            className="h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Export leads</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSyncData}
             disabled={syncing}
-            className="h-8 border-zinc-800 text-zinc-300 gap-1.5 rounded-md"
+            className="agency-leads-sync h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
             <span>Sync</span>
@@ -873,7 +947,12 @@ export default function AgencyLeadsPage() {
                 className="min-w-0 flex-1 bg-transparent py-1.5 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none font-sans"
               />
             </div>
-            <Button type="button" variant="outline" onClick={() => setShowStageEditor((value) => !value)}>Customize stages</Button>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <span className="text-[10px] text-zinc-500">
+                Showing the last 30 days{archivedLeadCount > 0 ? ` · ${archivedLeadCount.toLocaleString()} archived` : ''}
+              </span>
+              <Button type="button" variant="outline" onClick={() => setShowStageEditor((value) => !value)}>Customize stages</Button>
+            </div>
           </div>
 
           {showStageEditor && (
@@ -1449,6 +1528,71 @@ export default function AgencyLeadsPage() {
               {leads.filter((lead) => lead.sourceProvider === 'META').map((lead) => { const ad = (agencyMeta?.ads || []).find((item) => item.adId === lead.adId); return <TableRow key={lead.id}><TableCell><button type="button" className="text-left font-semibold text-white hover:underline" onClick={() => { setSelectedLead(lead); setLeadDraft({ fullName: lead.fullName, email: lead.email, phone: lead.phone || '', status: lead.status, approachMethod: lead.approachMethod || 'Ads', funnelName: lead.funnelName || '', estimatedClientValue: String(lead.estimatedClientValue || ''), followUpAt: lead.followUpAt ? new Date(lead.followUpAt).toISOString().slice(0, 16) : '' }); }}>{lead.fullName}<span className="block text-zinc-500">{lead.email || lead.phone}</span></button></TableCell><TableCell>{lead.adName || 'Meta lead ad'}</TableCell><TableCell>{ad?.campaign?.name || lead.campaignId || '—'}</TableCell><TableCell>{lead.formId || '—'}</TableCell><TableCell>{new Date(lead.createdTime).toLocaleString()}</TableCell><TableCell>{lead.phone && <a className="font-semibold text-emerald-300 hover:underline" href={whatsAppHref(lead.phone)} target="_blank" rel="noreferrer">WhatsApp</a>}</TableCell></TableRow>; })}
               {!leads.some((lead) => lead.sourceProvider === 'META') && <TableRow><TableCell colSpan={6} className="py-10 text-center text-zinc-500">No Meta instant-form leads have been retrieved yet.</TableCell></TableRow>}
             </TableBody></Table></CardContent>
+          </Card>
+        </div>
+      )}
+
+      {exportOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="export-leads-title">
+          <Card className="w-full max-w-lg border-zinc-800 bg-zinc-950 shadow-2xl">
+            <form onSubmit={exportLeads}>
+              <CardHeader className="border-b border-zinc-900">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <CardTitle id="export-leads-title" className="flex items-center gap-2 text-white">
+                      <FileSpreadsheet className="h-4 w-4 text-zinc-400" aria-hidden="true" />
+                      Export lead history
+                    </CardTitle>
+                    <CardDescription className="mt-1.5 leading-5">
+                      Download every stored lead acquired in the selected date range, including records archived from the Kanban after 30 days.
+                    </CardDescription>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setExportOpen(false)} disabled={exporting} aria-label="Close export dialog">
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5 pt-5">
+                <label className="block space-y-2 text-xs font-semibold text-zinc-300">
+                  <span>Timeframe</span>
+                  <select
+                    value={exportTimeframe}
+                    onChange={(event) => { setExportTimeframe(event.target.value as LeadExportTimeframe); setExportError(''); }}
+                    className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-white outline-none focus:border-zinc-600"
+                  >
+                    {LEAD_EXPORT_TIMEFRAMES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                {exportTimeframe === 'custom' ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-2 text-xs font-semibold text-zinc-300">
+                      <span>Start date</span>
+                      <DateInput required value={exportRange.from} max={exportRange.to || undefined} onChange={(from) => setExportRange((current) => ({ ...current, from }))} className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-white outline-none focus:border-zinc-600" />
+                    </label>
+                    <label className="space-y-2 text-xs font-semibold text-zinc-300">
+                      <span>End date</span>
+                      <DateInput required value={exportRange.to} min={exportRange.from || undefined} onChange={(to) => setExportRange((current) => ({ ...current, to }))} className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-white outline-none focus:border-zinc-600" />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-zinc-850 bg-zinc-900/40 px-3 py-2.5 text-xs text-zinc-400">
+                    {exportTimeframe === 'all_time'
+                      ? 'Exports all stored leads through today.'
+                      : `Exports leads from today back through the selected ${LEAD_EXPORT_TIMEFRAMES.find((option) => option.value === exportTimeframe)?.label.toLowerCase()}.`}
+                  </div>
+                )}
+                <div className="rounded-md border border-zinc-850 bg-zinc-900/40 p-3 text-xs leading-5 text-zinc-400">
+                  The Excel file includes contact details, pipeline status, source, estimated value, follow-up data, conversion status, and available Meta attribution.
+                </div>
+                {exportError && <p role="alert" className="text-xs text-rose-400">{exportError}</p>}
+                <div className="flex justify-end gap-3 border-t border-zinc-900 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setExportOpen(false)} disabled={exporting}>Cancel</Button>
+                  <Button type="submit" disabled={exporting} className="min-w-36">
+                    {exporting ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Preparing file</> : <><Download className="h-4 w-4" aria-hidden="true" /> Export Excel</>}
+                  </Button>
+                </div>
+              </CardContent>
+            </form>
           </Card>
         </div>
       )}

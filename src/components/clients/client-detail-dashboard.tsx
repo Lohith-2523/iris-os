@@ -46,6 +46,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Copy,
 } from 'lucide-react';
 
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -391,9 +392,9 @@ export default function ClientDetailDashboard({
   const [metaLeads, setMetaLeads] = React.useState<any[]>([]);
   const [loadingTasks, setLoadingTasks] = React.useState(true);
   const [loadingMeta, setLoadingMeta] = React.useState(true);
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<'overview' | 'projects' | 'approvals' | 'changes' | 'billing'>(() => {
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<'overview' | 'projects' | 'approvals' | 'changes' | 'billing' | 'meta'>(() => {
     const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
-    return requestedTab === 'approvals' || requestedTab === 'changes' ? requestedTab : 'overview';
+    return requestedTab === 'approvals' || requestedTab === 'changes' || requestedTab === 'meta' ? requestedTab : 'overview';
   });
   const [deliveryData, setDeliveryData] = React.useState<{ deliverables: any[]; changeRequests: any[] }>({ deliverables: [], changeRequests: [] });
 
@@ -407,6 +408,7 @@ export default function ClientDetailDashboard({
   const [pendingAdAccountId, setPendingAdAccountId] = React.useState(client.adAccountId || '');
   const [metaAssignmentStatus, setMetaAssignmentStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [metaAssignmentError, setMetaAssignmentError] = React.useState('');
+  const [inviteCopyStatus, setInviteCopyStatus] = React.useState<'idle' | 'copied' | 'error'>('idle');
   const adAccountId = assignedAdAccountId || null;
   const hasMetaEnabledProject = clientHasMetaEnabledProject(client.projects);
 
@@ -417,6 +419,10 @@ export default function ClientDetailDashboard({
     setMetaAssignmentStatus('idle');
     setMetaAssignmentError('');
   }, [client.id, client.adAccountId]);
+
+  React.useEffect(() => {
+    setInviteCopyStatus('idle');
+  }, [client.id]);
 
   // Task Creation Form States
   const [isTaskModalOpen, setIsTaskModalOpen] = React.useState(false);
@@ -700,6 +706,18 @@ export default function ClientDetailDashboard({
   const revenue = (client.invoices || []).reduce((sum: number, invoice: any) => sum + Number(invoice.paidAmount || 0), 0);
   const receivables = (client.invoices || []).reduce((sum: number, invoice: any) => sum + Number(invoice.balanceDue || 0), 0);
   const overallProgress = clientProjects.length ? Math.round(clientProjects.reduce((sum: number, project: any) => sum + Number(project.progress || 0), 0) / clientProjects.length) : 0;
+  const onboardingInvite = client.onboardingInvite as { email: string; path: string; status: 'PENDING' | 'COMPLETED' | 'EXPIRED'; expiresAt: string } | null | undefined;
+  const hasOverviewSpecialization = resolvedAgencyType.includes('seo') || resolvedAgencyType.includes('web design');
+
+  const copyOnboardingLink = async () => {
+    if (!onboardingInvite?.path) return;
+    try {
+      await navigator.clipboard.writeText(new URL(onboardingInvite.path, window.location.origin).toString());
+      setInviteCopyStatus('copied');
+    } catch {
+      setInviteCopyStatus('error');
+    }
+  };
 
   return (
     <div className="space-y-6 font-sans text-xs">
@@ -739,9 +757,59 @@ export default function ClientDetailDashboard({
         <button type="button" onClick={() => setActiveWorkspaceTab('projects')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'projects' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Project breakdown</button>
         <button type="button" onClick={() => setActiveWorkspaceTab('approvals')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'approvals' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Deliverables & approvals</button>
         <button type="button" onClick={() => setActiveWorkspaceTab('changes')} className={`shrink-0 border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'changes' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Change requests</button>
+        {hasMetaEnabledProject && (
+          <button type="button" onClick={() => setActiveWorkspaceTab('meta')} className={`shrink-0 border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'meta' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
+            Meta ads
+          </button>
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Card><CardHeader><CardDescription>Revenue</CardDescription><CardTitle>{formatCurrency(revenue)}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Receivables</CardDescription><CardTitle>{formatCurrency(receivables)}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Team members</CardDescription><CardTitle>{assignedSpecialist ? 1 : 0}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Tasks</CardDescription><CardTitle>{tasks.length}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Overall progress</CardDescription><CardTitle>{overallProgress}%</CardTitle></CardHeader></Card></div>
+
+      {activeWorkspaceTab === 'overview' && canManageMetaAccounts && (
+        <Card>
+          <CardHeader className="border-b border-zinc-900 pb-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Client dashboard onboarding</CardTitle>
+                <CardDescription className="mt-1 text-[10px] text-zinc-500">Secure activation access for the client-facing dashboard.</CardDescription>
+              </div>
+              {onboardingInvite && (
+                <Badge variant={onboardingInvite.status === 'PENDING' ? 'risk-medium' : onboardingInvite.status === 'COMPLETED' ? 'risk-low' : 'outline'}>
+                  {onboardingInvite.status === 'PENDING' ? 'Awaiting activation' : onboardingInvite.status === 'COMPLETED' ? 'Onboarding completed' : 'Link expired'}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {!onboardingInvite ? (
+              <p className="text-zinc-500">No client dashboard onboarding invitation is available for this account.</p>
+            ) : onboardingInvite.status === 'PENDING' ? (
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                <div className="min-w-0 flex-1 rounded-lg border border-zinc-850 bg-zinc-950/35 px-3 py-2.5">
+                  <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Activation link for {onboardingInvite.email}</span>
+                  <span className="mt-1 block truncate font-mono text-[10px] text-zinc-300">{onboardingInvite.path}</span>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={copyOnboardingLink} className="gap-2">
+                    <Copy className="h-3.5 w-3.5" />
+                    {inviteCopyStatus === 'copied' ? 'Copied' : inviteCopyStatus === 'error' ? 'Copy failed' : 'Copy link'}
+                  </Button>
+                  <Button type="button" size="sm" className="gap-2" onClick={() => window.open(onboardingInvite.path, '_blank', 'noopener,noreferrer')}>
+                    Open onboarding <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-zinc-400">
+                {onboardingInvite.status === 'COMPLETED'
+                  ? `${onboardingInvite.email} has activated the client dashboard.`
+                  : `The onboarding link for ${onboardingInvite.email} has expired.`}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {activeWorkspaceTab === 'billing' && (
         <ClientBillingPanel
@@ -810,12 +878,12 @@ export default function ClientDetailDashboard({
       )}
 
       {/* Main Splits */}
-      <div className={activeWorkspaceTab === 'overview' ? 'grid gap-6 md:grid-cols-3' : 'hidden'}>
+      <div className={activeWorkspaceTab === 'overview' || activeWorkspaceTab === 'meta' ? 'grid gap-6 md:grid-cols-3' : 'hidden'}>
         {/* Left Column: Account, Team and Tasks */}
-        <div className={hasMetaEnabledProject ? 'space-y-6 md:col-span-1' : 'flex flex-col gap-6 md:col-span-3'}>
+        <div className={activeWorkspaceTab === 'meta' || hasOverviewSpecialization ? 'space-y-6 md:col-span-1' : 'flex flex-col gap-6 md:col-span-3'}>
           
           {/* Client Account Card */}
-          <Card className={hasMetaEnabledProject ? '' : 'order-2'}>
+          <Card className={activeWorkspaceTab === 'overview' ? (hasOverviewSpecialization ? '' : 'order-2') : 'hidden'}>
             <CardHeader className="pb-3 border-b border-zinc-900">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Account Details</CardTitle>
             </CardHeader>
@@ -836,7 +904,7 @@ export default function ClientDetailDashboard({
           </Card>
 
           {/* Assigned Specialists Card */}
-          <Card className={hasMetaEnabledProject ? '' : 'order-3'}>
+          <Card className={activeWorkspaceTab === 'overview' ? (hasOverviewSpecialization ? '' : 'order-3') : 'hidden'}>
             <CardHeader className="pb-3 border-b border-zinc-900">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Assigned Team</CardTitle>
             </CardHeader>
@@ -859,7 +927,7 @@ export default function ClientDetailDashboard({
           </Card>
 
           {/* Meta Integration & Sync Control */}
-          {hasMetaEnabledProject && <Card>
+          {activeWorkspaceTab === 'meta' && hasMetaEnabledProject && <Card>
             <CardHeader className="pb-3 border-b border-zinc-900 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Meta Integration Controls</CardTitle>
@@ -941,7 +1009,7 @@ export default function ClientDetailDashboard({
           </Card>}
 
           {/* Task Board Card */}
-          <Card className={hasMetaEnabledProject ? '' : 'order-1'}>
+          <Card className={activeWorkspaceTab === 'overview' ? (hasOverviewSpecialization ? '' : 'order-1') : 'hidden'}>
             <CardHeader className="pb-3 border-b border-zinc-900 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Tasks & Progress</CardTitle>
@@ -1141,10 +1209,10 @@ export default function ClientDetailDashboard({
         </div>
 
         {/* Right Column: Dynamic View Widgets Based on Specialization */}
-        <div className={hasMetaEnabledProject ? 'space-y-6 md:col-span-2' : 'hidden'}>
+        <div className={activeWorkspaceTab === 'meta' || (activeWorkspaceTab === 'overview' && hasOverviewSpecialization) ? 'space-y-6 md:col-span-2' : 'hidden'}>
           
           {/* DIGITAL MARKETING / LEAD GEN WIDGETS */}
-          {hasMetaEnabledProject && (
+          {activeWorkspaceTab === 'meta' && hasMetaEnabledProject && (
             <div className="space-y-6">
               
               {/* Top Section: Ad Campaign Performance & Metrics */}
@@ -1395,7 +1463,7 @@ export default function ClientDetailDashboard({
           )}
 
           {/* SEO AGENCY WIDGETS */}
-          {resolvedAgencyType.includes('seo') && (
+          {activeWorkspaceTab === 'overview' && resolvedAgencyType.includes('seo') && (
             <div className="space-y-6">
               
               {/* SEO Metrics */}
@@ -1468,7 +1536,7 @@ export default function ClientDetailDashboard({
           )}
 
           {/* WEB DESIGN & DEV WIDGETS */}
-          {resolvedAgencyType.includes('web design') && (
+          {activeWorkspaceTab === 'overview' && resolvedAgencyType.includes('web design') && (
             <div className="space-y-6">
               
               {/* Architecture Details */}
@@ -1534,7 +1602,7 @@ export default function ClientDetailDashboard({
           )}
 
           {/* SOCIAL MEDIA / SMM WIDGETS */}
-          {resolvedAgencyType.includes('social media') && (
+          {activeWorkspaceTab === 'meta' && resolvedAgencyType.includes('social media') && (
             <div className="space-y-6">
               
               {/* Platform channels */}

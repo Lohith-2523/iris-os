@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!document) return NextResponse.json({ error: 'Document not found.' }, { status: 404 });
   try {
     const pdf = document.kind === 'PROPOSAL'
-      ? await generateProposalPdf(proposalSchema.parse(document.content))
+      ? document.pdfArtifact || await generateProposalPdf(proposalSchema.parse(document.content))
       : await generateLegalDocumentPdf(contentWithSignatureAudit(document));
     return new NextResponse(new Uint8Array(pdf), { headers: {
       'Content-Type': 'application/pdf',

@@ -7,6 +7,7 @@ import { createDocumentDraft, createSimpleDocumentDraft, type DocumentKind, type
 import { proposalSchema } from '@/lib/proposals/types';
 import { legalDocumentSchema } from '@/lib/legal-documents/types';
 import { generateProposalPdf } from '@/lib/proposals/pdf';
+import { generateProposalDocx } from '@/lib/proposals/docx';
 import { generateLegalDocumentPdf } from '@/lib/legal-documents/pdf';
 import { IrisEmailDeliveryError, sendIrisEmail } from '@/lib/email/iris-email';
 import { agencyViaIrisSenderName } from '@/lib/email/sender-name';
@@ -14,7 +15,7 @@ import { contentWithSignatureAudit, newSigningToken, runSignedDocumentAutomation
 import { getInvoiceForPdf, invoicePdfFromRecord } from '@/lib/invoices/service';
 
 const mutationSchema = z.object({
-  action: z.enum(['atlas_create', 'simple_create', 'save', 'send', 'agency_sign']),
+  action: z.enum(['atlas_create', 'simple_create', 'save', 'approve', 'send', 'agency_sign']),
   kind: z.enum(['PROPOSAL', 'CONTRACT', 'SOW']).optional(),
   recipientType: z.enum(['LEAD', 'CLIENT']).optional(),
   recipientId: z.string().uuid().optional(),
@@ -59,15 +60,30 @@ async function pdfFor(kind: DocumentKind, content: unknown) {
     : generateLegalDocumentPdf(parsed as z.infer<typeof legalDocumentSchema>);
 }
 
-async function sendDocument(record: { id: string; kind: string; title: string; documentNumber: string; recipientName: string; recipientEmail: string; content: Prisma.JsonValue; proformaInvoiceId?: string | null; signingToken?: string | null; recipientSignerName?: string | null; recipientSignedAt?: Date | null; agencySignerName?: string | null; agencySignedAt?: Date | null; fullySignedAt?: Date | null; signedContentHash?: string | null }, organization: { name: string; plan: string }, baseUrl: string) {
+function requiresApproval(kind: string) {
+  return kind === 'PROPOSAL' || kind === 'CONTRACT';
+}
+
+async function proposalArtifacts(content: Prisma.JsonValue) {
+  const proposal = proposalSchema.parse(content);
+  const [pdf, docx] = await Promise.all([generateProposalPdf(proposal), generateProposalDocx(proposal)]);
+  return { pdf, docx };
+}
+
+async function sendDocument(record: { id: string; kind: string; title: string; documentNumber: string; recipientName: string; recipientEmail: string; content: Prisma.JsonValue; proformaInvoiceId?: string | null; signingToken?: string | null; recipientSignerName?: string | null; recipientSignedAt?: Date | null; agencySignerName?: string | null; agencySignedAt?: Date | null; fullySignedAt?: Date | null; signedContentHash?: string | null; pdfArtifact?: Uint8Array | null; docxArtifact?: Uint8Array | null }, organization: { name: string; plan: string }, baseUrl: string) {
   const pdfContent = record.kind === 'PROPOSAL' ? record.content : contentWithSignatureAudit({ ...record, recipientSignerName: record.recipientSignerName || null, recipientSignedAt: record.recipientSignedAt || null, agencySignerName: record.agencySignerName || null, agencySignedAt: record.agencySignedAt || null, fullySignedAt: record.fullySignedAt || null, signedContentHash: record.signedContentHash || null });
-  const pdf = await pdfFor(record.kind as DocumentKind, pdfContent);
+  const pdf = record.kind === 'PROPOSAL' && record.pdfArtifact ? Buffer.from(record.pdfArtifact) : await pdfFor(record.kind as DocumentKind, pdfContent);
   const label = record.kind === 'SOW' ? 'statement of work' : record.kind.toLowerCase();
   const signingUrl = record.signingToken && record.kind !== 'PROPOSAL' ? `${baseUrl.replace(/\/$/, '')}/sign-document/${record.signingToken}` : '';
   const signingHtml = signingUrl ? `<p><a href="${signingUrl}" style="display:inline-block;background:#111;color:#fff;padding:12px 18px;text-decoration:none;border-radius:8px">Review and sign document</a></p><p style="font-size:12px;color:#666">This secure signing link is intended for ${record.recipientEmail}.</p>` : '';
   const signingText = signingUrl ? `\n\nReview and sign securely: ${signingUrl}` : '';
   const linkedProformaText = record.kind === 'PROPOSAL' && record.proformaInvoiceId ? ' The linked proforma invoice is attached as well.' : '';
-  const attachments = [{ filename: `${record.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }];
+  const safeNumber = record.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_');
+  const attachments = [{ filename: `${safeNumber}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }];
+  if (record.kind === 'PROPOSAL') {
+    const docx = record.docxArtifact ? Buffer.from(record.docxArtifact) : await generateProposalDocx(proposalSchema.parse(record.content));
+    attachments.push({ filename: `${safeNumber}.docx`, content: Buffer.from(docx), contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  }
   if (record.kind === 'PROPOSAL' && record.proformaInvoiceId) {
     const proforma = await getInvoiceForPdf(record.proformaInvoiceId);
     if (proforma?.documentType === 'PROFORMA') {
@@ -94,7 +110,17 @@ export async function GET(request: Request) {
   const family = new URL(request.url).searchParams.get('family');
   const kinds = family === 'PROPOSAL' ? ['PROPOSAL'] : ['CONTRACT', 'SOW'];
   const [documents, clients, leads] = await Promise.all([
-    prisma.generatedDocument.findMany({ where: { orgId: user.orgId, kind: { in: kinds } }, orderBy: { createdAt: 'desc' } }),
+    prisma.generatedDocument.findMany({
+      where: { orgId: user.orgId, kind: { in: kinds } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, kind: true, title: true, documentNumber: true, status: true,
+        recipientName: true, recipientEmail: true, createdAt: true, sentAt: true,
+        approvedAt: true, approvedByName: true, artifactsGeneratedAt: true,
+        recipientSignedAt: true, agencySignedAt: true, fullySignedAt: true,
+        automationStatus: true, automationError: true,
+      },
+    }),
     prisma.client.findMany({ where: { orgId: user.orgId, status: { not: 'DELETED' } }, include: { contacts: { orderBy: { createdAt: 'asc' }, take: 1 } }, orderBy: { name: 'asc' } }),
     prisma.agencyLead.findMany({ where: { orgId: user.orgId }, select: { id: true, fullName: true, email: true }, orderBy: { fullName: 'asc' } }),
   ]);
@@ -123,6 +149,7 @@ export async function POST(request: Request) {
     if (!input.id) return NextResponse.json({ error: 'Document is required.' }, { status: 400 });
     const record = await prisma.generatedDocument.findFirst({ where: { id: input.id, orgId: user.orgId, kind: { in: ['CONTRACT', 'SOW'] } } });
     if (!record) return NextResponse.json({ error: 'Contract or SOW not found.' }, { status: 404 });
+    if (record.kind === 'CONTRACT' && !record.approvedAt) return NextResponse.json({ error: 'Approve this contract before countersigning it.' }, { status: 409 });
     if (record.agencySignedAt) return NextResponse.json({ document: record });
     const now = new Date();
     const fullySignedAt = record.recipientSignedAt ? now : null;
@@ -131,14 +158,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ document: await prisma.generatedDocument.findUnique({ where: { id: document.id } }) });
   }
 
+  if (input.action === 'approve') {
+    if (!input.id) return NextResponse.json({ error: 'Document is required.' }, { status: 400 });
+    const record = await prisma.generatedDocument.findFirst({ where: { id: input.id, orgId: user.orgId, kind: { in: ['PROPOSAL', 'CONTRACT'] } } });
+    if (!record) return NextResponse.json({ error: 'Proposal or contract not found.' }, { status: 404 });
+    if (record.sentAt || record.recipientSignedAt || record.agencySignedAt) return NextResponse.json({ error: 'A sent or signed document cannot be approved again.' }, { status: 409 });
+    if (record.approvedAt) return NextResponse.json({ document: { id: record.id, status: record.status, approvedAt: record.approvedAt, approvedByName: record.approvedByName } });
+    const artifacts = record.kind === 'PROPOSAL' ? await proposalArtifacts(record.content) : null;
+    const document = await prisma.generatedDocument.update({
+      where: { id: record.id },
+      data: {
+        approvedAt: new Date(), approvedById: user.id, approvedByName: user.name,
+        status: 'APPROVED', artifactsGeneratedAt: artifacts ? new Date() : null,
+        ...(artifacts ? { pdfArtifact: artifacts.pdf, docxArtifact: artifacts.docx } : {}),
+      },
+      select: { id: true, status: true, approvedAt: true, approvedByName: true, artifactsGeneratedAt: true },
+    });
+    return NextResponse.json({ document });
+  }
+
   if (input.action === 'send') {
     if (!input.id) return NextResponse.json({ error: 'Document is required.' }, { status: 400 });
     let record = await prisma.generatedDocument.findFirst({ where: { id: input.id, orgId: user.orgId } });
     if (!record) return NextResponse.json({ error: 'Document not found.' }, { status: 404 });
+    if (requiresApproval(record.kind) && !record.approvedAt) return NextResponse.json({ error: 'Approve this document before sending it to the client.' }, { status: 409 });
     if (record.kind !== 'PROPOSAL' && !record.signingToken) record = await prisma.generatedDocument.update({ where: { id: record.id }, data: { signingToken: newSigningToken(), signingTokenExpiresAt: new Date(Date.now() + 30 * 86_400_000) } });
     try {
       await sendDocument(record, user.organization, baseUrl);
-      const document = await prisma.generatedDocument.update({ where: { id: record.id }, data: { status: record.recipientSignedAt || record.agencySignedAt ? 'PARTIALLY_SIGNED' : 'SENT', sentAt: new Date() } });
+      const document = await prisma.generatedDocument.update({ where: { id: record.id }, data: { status: record.recipientSignedAt || record.agencySignedAt ? 'PARTIALLY_SIGNED' : 'SENT', sentAt: new Date() }, select: { id: true, status: true, sentAt: true } });
       return NextResponse.json({ document });
     } catch (error) {
       if (error instanceof IrisEmailDeliveryError) return NextResponse.json({ error: error.message }, { status: error.status });
@@ -187,10 +234,11 @@ export async function POST(request: Request) {
     recipientType: recipient.type, recipientId: recipient.id, recipientName: recipient.name, recipientEmail: recipient.email,
     prompt: input.prompt || (input.simpleDetails ? JSON.stringify(input.simpleDetails) : null), content: validated as unknown as Prisma.InputJsonValue,
     signingToken, signingTokenExpiresAt,
+    status: requiresApproval(input.kind) ? 'PENDING_APPROVAL' : 'DRAFT',
     ...(linkedProforma ? { proformaInvoiceId: linkedProforma.id } : {}),
   } });
 
-  if (input.action === 'atlas_create' || input.action === 'simple_create') {
+  if ((input.action === 'atlas_create' || input.action === 'simple_create') && !requiresApproval(input.kind)) {
     try {
       await sendDocument(document, user.organization, baseUrl);
       const sent = await prisma.generatedDocument.update({ where: { id: document.id }, data: { status: 'SENT', sentAt: new Date() } });
@@ -200,7 +248,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ document, sent: false, warning: message }, { status: 201 });
     }
   }
-  return NextResponse.json({ document }, { status: 201 });
+  return NextResponse.json({ document, pendingApproval: requiresApproval(input.kind) }, { status: 201 });
 }
 
 export async function DELETE(request: Request) {
@@ -210,7 +258,7 @@ export async function DELETE(request: Request) {
   const id = new URL(request.url).searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Document is required.' }, { status: 400 });
   const signed = await prisma.generatedDocument.findFirst({ where: { id, orgId: user.orgId, OR: [{ recipientSignedAt: { not: null } }, { agencySignedAt: { not: null } }] }, select: { id: true } });
-  if (signed) return NextResponse.json({ error: 'Signed documents are immutable and cannot be deleted.' }, { status: 409 });
+  if (signed) return NextResponse.json({ error: 'Signed documents are non-editable and cannot be deleted.' }, { status: 409 });
   const result = await prisma.generatedDocument.deleteMany({ where: { id, orgId: user.orgId } });
   return result.count ? NextResponse.json({ success: true }) : NextResponse.json({ error: 'Document not found.' }, { status: 404 });
 }

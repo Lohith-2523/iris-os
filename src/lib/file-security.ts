@@ -1,4 +1,4 @@
-export type UploadProfile = 'invoice-logo' | 'csv-import' | 'spreadsheet-import' | 'message-attachment';
+export type UploadProfile = 'invoice-logo' | 'profile-avatar' | 'csv-import' | 'spreadsheet-import' | 'message-attachment';
 
 export type SafeAttachmentCategory = 'IMAGE' | 'GIF' | 'VOICE' | 'VIDEO' | 'DOCUMENT' | 'ARCHIVE';
 
@@ -118,11 +118,15 @@ export async function validateBrowserFile(
   }
   if (file.size <= 0) return { ok: false, error: 'The selected file is empty.' };
   if (options.maxBytes && file.size > options.maxBytes) {
-    return { ok: false, error: `The selected file exceeds the ${Math.ceil(options.maxBytes / 1024 / 1024)} MB limit.` };
+    const sizeLimit = options.maxBytes < 1024 * 1024
+      ? `${Math.ceil(options.maxBytes / 1024)} KB`
+      : `${Math.ceil(options.maxBytes / 1024 / 1024)} MB`;
+    return { ok: false, error: `The selected file exceeds the ${sizeLimit} limit.` };
   }
 
   let allowedExtensions: readonly string[];
   if (profile === 'invoice-logo') allowedExtensions = ['png', 'jpg', 'jpeg'];
+  else if (profile === 'profile-avatar') allowedExtensions = ['png', 'jpg', 'jpeg', 'webp'];
   else if (profile === 'csv-import') allowedExtensions = ['csv'];
   else if (profile === 'spreadsheet-import') allowedExtensions = ['csv', 'xlsx'];
   else allowedExtensions = Object.keys(MESSAGE_TYPES);
@@ -130,6 +134,9 @@ export async function validateBrowserFile(
 
   if (profile === 'invoice-logo' && mime && !['image/png', 'image/jpeg'].includes(mime)) {
     return { ok: false, error: 'Invoice logos must be PNG or JPEG images.' };
+  }
+  if (profile === 'profile-avatar' && mime && !['image/png', 'image/jpeg', 'image/webp'].includes(mime)) {
+    return { ok: false, error: 'Profile pictures must be PNG, JPEG, or WebP images.' };
   }
   if (profile === 'message-attachment') {
     const descriptor = MESSAGE_TYPES[extension];

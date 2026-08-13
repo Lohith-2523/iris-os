@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
       paymentStartDate,
       paymentTerms,
       autoGenerateInvoice,
+      metaIntegrationEnabled,
       clientId,
       memberIds, // array of User IDs
       deliverables, // array of strings for initial tasks
@@ -167,6 +168,7 @@ export async function POST(request: NextRequest) {
         budget: budget !== undefined && budget !== '' ? parseFloat(budget) : null,
         ...commercials.data,
         autoGenerateInvoice: Boolean(autoGenerateInvoice),
+        metaIntegrationEnabled: Boolean(metaIntegrationEnabled),
         orgId,
         clientId,
       }
@@ -310,6 +312,7 @@ export async function PUT(request: NextRequest) {
       paymentStartDate,
       paymentTerms,
       autoGenerateInvoice,
+      metaIntegrationEnabled,
       memberIds,
       stages // Array<{ id?: string, name: string, startDate?: string, endDate?: string }>
     } = body;
@@ -359,6 +362,7 @@ export async function PUT(request: NextRequest) {
         budget: budget !== undefined ? (budget === '' || budget === null ? null : parseFloat(budget)) : undefined,
         ...commercials.data,
         autoGenerateInvoice: autoGenerateInvoice !== undefined ? Boolean(autoGenerateInvoice) : undefined,
+        metaIntegrationEnabled: metaIntegrationEnabled !== undefined ? Boolean(metaIntegrationEnabled) : undefined,
       }
     });
 

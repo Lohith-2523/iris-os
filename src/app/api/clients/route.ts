@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest) {
 
     const existingClient = await prisma.client.findFirst({
       where: { id: clientId, orgId: user.orgId },
-      select: { id: true, projects: { select: { serviceLine: true } } },
+      select: { id: true, projects: { select: { metaIntegrationEnabled: true } } },
     });
     if (!existingClient) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest) {
       ? await resolveAssignableMetaAdAccountId(user.orgId, body.adAccountId)
       : undefined;
     if (hasAdAccountUpdate && adAccountId && !clientHasMetaEnabledProject(existingClient.projects)) {
-      return NextResponse.json({ error: 'Client integrations become available after a Digital Marketing, Social Media Management, or Paid Advertising project has been created.' }, { status: 400 });
+      return NextResponse.json({ error: 'Enable Meta integration on at least one project before assigning a Meta ad account.' }, { status: 400 });
     }
     if (hasAdAccountUpdate && adAccountId) {
       const assignedClient = await prisma.client.findFirst({
@@ -336,7 +336,8 @@ export async function POST(request: NextRequest) {
             serviceLine: initialProject.serviceLine || null,
             budget: projectBudget,
             ...projectCommercials.data,
-            autoGenerateInvoice: Boolean(initialProject.autoGenerateInvoice),
+          autoGenerateInvoice: Boolean(initialProject.autoGenerateInvoice),
+          metaIntegrationEnabled: Boolean(initialProject.metaIntegrationEnabled),
             orgId: org.id,
             clientId: newClient.id,
           }

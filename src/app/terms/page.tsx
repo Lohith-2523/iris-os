@@ -54,7 +54,7 @@ const sections: LegalSection[] = [
     id: 'esign', title: 'Documents and electronic signatures',
     paragraphs: [
       'Iris OS may provide native or third-party document delivery and electronic-signature workflows. A signer who types a legal name, confirms consent, and submits a signature intends that act to constitute an electronic signature to the extent permitted by applicable law. Iris OS may record signer name, timestamp, document hash, authentication or link context, and privacy-preserving technical audit data.',
-      'Customer is responsible for determining whether electronic signatures are appropriate for a document, identifying signers, obtaining authority and consent, satisfying disclosure and record-retention duties, and providing any legally required alternative. Iris OS does not verify capacity, authority, identity beyond the implemented workflow, or enforceability in every jurisdiction. Once a signature is recorded, Iris OS may make the document immutable and preserve the executed copy and audit trail.',
+      'Customer is responsible for determining whether electronic signatures are appropriate for a document, identifying signers, obtaining authority and consent, satisfying disclosure and record-retention duties, and providing any legally required alternative. Iris OS does not verify capacity, authority, identity beyond the implemented workflow, or enforceability in every jurisdiction. Once a signature is recorded, Iris OS may make the document non-editable and preserve the executed copy and audit trail.',
     ],
   },
   {

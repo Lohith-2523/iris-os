@@ -25,8 +25,8 @@ describe('agency specialization service lines', () => {
   });
 
   it('requires at least one eligible client project', () => {
-    expect(clientHasMetaEnabledProject([{ serviceLine: 'SEO Agency' }, { serviceLine: 'Graphic Design Agency' }])).toBe(false);
-    expect(clientHasMetaEnabledProject([{ serviceLine: 'SEO Agency' }, { serviceLine: 'Paid Advertising Agency (PPC)' }])).toBe(true);
+    expect(clientHasMetaEnabledProject([{ metaIntegrationEnabled: false }, { serviceLine: 'Paid Advertising Agency (PPC)' }])).toBe(false);
+    expect(clientHasMetaEnabledProject([{ serviceLine: 'SEO Agency' }, { metaIntegrationEnabled: true }])).toBe(true);
   });
 
   it('validates a service line against agency settings', () => {

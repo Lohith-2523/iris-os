@@ -85,7 +85,7 @@ model GeneratedDocument {
   kind                        String // PROPOSAL, CONTRACT, SOW
   title                       String
   documentNumber              String
-  status                      String       @default("DRAFT") // DRAFT, SENT, PARTIALLY_SIGNED, EXECUTED
+  status                      String       @default("PENDING_APPROVAL") // PENDING_APPROVAL, APPROVED, SENT, PARTIALLY_SIGNED, EXECUTED
   recipientType               String // LEAD, CLIENT
   recipientId                 String
   recipientName               String
@@ -93,6 +93,12 @@ model GeneratedDocument {
   prompt                      String?
   content                     Json
   sentAt                      DateTime?
+  approvedAt                  DateTime?
+  approvedById                String?
+  approvedByName              String?
+  pdfArtifact                 Bytes?
+  docxArtifact                Bytes?
+  artifactsGeneratedAt        DateTime?
   signingToken                String?      @unique
   signingTokenExpiresAt       DateTime?
   recipientSignerName         String?
@@ -117,6 +123,7 @@ model GeneratedDocument {
   @@index([orgId, recipientType, recipientId])
   @@index([proformaInvoiceId])
   @@index([orgId, status, fullySignedAt])
+  @@index([orgId, approvedAt])
 }
 
 model WaitlistEntry {
@@ -308,6 +315,7 @@ model Project {
   paymentStartDate    DateTime? // Invoice date (legacy column name)
   paymentTerms        String? // Optional free-text commercial payment terms
   autoGenerateInvoice Boolean      @default(false) // Legacy field: email the automatically generated invoice
+  metaIntegrationEnabled Boolean   @default(false)
   orgId               String
   organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   clientId            String

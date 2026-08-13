@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
-import { runSignedDocumentAutomation, signatureRequestHash, signingContentHash } from '@/lib/documents/signing';
+import { recipientSignatureNotification, runSignedDocumentAutomation, signatureRequestHash, signingContentHash } from '@/lib/documents/signing';
 
 const signatureSchema = z.object({
   signerName: z.string().trim().min(2, 'Enter your full legal name.').max(160),
@@ -41,14 +41,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const now = new Date();
   const fullySignedAt = document.agencySignedAt ? now : null;
   const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unavailable';
-  const updated = await prisma.generatedDocument.update({
-    where: { id: document.id },
-    data: {
-      recipientSignerName: parsed.data.signerName, recipientSignedAt: now,
-      recipientSignatureIpHash: signatureRequestHash(forwardedFor),
-      recipientSignatureUserAgent: (request.headers.get('user-agent') || 'unavailable').slice(0, 500),
-      signedContentHash: currentHash, fullySignedAt, status: fullySignedAt ? 'EXECUTED' : 'PARTIALLY_SIGNED',
-    },
+  const updated = await prisma.$transaction(async tx => {
+    const signedDocument = await tx.generatedDocument.update({
+      where: { id: document.id },
+      data: {
+        recipientSignerName: parsed.data.signerName, recipientSignedAt: now,
+        recipientSignatureIpHash: signatureRequestHash(forwardedFor),
+        recipientSignatureUserAgent: (request.headers.get('user-agent') || 'unavailable').slice(0, 500),
+        signedContentHash: currentHash, fullySignedAt, status: fullySignedAt ? 'EXECUTED' : 'PARTIALLY_SIGNED',
+      },
+    });
+    if (!fullySignedAt) {
+      const admins = await tx.user.findMany({ where: { orgId: document.orgId, role: { equals: 'admin', mode: 'insensitive' }, accessRevokedAt: null }, select: { id: true } });
+      const notification = recipientSignatureNotification({ kind: document.kind, title: document.title, documentNumber: document.documentNumber, recipientSignerName: parsed.data.signerName });
+      if (admins.length) await tx.notification.createMany({ data: admins.map(admin => ({ ...notification, orgId: document.orgId, userId: admin.id })) });
+    }
+    return signedDocument;
   });
   if (fullySignedAt) await runSignedDocumentAutomation(updated.id);
   return NextResponse.json({ success: true, fullySigned: Boolean(fullySignedAt) });

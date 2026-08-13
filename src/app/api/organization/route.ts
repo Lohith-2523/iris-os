@@ -5,7 +5,7 @@ import {
   normalizeInvoiceBrandColor,
   validateInvoiceLogoDataUrl,
 } from '@/lib/invoices/branding';
-import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
+import { normalizePlan } from '@/lib/plan-entitlements';
 
 export async function GET(request: NextRequest) {
   try {
@@ -93,14 +93,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
       }
       const planToCheck = normalizePlan(requestedPlan);
-      const maxAllowed = entitlementsFor(planToCheck).specializationLimit;
-
-      if (agencyTypes && agencyTypes.length > maxAllowed) {
-        return NextResponse.json({
-          error: `A workspace can select up to ${maxAllowed} agency specializations.`
-        }, { status: 400 });
-      }
-
       org = await prisma.organization.update({
         where: { id: org.id },
         data: {

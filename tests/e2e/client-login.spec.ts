@@ -32,6 +32,7 @@ test.describe('Client Login and Access Control', () => {
     await expect(page.locator('nav')).not.toContainText('Finance');
     await expect(page.locator('nav')).not.toContainText('Team');
     await expect(page.locator('nav')).not.toContainText('Atlas AI');
+    await expect(page.getByRole('button', { name: 'Open Atlas AI' })).toHaveCount(0);
 
     // Verify client onboarding page access is not restricted anymore
     await page.goto('/clients/onboard');

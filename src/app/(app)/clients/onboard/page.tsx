@@ -13,6 +13,7 @@ import { agencyServiceLines } from '@/lib/agency-specializations';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
+import { ConfettiCelebration } from '@/components/ui/confetti-celebration';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -51,6 +52,73 @@ interface ClosedLeadOption {
   convertedClient?: { id: string; name: string } | null;
 }
 
+const CLIENT_ONBOARDING_DRAFT_VERSION = 1;
+
+const createInitialFormData = () => ({
+  // Step 1: Universal details
+  name: '',
+  legalEntityName: '',
+  billingAddressLine1: '',
+  billingAddressLine2: '',
+  billingCity: '',
+  billingState: '',
+  billingPostalCode: '',
+  billingCountry: 'India',
+  gstNumber: '',
+  description: '',
+  // Company Profile: Primary Client Contact
+  clientName: '',
+  clientDesignation: '',
+  clientEmail: '',
+  clientPhone: '',
+  sourceLeadId: '',
+  // Step 3: Agency Type dropdown
+  agencyType: 'Digital Marketing Agency',
+  // Step 4: Service metadata (will be custom inputs based on type)
+  metaCurrentSpend: '',
+  metaPerformanceHistory: '',
+  metaCac: '',
+  metaActivePlatforms: '',
+  metaPostingFrequency: '',
+  metaBrandVoice: '',
+  metaOrganicTraffic: '',
+  metaTargetKeywords: '',
+  metaCmsPlatform: '',
+  metaAdAccounts: '',
+  metaTargetRoas: '',
+  metaCurrentPositioning: '',
+  metaLongTermVision: '',
+  metaDimensionsFormats: '',
+  metaVisualConstraints: '',
+  metaTypographyColor: '',
+  metaFounderStory: '',
+  metaSmeAvailability: '',
+  metaContentObjectives: '',
+  metaShootLogistics: '',
+  metaEditingMood: '',
+  metaDevScope: '',
+  metaTechStack: '',
+  // Initial Project Setup
+  createProject: true,
+  projectName: '',
+  projectServiceLine: '',
+  projectBudget: '',
+  projectPaymentType: 'RETAINER',
+  projectPaymentAmount: '',
+  projectPaymentFrequency: 'monthly',
+  projectPaymentStartDate: new Date().toISOString().split('T')[0],
+  projectPaymentTerms: '',
+  projectAutoGenerateInvoice: false,
+  projectMetaIntegrationEnabled: false,
+  projectStartDate: new Date().toISOString().split('T')[0],
+  projectDeadline: '',
+  projectDeliverables: 'Design banner ads, Launch campaign, Optimize conversion metrics',
+  projectMemberIds: [] as string[],
+  projectStages: [
+    { name: 'Initial Stage', startDate: '', endDate: '' },
+  ],
+});
+
 
 export default function ClientOnboardPage() {
   const router = useRouter();
@@ -59,6 +127,8 @@ export default function ClientOnboardPage() {
   const [currencyState, setCurrencyState] = React.useState('USD');
   const [agencyBillingMissingFields, setAgencyBillingMissingFields] = React.useState<string[]>([]);
   const [availableServiceLines, setAvailableServiceLines] = React.useState<string[]>([]);
+  const [draftStorageKey, setDraftStorageKey] = React.useState<string | null>(null);
+  const [hydratedDraftKey, setHydratedDraftKey] = React.useState<string | null>(null);
 
   // Onboarding Wizard Steps
   // 1: Company profile and primary contact, 2: Initial project, 3: Review
@@ -69,69 +139,7 @@ export default function ClientOnboardPage() {
   const [authLoading, setAuthLoading] = React.useState(true);
 
   // Form State
-  const [formData, setFormData] = React.useState({
-    // Step 1: Universal details
-    name: '',
-    legalEntityName: '',
-    billingAddressLine1: '',
-    billingAddressLine2: '',
-    billingCity: '',
-    billingState: '',
-    billingPostalCode: '',
-    billingCountry: 'India',
-    gstNumber: '',
-    description: '',
-    // Company Profile: Primary Client Contact
-    clientName: '',
-    clientDesignation: '',
-    clientEmail: '',
-    clientPhone: '',
-    sourceLeadId: '',
-    // Step 3: Agency Type dropdown
-    agencyType: 'Digital Marketing Agency',
-    // Step 4: Service metadata (will be custom inputs based on type)
-    metaCurrentSpend: '',
-    metaPerformanceHistory: '',
-    metaCac: '',
-    metaActivePlatforms: '',
-    metaPostingFrequency: '',
-    metaBrandVoice: '',
-    metaOrganicTraffic: '',
-    metaTargetKeywords: '',
-    metaCmsPlatform: '',
-    metaAdAccounts: '',
-    metaTargetRoas: '',
-    metaCurrentPositioning: '',
-    metaLongTermVision: '',
-    metaDimensionsFormats: '',
-    metaVisualConstraints: '',
-    metaTypographyColor: '',
-    metaFounderStory: '',
-    metaSmeAvailability: '',
-    metaContentObjectives: '',
-    metaShootLogistics: '',
-    metaEditingMood: '',
-    metaDevScope: '',
-    metaTechStack: '',
-    // Initial Project Setup
-    createProject: true,
-    projectName: '',
-    projectServiceLine: '',
-    projectBudget: '',
-    projectPaymentType: 'RETAINER',
-    projectPaymentAmount: '',
-    projectPaymentFrequency: 'monthly',
-    projectPaymentStartDate: new Date().toISOString().split('T')[0],
-    projectPaymentTerms: '',
-    projectAutoGenerateInvoice: false,
-    projectStartDate: new Date().toISOString().split('T')[0],
-    projectDeadline: '',
-    projectDeliverables: 'Design banner ads, Launch campaign, Optimize conversion metrics',
-    projectMemberIds: [] as string[],
-    projectStages: [
-      { name: 'Initial Stage', startDate: '', endDate: '' },
-    ],
-  });
+  const [formData, setFormData] = React.useState(createInitialFormData);
 
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [closedLeadOptions, setClosedLeadOptions] = React.useState<ClosedLeadOption[]>([]);
@@ -155,6 +163,7 @@ export default function ClientOnboardPage() {
       if (res.ok) {
         const u = await res.json();
         setUserRole(u.role);
+        setDraftStorageKey(`crystalos:client-onboarding:v${CLIENT_ONBOARDING_DRAFT_VERSION}:${u.orgId}:${u.id}`);
       } else {
         setUserRole(null);
       }
@@ -227,6 +236,45 @@ export default function ClientOnboardPage() {
     }
     fetchClosedLeads();
   }, [preselectedLeadId]);
+
+  React.useEffect(() => {
+    if (!draftStorageKey) return;
+
+    setHydratedDraftKey(null);
+    try {
+      const rawDraft = window.localStorage.getItem(draftStorageKey);
+      if (rawDraft) {
+        const draft = JSON.parse(rawDraft) as {
+          version?: number;
+          step?: number;
+          formData?: Partial<ReturnType<typeof createInitialFormData>>;
+        };
+        if (draft.version === CLIENT_ONBOARDING_DRAFT_VERSION && draft.formData && typeof draft.formData === 'object') {
+          setFormData((current) => ({ ...current, ...draft.formData }));
+          if (typeof draft.step === 'number') setStep(Math.min(Math.max(draft.step, 1), reviewStep));
+        }
+      }
+    } catch (error) {
+      console.warn('Unable to restore the client onboarding draft:', error);
+      window.localStorage.removeItem(draftStorageKey);
+    } finally {
+      setHydratedDraftKey(draftStorageKey);
+    }
+  }, [draftStorageKey]);
+
+  React.useEffect(() => {
+    if (!draftStorageKey || hydratedDraftKey !== draftStorageKey || submitStatus === 'success') return;
+    try {
+      window.localStorage.setItem(draftStorageKey, JSON.stringify({
+        version: CLIENT_ONBOARDING_DRAFT_VERSION,
+        savedAt: new Date().toISOString(),
+        step,
+        formData,
+      }));
+    } catch (error) {
+      console.warn('Unable to cache the client onboarding draft:', error);
+    }
+  }, [draftStorageKey, formData, hydratedDraftKey, step, submitStatus]);
 
   const recalculateStages = (stagesList: any[], startDateStr: string, endDateStr: string) => {
     if (!startDateStr || !endDateStr) {
@@ -389,6 +437,7 @@ export default function ClientOnboardPage() {
           paymentStartDate: formData.projectPaymentStartDate,
           paymentTerms: formData.projectPaymentTerms,
           autoGenerateInvoice: formData.projectAutoGenerateInvoice,
+          metaIntegrationEnabled: formData.projectMetaIntegrationEnabled,
           startDate: formData.projectStartDate,
           endDate: formData.projectDeadline || null,
           memberIds: formData.projectMemberIds,
@@ -409,12 +458,14 @@ export default function ClientOnboardPage() {
         const data = await res.json();
         setInviteUrl(data.inviteUrl || '');
         setInviteEmailSent(Boolean(data.emailSent));
+        if (draftStorageKey) window.localStorage.removeItem(draftStorageKey);
         setSubmitStatus('success');
       } else {
         const errData = await res.json();
         if (errData.clientCreated && errData.inviteUrl) {
           setInviteUrl(errData.inviteUrl);
           setInviteEmailSent(false);
+          if (draftStorageKey) window.localStorage.removeItem(draftStorageKey);
           setFormError(formatUserMessage(`Client created, but the invitation email was not delivered: ${errData.error || 'Email provider error'}`));
           setSubmitStatus('success');
           return;
@@ -1090,6 +1141,16 @@ export default function ClientOnboardPage() {
                         </div>
                       </div>
 
+                      <div className="flex items-center justify-between gap-4 rounded border border-zinc-850 bg-zinc-950/45 p-3">
+                        <span>
+                          <span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
+                          <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls to this client workspace.</span>
+                        </span>
+                        <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={formData.projectMetaIntegrationEnabled} onClick={() => setFormData((current) => ({ ...current, projectMetaIntegrationEnabled: !current.projectMetaIntegrationEnabled }))} className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full border transition-colors ${formData.projectMetaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
+                          <span className={`pointer-events-none absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ease-out ${formData.projectMetaIntegrationEnabled ? 'translate-x-[18px] bg-black' : 'translate-x-0 bg-zinc-500'}`} />
+                        </button>
+                      </div>
+
                       <div className="space-y-3 border-y border-zinc-900/60 py-4">
                         <div>
                           <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Project Commercials</span>
@@ -1279,7 +1340,7 @@ export default function ClientOnboardPage() {
                                       return { ...prev, projectStages: nextStages };
                                     });
                                   }}
-                                  className="w-26 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
+                                  className="w-35 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
                                 />
                                 <span>to</span>
                                 <DateInput
@@ -1292,7 +1353,7 @@ export default function ClientOnboardPage() {
                                       return { ...prev, projectStages: nextStages };
                                     });
                                   }}
-                                  className="w-26 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
+                                  className="w-35 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
                                 />
                               </div>
                               <button
@@ -1461,6 +1522,7 @@ export default function ClientOnboardPage() {
 
                   {submitStatus === 'success' && (
                     <div className="space-y-4 mt-6">
+                      <ConfettiCelebration />
                       <div className="flex gap-2.5 rounded border border-emerald-900/30 bg-emerald-950/10 p-3.5 text-emerald-400 font-semibold items-center justify-center">
                         <CheckCircle className="h-4 w-4 shrink-0" />
                         <span>

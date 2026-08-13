@@ -49,6 +49,9 @@ export default function DashboardPage() {
   const [agencyLeadsData, setAgencyLeadsData] = React.useState<any>(null);
   const [currentUserName, setCurrentUserName] = React.useState('there');
   const [notifications, setNotifications] = React.useState<any[]>([]);
+  const addReceivableAsRevenue = (invoice: any) => {
+    router.push(`/finance?tab=manual&invoiceId=${encodeURIComponent(invoice.id)}`);
+  };
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(false);
@@ -480,7 +483,7 @@ export default function DashboardPage() {
         </div>
         <div className="relative z-10 flex items-center gap-3">
           <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300 py-1 px-3">
-            Q2 Fiscal Year 2026
+            Q2 Financial Year 2026
           </Badge>
         </div>
       </div>
@@ -819,7 +822,12 @@ export default function DashboardPage() {
                           <p className="truncate font-semibold text-zinc-200">{index + 1}. {invoice.invoiceNumber}</p>
                           <p className="truncate text-[10px] text-zinc-500">{invoice.clientName}</p>
                         </div>
-                        <span className="shrink-0 font-mono font-bold text-amber-400">{formatCurrency(invoice.pendingAmount)}</span>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="font-mono font-bold text-amber-400">{formatCurrency(invoice.pendingAmount)}</span>
+                          <Button size="sm" className="h-7 px-2 text-[10px]" onClick={(event) => { event.stopPropagation(); addReceivableAsRevenue(invoice); }}>
+                            Add revenue
+                          </Button>
+                        </div>
                       </div>
                     )) : <p className="text-xs text-zinc-500">No invoices have an outstanding balance.</p>}
                   </div>

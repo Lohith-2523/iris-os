@@ -2364,7 +2364,7 @@ button {
   opacity: .58;
 }
 
-/* Neutral text-only labels, including the fiscal-year badge, use a dark blue
+/* Neutral text-only labels, including the financial-year badge, use a dark blue
    enamel fill with white type instead of a blue outline on white. */
 :root.light .workspace-shell :is(.workspace-badge.badge-default, .workspace-badge.badge-secondary) {
   background: var(--light-label-neutral) !important;
@@ -2678,6 +2678,129 @@ button {
   color: var(--client-identity-name) !important;
 }
 
+/* Expanded project summaries respond to the client card's usable width rather
+   than the viewport, so two-column cards do not prematurely force all project
+   details and actions onto one crowded line. */
+.project-client-card-expanded {
+  container-name: project-client-card;
+  container-type: inline-size;
+}
+
+.project-client-project {
+  display: grid;
+  grid-template-areas:
+    "overview"
+    "progress"
+    "actions";
+  gap: clamp(0.7rem, 1.8cqi, 1rem);
+  align-items: center;
+  padding: clamp(0.75rem, 1.8cqi, 1rem);
+}
+
+.project-client-project-overview {
+  grid-area: overview;
+}
+
+.project-client-project-title {
+  flex: 1 1 12rem;
+  overflow-wrap: anywhere;
+  font-size: clamp(0.75rem, 1.35cqi, 0.875rem);
+  line-height: 1.3;
+}
+
+.workspace-shell .project-client-project-badge {
+  max-width: 100%;
+  padding: 0.22rem clamp(0.45rem, 0.9cqi, 0.6rem);
+  font-size: clamp(0.75rem, 1cqi, 0.8125rem);
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+}
+
+.project-client-project-meta {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.55rem clamp(0.7rem, 1.7cqi, 1rem);
+}
+
+.project-client-project-label {
+  margin-bottom: 0.12rem;
+  font-size: clamp(0.75rem, 1cqi, 0.8125rem);
+  line-height: 1.3;
+  letter-spacing: 0.035em;
+}
+
+.project-client-project-value {
+  font-size: clamp(0.8125rem, 1.15cqi, 0.875rem);
+  line-height: 1.35;
+}
+
+.project-client-project-progress {
+  grid-area: progress;
+  width: 100%;
+}
+
+.project-client-project-progress-copy {
+  font-size: clamp(0.75rem, 1cqi, 0.8125rem);
+  line-height: 1.3;
+}
+
+.project-client-project-progress-track {
+  height: clamp(0.3125rem, 0.6cqi, 0.4375rem);
+}
+
+.project-client-project-actions {
+  grid-area: actions;
+}
+
+.workspace-shell .project-client-project-action {
+  min-width: 0;
+  height: clamp(2rem, 3.7cqi, 2.25rem);
+  padding-inline: clamp(0.65rem, 1.2cqi, 0.85rem);
+  font-size: clamp(0.75rem, 1cqi, 0.8125rem);
+  white-space: nowrap;
+}
+
+@container project-client-card (min-width: 32rem) {
+  .project-client-project-meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container project-client-card (min-width: 46rem) {
+  .project-client-project {
+    grid-template-areas:
+      "overview progress"
+      "overview actions";
+    grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.48fr);
+  }
+}
+
+@container project-client-card (min-width: 64rem) {
+  .project-client-project {
+    grid-template-areas: "overview progress actions";
+    grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.42fr) auto;
+  }
+
+  .project-client-project-actions {
+    width: auto;
+  }
+
+  .workspace-shell .project-client-project-action {
+    flex: 0 0 auto;
+  }
+}
+
+@container project-client-card (max-width: 35rem) {
+  .project-client-expanded-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .project-client-expanded-badges {
+    justify-content: flex-start;
+  }
+}
+
 :root.light .workspace-shell .project-client-card {
   --client-identity-accent: var(--client-identity-light);
   --client-identity-name: var(--client-identity-light-name);
@@ -2741,6 +2864,61 @@ button {
 
 .workspace-shell .agency-leads-kanban-card a:hover {
   background: #27272a !important;
+}
+
+/* Agency Leads header alignment.
+   Below 1200px the component keeps its existing responsive flex behavior.
+   From 1200–1499px the metrics take the first controls row while the title
+   remains anchored to that row; at 1500px all controls return to one axis. */
+@media (min-width: 1200px) and (max-width: 1599.98px) {
+  .workspace-shell .agency-leads-header {
+    align-items: flex-start;
+  }
+
+  .workspace-shell .agency-leads-heading {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .workspace-shell .agency-leads-header-actions {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-areas:
+      "summary summary"
+      "tabs sync";
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-items: end;
+  }
+
+  .workspace-shell .agency-leads-summary-grid {
+    grid-area: summary;
+  }
+
+  .workspace-shell .agency-leads-tabs {
+    grid-area: tabs;
+  }
+
+  .workspace-shell .agency-leads-sync {
+    grid-area: sync;
+  }
+}
+
+@media (min-width: 1500px) {
+  .workspace-shell .agency-leads-header,
+  .workspace-shell .agency-leads-header-actions {
+    flex-wrap: nowrap;
+  }
+
+  .workspace-shell .agency-leads-heading {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .workspace-shell .agency-leads-summary-grid,
+  .workspace-shell .agency-leads-tabs,
+  .workspace-shell .agency-leads-sync {
+    flex: 0 0 auto;
+  }
 }
 
 .workspace-shell .agency-leads-kanban-column .border-dashed {
@@ -2830,4 +3008,106 @@ button {
 :root.light .country-phone-dropdown input::placeholder,
 :root.light .country-phone-number-input::placeholder {
   color: #64748b !important;
+}
+
+/* Native checkboxes share one reliable selected treatment across every
+   workspace and onboarding surface. */
+input[type='checkbox']:not(.sr-only) {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-content: center;
+  min-width: 0.875rem;
+  min-height: 0.875rem;
+  border: 1px solid #52525b;
+  border-radius: 0.2rem;
+  background: #18181b !important;
+  color: #09090b;
+  cursor: pointer;
+  transition: border-color 150ms ease, border-radius 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+input[type='checkbox']:not(.sr-only)::before {
+  width: 0.45rem;
+  height: 0.25rem;
+  border-bottom: 0.125rem solid currentColor;
+  border-left: 0.125rem solid currentColor;
+  content: '';
+  transform: translateY(-0.06em) rotate(-45deg) scale(0);
+  transform-origin: center;
+  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+input[type='checkbox']:not(.sr-only):checked {
+  border-color: #ffffff !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
+input[type='checkbox']:not(.sr-only):checked::before {
+  transform: translateY(-0.06em) rotate(-45deg) scale(1);
+}
+
+input[type='checkbox']:not(.sr-only):focus-visible {
+  outline: 2px solid #a1a1aa;
+  outline-offset: 2px;
+}
+
+input[type='checkbox']:not(.sr-only):disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+label:has(> input[type='checkbox']:not(.sr-only):checked) {
+  border-color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff;
+}
+
+label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
+  outline: 2px solid #a1a1aa;
+  outline-offset: 2px;
+}
+
+:root.light input[type='checkbox']:not(.sr-only) {
+  border-color: #94a3b8;
+  background: #ffffff !important;
+  color: #ffffff;
+}
+
+:root.light input[type='checkbox']:not(.sr-only):checked {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+:root.light input[type='checkbox']:not(.sr-only):focus-visible {
+  outline-color: #2563eb;
+}
+
+:root.light label:has(> input[type='checkbox']:not(.sr-only):checked) {
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.1) !important;
+  color: #0f172a;
+}
+
+:root.light label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
+  outline-color: #2563eb;
+}
+
+.specialization-chip {
+  background: #09090b;
+  color: #ffffff;
+  transition: background-color 150ms ease, transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.specialization-chip:has(button:active) {
+  transform: scale(0.97);
+}
+
+:root.light .specialization-chip {
+  background: #2563eb;
+  color: #ffffff;
 }

@@ -38,8 +38,11 @@ import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
 import { validateBrowserFile } from '@/lib/file-security';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function FinancePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSkippedAll, setIsSkippedAll] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<'overview' | 'manual' | 'stripe' | 'paypal' | 'razorpay'>('overview');
   const [integrations, setIntegrations] = React.useState<any[]>([]);
@@ -67,6 +70,7 @@ export default function FinancePage() {
   const [isImportingTransactions, setIsImportingTransactions] = React.useState(false);
   const [bankNames, setBankNames] = React.useState<string[]>([]);
   const [outstandingInvoices, setOutstandingInvoices] = React.useState<any[]>([]);
+  const [isFinancialReportOpen, setIsFinancialReportOpen] = React.useState(false);
 
   // Form states
   const [formDate, setFormDate] = React.useState('');
@@ -356,11 +360,32 @@ export default function FinancePage() {
     }
   }, []);
 
+  const addReceivableAsRevenue = (invoice: any) => {
+    setActiveTab('manual');
+    setFormCategory('Revenue');
+    setFormDate(new Date().toISOString().slice(0, 10));
+    setFormInvoiceId(invoice.id);
+    setFormYourAccount('');
+    setFormAmount('');
+    router.replace(`/finance?tab=manual&invoiceId=${encodeURIComponent(invoice.id)}`, { scroll: false });
+  };
+
   React.useEffect(() => {
-    if (bankNames.length > 0 && !formYourAccount) {
+    const invoiceId = searchParams.get('invoiceId');
+    if (searchParams.get('tab') !== 'manual' || !invoiceId) return;
+    setActiveTab('manual');
+    setFormCategory('Revenue');
+    setFormDate(new Date().toISOString().slice(0, 10));
+    setFormInvoiceId(invoiceId);
+    setFormYourAccount('');
+    setFormAmount('');
+  }, [searchParams]);
+
+  React.useEffect(() => {
+    if (bankNames.length > 0 && !formYourAccount && !searchParams.get('invoiceId')) {
       setFormYourAccount(bankNames[0]);
     }
-  }, [bankNames, formYourAccount]);
+  }, [bankNames, formYourAccount, searchParams]);
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1590,7 +1615,7 @@ export default function FinancePage() {
           </div>
 
           {/* Middle Row */}
-          <div className="grid gap-6 md:grid-cols-[minmax(220px,1fr)_minmax(420px,3.2fr)_minmax(220px,1fr)] md:items-stretch">
+          <div className="grid gap-6 md:grid-cols-[minmax(220px,1fr)_minmax(0,4.2fr)] md:items-stretch">
             {/* Left Column: Profitability Metrics */}
             <div className="flex min-h-[560px] flex-col gap-6">
               <ExpandableCard 
@@ -1757,7 +1782,12 @@ export default function FinancePage() {
                             <p className="truncate font-semibold text-zinc-200">{index + 1}. {invoice.invoiceNumber}</p>
                             <p className="truncate text-[10px] text-zinc-500">{invoice.clientName}</p>
                           </div>
-                          <span className="shrink-0 font-mono font-bold text-amber-400">{formatCurrency(invoice.pendingAmount)}</span>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="font-mono font-bold text-amber-400">{formatCurrency(invoice.pendingAmount)}</span>
+                            <Button size="sm" className="h-7 px-2 text-[10px]" onClick={(event) => { event.stopPropagation(); addReceivableAsRevenue(invoice); }}>
+                              Add revenue
+                            </Button>
+                          </div>
                         </div>
                       )) : <p className="text-xs text-zinc-500">No invoices have an outstanding balance.</p>}
                     </div>
@@ -1778,6 +1808,11 @@ export default function FinancePage() {
             
             {/* Center Column: Overall finance over time */}
             <div className="min-h-[560px] flex flex-col space-y-6">
+              <div className="flex justify-end">
+                <Button type="button" variant="outline" className="gap-2" onClick={() => setIsFinancialReportOpen(true)}>
+                  <Sparkles className="h-4 w-4" /> Financial reports
+                </Button>
+              </div>
               <div className="flex-1">
                 <RevenueLineChart
                   data={loadingFinanceTimeframe ? [] : revenueLineData}
@@ -1793,13 +1828,13 @@ export default function FinancePage() {
             </div>
 
             {/* Right Column: Customize Report Engine Card */}
-            <div className="flex min-h-[560px] flex-col gap-6">
+            <div className="hidden">
               <ExpandableCard 
                 className="flex-1 flex flex-col justify-between overflow-hidden"
                 expandedContent={
                   <div className="flex flex-col h-full space-y-4 font-sans text-xs">
                     <div>
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Customize Fiscal Report</h3>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Customize Financial Report</h3>
                       <p className="text-[10px] text-zinc-500 mt-1">Configure dimensions to slice financial ledger data.</p>
                     </div>
                     <div className="space-y-3">
@@ -1856,7 +1891,7 @@ export default function FinancePage() {
                 }
               >
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Fiscal Reports</CardTitle>
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-550">Financial Reports</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col justify-between h-full py-2">
                   <p className="text-xs text-zinc-400 leading-normal mb-4">
@@ -1870,6 +1905,24 @@ export default function FinancePage() {
             </div>
           </div>
 
+          {isFinancialReportOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="financial-report-title">
+              <button type="button" className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Close financial report builder" onClick={() => setIsFinancialReportOpen(false)} />
+              <Card className="relative z-10 w-full max-w-xl border-zinc-700 shadow-2xl">
+                <CardHeader>
+                  <CardTitle id="financial-report-title" className="text-base text-white">Customize Financial Report</CardTitle>
+                  <CardDescription>Choose how to group and measure your financial ledger.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 text-xs">
+                  <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">X-Axis Grouping</span><select value={reportXAxis} onChange={(event) => setReportXAxis(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="Client">Client</option><option value="Category">Category (Expenses)</option><option value="Channel Source">Channel Source</option><option value="Time (Monthly)">Time (Monthly)</option></select></label>
+                  <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Y-Axis Metric</span><select value={reportYAxis} onChange={(event) => setReportYAxis(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="Revenue">Revenue</option><option value="Expenses">Expenses</option><option value="Net Profit">Net Profit</option><option value="Profit Margin">Profit Margin (%)</option></select></label>
+                  <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Timeframe</span><select value={reportTimeframe} onChange={(event) => setReportTimeframe(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="All Time">All Time</option><option value="Yearly">Yearly</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option></select></label>
+                  <div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => setIsFinancialReportOpen(false)}>Cancel</Button><Button onClick={() => { generateCustomReport(reportXAxis, reportYAxis, reportTimeframe); setIsFinancialReportOpen(false); }}>Generate report</Button></div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Dynamic Customized Report Output (Below the main section grid) */}
           {customReport && (
             <div ref={reportRef} className="animate-fadeIn pt-4 scroll-mt-6">
@@ -1877,7 +1930,7 @@ export default function FinancePage() {
                 <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-850 pb-3">
                   <div>
                     <CardTitle className="text-sm font-semibold text-white">
-                      Generated Fiscal Report: {customReport.yAxis} by {customReport.xAxis}
+                      Generated Financial Report: {customReport.yAxis} by {customReport.xAxis}
                     </CardTitle>
                     <CardDescription className="text-[10px]">
                       Filtered by timeframe: {customReport.timeframe}
@@ -2350,9 +2403,6 @@ export default function FinancePage() {
                               </option>
                             ))}
                           </select>
-                          <span className="block text-[10px] leading-relaxed text-zinc-500">
-                            The invoice description and client are applied automatically. Enter the received amount manually below; it is never filled automatically.
-                          </span>
                         </div>
                       </div>
                     )}

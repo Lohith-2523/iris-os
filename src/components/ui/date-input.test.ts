@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { formatDateForInput, formatDateWhileTyping, parseTypedDate } from './date-input';
+import { DATE_INPUT_PATTERN, formatDateForInput, formatDateWhileTyping, parseTypedDate } from './date-input';
 
 describe('date input formatting', () => {
   it('formats stored ISO dates for the DD/MM/YYYY input', () => {
     expect(formatDateForInput('2026-08-07')).toBe('07/08/2026');
     expect(formatDateForInput('2026-08-07T09:30')).toBe('07/08/2026');
+  });
+
+  it('uses a browser-safe pattern for calendar-selected dates', () => {
+    expect(new RegExp(`^${DATE_INPUT_PATTERN}$`).test(formatDateForInput('2026-08-07'))).toBe(true);
   });
 
   it('adds separators after a completed day and month', () => {

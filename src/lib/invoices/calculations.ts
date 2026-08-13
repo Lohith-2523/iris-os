@@ -73,41 +73,27 @@ export function calculateInvoiceItemsWithOverallTax(
 export function allocateProjectValue(input: {
   deliverables: string[];
   itemCount: number;
-  total: number;
+  subtotal: number;
   taxRate: number;
   fallbackDescription: string;
 }) {
   const itemCount = Math.max(1, Math.min(MAX_INVOICE_ITEMS, Math.trunc(input.itemCount)));
-  const total = roundMoney(input.total);
-  if (!Number.isFinite(total) || total <= 0) throw new Error('Project value must be greater than zero.');
+  const subtotal = roundMoney(input.subtotal);
+  if (!Number.isFinite(subtotal) || subtotal <= 0) throw new Error('Project value must be greater than zero.');
   const names = input.deliverables.map((item) => item.trim()).filter(Boolean);
-  const grossShare = roundMoney(total / itemCount);
-  let allocatedGross = 0;
+  const subtotalShare = roundMoney(subtotal / itemCount);
+  let allocatedSubtotal = 0;
   const items: InvoiceLineItemInput[] = Array.from({ length: itemCount }, (_, index) => {
-    const gross = index === itemCount - 1 ? roundMoney(total - allocatedGross) : grossShare;
-    allocatedGross = roundMoney(allocatedGross + gross);
-    const unitPrice = input.taxRate > 0 ? roundMoney(gross / (1 + input.taxRate / 100)) : gross;
+    const unitPrice = index === itemCount - 1
+      ? roundMoney(subtotal - allocatedSubtotal)
+      : subtotalShare;
+    allocatedSubtotal = roundMoney(allocatedSubtotal + unitPrice);
     return {
       description: names[index] || `${input.fallbackDescription} — Deliverable ${index + 1}`,
       quantity: 1,
       unitPrice,
-      taxRate: input.taxRate,
+      taxRate: 0,
     };
   });
-  const calculated = calculateInvoiceItems(items);
-  // Rounding each tax line can occasionally differ from the configured project
-  // value by one cent. Carry that cent on the final tax line to preserve the
-  // signed commercial total exactly.
-  const difference = roundMoney(total - calculated.total);
-  if (difference !== 0) {
-    const last = calculated.lineItems[calculated.lineItems.length - 1];
-    last.taxAmount = roundMoney((last.taxAmount || 0) + difference);
-    last.total = roundMoney(last.amount + last.taxAmount);
-    calculated.taxAmount = roundMoney(calculated.taxAmount + difference);
-    calculated.total = total;
-    calculated.taxRate = calculated.subtotal > 0
-      ? roundMoney((calculated.taxAmount / calculated.subtotal) * 100)
-      : 0;
-  }
-  return calculated;
+  return calculateInvoiceItemsWithOverallTax(items, input.taxRate);
 }

@@ -26,7 +26,7 @@ describe('invoice billing rules', () => {
     expect(invoiceDueDate(issueDate).toISOString()).toBe('2026-08-11T12:00:00.000Z');
   });
 
-  it('derives exactly the three immutable payment states', () => {
+  it('derives exactly the three fixed payment states', () => {
     expect(invoicePaymentStatus(1000, 0)).toBe('UNPAID');
     expect(invoicePaymentStatus(1000, 250)).toBe('PARTIALLY_PAID');
     expect(invoicePaymentStatus(1000, 1000)).toBe('FULLY_PAID');

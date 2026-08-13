@@ -101,6 +101,7 @@ export default function ProjectsPage() {
     endDate: '',
     status: 'IN_PROGRESS',
     riskLevel: 'LOW',
+    metaIntegrationEnabled: false,
     memberIds: [] as string[],
     stages: [] as any[]
   });
@@ -122,6 +123,7 @@ export default function ProjectsPage() {
     paymentStartDate: new Date().toISOString().split('T')[0],
     paymentTerms: '',
     autoGenerateInvoice: false,
+    metaIntegrationEnabled: false,
     status: 'IN_PROGRESS',
     riskLevel: 'LOW',
     memberIds: [] as string[],
@@ -228,6 +230,7 @@ export default function ProjectsPage() {
         endDate: selectedProject.endDate ? selectedProject.endDate.split('T')[0] : '',
         status: selectedProject.status || 'IN_PROGRESS',
         riskLevel: selectedProject.riskLevel || 'LOW',
+        metaIntegrationEnabled: Boolean(selectedProject.metaIntegrationEnabled),
         memberIds: selectedProject.members?.map((m: any) => m.userId) || [],
         stages: selectedProject.stages || []
       });
@@ -374,6 +377,7 @@ export default function ProjectsPage() {
           paymentStartDate: newProjectForm.paymentStartDate,
           paymentTerms: newProjectForm.paymentTerms,
           autoGenerateInvoice: newProjectForm.autoGenerateInvoice,
+          metaIntegrationEnabled: newProjectForm.metaIntegrationEnabled,
           status: newProjectForm.status,
           riskLevel: newProjectForm.riskLevel,
           memberIds: newProjectForm.memberIds,
@@ -405,6 +409,7 @@ export default function ProjectsPage() {
           paymentStartDate: new Date().toISOString().split('T')[0],
           paymentTerms: '',
           autoGenerateInvoice: false,
+          metaIntegrationEnabled: false,
           status: 'IN_PROGRESS',
           riskLevel: 'LOW',
           memberIds: [],
@@ -450,6 +455,7 @@ export default function ProjectsPage() {
           endDate: editForm.endDate || null,
           status: editForm.status,
           riskLevel: editForm.riskLevel,
+          metaIntegrationEnabled: editForm.metaIntegrationEnabled,
           memberIds: editForm.memberIds,
           stages: editForm.stages
         })
@@ -611,7 +617,7 @@ export default function ProjectsPage() {
                 className={cn(
                   "project-client-card transition-all duration-300 flex flex-col justify-between border border-zinc-800/80 border-l-8 overflow-hidden relative shadow-lg",
                   isExpanded 
-                    ? "col-span-1 md:col-span-2 row-span-2 h-[610px] bg-zinc-900/50"
+                    ? "project-client-card-expanded col-span-1 md:col-span-2 row-span-2 h-[610px] bg-zinc-900/50"
                     : "col-span-1 h-[350px] bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer hover:border-zinc-750/80 hover:scale-[1.01] hover:shadow-indigo-500/5"
                 )}
               >
@@ -626,7 +632,7 @@ export default function ProjectsPage() {
                       <X className="h-4 w-4" />
                     </button>
 
-                    <div className="pb-3 border-b border-zinc-800 flex justify-between items-start pr-8">
+                    <div className="project-client-expanded-header pb-3 border-b border-zinc-800 flex justify-between items-start gap-3 pr-8">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="project-client-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
                           <ClientIcon className="h-5 w-5" aria-hidden="true" />
@@ -636,11 +642,11 @@ export default function ProjectsPage() {
                           <p className="text-[9px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider">{client.domain || 'No Domain Listed'}</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="text-[8px] uppercase font-bold rounded-md">
+                      <div className="project-client-expanded-badges flex flex-wrap justify-end gap-2">
+                        <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'} className="project-client-project-badge uppercase font-bold rounded-md">
                           {client.status}
                         </Badge>
-                        <Badge variant={clientDelayCount ? 'risk-high' : 'risk-low'} className="text-[8px] uppercase font-bold rounded-md">
+                        <Badge variant={clientDelayCount ? 'risk-high' : 'risk-low'} className="project-client-project-badge uppercase font-bold rounded-md">
                           {clientDelayCount ? `${clientDelayCount} delays` : 'On schedule'}
                         </Badge>
                       </div>
@@ -661,47 +667,47 @@ export default function ProjectsPage() {
                           return (
                             <div 
                               key={proj.id} 
-                              className="border border-zinc-800/80 bg-zinc-900/40 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:bg-zinc-900/60 transition-all duration-200"
+                              className="project-client-project border border-zinc-800/80 bg-zinc-900/40 rounded-xl hover:bg-zinc-900/60 transition-all duration-200"
                             >
-                              <div className="space-y-1.5 flex-1 min-w-[200px]">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-xs font-bold text-white tracking-wide">{proj.name}</h4>
-                                  <Badge variant={proj.status === 'COMPLETED' ? 'risk-low' : proj.status === 'OVERDUE' || proj.status === 'ON_HOLD' ? 'risk-high' : 'outline'} className="text-[8px] uppercase font-bold rounded-md">
+                              <div className="project-client-project-overview min-w-0 space-y-2">
+                                <div className="project-client-project-heading flex min-w-0 flex-wrap items-center gap-1.5">
+                                  <h4 className="project-client-project-title min-w-0 font-bold text-white tracking-wide">{proj.name}</h4>
+                                  <Badge variant={proj.status === 'COMPLETED' ? 'risk-low' : proj.status === 'OVERDUE' || proj.status === 'ON_HOLD' ? 'risk-high' : 'outline'} className="project-client-project-badge uppercase font-bold rounded-md">
                                     {proj.status}
                                   </Badge>
                                   {delaySummary.total > 0 && (
-                                    <Badge variant="risk-high" className="text-[8px] uppercase font-bold rounded-md">
+                                    <Badge variant="risk-high" className="project-client-project-badge uppercase font-bold rounded-md">
                                       {delaySummary.delayedStages.length} stages · {delaySummary.delayedTasks.length} tasks late
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="grid grid-cols-3 gap-4 text-[9.5px] text-zinc-400">
-                                  <div>
-                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">Service Focus</span>
-                                    <span className="font-semibold text-zinc-300">{proj.serviceLine || 'Paid Ads'}</span>
+                                <div className="project-client-project-meta grid text-zinc-400">
+                                  <div className="min-w-0">
+                                    <span className="project-client-project-label block text-zinc-655 uppercase font-bold">Service Focus</span>
+                                    <span className="project-client-project-value block truncate font-semibold text-zinc-300" title={proj.serviceLine || 'Paid Ads'}>{proj.serviceLine || 'Paid Ads'}</span>
                                   </div>
-                                  <div>
-                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">
+                                  <div className="min-w-0">
+                                    <span className="project-client-project-label block text-zinc-655 uppercase font-bold">
                                       {proj.paymentType === 'ONE_TIME' ? 'One-time Payment' : 'Retainer'}
                                     </span>
-                                    <span className="font-mono text-zinc-300 font-semibold">
+                                    <span className="project-client-project-value block truncate font-mono text-zinc-300 font-semibold">
                                       {formatCurrency(proj.paymentAmount || 0)}
                                       {proj.paymentType !== 'ONE_TIME' && proj.paymentFrequency ? ` / ${proj.paymentFrequency}` : ''}
                                     </span>
                                   </div>
-                                  <div>
-                                    <span className="block text-[7.5px] text-zinc-655 uppercase font-bold">Timeline</span>
-                                    <span className="font-semibold text-zinc-300">{proj.timeline || 'N/A'}</span>
+                                  <div className="min-w-0">
+                                    <span className="project-client-project-label block text-zinc-655 uppercase font-bold">Timeline</span>
+                                    <span className="project-client-project-value block truncate font-semibold text-zinc-300" title={proj.timeline || 'N/A'}>{proj.timeline || 'N/A'}</span>
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="w-full md:w-48 space-y-1">
-                                <div className="flex justify-between text-[8.5px] text-zinc-500">
+                              <div className="project-client-project-progress min-w-0 space-y-1.5">
+                                <div className="project-client-project-progress-copy flex justify-between gap-3 text-zinc-500">
                                   <span>Tasks Complete</span>
-                                  <span className="font-mono font-semibold">{completedTasks} / {totalTasks} ({progressPercent}%)</span>
+                                  <span className="shrink-0 font-mono font-semibold">{completedTasks} / {totalTasks} ({progressPercent}%)</span>
                                 </div>
-                                <div className="h-1 bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-900">
+                                <div className="project-client-project-progress-track bg-zinc-950 rounded-full overflow-hidden w-full border border-zinc-900">
                                   <div
                                     style={{ width: `${progressPercent}%` }}
                                     className={`h-full rounded-full transition-all duration-300 ${proj.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-indigo-500'}`}
@@ -709,14 +715,14 @@ export default function ProjectsPage() {
                                 </div>
                               </div>
 
-                              <div className="flex gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0">
+                              <div className="project-client-project-actions flex w-full gap-2">
                                 <Button
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedProject(proj);
                                   }}
-                                  className="flex-1 md:flex-initial h-7 px-3 border-zinc-800 text-zinc-300 text-[10px] rounded-md hover:text-white"
+                                  className="project-client-project-action flex-1 border-zinc-800 text-zinc-300 rounded-md hover:text-white"
                                 >
                                   View Details
                                 </Button>
@@ -725,7 +731,7 @@ export default function ProjectsPage() {
                                     e.stopPropagation();
                                     router.push(`/tasks?projectId=${proj.id}`);
                                   }}
-                                  className="flex-1 md:flex-initial h-7 px-3 bg-white text-zinc-950 hover:bg-zinc-200 text-[10px] rounded-md font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                                  className="project-client-project-action flex-1 bg-white text-zinc-950 hover:bg-zinc-200 rounded-md font-semibold flex items-center justify-center gap-1 cursor-pointer"
                                 >
                                   <span>Manage Tasks</span>
                                   <ArrowRight className="h-3 w-3" />
@@ -874,6 +880,16 @@ export default function ProjectsPage() {
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border border-zinc-850 bg-zinc-950/50 p-3">
+                <span>
+                  <span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
+                  <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls for this project&apos;s client.</span>
+                </span>
+                <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={newProjectForm.metaIntegrationEnabled} onClick={() => handleCreationInputChange('metaIntegrationEnabled', !newProjectForm.metaIntegrationEnabled)} className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full border transition-colors ${newProjectForm.metaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
+                  <span className={`pointer-events-none absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ease-out ${newProjectForm.metaIntegrationEnabled ? 'translate-x-[18px] bg-black' : 'translate-x-0 bg-zinc-500'}`} />
+                </button>
               </div>
 
               <div className="space-y-3 border-y border-zinc-900 py-4">
@@ -1057,7 +1073,7 @@ export default function ProjectsPage() {
                               return { ...prev, stages: newStages };
                             });
                           }}
-                          className="w-24 bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
+                          className="w-35 bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
                         />
                         <span>to</span>
                         <DateInput
@@ -1068,7 +1084,7 @@ export default function ProjectsPage() {
                               return { ...prev, stages: newStages };
                             });
                           }}
-                          className="w-24 bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
+                          className="w-35 bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
                         />
                       </div>
                       <div className="flex gap-0.5 shrink-0">

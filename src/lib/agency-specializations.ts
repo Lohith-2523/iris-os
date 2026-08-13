@@ -44,7 +44,7 @@ export function isMetaEnabledServiceLine(serviceLine: unknown) {
 export function clientHasMetaEnabledProject(projects: unknown) {
   return Array.isArray(projects)
     && projects.some((project) => project && typeof project === 'object'
-      && isMetaEnabledServiceLine((project as { serviceLine?: unknown }).serviceLine));
+      && (project as { metaIntegrationEnabled?: unknown }).metaIntegrationEnabled === true);
 }
 
 export function isSelectedAgencyServiceLine(serviceLine: unknown, agencyTypes: unknown) {

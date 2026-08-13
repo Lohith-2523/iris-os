@@ -33,15 +33,17 @@ describe('invoice calculations', () => {
     expect(result.lineItems.every((item) => item.taxAmount === 0)).toBe(true);
   });
 
-  it('splits a project value exactly across the requested deliverables', () => {
+  it('uses project value as subtotal and adds tax to the generated total', () => {
     const result = allocateProjectValue({
       deliverables: ['Discovery', 'Design', 'Launch'],
       itemCount: 3,
-      total: 10_000,
+      subtotal: 10_000,
       taxRate: 18,
       fallbackDescription: 'Website',
     });
     expect(result.lineItems.map((item) => item.description)).toEqual(['Discovery', 'Design', 'Launch']);
-    expect(result.total).toBe(10_000);
+    expect(result.subtotal).toBe(10_000);
+    expect(result.taxAmount).toBe(1_800);
+    expect(result.total).toBe(11_800);
   });
 });

@@ -23,6 +23,13 @@ describe('file security', () => {
       .resolves.toEqual({ ok: true });
   });
 
+  it('allows only signature-verified profile image formats within the configured limit', async () => {
+    await expect(validateBrowserFile(mockFile('profile.webp', 'image/webp', [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]), 'profile-avatar', { maxBytes: 512 * 1024 }))
+      .resolves.toEqual({ ok: true });
+    await expect(validateBrowserFile(mockFile('profile.png', 'image/png', [0xff, 0xd8, 0xff]), 'profile-avatar'))
+      .resolves.toMatchObject({ ok: false });
+  });
+
   it('forces unsafe download names to an inert extension', () => {
     expect(safeDownloadName('../../run.cmd')).toBe('iris-attachment.download');
     expect(safeDownloadName('quarterly report.pdf')).toBe('quarterly report.pdf');

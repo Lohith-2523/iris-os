@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Download, FileText, LayoutDashboard, ListPlus, Loader2, Plus, ReceiptText, Send, Sparkles, Trash2 } from 'lucide-react';
+import { Download, FileText, LayoutDashboard, ListPlus, Loader2, Pencil, Plus, ReceiptText, Send, Sparkles, Trash2, X } from 'lucide-react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
 import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
@@ -179,6 +179,51 @@ export default function InvoicesPage() {
     termsOfSale: '',
   });
   const [proformaItems, setProformaItems] = React.useState<LineItemForm[]>([emptyItem()]);
+  const [mutatingInvoiceId, setMutatingInvoiceId] = React.useState<string | null>(null);
+  const [editingInvoice, setEditingInvoice] = React.useState<any | null>(null);
+  const [editForm, setEditForm] = React.useState<{
+    invoiceNumber: string; issuedDate: string; dueDate: string; description: string;
+    termsOfSale: string; taxRate: number; lineItems: LineItemForm[];
+  } | null>(null);
+
+  const openInvoiceEditor = (invoice: any) => {
+    const savedItems = Array.isArray(invoice.lineItems) ? invoice.lineItems : [];
+    setEditingInvoice(invoice);
+    setEditForm({
+      invoiceNumber: invoice.invoiceNumber,
+      issuedDate: String(invoice.issuedDate || invoice.createdAt).slice(0, 10),
+      dueDate: invoice.dueDate ? String(invoice.dueDate).slice(0, 10) : '',
+      description: invoice.description || '',
+      termsOfSale: invoice.termsOfSale || '',
+      taxRate: Number(invoice.taxRate || 0),
+      lineItems: savedItems.length ? savedItems.map((item: any) => ({ description: String(item.description || ''), quantity: Number(item.quantity || 1), unitPrice: Number(item.unitPrice || 0) })) : [{ description: invoice.description || invoice.invoiceNumber, quantity: 1, unitPrice: Number(invoice.subtotal || invoice.amount || 0) }],
+    });
+  };
+
+  const saveInvoiceEdits = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingInvoice || !editForm || mutatingInvoiceId) return;
+    setMutatingInvoiceId(editingInvoice.id); setError(''); setSuccess('');
+    try {
+      const response = await fetch('/api/invoices', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editingInvoice.id, ...editForm }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Unable to update the invoice.');
+      setSuccess(`Invoice ${editForm.invoiceNumber} was updated.`); setEditingInvoice(null); setEditForm(null); await load();
+    } catch (updateError) { setError(updateError instanceof Error ? updateError.message : 'Unable to update the invoice.'); }
+    finally { setMutatingInvoiceId(null); }
+  };
+
+  const deleteInvoice = async (invoice: any) => {
+    if (!window.confirm(`Delete ${invoice.invoiceNumber}? This cannot be undone.`)) return;
+    setMutatingInvoiceId(invoice.id); setError(''); setSuccess('');
+    try {
+      const response = await fetch(`/api/invoices?id=${encodeURIComponent(invoice.id)}`, { method: 'DELETE' });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Unable to delete the invoice.');
+      setSuccess(`Invoice ${invoice.invoiceNumber} was deleted.`); await load();
+    } catch (deleteError) { setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete the invoice.'); }
+    finally { setMutatingInvoiceId(null); }
+  };
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -345,7 +390,7 @@ export default function InvoicesPage() {
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Document</TableHead><TableHead>Customer / Project</TableHead><TableHead>Due / Valid</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Balance</TableHead><TableHead className="text-right">PDF</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Document</TableHead><TableHead>Customer / Project</TableHead><TableHead>Due / Valid</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Balance</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {!loading && invoices.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="py-14 text-center text-zinc-500">No invoices or proformas yet.</TableCell></TableRow>
@@ -360,11 +405,13 @@ export default function InvoicesPage() {
                     <TableCell><Badge className={statusClass(invoice.status, invoice.documentType)}>{statusLabel(invoice.status, invoice.documentType)}</Badge></TableCell>
                     <TableCell className="text-right font-mono text-white">{formatCurrency(invoice.amount)}</TableCell>
                     <TableCell className="text-right font-mono text-zinc-300">{invoice.documentType === 'PROFORMA' ? '—' : formatCurrency(invoice.balanceDue)}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right"><div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => downloadInvoice(invoice)} disabled={downloadingInvoiceId === invoice.id} aria-label={`Download ${invoice.invoiceNumber}`}>
                         {downloadingInvoiceId === invoice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </Button>
-                    </TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => openInvoiceEditor(invoice)} disabled={mutatingInvoiceId === invoice.id} aria-label={`Edit ${invoice.invoiceNumber}`}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => void deleteInvoice(invoice)} disabled={mutatingInvoiceId === invoice.id} aria-label={`Delete ${invoice.invoiceNumber}`} className="text-rose-400 hover:text-rose-300"><Trash2 className="h-4 w-4" /></Button>
+                    </div></TableCell>
                   </TableRow>
                 );
               })}
@@ -592,6 +639,32 @@ export default function InvoicesPage() {
             </form>
           </CardContent>
         </Card>
+      )}
+
+      {editingInvoice && editForm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="edit-invoice-title">
+          <button type="button" className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Close invoice editor" onClick={() => { setEditingInvoice(null); setEditForm(null); }} />
+          <Card className="relative z-10 max-h-[92vh] w-full max-w-5xl overflow-y-auto border-zinc-700 shadow-2xl">
+            <CardHeader className="sticky top-0 z-10 flex flex-row items-start justify-between border-b border-zinc-800 bg-[#0d0e12]">
+              <div><CardTitle id="edit-invoice-title" className="text-base text-white">Edit invoice</CardTitle><CardDescription>Update invoice details and recalculate the total before saving.</CardDescription></div>
+              <Button type="button" variant="ghost" size="icon" onClick={() => { setEditingInvoice(null); setEditForm(null); }} aria-label="Close invoice editor"><X className="h-4 w-4" /></Button>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <form onSubmit={saveInvoiceEdits} className="space-y-5 text-xs">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="space-y-1.5"><RequiredLabel>Invoice number</RequiredLabel><input required value={editForm.invoiceNumber} onChange={(event) => setEditForm((current) => current ? { ...current, invoiceNumber: event.target.value } : current)} className={fieldClass} /></label>
+                  <label className="space-y-1.5"><RequiredLabel>Issue date</RequiredLabel><DateInput required value={editForm.issuedDate} onChange={(value) => setEditForm((current) => current ? { ...current, issuedDate: value } : current)} className={fieldClass} /></label>
+                  <label className="space-y-1.5"><span className="font-semibold text-zinc-400">Due / valid date</span><DateInput value={editForm.dueDate} onChange={(value) => setEditForm((current) => current ? { ...current, dueDate: value } : current)} className={fieldClass} /></label>
+                </div>
+                <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Description</span><textarea rows={2} value={editForm.description} onChange={(event) => setEditForm((current) => current ? { ...current, description: event.target.value } : current)} className={fieldClass} /></label>
+                <div className="flex justify-end"><label className="w-full space-y-1.5 sm:w-56"><RequiredLabel>Tax on subtotal</RequiredLabel><div className="relative"><input required type="number" min="0" max="40" step="0.01" value={editForm.taxRate} onChange={(event) => setEditForm((current) => current ? { ...current, taxRate: Number(event.target.value) } : current)} className={`${fieldClass} pr-8`} /><span className="pointer-events-none absolute right-3 top-2.5 text-zinc-500">%</span></div></label></div>
+                <ItemEditor items={editForm.lineItems} taxRate={editForm.taxRate} onChange={(lineItems) => setEditForm((current) => current ? { ...current, lineItems } : current)} />
+                <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Terms and Conditions</span><textarea rows={3} value={editForm.termsOfSale} onChange={(event) => setEditForm((current) => current ? { ...current, termsOfSale: event.target.value } : current)} className={fieldClass} /></label>
+                <div className="flex justify-end gap-2 border-t border-zinc-800 pt-4"><Button type="button" variant="outline" onClick={() => { setEditingInvoice(null); setEditForm(null); }}>Cancel</Button><Button type="submit" disabled={mutatingInvoiceId === editingInvoice.id || !validItems(editForm.lineItems)}>{mutatingInvoiceId === editingInvoice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{mutatingInvoiceId === editingInvoice.id ? 'Saving…' : 'Save invoice'}</Button></div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

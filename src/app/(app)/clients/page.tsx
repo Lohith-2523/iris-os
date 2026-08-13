@@ -10,7 +10,66 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Plus, Trash2, X } from 'lucide-react';
 import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { formatCurrency } from '@/lib/utils';
+import { collectAssignedSpecialists, type AssignedSpecialist } from '@/lib/clients/assigned-specialists';
 
+function specialistInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || '—';
+}
+
+function SpecialistAvatar({ specialist, index }: { specialist: AssignedSpecialist; index: number }) {
+  return (
+    <span
+      className="group relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-zinc-950 bg-zinc-800 text-[9px] font-bold text-zinc-200 outline-none transition-[transform,z-index] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:z-20 hover:-translate-y-0.5 focus-visible:z-20 focus-visible:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-zinc-500"
+      style={{ zIndex: index + 1 }}
+      tabIndex={0}
+      aria-label={specialist.name}
+    >
+      {specialist.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={specialist.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
+      ) : specialistInitials(specialist.name)}
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 translate-y-1 scale-95 whitespace-nowrap rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-[10px] font-medium text-zinc-100 opacity-0 shadow-xl transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:scale-100 group-focus-visible:opacity-100"
+      >
+        {specialist.name}
+      </span>
+    </span>
+  );
+}
+
+function AssignedSpecialists({ specialists }: { specialists: AssignedSpecialist[] }) {
+  if (specialists.length === 0) return <span className="text-zinc-600 italic">Unassigned</span>;
+
+  const visibleSpecialists = specialists.slice(0, 6);
+  const remainingSpecialists = specialists.slice(6);
+
+  return (
+    <div className="flex items-center -space-x-2" aria-label={`${specialists.length} assigned specialist${specialists.length === 1 ? '' : 's'}`}>
+      {visibleSpecialists.map((specialist, index) => (
+        <SpecialistAvatar key={specialist.id} specialist={specialist} index={index} />
+      ))}
+      {remainingSpecialists.length > 0 && (
+        <span
+          className="group relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-zinc-950 bg-zinc-700 text-[9px] font-bold text-white outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+          tabIndex={0}
+          aria-label={`${remainingSpecialists.length} more assigned specialists`}
+        >
+          +{remainingSpecialists.length}
+          <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 translate-y-1 scale-95 whitespace-nowrap rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-[10px] font-medium text-zinc-100 opacity-0 shadow-xl transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:scale-100 group-focus-visible:opacity-100">
+            {remainingSpecialists.map((specialist) => specialist.name).join(', ')}
+          </span>
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function ClientsPage() {
   const searchParams = useSearchParams();
@@ -150,16 +209,16 @@ export default function ClientsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Active Accounts List</CardTitle>
-              <CardDescription>Portfolio relationships with renewal timing and churn exposure.</CardDescription>
+              <CardDescription>Portfolio relationships with project coverage, assigned specialists, and annual contract value.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Client Name</TableHead>
-                    <TableHead>Domain</TableHead>
-                    <TableHead>Assigned Specialist</TableHead>
-                    <TableHead className="text-center">Renewal</TableHead>
+                    <TableHead>Projects</TableHead>
+                    <TableHead>Assigned Specialists</TableHead>
+                    <TableHead className="text-right">Contract Value</TableHead>
                     {canManageClients && <TableHead className="w-[68px] text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -172,7 +231,8 @@ export default function ClientsPage() {
                     </TableRow>
                   ) : (
                     clients.map((c: any) => {
-                      const specialist = team.find((t: any) => t.id === c.metadata?.assignedTeamMemberId);
+                      const legacySpecialist = team.find((member: any) => member.id === c.metadata?.assignedTeamMemberId);
+                      const assignedSpecialists = collectAssignedSpecialists(c.projects || [], legacySpecialist);
                       return (
                         <TableRow 
                           key={c.id} 
@@ -180,19 +240,15 @@ export default function ClientsPage() {
                           onClick={() => setSelectedClientId(c.id)}
                         >
                           <TableCell className="font-semibold text-white">{c.name}</TableCell>
-                          <TableCell className="font-mono text-xs text-zinc-500">{c.domain}</TableCell>
                           <TableCell className="text-zinc-300">
-                            {specialist ? (
-                              <span className="inline-flex items-center gap-1.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span>{specialist.name}</span>
-                              </span>
-                            ) : (
-                              <span className="text-zinc-600 italic">Unassigned</span>
-                            )}
+                            <span className="font-mono font-semibold text-white">{c.projects?.length || 0}</span>
+                            <span className="ml-1.5 text-[10px] text-zinc-600">{c.projects?.length === 1 ? 'project' : 'projects'}</span>
                           </TableCell>
-                          <TableCell className="text-center text-xs text-zinc-300">
-                            {c.renewalDate || 'Not scheduled'}
+                          <TableCell className="text-zinc-300">
+                            <AssignedSpecialists specialists={assignedSpecialists} />
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-xs font-semibold text-zinc-200">
+                            {formatCurrency(Number(c.contractValue || 0))}
                           </TableCell>
                           {canManageClients && (
                             <TableCell className="text-right">

@@ -16,6 +16,7 @@ type FacebookSdk = {
     version: string;
   }) => void;
   logout: (callback: (response: { status: string }) => void) => void;
+  getAuthResponse: () => { accessToken?: string } | null;
   AppEvents?: {
     logPageView?: () => void;
   };

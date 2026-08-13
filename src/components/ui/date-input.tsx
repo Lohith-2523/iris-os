@@ -3,6 +3,8 @@
 import * as React from 'react';
 import { CalendarDays } from 'lucide-react';
 
+export const DATE_INPUT_PATTERN = '[0-9]{2}/[0-9]{2}/[0-9]{4}';
+
 function isoDate(value: string | null | undefined) {
   const match = String(value || '').match(/^(\d{4}-\d{2}-\d{2})/);
   return match?.[1] || '';
@@ -87,7 +89,7 @@ export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, ma
       value={draft}
       onChange={handleChange}
       onBlur={() => validate(draft)}
-      pattern="\\d{2}/\\d{2}/\\d{4}"
+      pattern={DATE_INPUT_PATTERN}
       title="Use DD/MM/YYYY"
       className={`${className || ''} pr-10`}
     />

@@ -350,7 +350,7 @@ export async function createAndSendProjectInvoice(input: {
       totals = allocateProjectValue({
         deliverables: project.tasks.map((task) => task.title),
         itemCount,
-        total: configuredAmount,
+        subtotal: configuredAmount,
         taxRate,
         fallbackDescription: input.description?.trim() || project.serviceLine || project.name,
       });
