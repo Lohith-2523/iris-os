@@ -106,7 +106,7 @@ interface AgencyMetaData {
 }
 
 interface MetaConnectionData {
-  discoveredAdAccounts?: Array<{ id: string; name: string }>;
+  adAccounts: Array<{ id: string; name: string }>;
   selectedAdAccountIds: string[];
 }
 
@@ -1477,7 +1477,7 @@ export default function AgencyLeadsPage() {
                   <div className="flex gap-2">
                     <select value={selectedMetaAccountId} onChange={(event) => setSelectedMetaAccountId(event.target.value)} className="min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white">
                       <option value="">Select your agency ad account</option>
-                      {(metaConnection.discoveredAdAccounts || []).map((account) => <option key={account.id} value={account.id}>{account.name} ({account.id})</option>)}
+                      {metaConnection.adAccounts.map((account) => <option key={account.id} value={account.id}>{account.name} ({account.id})</option>)}
                     </select>
                     <Button onClick={() => void assignMetaAccount()} disabled={metaBusy || !selectedMetaAccountId}>Add & sync</Button>
                   </div>
