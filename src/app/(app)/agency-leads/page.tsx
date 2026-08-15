@@ -1462,14 +1462,6 @@ export default function AgencyLeadsPage() {
                 <CardDescription>Connect an account used to advertise your own agency. Its form submissions join the same lead cards above.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <label className="flex items-start gap-3 rounded-md border border-zinc-800 p-3 text-xs text-zinc-300">
-                  <input type="checkbox" className="mt-0.5" checked={Boolean(agencyMeta?.metaAccessConsent)} disabled={metaBusy} onChange={(event) => void postAgencyMeta({ action: 'update_meta_access_consent', consent: event.target.checked })} />
-                  <span><strong className="block text-white">Allow Iris OS to access Meta</strong>I consent to Iris OS retrieving selected ad-account performance and lead-form submissions from Meta. I can withdraw this access at any time.</span>
-                </label>
-                <label className="flex items-start gap-3 rounded-md border border-violet-900/50 bg-violet-950/10 p-3 text-xs text-zinc-300">
-                  <input type="checkbox" className="mt-0.5" checked={Boolean(agencyMeta?.atlasMetaAnalyticsConsent)} disabled={metaBusy} onChange={(event) => void postAgencyMeta({ action: 'update_atlas_meta_consent', consent: event.target.checked })} />
-                  <span><strong className="block text-violet-200">Use aggregate Meta data with Atlas AI</strong>I consent to Atlas AI using Meta-derived spend, impressions, reach, clicks, and lead totals for better analytics. Atlas receives metrics only—not Meta access tokens, raw form fields, names, emails, or phone numbers—and only while general Atlas data sharing is also enabled.</span>
-                </label>
                 <Button onClick={connectMeta} disabled={metaBusy || !agencyMeta?.metaAccessConsent} className="w-full">
                   {metaConnection ? 'Reconnect Meta' : 'Connect Meta account'}
                 </Button>

@@ -142,6 +142,10 @@ html {
   --status-danger-text: #852536;
 }
 
+:root.light .settings-atlas-meta-consent-title {
+  color: #5b216d;
+}
+
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

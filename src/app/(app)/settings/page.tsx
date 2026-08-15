@@ -243,6 +243,8 @@ export default function SettingsPage() {
 
   // AI Consent State
   const [aiSharingConsent, setAiSharingConsent] = React.useState(false);
+  const [metaAccessConsent, setMetaAccessConsent] = React.useState(false);
+  const [atlasMetaAnalyticsConsent, setAtlasMetaAnalyticsConsent] = React.useState(false);
 
 
   const fetchIntegrations = React.useCallback(async () => {
@@ -455,6 +457,8 @@ export default function SettingsPage() {
           setCurrency(data.currency || 'USD');
           setHasFinancialData(!!data.hasFinancialData);
           setAiSharingConsent(data.aiSharingConsent || false);
+          setMetaAccessConsent(data.metaAccessConsent || false);
+          setAtlasMetaAnalyticsConsent(data.atlasMetaAnalyticsConsent || false);
           organizationBillingEmail = data.billingEmail || null;
         }
 
@@ -644,6 +648,8 @@ export default function SettingsPage() {
           bankNames: selectedBanks,
           currency,
           aiSharingConsent: aiSharingConsent,
+          metaAccessConsent,
+          atlasMetaAnalyticsConsent,
           billingEmail,
         }),
       });
@@ -1139,7 +1145,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-white">AI Settings & Data Privacy</CardTitle>
-                  <CardDescription>Configure Atlas AI access permissions for your workspace data.</CardDescription>
+                  <CardDescription>Configure Atlas AI and Meta data-access permissions for your workspace.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 font-sans text-xs">
                   <div className="flex items-start justify-between gap-3 p-3 rounded border border-zinc-850 bg-zinc-900/10">
@@ -1160,6 +1166,44 @@ export default function SettingsPage() {
                           {plan === 'BASIC'
                             ? 'AI analysis is not included with the Basic plan. Upgrade to Pro or Advanced to enable it.'
                             : 'Allow Atlas AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start justify-between gap-3 p-3 rounded border border-zinc-850 bg-zinc-900/10">
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        id="settingsMetaAccessConsentCheckbox"
+                        checked={metaAccessConsent}
+                        onChange={(event) => setMetaAccessConsent(event.target.checked)}
+                        className="mt-1 rounded border-zinc-800 bg-zinc-900 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                      />
+                      <div className="cursor-pointer select-none">
+                        <label htmlFor="settingsMetaAccessConsentCheckbox" className="block font-bold text-zinc-300">
+                          Allow Iris OS to Access Meta
+                        </label>
+                        <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
+                          Allow Iris OS to retrieve selected ad-account performance and lead-form submissions from Meta. This access can be withdrawn at any time.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start justify-between gap-3 p-3 rounded border border-violet-900/50 bg-violet-950/10">
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        id="settingsAtlasMetaAnalyticsConsentCheckbox"
+                        checked={atlasMetaAnalyticsConsent}
+                        onChange={(event) => setAtlasMetaAnalyticsConsent(event.target.checked)}
+                        className="mt-1 rounded border-zinc-800 bg-zinc-900 focus:ring-0 cursor-pointer h-3.5 w-3.5"
+                      />
+                      <div className="cursor-pointer select-none">
+                        <label htmlFor="settingsAtlasMetaAnalyticsConsentCheckbox" className="settings-atlas-meta-consent-title block font-bold text-violet-200">
+                          Use Aggregate Meta Data with Atlas AI
+                        </label>
+                        <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
+                          Allow Atlas AI to use Meta-derived spend, impressions, reach, clicks, and lead totals. Atlas never receives Meta tokens or raw lead contact and form data, and analysis runs only while general Atlas data sharing is enabled.
                         </span>
                       </div>
                     </div>
