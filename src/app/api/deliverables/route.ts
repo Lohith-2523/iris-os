@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { createNotification, notifyOrganizationAdmins } from '@/lib/notifications';
 import { applyFinalizedChangeRequest } from '@/lib/atlas-ai/apply-finalized-change-request';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 const schema = z.object({
   action: z.enum(['create', 'approve', 'request_changes', 'create_change_request', 'update_change_request', 'resolve_change_request']),
@@ -27,19 +28,35 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const clientScope = user.role.toLowerCase() === 'client' ? { clientId: user.clientId || '__none__' } : {};
+    const deliverablePageRequest = readCursorPage(request, { cursorParam: 'deliverableCursor', limitParam: 'deliverableLimit' });
+    const changePageRequest = readCursorPage(request, { cursorParam: 'changeCursor', limitParam: 'changeLimit' });
     const [deliverables, changeRequests] = await Promise.all([
       prisma.deliverable.findMany({
-        where: { orgId: user.orgId, ...clientScope },
+        where: { orgId: user.orgId, ...clientScope, ...descendingCursorWhere(deliverablePageRequest.cursor, 'createdAt') },
         include: { client: { select: { id: true, name: true } }, project: { select: { id: true, name: true } }, task: { select: { id: true, title: true, stage: { select: { id: true, name: true } } } } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: deliverablePageRequest.take,
       }),
       prisma.changeRequest.findMany({
-        where: { orgId: user.orgId, ...clientScope },
+        where: { orgId: user.orgId, ...clientScope, ...descendingCursorWhere(changePageRequest.cursor, 'createdAt') },
         include: { client: { select: { id: true, name: true } }, project: { select: { id: true, name: true } }, task: { select: { id: true, title: true, stage: { select: { id: true, name: true } } } } },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: changePageRequest.take,
       }),
     ]);
-    return NextResponse.json({ deliverables, changeRequests });
+    const deliverablePage = finishCursorPage(deliverables, deliverablePageRequest.limit, (item) => item.createdAt);
+    const changePage = finishCursorPage(changeRequests, changePageRequest.limit, (item) => item.createdAt);
+    const headers = cursorHeaders(deliverablePage, deliverablePageRequest.limit);
+    headers.set('X-Change-Has-More', String(changePage.hasMore));
+    if (changePage.nextCursor) headers.set('X-Change-Next-Cursor', changePage.nextCursor);
+    return NextResponse.json({
+      deliverables: deliverablePage.items,
+      changeRequests: changePage.items,
+      pagination: {
+        deliverables: { nextCursor: deliverablePage.nextCursor, hasMore: deliverablePage.hasMore, limit: deliverablePageRequest.limit },
+        changeRequests: { nextCursor: changePage.nextCursor, hasMore: changePage.hasMore, limit: changePageRequest.limit },
+      },
+    }, { headers });
   } catch (error) {
     console.error('Unable to load deliverables:', error);
     return NextResponse.json({ error: 'Unable to load deliverables' }, { status: 500 });

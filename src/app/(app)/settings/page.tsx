@@ -1218,7 +1218,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-3 font-sans text-xs">
                   <p className="text-zinc-400">View all users and configure client, team member, sub-admin, and admin access. Sub-admin permissions are set per user.</p>
-                  <Link href="/settings/security" className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 font-semibold text-white hover:border-zinc-600"><span>Open Security & Roles</span><span aria-hidden="true">→</span></Link>
+                  <Link href="/settings/security" prefetch={false} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 font-semibold text-white hover:border-zinc-600"><span>Open Security & Roles</span><span aria-hidden="true">→</span></Link>
                 </CardContent>
               </Card>
 

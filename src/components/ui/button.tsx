@@ -1,13 +1,16 @@
 import * as React from 'react';
+import { LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  loading?: boolean;
+  loadingLabel?: string;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', ...props }, ref) => {
+  ({ className, variant = 'default', size = 'default', loading = false, loadingLabel, children, disabled, ...props }, ref) => {
     return (
       <button
         className={cn(
@@ -26,8 +29,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className
         )}
         ref={ref}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
         {...props}
-      />
+      >
+        {loading && <LoaderCircle aria-hidden="true" className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none" />}
+        {loadingLabel && loading ? loadingLabel : children}
+      </button>
     );
   }
 );

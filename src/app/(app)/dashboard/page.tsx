@@ -432,13 +432,13 @@ export default function DashboardPage() {
 
   const top2Clients = React.useMemo(() => {
     return [...clientsList]
-      .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+      .sort((a, b) => Number(b.contractValue || 0) - Number(a.contractValue || 0))
       .slice(0, 2);
   }, [clientsList]);
 
   const sortedClients = React.useMemo(() => {
     return [...clientsList]
-      .sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
+      .sort((a, b) => Number(b.contractValue || 0) - Number(a.contractValue || 0));
   }, [clientsList]);
 
   const priorityTasks = React.useMemo(() => {
@@ -971,7 +971,7 @@ export default function DashboardPage() {
                 </CardContent>
               </ExpandableCard>
 
-              <ExpandableCard className="flex-1 flex flex-col justify-between overflow-hidden" expandedContent={<div className="divide-y divide-zinc-900">{notifications.map((item) => <button key={item.id} onClick={() => item.href && router.push(item.href)} className="block w-full py-3 text-left"><div className="font-semibold text-white">{item.title}</div><div className="mt-1 text-zinc-500">{item.body}</div></button>)}{notifications.length === 0 && <div className="py-8 text-center text-zinc-500">No pending notifications.</div>}</div>}>
+              <ExpandableCard className="flex-[1.15] flex flex-col justify-between overflow-hidden" expandedContent={<div className="divide-y divide-zinc-900">{notifications.map((item) => <button key={item.id} onClick={() => item.href && router.push(item.href)} className="block w-full py-3 text-left"><div className="font-semibold text-white">{item.title}</div><div className="mt-1 text-zinc-500">{item.body}</div></button>)}{notifications.length === 0 && <div className="py-8 text-center text-zinc-500">No pending notifications.</div>}</div>}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Notifications</CardTitle>
                   <Bell className="h-4 w-4 text-zinc-500" />
@@ -981,7 +981,7 @@ export default function DashboardPage() {
                     <div className="text-xl font-bold font-mono text-white">{notifications.filter((item) => !item.readAt).length} Unread</div>
                   </div>
                   <div className="space-y-2">
-                    {notifications.slice(0, 2).map((item) => <button key={item.id} onClick={() => item.href && router.push(item.href)} className="block w-full rounded-xl border border-zinc-900 bg-zinc-900/35 p-2 text-left"><span className="block truncate font-semibold text-zinc-200">{item.title}</span><span className="block truncate text-zinc-500">{item.type}</span></button>)}
+                    {notifications.slice(0, 2).map((item) => <button key={item.id} onClick={() => item.href && router.push(item.href)} className="block w-full rounded-xl border border-zinc-900 bg-zinc-900/35 p-2 text-left h-14"><span className="block truncate font-semibold text-zinc-200">{item.title}</span><span className="mt-0.5 block truncate text-[9px] leading-3 text-zinc-500">{item.type}</span></button>)}
                     {notifications.length === 0 && <div className="text-zinc-600 italic py-1">You’re all caught up.</div>}
                   </div>
                 </CardContent>
@@ -1007,7 +1007,7 @@ export default function DashboardPage() {
                 expandedContent={
                   <div className="flex h-full min-h-0 flex-col">
                     <div className="mb-4">
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Clients Portfolio (by Revenue)</h3>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Clients Portfolio (by Contract Value)</h3>
                     </div>
                     <div className="min-h-0 flex-1 divide-y divide-zinc-900 overflow-y-auto border-t border-zinc-900">
                       {sortedClients.length > 0 ? (
@@ -1017,10 +1017,10 @@ export default function DashboardPage() {
                               <span className="block text-xs font-semibold text-white">{client.name}</span>
                               <span className="text-[10px] text-zinc-500 mt-1 block font-mono">{client.domain}</span>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-mono text-zinc-400">Churn risk: {client.churnRiskScore}%</span>
+                            <div className="flex shrink-0 items-center gap-2 text-right">
+                              <span className="text-[10px] font-medium text-zinc-500">Contract value</span>
                               <span className="text-[11px] font-mono font-bold text-emerald-450">
-                                {formatCurrency(client.revenue)}
+                                {formatCurrency(Number(client.contractValue || 0))}
                               </span>
                             </div>
                           </div>
@@ -1034,7 +1034,7 @@ export default function DashboardPage() {
                   </div>
                 }
                 expandedFooter={
-                  <Link href="/clients" onClick={(e) => e.stopPropagation()} className="w-full">
+                  <Link href="/clients" prefetch={false} onClick={(e) => e.stopPropagation()} className="w-full">
                     <Button variant="outline" size="sm" className="h-7 w-full text-[10px] border-zinc-800 text-zinc-300 font-semibold px-2 hover:text-white rounded-none">
                       View All
                     </Button>
@@ -1053,13 +1053,10 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2">
                     {top2Clients.map((client: any) => (
-                      <div key={client.id} className="flex justify-between items-center bg-zinc-900/35 border border-zinc-900/65 p-2 rounded-none">
-                        <div className="truncate pr-2">
+                      <div key={client.id} className="flex items-center bg-zinc-900/35 border border-zinc-900/65 p-2 rounded-none">
+                        <div className="min-w-0 truncate">
                           <span className="block text-[11px] font-semibold text-zinc-250 truncate">{client.name}</span>
                         </div>
-                        <span className="text-[10px] font-mono font-bold text-emerald-450 shrink-0">
-                          {formatCurrency(client.revenue)}
-                        </span>
                       </div>
                     ))}
                     {clientsList.length === 0 && (
@@ -1090,7 +1087,7 @@ export default function DashboardPage() {
                   </div>
                 }
                 expandedFooter={
-                  <Link href="/tasks" className="w-full">
+                  <Link href="/tasks" prefetch={false} className="w-full">
                     <Button className="w-full h-9 text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">
                       See more
                     </Button>
@@ -1143,7 +1140,7 @@ export default function DashboardPage() {
                   </div>
                 }
                 expandedFooter={
-                  <Link href="/calendar" className="w-full">
+                  <Link href="/calendar" prefetch={false} className="w-full">
                     <Button className="w-full h-9 text-xs font-bold bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer">
                       See more
                     </Button>

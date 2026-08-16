@@ -6,6 +6,7 @@ import {
   workspaceMutationPlan,
   workspaceReadTags,
 } from '@/lib/workspace-cache-policy';
+import { isWorkspaceDataUrlForRoute } from '@/lib/workspace-route-data';
 
 type WorkspaceCacheScope = {
   userId: string;
@@ -24,14 +25,20 @@ type CachedResponse = {
 type JsonRecord = Record<string, unknown>;
 
 const STORAGE_PREFIX = 'crystal.workspace.data:v2';
+const STAGED_STORAGE_PREFIX = 'crystal.workspace.staged:v1';
 export const WORKSPACE_BACKGROUND_CHECK_INTERVAL_MS = 30 * 60 * 1_000;
 const REVISION_BASELINE_DEBOUNCE_MS = 1_000;
 
 const memoryCache = new Map<string, CachedResponse>();
+const stagedCache = new Map<string, CachedResponse>();
 const inFlightReads = new Map<string, Promise<CachedResponse>>();
+const stagedInFlightReads = new Map<string, { controller: AbortController; promise: Promise<CachedResponse> }>();
 const knownUrls = new Set<string>();
 const urlGenerations = new Map<string, number>();
 const loadingListeners = new Set<() => void>();
+const stagedQueue: Array<{ priority: number; resolve: () => void; url: string }> = [];
+const MAX_ACTIVE_CACHE_ENTRIES = 80;
+const MAX_STAGED_CACHE_ENTRIES = 30;
 
 let activeScope = '';
 let activeNetworkReads = 0;
@@ -42,6 +49,7 @@ let serverRevision: string | null = null;
 let deferredServerRefresh = false;
 let revisionBaselineTimer: ReturnType<typeof setTimeout> | null = null;
 let backgroundCheckTimer: ReturnType<typeof setInterval> | null = null;
+let stagedWorkerRunning = false;
 
 function notifyLoadingChange() {
   for (const listener of loadingListeners) listener();
@@ -79,7 +87,11 @@ function cacheKey(url: string) {
   return `${scopePrefix()}${encodeURIComponent(url)}`;
 }
 
-function restoreResponse(cached: CachedResponse, cacheStatus: 'HIT' | 'MISS' | 'PATCHED') {
+function stagedStorageKey(key: string) {
+  return key.replace(STORAGE_PREFIX, STAGED_STORAGE_PREFIX);
+}
+
+function restoreResponse(cached: CachedResponse, cacheStatus: 'HIT' | 'MISS' | 'PATCHED' | 'STAGED') {
   const headers = new Headers(cached.headers);
   headers.delete('content-length');
   headers.set('X-Workspace-Cache', cacheStatus);
@@ -108,12 +120,67 @@ function readCachedResponse(key: string) {
 
 function writeCachedResponse(key: string, value: CachedResponse) {
   memoryCache.set(key, value);
+  while (memoryCache.size > MAX_ACTIVE_CACHE_ENTRIES) {
+    const oldest = memoryCache.keys().next().value;
+    if (typeof oldest !== 'string') break;
+    memoryCache.delete(oldest);
+    try {
+      if (typeof window !== 'undefined') window.sessionStorage.removeItem(oldest);
+    } catch {
+      // Session storage is optional.
+    }
+  }
   if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
     // Large workspaces or private browsing can reject storage writes. The
     // in-memory cache remains authoritative for this document session.
+  }
+}
+
+function writeStagedResponse(key: string, value: CachedResponse) {
+  stagedCache.delete(key);
+  stagedCache.set(key, value);
+  while (stagedCache.size > MAX_STAGED_CACHE_ENTRIES) {
+    const oldest = stagedCache.keys().next().value;
+    if (typeof oldest !== 'string') break;
+    stagedCache.delete(oldest);
+    try {
+      if (typeof window !== 'undefined') window.sessionStorage.removeItem(stagedStorageKey(oldest));
+    } catch {
+      // Session storage is optional.
+    }
+  }
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(stagedStorageKey(key), JSON.stringify(value));
+  } catch {
+    // The in-memory staged generation remains usable.
+  }
+}
+
+function readStagedResponse(key: string) {
+  const memoryValue = stagedCache.get(key);
+  if (memoryValue) return memoryValue;
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(stagedStorageKey(key));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedResponse;
+    stagedCache.set(key, parsed);
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function removeStagedResponse(key: string) {
+  stagedCache.delete(key);
+  try {
+    if (typeof window !== 'undefined') window.sessionStorage.removeItem(stagedStorageKey(key));
+  } catch {
+    // Session storage is optional.
   }
 }
 
@@ -389,6 +456,8 @@ function markTagsStale(tags: WorkspaceCacheTag[], excludedUrls = new Set<string>
       writeCachedResponse(key, { ...cached, stale: true });
       staleUrls.push(url);
     }
+    const staged = readStagedResponse(key);
+    if (staged) writeStagedResponse(key, { ...staged, stale: true });
   }
   notifyCacheUpdate(staleUrls, tags, 'invalidate');
   return staleUrls;
@@ -449,6 +518,85 @@ async function readFromNetwork(
   } finally {
     inFlightReads.delete(key);
   }
+}
+
+function abortStagedReads(exceptUrl?: string) {
+  for (const [url, pending] of stagedInFlightReads) {
+    if (url === exceptUrl) continue;
+    pending.controller.abort();
+    stagedInFlightReads.delete(url);
+  }
+}
+
+function clearStagedQueue() {
+  while (stagedQueue.length > 0) stagedQueue.shift()?.resolve();
+}
+
+async function readIntoStage(input: RequestInfo | URL, init: RequestInit | undefined, url: string) {
+  const key = cacheKey(url);
+  const existing = stagedInFlightReads.get(url);
+  if (existing) return existing.promise;
+
+  const controller = new AbortController();
+  const fullGenerationAtStart = cacheGeneration;
+  const urlGenerationAtStart = urlGenerations.get(url) || 0;
+  const promise = (async () => {
+    const headers = new Headers(init?.headers);
+    headers.delete('X-Workspace-Cache-Prefetch');
+    headers.set('X-Workspace-Cache-Background', '1');
+    const response = await globalThis.fetch(input, {
+      ...init,
+      headers,
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    const serialized = await serializeResponse(response);
+    if (
+      response.ok
+      && fullGenerationAtStart === cacheGeneration
+      && urlGenerationAtStart === (urlGenerations.get(url) || 0)
+    ) {
+      writeStagedResponse(key, serialized);
+    }
+    return serialized;
+  })();
+
+  stagedInFlightReads.set(url, { controller, promise });
+  try {
+    return await promise;
+  } finally {
+    if (stagedInFlightReads.get(url)?.promise === promise) stagedInFlightReads.delete(url);
+  }
+}
+
+function canPrefetchInBackground() {
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false;
+  const connection = typeof navigator === 'undefined'
+    ? undefined
+    : (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  return !connection?.saveData && connection?.effectiveType !== 'slow-2g' && connection?.effectiveType !== '2g';
+}
+
+function scheduleNextCursorPage(url: string, response: CachedResponse) {
+  if (!activePathname || !isWorkspaceDataUrlForRoute(activePathname, url) || !canPrefetchInBackground()) return;
+  const headers = new Headers(response.headers);
+  const nextCursor = headers.get('X-Next-Cursor');
+  if (!nextCursor) return;
+  const nextUrl = new URL(url, 'https://iris.local');
+  const cursorParam = nextUrl.pathname === '/api/meta-portal'
+    ? 'campaignCursor'
+    : nextUrl.pathname === '/api/deliverables'
+      ? 'deliverableCursor'
+      : 'cursor';
+  if (nextUrl.searchParams.has(cursorParam)) return;
+  nextUrl.searchParams.set(cursorParam, nextCursor);
+  const relativeUrl = `${nextUrl.pathname}${nextUrl.search}`;
+  const schedule = typeof window !== 'undefined' && 'requestIdleCallback' in window
+    ? (callback: () => void) => window.requestIdleCallback(callback, { timeout: 2_000 })
+    : (callback: () => void) => setTimeout(callback, 250);
+  schedule(() => {
+    if (isWorkspaceDataUrlForRoute(activePathname, relativeUrl)) void stageWorkspaceDataCache([relativeUrl]);
+  });
 }
 
 async function fetchWorkspaceRevision() {
@@ -515,6 +663,7 @@ export function stopWorkspaceDataBackgroundChecks() {
 }
 
 export function prepareWorkspaceDataCacheForRouteChange(nextPathname: string) {
+  abortStagedReads();
   if (!activePathname) {
     activePathname = nextPathname;
     return false;
@@ -539,6 +688,9 @@ export function prepareWorkspaceDataCacheForNavigation() {
   const isReload = navigation?.type === 'reload' || legacyNavigation.navigation?.type === 1;
   if (isReload) {
     memoryCache.clear();
+    stagedCache.clear();
+    abortStagedReads();
+    clearStagedQueue();
     knownUrls.clear();
     urlGenerations.clear();
     cacheGeneration += 1;
@@ -554,6 +706,9 @@ export function configureWorkspaceDataCache(scope: WorkspaceCacheScope | null) {
   if (revisionBaselineTimer) clearTimeout(revisionBaselineTimer);
   revisionBaselineTimer = null;
   memoryCache.clear();
+  stagedCache.clear();
+  abortStagedReads();
+  clearStagedQueue();
   inFlightReads.clear();
   knownUrls.clear();
   urlGenerations.clear();
@@ -562,6 +717,7 @@ export function configureWorkspaceDataCache(scope: WorkspaceCacheScope | null) {
   deferredServerRefresh = false;
   cacheGeneration += 1;
   if (previousScope) removeStoredEntries(scopePrefix(previousScope));
+  if (previousScope) removeStoredEntries(`${STAGED_STORAGE_PREFIX}:${previousScope}:`);
 }
 
 export function invalidateWorkspaceDataCache() {
@@ -569,6 +725,9 @@ export function invalidateWorkspaceDataCache() {
   revisionBaselineTimer = null;
   cacheGeneration += 1;
   memoryCache.clear();
+  stagedCache.clear();
+  abortStagedReads();
+  clearStagedQueue();
   inFlightReads.clear();
   knownUrls.clear();
   urlGenerations.clear();
@@ -576,6 +735,7 @@ export function invalidateWorkspaceDataCache() {
   serverRevision = null;
   deferredServerRefresh = false;
   removeStoredEntries(scopePrefix());
+  removeStoredEntries(`${STAGED_STORAGE_PREFIX}:${activeScope}:`);
 }
 
 export function invalidateWorkspaceDataTags(tags: WorkspaceCacheTag[]) {
@@ -591,27 +751,45 @@ export function getWorkspaceDataLoadingSnapshot() {
   return activeNetworkReads > 0;
 }
 
-export async function warmWorkspaceDataCache(urls: string[], concurrency = 3) {
-  const queue = Array.from(new Set(urls));
-  const workerCount = Math.max(1, Math.min(concurrency, queue.length));
-  let cursor = 0;
-
-  async function worker() {
-    while (cursor < queue.length) {
-      const url = queue[cursor];
-      cursor += 1;
+async function runStagedQueue() {
+  if (stagedWorkerRunning) return;
+  stagedWorkerRunning = true;
+  try {
+    while (stagedQueue.length > 0) {
+      stagedQueue.sort((left, right) => right.priority - left.priority);
+      const task = stagedQueue.shift();
+      if (!task) continue;
       try {
-        await workspaceFetch(url, {
-          headers: { 'X-Workspace-Cache-Prefetch': '1' },
-        });
+        await workspaceFetch(task.url, { headers: { 'X-Workspace-Cache-Prefetch': '1' } });
       } catch {
-        // Warming is opportunistic; each feature retries its critical request.
+        // Staging is opportunistic; foreground requests remain authoritative.
+      } finally {
+        task.resolve();
       }
     }
+  } finally {
+    stagedWorkerRunning = false;
   }
-
-  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 }
+
+export async function stageWorkspaceDataCache(
+  urls: string[],
+  _concurrency = 1,
+  priority: 'background' | 'intent' = 'background',
+) {
+  if (!activeScope || !canPrefetchInBackground()) return;
+  void _concurrency;
+  const uniqueUrls = Array.from(new Set(urls));
+  if (priority === 'intent') abortStagedReads();
+  const tasks = uniqueUrls.map((url) => new Promise<void>((resolve) => {
+    stagedQueue.push({ url, priority: priority === 'intent' ? 10 : 1, resolve });
+  }));
+  void runStagedQueue();
+  await Promise.all(tasks);
+}
+
+/** @deprecated Prefer stageWorkspaceDataCache; retained for compatibility. */
+export const warmWorkspaceDataCache = stageWorkspaceDataCache;
 
 export async function workspaceFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const url = normalizedRequestUrl(input);
@@ -656,14 +834,31 @@ export async function workspaceFetch(input: RequestInfo | URL, init?: RequestIni
   knownUrls.add(url);
   const key = cacheKey(url);
   const cached = readCachedResponse(key);
+  const staged = readStagedResponse(key);
+
+  if (isPrefetch) {
+    if (!forceRefresh && cached && !cached.stale) return restoreResponse(cached, 'HIT');
+    if (!forceRefresh && staged && !staged.stale) return restoreResponse(staged, 'STAGED');
+    const foregroundPending = inFlightReads.get(key);
+    if (foregroundPending) return restoreResponse(await foregroundPending, 'MISS');
+    return restoreResponse(await readIntoStage(input, init, url), 'STAGED');
+  }
+
   if (!forceRefresh && cached && !cached.stale) {
     return restoreResponse(cached, 'HIT');
+  }
+  if (!forceRefresh && staged && !staged.stale) {
+    removeStagedResponse(key);
+    writeCachedResponse(key, staged);
+    return restoreResponse(staged, 'STAGED');
   }
 
   const pending = inFlightReads.get(key);
   if (pending) return restoreResponse(await pending, 'MISS');
 
-  const showGlobalLoading = !isPrefetch && !isBackground && !cached?.stale;
+  abortStagedReads();
+  const showGlobalLoading = !isBackground && !cached?.stale;
   const networkValue = await readFromNetwork(input, init, url, showGlobalLoading);
+  scheduleNextCursorPage(url, networkValue);
   return restoreResponse(networkValue, cached?.stale ? 'PATCHED' : 'MISS');
 }

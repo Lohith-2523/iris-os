@@ -8,6 +8,7 @@ import { MetaIntegrationError } from '@/lib/meta-business';
 import { normalizeRequiredPhone } from '@/lib/phone';
 import { createNotification } from '@/lib/notifications';
 import { getKanbanLeadCutoff } from '@/lib/lead-archive';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 function parseEstimatedClientValue(value: unknown) {
   if (value === undefined || value === null || value === '') return null;
@@ -23,13 +24,16 @@ export async function GET(request: NextRequest) {
     const canManageAgencyMeta = isOrganizationAdmin(user);
     const kanbanOnly = request.nextUrl.searchParams.get('view') === 'kanban';
     const kanbanCutoff = getKanbanLeadCutoff();
+    const pageRequest = readCursorPage(request);
     const [leads, archivedLeadCount, expenseTransactions, closedLeadCount, sourcedProjectPayments, agencyMetaAccounts] = await Promise.all([
       prisma.agencyLead.findMany({
         where: {
           orgId: user.orgId,
+          ...descendingCursorWhere(pageRequest.cursor, 'createdTime'),
           ...(kanbanOnly ? { createdTime: { gte: kanbanCutoff } } : {}),
         },
-        orderBy: { createdTime: 'desc' },
+        orderBy: [{ createdTime: 'desc' }, { id: 'desc' }],
+        take: pageRequest.take,
         include: {
           convertedClient: {
             select: { id: true, name: true },
@@ -80,6 +84,7 @@ export async function GET(request: NextRequest) {
           prisma.metaAd.findMany({
             where: { orgId: user.orgId, adAccountId: { in: agencyMetaAccountIds } },
             orderBy: [{ spend: 'desc' }, { updatedAt: 'desc' }],
+            take: 20,
             select: {
               id: true,
               adId: true,
@@ -110,8 +115,9 @@ export async function GET(request: NextRequest) {
       ),
     });
 
+    const page = finishCursorPage(leads, pageRequest.limit, (lead) => lead.createdTime);
     return NextResponse.json({
-      leads,
+      leads: page.items,
       archive: kanbanOnly ? {
         archivedLeadCount,
         retentionDays: 30,
@@ -127,9 +133,10 @@ export async function GET(request: NextRequest) {
         accounts: agencyMetaAccounts,
         campaignCount: agencyMetaCampaignCount,
         metrics: calculateAgencyMetaMetrics(agencyMetaAds),
-        ads: agencyMetaAds.slice(0, 20),
+        ads: agencyMetaAds,
       } : null,
-    });
+      pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
+    }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching Agency Leads:', error);
@@ -305,8 +312,20 @@ export async function POST(request: NextRequest) {
       if (!leads || !Array.isArray(leads)) {
         return NextResponse.json({ error: 'Missing array of leads to import' }, { status: 400 });
       }
+      if (leads.length > 1_000) {
+        return NextResponse.json({ error: 'Import at most 1,000 leads per request.' }, { status: 413 });
+      }
 
-      const importedLeads = [];
+      const normalizedByEmail = new Map<string, {
+        fullName: string;
+        email: string;
+        phone: string;
+        status: string;
+        funnelName: string;
+        estimatedClientValue: number | null;
+        approachMethod: string;
+        followUpAt: Date | null;
+      }>();
       for (const lead of leads) {
         const { fullName, email, phone, funnelName, status, approachMethod } = lead;
         const normalizedPhone = normalizeRequiredPhone(phone);
@@ -316,38 +335,47 @@ export async function POST(request: NextRequest) {
         const followUpAt = lead.followUpAt ? new Date(lead.followUpAt) : null;
         const estimatedClientValue = parseEstimatedClientValue(lead.estimatedClientValue);
         if (lead.estimatedClientValue !== undefined && lead.estimatedClientValue !== '' && estimatedClientValue === null) continue;
+        const normalizedEmail = String(email).trim().toLowerCase();
+        normalizedByEmail.set(normalizedEmail, {
+          fullName: String(fullName).trim(),
+          email: normalizedEmail,
+          phone: normalizedPhone,
+          status: cleanStatus,
+          funnelName: funnelName || 'Bulk Import',
+          estimatedClientValue,
+          approachMethod: approachMethod || 'Email',
+          followUpAt: followUpAt && !Number.isNaN(followUpAt.getTime()) ? followUpAt : null,
+        });
+      }
 
-        const existing = await prisma.agencyLead.findFirst({ where: { orgId: org.id, email } });
-        const created = existing ? await prisma.agencyLead.update({
-          where: { id: existing.id },
-          data: {
-            fullName,
-            email,
-            phone: normalizedPhone,
-            status: cleanStatus,
-            funnelName: funnelName || 'Bulk Import',
-            estimatedClientValue,
-            approachMethod: approachMethod || 'Email',
-            followUpAt: followUpAt && !Number.isNaN(followUpAt.getTime()) ? followUpAt : null,
-          }
-        }) : await prisma.agencyLead.create({
-          data: {
-            fullName,
-            email,
-            phone: normalizedPhone,
-            status: cleanStatus,
-            funnelName: funnelName || 'Bulk Import',
-            estimatedClientValue,
-            approachMethod: approachMethod || 'Email',
+      const normalizedLeads = [...normalizedByEmail.values()];
+      const existingLeads = await prisma.agencyLead.findMany({
+        where: { orgId: org.id, email: { in: normalizedLeads.map((lead) => lead.email), mode: 'insensitive' } },
+        select: { id: true, email: true },
+      });
+      const existingByEmail = new Map(existingLeads.map((lead) => [lead.email.toLowerCase(), lead]));
+      const updates = normalizedLeads.flatMap((lead) => {
+        const existing = existingByEmail.get(lead.email);
+        return existing ? [prisma.agencyLead.update({ where: { id: existing.id }, data: lead })] : [];
+      });
+      const newLeads = normalizedLeads.filter((lead) => !existingByEmail.has(lead.email));
+      await prisma.$transaction([
+        ...updates,
+        prisma.agencyLead.createMany({
+          data: newLeads.map((lead) => ({
+            ...lead,
             collectionMethod: 'Bulk Import',
             sourceProvider: 'IMPORT',
-            followUpAt: followUpAt && !Number.isNaN(followUpAt.getTime()) ? followUpAt : null,
             activity: [{ type: 'IMPORTED', at: new Date().toISOString(), by: user.name }],
-            orgId: org.id
-          }
-        });
-        importedLeads.push(created);
-      }
+            orgId: org.id,
+          })),
+        }),
+      ]);
+      const importedLeads = await prisma.agencyLead.findMany({
+        where: { orgId: org.id, email: { in: normalizedLeads.map((lead) => lead.email), mode: 'insensitive' } },
+        orderBy: [{ createdTime: 'desc' }, { id: 'desc' }],
+        take: 1_000,
+      });
 
       return NextResponse.json({ success: true, count: importedLeads.length, leads: importedLeads });
     }

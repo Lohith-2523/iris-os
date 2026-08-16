@@ -9,7 +9,8 @@ import { createClient } from '@/lib/client';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
-import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
+import { prepareWorkspaceDataCacheForRouteChange, stageWorkspaceDataCache } from '@/lib/workspace-data-cache';
+import { workspaceDataUrlsForRoute } from '@/lib/workspace-route-data';
 import { normalizePlan, planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import {
   LayoutDashboard,
@@ -73,6 +74,30 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   const [upgradePrompt, setUpgradePrompt] = React.useState<{ feature: string; href: string; requiredPlan: PlanId } | null>(null);
   const resolvedPlan = normalizePlan(workspacePlan || plan);
   const resolvedRole = (workspaceRole || user?.role || '').toLowerCase();
+  const intentRoutes = React.useRef(new Set<string>());
+
+  const prepareRouteIntent = React.useCallback((href: string) => {
+    if (href === pathname || intentRoutes.current.has(href)) return;
+    intentRoutes.current.add(href);
+    router.prefetch(href);
+    const [criticalUrl] = workspaceDataUrlsForRoute(href);
+    if (criticalUrl) void stageWorkspaceDataCache([criticalUrl], 1, 'intent');
+  }, [pathname, router]);
+
+  const navigateToRoute = React.useCallback(async (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    onCloseMobile?.();
+    const [criticalUrl] = workspaceDataUrlsForRoute(href);
+    if (criticalUrl) {
+      await Promise.race([
+        stageWorkspaceDataCache([criticalUrl], 1, 'intent'),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 180)),
+      ]);
+    }
+    prepareWorkspaceDataCacheForRouteChange(href);
+    router.push(href);
+  }, [onCloseMobile, router]);
 
   const loadOrg = React.useCallback(async () => {
     try {
@@ -251,11 +276,12 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       <div className="flex h-16 items-center justify-center border-b border-zinc-800 px-2">
         <Link
           href={resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard'}
+          prefetch={false}
           className="flex items-center justify-center"
-          onClick={() => {
-            prepareWorkspaceDataCacheForRouteChange(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard');
-            onCloseMobile?.();
-          }}
+          onMouseEnter={() => prepareRouteIntent(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
+          onFocus={() => prepareRouteIntent(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
+          onPointerDown={() => prepareRouteIntent(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
+          onClick={(event) => void navigateToRoute(event, resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
         >
           {isCollapsed ? (
             <img 
@@ -317,14 +343,17 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={false}
+                onMouseEnter={() => !isLocked && prepareRouteIntent(item.href)}
+                onFocus={() => !isLocked && prepareRouteIntent(item.href)}
+                onPointerDown={() => !isLocked && prepareRouteIntent(item.href)}
                 onClick={(event) => {
                   if (isLocked && item.requiredPlan) {
                     event.preventDefault();
                     setUpgradePrompt({ feature: item.name, href: item.href, requiredPlan: item.requiredPlan });
                     return;
                   }
-                  prepareWorkspaceDataCacheForRouteChange(item.href);
-                  onCloseMobile?.();
+                  void navigateToRoute(event, item.href);
                 }}
                 title={isCollapsed ? item.name : undefined}
                 aria-current={isActive ? 'page' : undefined}
@@ -372,10 +401,11 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         {user ? (
           <Link
             href="/settings"
-            onClick={() => {
-              prepareWorkspaceDataCacheForRouteChange('/settings');
-              onCloseMobile?.();
-            }}
+            prefetch={false}
+            onMouseEnter={() => prepareRouteIntent('/settings')}
+            onFocus={() => prepareRouteIntent('/settings')}
+            onPointerDown={() => prepareRouteIntent('/settings')}
+            onClick={(event) => void navigateToRoute(event, '/settings')}
             title={isCollapsed ? 'Open profile settings' : undefined}
             aria-label="Open profile settings"
             className={cn("workspace-profile-settings group flex items-center rounded-xl border border-transparent outline-none transition-colors hover:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-500", isCollapsed ? "justify-center p-1.5" : "gap-2.5 p-2")}

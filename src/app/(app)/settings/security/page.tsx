@@ -46,7 +46,7 @@ export default function SecurityUsersPage() {
 
   return <div className="space-y-6">
     <div className="flex items-center gap-4 border-b border-zinc-800 pb-5">
-      <Link href="/settings" className="rounded-xl border border-zinc-800 p-2 text-zinc-400 hover:text-white"><ArrowLeft className="h-5 w-5" /></Link>
+      <Link href="/settings" prefetch={false} className="rounded-xl border border-zinc-800 p-2 text-zinc-400 hover:text-white"><ArrowLeft className="h-5 w-5" /></Link>
       <div><h1 className="text-2xl font-bold text-white">Security & Roles</h1><p className="text-zinc-500">Manage roles, sub-admin page access, and team offboarding.</p></div>
     </div>
     {error && <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-4 text-rose-300" role="alert">{error}</div>}

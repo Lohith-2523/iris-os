@@ -10,18 +10,25 @@ import {
   googleCalendarOwnerScope,
   visibleCalendarEventScope,
 } from '@/lib/google-calendar-scope';
+import { ascendingCursorWhere, cursorHeaders, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const pageRequest = readCursorPage(request);
     const events = await prisma.calendarEvent.findMany({
-      where: visibleCalendarEventScope(user),
-      orderBy: { startTime: 'asc' },
+      where: { AND: [visibleCalendarEventScope(user), ascendingCursorWhere(pageRequest.cursor, 'startTime')] },
+      orderBy: [{ startTime: 'asc' }, { id: 'asc' }],
+      take: pageRequest.take,
     });
 
-    return NextResponse.json({ events });
+    const page = finishCursorPage(events, pageRequest.limit, (event) => event.startTime);
+    return NextResponse.json({
+      events: page.items,
+      pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
+    }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching calendar events:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
@@ -57,6 +64,7 @@ export async function POST(request: NextRequest) {
       const updatedEvents = await prisma.calendarEvent.findMany({
         where: visibleCalendarEventScope(user),
         orderBy: { startTime: 'asc' },
+        take: 100,
       });
 
       return NextResponse.json({

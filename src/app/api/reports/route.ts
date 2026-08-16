@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { buildAtlasReportDocument } from '@/lib/reports/data';
 import { REPORT_KINDS, parseAtlasReportDocument } from '@/lib/reports/types';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 const createSchema = z.object({
   title: z.string().trim().min(2).max(200),
@@ -17,15 +18,18 @@ const generateSchema = z.object({
   clientId: z.string().uuid().optional(),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getRequestUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const pageRequest = readCursorPage(request);
   const reports = await prisma.report.findMany({
-    where: { orgId: user.orgId },
-    orderBy: { createdAt: 'desc' },
+    where: { orgId: user.orgId, ...descendingCursorWhere(pageRequest.cursor, 'createdAt') },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: pageRequest.take,
     select: { id: true, title: true, type: true, status: true, summary: true, createdAt: true, createdBy: { select: { name: true } } },
   });
-  return NextResponse.json(reports.map((report) => {
+  const page = finishCursorPage(reports, pageRequest.limit, (report) => report.createdAt);
+  return NextResponse.json(page.items.map((report) => {
     const document = parseAtlasReportDocument(report.summary);
     return {
     id: report.id,
@@ -37,7 +41,7 @@ export async function GET() {
     pageCount: document ? 3 : null,
     pdfUrl: document ? `/api/reports/${report.id}/pdf` : null,
     date: report.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  }; }));
+  }; }), { headers: cursorHeaders(page, pageRequest.limit) });
 }
 
 export async function POST(request: Request) {

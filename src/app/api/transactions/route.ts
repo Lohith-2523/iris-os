@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { invoicePaymentStatus } from '@/lib/invoices/billing-profile';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 function parseImportedDate(value: unknown) {
   if (value instanceof Date) return value;
@@ -28,9 +29,11 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    const pageRequest = readCursorPage(request);
     const transactions = await prisma.transaction.findMany({
-      where: { orgId: org.id },
-      orderBy: { date: 'desc' },
+      where: { orgId: org.id, ...descendingCursorWhere(pageRequest.cursor, 'date') },
+      orderBy: [{ date: 'desc' }, { id: 'desc' }],
+      take: pageRequest.take,
       include: {
         client: { select: { id: true, name: true } },
         invoice: {
@@ -45,7 +48,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(transactions);
+    const page = finishCursorPage(transactions, pageRequest.limit, (transaction) => transaction.date);
+    return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching transactions:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

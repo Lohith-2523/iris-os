@@ -13,6 +13,7 @@ import { IrisEmailDeliveryError, sendIrisEmail } from '@/lib/email/iris-email';
 import { agencyViaIrisSenderName } from '@/lib/email/sender-name';
 import { contentWithSignatureAudit, newSigningToken, runSignedDocumentAutomation, signingContentHash } from '@/lib/documents/signing';
 import { getInvoiceForPdf, invoicePdfFromRecord } from '@/lib/invoices/service';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 const mutationSchema = z.object({
   action: z.enum(['atlas_create', 'simple_create', 'save', 'approve', 'send', 'agency_sign']),
@@ -109,10 +110,12 @@ export async function GET(request: Request) {
   if (user.role.toLowerCase() === 'client') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const family = new URL(request.url).searchParams.get('family');
   const kinds = family === 'PROPOSAL' ? ['PROPOSAL'] : ['CONTRACT', 'SOW'];
+  const pageRequest = readCursorPage(request);
   const [documents, clients, leads] = await Promise.all([
     prisma.generatedDocument.findMany({
-      where: { orgId: user.orgId, kind: { in: kinds } },
-      orderBy: { createdAt: 'desc' },
+      where: { orgId: user.orgId, kind: { in: kinds }, ...descendingCursorWhere(pageRequest.cursor, 'createdAt') },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: pageRequest.take,
       select: {
         id: true, kind: true, title: true, documentNumber: true, status: true,
         recipientName: true, recipientEmail: true, createdAt: true, sentAt: true,
@@ -121,16 +124,18 @@ export async function GET(request: Request) {
         automationStatus: true, automationError: true,
       },
     }),
-    prisma.client.findMany({ where: { orgId: user.orgId, status: { not: 'DELETED' } }, include: { contacts: { orderBy: { createdAt: 'asc' }, take: 1 } }, orderBy: { name: 'asc' } }),
-    prisma.agencyLead.findMany({ where: { orgId: user.orgId }, select: { id: true, fullName: true, email: true }, orderBy: { fullName: 'asc' } }),
+    prisma.client.findMany({ where: { orgId: user.orgId, status: { not: 'DELETED' } }, select: { id: true, name: true, contacts: { select: { name: true, email: true }, orderBy: { createdAt: 'asc' }, take: 1 } }, orderBy: { name: 'asc' }, take: 100 }),
+    prisma.agencyLead.findMany({ where: { orgId: user.orgId }, select: { id: true, fullName: true, email: true }, orderBy: { fullName: 'asc' }, take: 100 }),
   ]);
+  const page = finishCursorPage(documents, pageRequest.limit, (document) => document.createdAt);
   return NextResponse.json({
-    documents,
+    documents: page.items,
     recipients: [
       ...clients.flatMap(client => client.contacts[0]?.email ? [{ id: client.id, type: 'CLIENT', name: client.contacts[0].name || client.name, company: client.name, email: client.contacts[0].email }] : []),
       ...leads.map(lead => ({ id: lead.id, type: 'LEAD', name: lead.fullName, company: lead.fullName, email: lead.email })),
     ],
-  });
+    pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
+  }, { headers: cursorHeaders(page, pageRequest.limit) });
 }
 
 export async function POST(request: Request) {

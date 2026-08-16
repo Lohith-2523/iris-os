@@ -1482,6 +1482,38 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
   filter: saturate(.55);
 }
 
+.workspace-auto-pending {
+  pointer-events: none;
+  cursor: wait;
+}
+
+.workspace-auto-pending::before {
+  content: '';
+  display: inline-block;
+  width: .9rem;
+  height: .9rem;
+  margin-right: .45rem;
+  flex: 0 0 auto;
+  vertical-align: -.14rem;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  opacity: .82;
+  animation: workspace-button-loading-spin 560ms linear infinite;
+}
+
+@keyframes workspace-button-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-auto-pending::before {
+    animation: none;
+    border-right-color: currentColor;
+    opacity: .55;
+  }
+}
+
 .workspace-icon-control {
   transition:
     transform 150ms var(--workspace-ease-out),

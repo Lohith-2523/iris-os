@@ -190,7 +190,7 @@ export default function ClientsPage() {
         </div>
         <div className="flex items-center gap-3">
 
-          <Link href="/clients/onboard">
+          <Link href="/clients/onboard" prefetch={false}>
             <Button variant="default" size="sm" className="h-8 gap-1.5 font-semibold">
               <Plus className="h-3.5 w-3.5" />
               <span>Add Client</span>

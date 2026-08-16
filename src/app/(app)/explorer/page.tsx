@@ -503,7 +503,7 @@ function ExplorerContent() {
       {/* Top Header Row with Navigation Back */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800/60 pb-5">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard">
+          <Link href="/dashboard" prefetch={false}>
             <Button
               variant="outline"
               size="icon"

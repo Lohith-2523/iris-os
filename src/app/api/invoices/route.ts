@@ -9,6 +9,7 @@ import {
 import { publicAppUrl } from '@/lib/app-url';
 import { calculateInvoiceItemsWithOverallTax } from '@/lib/invoices/calculations';
 import { z } from 'zod';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 export const runtime = 'nodejs';
 
@@ -89,9 +90,11 @@ export async function GET(request: NextRequest) {
     const documentType = searchParams.get('documentType')?.trim();
     const outstanding = searchParams.get('outstanding') === 'true';
 
+    const pageRequest = readCursorPage(request);
     const invoices = await prisma.invoice.findMany({
       where: {
         orgId: user.orgId,
+        ...descendingCursorWhere(pageRequest.cursor, 'issuedDate'),
         ...(isClient && user.clientId
           ? { clientId: user.clientId }
           : {}),
@@ -108,10 +111,12 @@ export async function GET(request: NextRequest) {
         project: { select: { id: true, name: true } },
         lead: { select: { id: true, fullName: true, email: true, phone: true } },
       },
-      orderBy: [{ issuedDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ issuedDate: 'desc' }, { id: 'desc' }],
+      take: pageRequest.take,
     });
 
-    const responseInvoices = invoices.map((invoice) => ({
+    const page = finishCursorPage(invoices, pageRequest.limit, (invoice) => invoice.issuedDate);
+    const responseInvoices = page.items.map((invoice) => ({
       ...invoice,
       balanceDue: invoice.documentType === 'PROFORMA' ? 0 : Math.max(0, invoice.amount - invoice.paidAmount),
       downloadUrl: `/api/invoices/${invoice.id}/pdf`,
@@ -119,7 +124,7 @@ export async function GET(request: NextRequest) {
     if (outstanding) {
       responseInvoices.sort((left, right) => right.balanceDue - left.balanceDue);
     }
-    return NextResponse.json(responseInvoices);
+    return NextResponse.json(responseInvoices, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error) {
     console.error('Unable to list invoices:', error);
     return NextResponse.json({ error: 'Unable to load invoices.' }, { status: 500 });

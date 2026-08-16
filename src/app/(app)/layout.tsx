@@ -13,20 +13,20 @@ import { MetaSdkLoader } from '@/components/integrations/meta-sdk-loader';
 import { FileInputSecurityGuard } from '@/components/security/file-input-security-guard';
 import { AtlasFloatingLauncher } from '@/components/atlas/atlas-floating-launcher';
 import { canShowAtlasLauncher } from '@/lib/workspace-launchers';
-import { PageSkeleton, WorkspaceBootstrapLoader, pageSkeletonVariantForPath } from '@/components/ui/page-skeletons';
+import { AsyncButtonFeedback } from '@/components/app-shell/async-button-feedback';
+import { WorkspaceBootstrapLoader } from '@/components/ui/page-skeletons';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import {
   configureWorkspaceDataCache,
-  getWorkspaceDataLoadingSnapshot,
   prepareWorkspaceDataCacheForRouteChange,
   prepareWorkspaceDataCacheForNavigation,
+  stageWorkspaceDataCache,
   startWorkspaceDataBackgroundChecks,
   stopWorkspaceDataBackgroundChecks,
-  subscribeWorkspaceDataLoading,
-  warmWorkspaceDataCache,
   workspaceFetch,
 } from '@/lib/workspace-data-cache';
+import { workspaceDataUrlsForRoute } from '@/lib/workspace-route-data';
 
 prepareWorkspaceDataCacheForNavigation();
 
@@ -38,44 +38,10 @@ function WorkspaceRuntime() {
     <>
       <AuthSync />
       <FileInputSecurityGuard />
+      <AsyncButtonFeedback />
       {metaAppId && <MetaSdkLoader appId={metaAppId} apiVersion={metaApiVersion} />}
     </>
   );
-}
-
-const ADMIN_WORKSPACE_DATA = [
-  '/api/workspace',
-  '/api/data?domain=dashboard',
-  '/api/data?domain=finance',
-  '/api/data?domain=clients',
-  '/api/data?domain=team',
-  '/api/data?domain=reporting',
-  '/api/data?domain=operations',
-  '/api/tasks',
-  '/api/projects',
-  '/api/transactions',
-  '/api/subscriptions',
-  '/api/retainers',
-  '/api/agency-leads',
-  '/api/calendar',
-  '/api/meta-portal',
-  '/api/integrations',
-  '/api/reports',
-  '/api/organization',
-  '/api/atlas-ai/sessions',
-];
-
-function workspaceWarmupUrls(role: string, plan = 'BASIC') {
-  const normalizedRole = role.toLowerCase();
-  if (normalizedRole === 'client') {
-    return ['/api/workspace', '/api/meta-portal', '/api/calendar', '/api/integrations'];
-  }
-  if (normalizedRole === 'member') {
-    return ['/api/workspace', '/api/tasks', '/api/projects', '/api/data?domain=team', '/api/calendar', '/api/integrations'];
-  }
-  return plan === 'BASIC'
-    ? ADMIN_WORKSPACE_DATA.filter((url) => url !== '/api/atlas-ai/sessions')
-    : ADMIN_WORKSPACE_DATA;
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -85,11 +51,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   
   const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string; plan: string; organizationName?: string; organizationLogoDataUrl?: string | null; accessPermissions?: string[] | null } | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const isWorkspaceDataLoading = React.useSyncExternalStore(
-    subscribeWorkspaceDataLoading,
-    getWorkspaceDataLoadingSnapshot,
-    () => false,
-  );
 
   const fetchUser = React.useCallback(async () => {
     try {
@@ -113,9 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         } else {
           setUser({ ...data, plan: 'BASIC' });
         }
-        const startupTasks: Promise<unknown>[] = [
-          warmWorkspaceDataCache(workspaceWarmupUrls(data.role, activePlan)),
-        ];
+        const startupTasks: Promise<unknown>[] = [];
         if (activePlan !== 'BASIC') {
           startupTasks.push(
             import('@/lib/messaging/protocol')
@@ -154,7 +113,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     prepareWorkspaceDataCacheForRouteChange(pathname);
-  }, [pathname]);
+    if (!user) return;
+    const schedule = window.requestIdleCallback
+      ? window.requestIdleCallback(() => void stageWorkspaceDataCache(workspaceDataUrlsForRoute(pathname)), { timeout: 2_000 })
+      : window.setTimeout(() => void stageWorkspaceDataCache(workspaceDataUrlsForRoute(pathname)), 250);
+    return () => {
+      if (window.cancelIdleCallback && typeof schedule === 'number') window.cancelIdleCallback(schedule);
+      else window.clearTimeout(schedule);
+    };
+  }, [pathname, user]);
 
   React.useEffect(() => {
     if (!user) return;
@@ -240,17 +207,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Page Content area */}
         <main
           className="workspace-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0c0c0e] p-4 sm:p-6 lg:p-8"
-          aria-busy={isWorkspaceDataLoading}
         >
-          {isWorkspaceDataLoading && (
-            <div
-              className="workspace-loading-overlay absolute inset-0 z-40 overflow-hidden bg-[#0c0c0e] p-4 sm:p-6 lg:p-8"
-              role="status"
-              aria-live="polite"
-            >
-              <PageSkeleton variant={pageSkeletonVariantForPath(pathname)} />
-            </div>
-          )}
            {isSubAdminGated ? (
             <div className="flex h-[70vh] flex-col items-center justify-center">
               <div className="workspace-access-card w-full max-w-lg space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-7 text-center">

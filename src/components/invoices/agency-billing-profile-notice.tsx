@@ -31,6 +31,7 @@ export function AgencyBillingProfileNotice({
       </div>
       <Link
         href="/settings#agency-invoice-identity"
+        prefetch={false}
         className="inline-flex shrink-0 items-center justify-center gap-1.5 border border-amber-700/60 bg-amber-950/30 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-amber-100 transition-colors hover:bg-amber-900/35"
       >
         Add agency details <ArrowRight className="h-3.5 w-3.5" />

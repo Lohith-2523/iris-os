@@ -8,6 +8,7 @@ type PrismaGlobal = typeof globalThis & {
 };
 
 const globalForPrisma = globalThis as PrismaGlobal;
+const MAX_FIND_MANY_ROWS = 250;
 const databasePoolMax = resolveDatabasePoolMax(process.env.DATABASE_POOL_MAX);
 const prismaModelSignature = JSON.stringify(
   {
@@ -53,7 +54,19 @@ function createPrismaClient() {
     maxLifetimeSeconds: 300,
   });
 
-  return new PrismaClient({ adapter });
+  const client = new PrismaClient({ adapter });
+  return client.$extends({
+    name: 'bounded-find-many',
+    query: {
+      $allModels: {
+        async findMany({ args, query }) {
+          const requestedTake = typeof args.take === 'number' ? Math.abs(args.take) : MAX_FIND_MANY_ROWS;
+          args.take = Math.min(requestedTake, MAX_FIND_MANY_ROWS);
+          return query(args);
+        },
+      },
+    },
+  }) as unknown as PrismaClient;
 }
 
 let prisma: PrismaClient;

@@ -5,6 +5,7 @@ import {
   configureWorkspaceDataCache,
   invalidateWorkspaceDataCache,
   prepareWorkspaceDataCacheForRouteChange,
+  stageWorkspaceDataCache,
   workspaceFetch,
 } from '@/lib/workspace-data-cache';
 
@@ -40,6 +41,20 @@ describe('workspace data cache', () => {
     expect(networkFetch).toHaveBeenCalledTimes(1);
     expect(await left.json()).toEqual([{ id: 'task-1', title: 'First task' }]);
     expect(await right.json()).toEqual([{ id: 'task-1', title: 'First task' }]);
+  });
+
+  it('keeps prefetched data staged until a foreground load promotes it', async () => {
+    const networkFetch = vi.fn(async () => jsonResponse([{ id: 'task-1', title: 'Staged task' }]));
+    vi.stubGlobal('fetch', networkFetch);
+
+    prepareWorkspaceDataCacheForRouteChange('/tasks');
+    await stageWorkspaceDataCache(['/api/tasks']);
+    expect(networkFetch).toHaveBeenCalledTimes(1);
+
+    const promoted = await workspaceFetch('/api/tasks');
+    expect(networkFetch).toHaveBeenCalledTimes(1);
+    expect(promoted.headers.get('X-Workspace-Cache')).toBe('STAGED');
+    expect(await promoted.json()).toEqual([{ id: 'task-1', title: 'Staged task' }]);
   });
 
   it('patches an entity list from an authoritative mutation response', async () => {

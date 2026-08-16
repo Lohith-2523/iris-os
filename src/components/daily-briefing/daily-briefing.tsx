@@ -69,7 +69,7 @@ function FiledCard({ item, index }: { item: DailyBriefingItem; index: number }) 
         <div className={styles.filedMetric}>{item.metric}</div>
         <p className={styles.filedTitle}>{item.title}</p>
       </div>
-      <Link className={styles.actionButton} href={item.href}>
+      <Link className={styles.actionButton} href={item.href} prefetch={false}>
         <span>Handle this first</span>
         <ArrowRight aria-hidden className="h-3.5 w-3.5" />
       </Link>
@@ -234,7 +234,7 @@ export function DailyBriefing() {
               <div className={styles.completionIcon}><Check aria-hidden className="h-5 w-5" /></div>
               <h2 className={styles.completionTitle}>That’s all the updates.</h2>
               <p className={styles.completionCopy}>Click on any card or head on over to the dashboard.</p>
-              <Link className={styles.dashboardButton} href="/dashboard">
+              <Link className={styles.dashboardButton} href="/dashboard" prefetch={false}>
                 <span>Go to dashboard</span>
                 <ArrowRight aria-hidden className="h-4 w-4" />
               </Link>

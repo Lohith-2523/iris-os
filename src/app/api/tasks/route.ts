@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { isTaskStatus, normalizeTaskStatusProgress } from '@/lib/tasks/status-progress';
 import { createNotification, notifyOrganizationAdmins } from '@/lib/notifications';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 function isTaskWriteConflict(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -35,17 +36,19 @@ export async function GET(request: NextRequest) {
       project: true,
       stage: true,
       updates: {
+        take: 25,
         orderBy: { createdAt: 'desc' as const }
       },
       comments: {
+        take: 25,
         include: {
           user: true
         },
         orderBy: { createdAt: 'desc' as const }
       },
       parentTask: true,
-      nextTasks: true,
-      deliverables: true,
+      nextTasks: { take: 25 },
+      deliverables: { take: 25, orderBy: { createdAt: 'desc' as const } },
     };
 
     const role = user.role.toLowerCase();
@@ -60,16 +63,20 @@ export async function GET(request: NextRequest) {
       ...(assignedToId ? { assignedToId } : {}),
     };
 
+    const pageRequest = readCursorPage(request);
     const tasks = await prisma.clientTask.findMany({
       where: {
         ...visibilityWhere,
         ...requestedWhere,
+        ...descendingCursorWhere(pageRequest.cursor, 'createdAt'),
       },
       include: defaultInclude,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: pageRequest.take,
     });
 
-    return NextResponse.json(tasks);
+    const page = finishCursorPage(tasks, pageRequest.limit, (task) => task.createdAt);
+    return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching tasks:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

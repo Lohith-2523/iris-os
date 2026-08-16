@@ -9,6 +9,7 @@ import {
   generateStrategyWithAtlas,
   type StrategyKind,
 } from '@/lib/strategies/atlas';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 export const runtime = 'nodejs';
 
@@ -91,10 +92,11 @@ export async function GET(request: NextRequest) {
     }
     const typeParam = request.nextUrl.searchParams.get('type')?.toUpperCase() as StrategyKind | undefined;
     const type = typeParam && STRATEGY_TYPES.has(typeParam) ? typeParam : undefined;
+    const pageRequest = readCursorPage(request);
 
     const [strategies, context] = await Promise.all([
       prisma.strategy.findMany({
-        where: { orgId: user.orgId, ...(type ? { type } : {}) },
+        where: { orgId: user.orgId, ...(type ? { type } : {}), ...descendingCursorWhere(pageRequest.cursor, 'createdAt') },
         select: {
           id: true,
           type: true,
@@ -110,13 +112,14 @@ export async function GET(request: NextRequest) {
           updatedAt: true,
           createdBy: { select: { name: true } },
         },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pageRequest.take,
       }),
       strategyContext(user.orgId, [], []),
     ]);
+    const page = finishCursorPage(strategies, pageRequest.limit, (strategy) => strategy.createdAt);
     return NextResponse.json({
-      strategies,
+      strategies: page.items,
       clients: context.clients.map(({ id, name, status }) => ({ id, name, status })),
       projects: context.projects.map(({ id, name, status, clientId, client }) => ({
         id,
@@ -126,7 +129,8 @@ export async function GET(request: NextRequest) {
         clientName: client.name,
       })),
       dataPolicy: 'Manual Iris OS Client and Project records only. Connected integrations are excluded.',
-    });
+      pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
+    }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error) {
     console.error('Unable to load strategies:', error);
     return NextResponse.json({ error: 'Unable to load strategy history.' }, { status: 500 });

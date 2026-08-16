@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 const notificationSchema = z.object({
   action: z.enum(['create', 'mark_read', 'mark_all_read', 'delete']),
@@ -19,19 +20,27 @@ export async function GET(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const now = new Date();
-    const notifications = await prisma.notification.findMany({
-      where: {
-        orgId: user.orgId,
-        OR: [{ userId: user.id }, { userId: null }],
-        AND: [{ OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }] }],
-      },
-      orderBy: [{ readAt: 'asc' }, { createdAt: 'desc' }],
-      take: 100,
-    });
+    const pageRequest = readCursorPage(request, { defaultLimit: 50 });
+    const visibilityWhere = {
+      orgId: user.orgId,
+      OR: [{ userId: user.id }, { userId: null }],
+      AND: [{ OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }] }],
+    };
+    const [notifications, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: { ...visibilityWhere, AND: [...visibilityWhere.AND, descendingCursorWhere(pageRequest.cursor, 'createdAt')] },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pageRequest.take,
+      }),
+      prisma.notification.count({ where: { ...visibilityWhere, readAt: null } }),
+    ]);
+    const page = finishCursorPage(notifications, pageRequest.limit, (notification) => notification.createdAt);
+    page.items.sort((left, right) => Number(Boolean(left.readAt)) - Number(Boolean(right.readAt)));
     return NextResponse.json({
-      notifications,
-      unreadCount: notifications.filter((item) => !item.readAt).length,
-    });
+      notifications: page.items,
+      unreadCount,
+      pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
+    }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error) {
     console.error('Unable to load notifications:', error);
     return NextResponse.json({ error: 'Unable to load notifications' }, { status: 500 });

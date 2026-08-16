@@ -7,6 +7,7 @@ import {
   retrieveMetaAdAccountPerformance,
 } from '@/lib/meta-business';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 async function syncMetaPerformanceForClient(orgId: string, clientId: string, adAccountId: string) {
   const [client, connection, organization] = await Promise.all([
@@ -119,24 +120,30 @@ export async function GET(request: NextRequest) {
     const isClient = user.role === 'client';
     const clientAdAccountId = user?.client?.adAccountId || '';
     const clientId = user?.client?.id || '';
+    const campaignPageRequest = readCursorPage(request, { cursorParam: 'campaignCursor', limitParam: 'campaignLimit', defaultLimit: 25 });
+    const leadPageRequest = readCursorPage(request, { cursorParam: 'leadCursor', limitParam: 'leadLimit' });
+    const orphanPageRequest = readCursorPage(request, { cursorParam: 'orphanCursor', limitParam: 'orphanLimit', defaultLimit: 25 });
 
     // Provider leads are attributed to a client at ingestion time. Never infer
     // tenancy from provider IDs or expose organization-wide Meta records.
     const campaigns = await prisma.metaCampaign.findMany({
       where: {
         orgId: user.orgId,
+        ...descendingCursorWhere(campaignPageRequest.cursor, 'createdAt'),
         providerSyncedAt: { not: null },
         ...(isClient ? { adAccountId: clientAdAccountId || '__none__' } : {}),
       },
       include: {
         ads: {
+          take: 50,
           where: {
             providerSyncedAt: { not: null },
             ...(isClient ? { adAccountId: clientAdAccountId || '__none__' } : {}),
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: campaignPageRequest.take,
     });
     const leads = isClient
       ? await prisma.metaLead.findMany({
@@ -144,34 +151,50 @@ export async function GET(request: NextRequest) {
           orgId: user.orgId,
           clientId,
           adAccountId: clientAdAccountId,
+          ...descendingCursorWhere(leadPageRequest.cursor, 'createdTime'),
         } : { id: 'none' },
-        orderBy: { createdTime: 'desc' },
+        orderBy: [{ createdTime: 'desc' }, { id: 'desc' }],
+        take: leadPageRequest.take,
       })
       : await prisma.metaLead.findMany({
-          where: { orgId: user.orgId },
-          orderBy: { createdTime: 'desc' },
+          where: { orgId: user.orgId, ...descendingCursorWhere(leadPageRequest.cursor, 'createdTime') },
+          orderBy: [{ createdTime: 'desc' }, { id: 'desc' }],
+          take: leadPageRequest.take,
         });
 
     // Fetch any ads that don't have campaigns
     const orphanedAds = await prisma.metaAd.findMany({
       where: {
         orgId: user.orgId,
+        ...descendingCursorWhere(orphanPageRequest.cursor, 'createdAt'),
         campaignId: null,
         providerSyncedAt: { not: null },
         ...(isClient ? { adAccountId: clientAdAccountId || '__none__' } : {}),
       },
-      orderBy: { spend: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: orphanPageRequest.take,
     });
 
+    const campaignPage = finishCursorPage(campaigns, campaignPageRequest.limit, (item) => item.createdAt);
+    const leadPage = finishCursorPage(leads, leadPageRequest.limit, (item) => item.createdTime);
+    const orphanPage = finishCursorPage(orphanedAds, orphanPageRequest.limit, (item) => item.createdAt);
+    const headers = cursorHeaders(campaignPage, campaignPageRequest.limit);
+    if (leadPage.nextCursor) headers.set('X-Lead-Next-Cursor', leadPage.nextCursor);
+    if (orphanPage.nextCursor) headers.set('X-Orphan-Next-Cursor', orphanPage.nextCursor);
     return NextResponse.json({
-      campaigns,
-      leads,
-      orphanedAds,
+      campaigns: campaignPage.items,
+      leads: leadPage.items,
+      orphanedAds: orphanPage.items,
       role: user.role,
       clientName: user?.client?.name || null,
       hasMetaAccount: Boolean(clientAdAccountId),
       adAccountId: isClient ? clientAdAccountId || null : null,
-    });
+      pagination: {
+        campaigns: { nextCursor: campaignPage.nextCursor, hasMore: campaignPage.hasMore, limit: campaignPageRequest.limit },
+        leads: { nextCursor: leadPage.nextCursor, hasMore: leadPage.hasMore, limit: leadPageRequest.limit },
+        orphanedAds: { nextCursor: orphanPage.nextCursor, hasMore: orphanPage.hasMore, limit: orphanPageRequest.limit },
+      },
+    }, { headers });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching Meta Portal data:', error);

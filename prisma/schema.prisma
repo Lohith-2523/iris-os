@@ -119,7 +119,7 @@ model GeneratedDocument {
   createdAt                   DateTime     @default(now())
   updatedAt                   DateTime     @updatedAt
 
-  @@index([orgId, kind, createdAt])
+  @@index([orgId, kind, createdAt, id])
   @@index([orgId, recipientType, recipientId])
   @@index([proformaInvoiceId])
   @@index([orgId, status, fullySignedAt])
@@ -298,30 +298,30 @@ model Contact {
 }
 
 model Project {
-  id                  String       @id @default(uuid())
-  name                String
-  status              String // NOT_STARTED, IN_PROGRESS, COMPLETED, ON_HOLD, OVERDUE
-  startDate           DateTime
-  endDate             DateTime?
-  progress            Int          @default(0) // 0-100
-  riskLevel           String // LOW, MEDIUM, HIGH
-  riskDescription     String?
-  timeline            String?
-  serviceLine         String?
-  budget              Float? // Internal delivery budget; client billing is stored below.
-  paymentType         String       @default("RETAINER") // RETAINER, ONE_TIME
-  paymentAmount       Float?
-  paymentFrequency    String? // monthly, quarterly, yearly; only used for retainers
-  paymentStartDate    DateTime? // Invoice date (legacy column name)
-  paymentTerms        String? // Optional free-text commercial payment terms
-  autoGenerateInvoice Boolean      @default(false) // Legacy field: email the automatically generated invoice
-  metaIntegrationEnabled Boolean   @default(false)
-  orgId               String
-  organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  clientId            String
-  client              Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  id                     String       @id @default(uuid())
+  name                   String
+  status                 String // NOT_STARTED, IN_PROGRESS, COMPLETED, ON_HOLD, OVERDUE
+  startDate              DateTime
+  endDate                DateTime?
+  progress               Int          @default(0) // 0-100
+  riskLevel              String // LOW, MEDIUM, HIGH
+  riskDescription        String?
+  timeline               String?
+  serviceLine            String?
+  budget                 Float? // Internal delivery budget; client billing is stored below.
+  paymentType            String       @default("RETAINER") // RETAINER, ONE_TIME
+  paymentAmount          Float?
+  paymentFrequency       String? // monthly, quarterly, yearly; only used for retainers
+  paymentStartDate       DateTime? // Invoice date (legacy column name)
+  paymentTerms           String? // Optional free-text commercial payment terms
+  autoGenerateInvoice    Boolean      @default(false) // Legacy field: email the automatically generated invoice
+  metaIntegrationEnabled Boolean      @default(false)
+  orgId                  String
+  organization           Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  clientId               String
+  client                 Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   milestones     Milestone[]
   allocations    ResourceAllocation[]
@@ -332,8 +332,8 @@ model Project {
   deliverables   Deliverable[]
   changeRequests ChangeRequest[]
 
-  @@index([orgId])
-  @@index([clientId])
+  @@index([orgId, createdAt, id])
+  @@index([clientId, createdAt, id])
   @@index([orgId, paymentType, paymentStartDate])
 }
 
@@ -418,9 +418,9 @@ model Invoice {
   updatedAt         DateTime            @updatedAt
 
   @@unique([orgId, invoiceNumber])
-  @@index([orgId])
-  @@index([clientId])
-  @@index([projectId])
+  @@index([orgId, issuedDate, id])
+  @@index([clientId, issuedDate, id])
+  @@index([projectId, issuedDate, id])
   @@index([leadId])
   @@index([orgId, status, dueDate])
 }
@@ -445,7 +445,7 @@ model Strategy {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  @@index([orgId, type, createdAt])
+  @@index([orgId, type, createdAt, id])
   @@index([createdById])
 }
 
@@ -494,7 +494,7 @@ model Report {
   updatedAt    DateTime     @updatedAt
 
   @@index([createdById])
-  @@index([orgId, createdAt])
+  @@index([orgId, createdAt, id])
 }
 
 model DesignAsset {
@@ -666,7 +666,7 @@ model AtlasChatSession {
   messages AskAtlasMessage[]
 
   @@index([userId], map: "PrismChatSession_userId_idx")
-  @@index([orgId, updatedAt], map: "PrismChatSession_orgId_updatedAt_idx")
+  @@index([userId, orgId, updatedAt, id], map: "PrismChatSession_userId_orgId_updatedAt_id_idx")
   @@map("PrismChatSession")
 }
 
@@ -706,6 +706,7 @@ model MetaCampaign {
   @@unique([orgId, campaignId])
   @@index([orgId])
   @@index([orgId, adAccountId, providerSyncedAt])
+  @@index([orgId, createdAt, id])
 }
 
 model MetaAd {
@@ -733,6 +734,8 @@ model MetaAd {
   @@index([orgId])
   @@index([campaignId])
   @@index([orgId, adAccountId, providerSyncedAt])
+  @@index([orgId, createdAt, id])
+  @@index([orgId, adAccountId, spend, id])
 }
 
 model MetaLead {
@@ -762,8 +765,9 @@ model MetaLead {
 
   @@unique([orgId, leadId])
   @@index([orgId])
-  @@index([orgId, adAccountId])
-  @@index([clientId, createdTime])
+  @@index([orgId, createdTime, id])
+  @@index([orgId, adAccountId, createdTime, id])
+  @@index([clientId, adAccountId, createdTime, id])
 }
 
 model AgencyLead {
@@ -798,9 +802,10 @@ model AgencyLead {
   updatedAt            DateTime     @updatedAt
 
   @@unique([orgId, leadId])
-  @@index([orgId])
-  @@index([orgId, sourceProvider, createdTime])
-  @@index([orgId, adAccountId, createdTime])
+  @@index([orgId, createdTime, id])
+  @@index([orgId, email])
+  @@index([orgId, sourceProvider, createdTime, id])
+  @@index([orgId, adAccountId, createdTime, id])
   @@index([orgId, adId])
 }
 
@@ -857,7 +862,7 @@ model Transaction {
   @@index([orgId])
   @@index([clientId])
   @@index([invoiceId])
-  @@index([orgId, date])
+  @@index([orgId, date, id])
 }
 
 model ClientTask {
@@ -893,9 +898,9 @@ model ClientTask {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  @@index([clientId])
-  @@index([assignedToId])
-  @@index([projectId])
+  @@index([clientId, createdAt, id])
+  @@index([assignedToId, createdAt, id])
+  @@index([projectId, createdAt, id])
   @@index([stageId])
   @@index([parentTaskId])
 }
@@ -922,7 +927,8 @@ model Deliverable {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  @@index([orgId, status, createdAt])
+  @@index([orgId, status, createdAt, id])
+  @@index([orgId, createdAt, id])
   @@index([clientId, projectId])
   @@index([taskId])
 }
@@ -950,7 +956,8 @@ model ChangeRequest {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  @@index([orgId, status, createdAt])
+  @@index([orgId, status, createdAt, id])
+  @@index([orgId, createdAt, id])
   @@index([clientId, projectId])
 }
 
@@ -970,7 +977,7 @@ model Notification {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  @@index([orgId, userId, readAt, createdAt])
+  @@index([orgId, userId, createdAt, id])
   @@index([orgId, scheduledAt])
 }
 
@@ -1043,8 +1050,8 @@ model CalendarEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([orgId])
-  @@index([creatorId])
+  @@index([orgId, startTime, id])
+  @@index([creatorId, startTime, id])
 }
 
 model MemberInvite {
@@ -1076,7 +1083,7 @@ model RecurringSubscription {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  @@index([orgId])
+  @@index([orgId, createdAt, id])
 }
 
 // Legacy storage retained to avoid destructive data loss during rollout.
@@ -1176,7 +1183,7 @@ model EncryptedMessage {
   receipts    MessageDeliveryReceipt[]
 
   @@unique([orgId, clientMessageId])
-  @@index([conversationId, createdAt])
+  @@index([conversationId, createdAt, id])
   @@index([orgId, expiresAt])
 }
 

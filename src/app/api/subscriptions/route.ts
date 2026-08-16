@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
 async function canManageSubscriptions(request: NextRequest) {
   const user = await getRequestUser(request);
@@ -15,12 +16,15 @@ export async function GET(request: NextRequest) {
     }
     if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    const pageRequest = readCursorPage(request);
     const subscriptions = await prisma.recurringSubscription.findMany({
-      where: { orgId: org.id },
-      orderBy: { createdAt: 'desc' },
+      where: { orgId: org.id, ...descendingCursorWhere(pageRequest.cursor, 'createdAt') },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: pageRequest.take,
     });
 
-    return NextResponse.json(subscriptions);
+    const page = finishCursorPage(subscriptions, pageRequest.limit, (subscription) => subscription.createdAt);
+    return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching subscriptions:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
