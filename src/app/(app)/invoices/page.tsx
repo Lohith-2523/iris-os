@@ -135,7 +135,7 @@ function ItemEditor({
 }
 
 function RequiredLabel({ children }: { children: React.ReactNode }) {
-  return <span className="font-semibold text-zinc-400">{children} *</span>;
+  return <span className="font-semibold text-zinc-400">{children} <span className="text-rose-500" aria-hidden="true">*</span></span>;
 }
 
 export default function InvoicesPage() {

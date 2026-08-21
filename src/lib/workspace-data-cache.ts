@@ -39,6 +39,7 @@ const loadingListeners = new Set<() => void>();
 const stagedQueue: Array<{ priority: number; resolve: () => void; url: string }> = [];
 const MAX_ACTIVE_CACHE_ENTRIES = 80;
 const MAX_STAGED_CACHE_ENTRIES = 30;
+const MAX_STAGED_WORKERS = 4;
 
 let activeScope = '';
 let activeNetworkReads = 0;
@@ -49,7 +50,8 @@ let serverRevision: string | null = null;
 let deferredServerRefresh = false;
 let revisionBaselineTimer: ReturnType<typeof setTimeout> | null = null;
 let backgroundCheckTimer: ReturnType<typeof setInterval> | null = null;
-let stagedWorkerRunning = false;
+let activeStagedWorkers = 0;
+let stagedWorkerTarget = 1;
 
 function notifyLoadingChange() {
   for (const listener of loadingListeners) listener();
@@ -682,20 +684,6 @@ export function prepareWorkspaceDataCacheForRouteChange(nextPathname: string) {
 export function prepareWorkspaceDataCacheForNavigation() {
   if (typeof window === 'undefined' || navigationPrepared) return;
   navigationPrepared = true;
-
-  const navigation = window.performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-  const legacyNavigation = window.performance as Performance & { navigation?: { type?: number } };
-  const isReload = navigation?.type === 'reload' || legacyNavigation.navigation?.type === 1;
-  if (isReload) {
-    memoryCache.clear();
-    stagedCache.clear();
-    abortStagedReads();
-    clearStagedQueue();
-    knownUrls.clear();
-    urlGenerations.clear();
-    cacheGeneration += 1;
-    removeStoredEntries(`${STORAGE_PREFIX}:`);
-  }
 }
 
 export function configureWorkspaceDataCache(scope: WorkspaceCacheScope | null) {
@@ -718,6 +706,21 @@ export function configureWorkspaceDataCache(scope: WorkspaceCacheScope | null) {
   cacheGeneration += 1;
   if (previousScope) removeStoredEntries(scopePrefix(previousScope));
   if (previousScope) removeStoredEntries(`${STAGED_STORAGE_PREFIX}:${previousScope}:`);
+}
+
+export function primeWorkspaceJson(url: string, value: unknown) {
+  if (!activeScope) return;
+  const normalizedUrl = normalizedRequestUrl(url);
+  if (!isWorkspaceApi(normalizedUrl)) return;
+  knownUrls.add(normalizedUrl);
+  writeCachedResponse(cacheKey(normalizedUrl), {
+    body: JSON.stringify(value),
+    headers: [['content-type', 'application/json']],
+    status: 200,
+    statusText: 'OK',
+    cachedAt: Date.now(),
+    stale: false,
+  });
 }
 
 export function invalidateWorkspaceDataCache() {
@@ -751,9 +754,8 @@ export function getWorkspaceDataLoadingSnapshot() {
   return activeNetworkReads > 0;
 }
 
-async function runStagedQueue() {
-  if (stagedWorkerRunning) return;
-  stagedWorkerRunning = true;
+async function runStagedWorker() {
+  activeStagedWorkers += 1;
   try {
     while (stagedQueue.length > 0) {
       stagedQueue.sort((left, right) => right.priority - left.priority);
@@ -768,23 +770,36 @@ async function runStagedQueue() {
       }
     }
   } finally {
-    stagedWorkerRunning = false;
+    activeStagedWorkers = Math.max(0, activeStagedWorkers - 1);
+    if (stagedQueue.length > 0) startStagedWorkers(stagedWorkerTarget);
+    else if (activeStagedWorkers === 0) stagedWorkerTarget = 1;
+  }
+}
+
+function startStagedWorkers(concurrency: number) {
+  const desiredWorkers = Math.min(MAX_STAGED_WORKERS, Math.max(1, concurrency));
+  stagedWorkerTarget = Math.max(stagedWorkerTarget, desiredWorkers);
+  const workersToStart = Math.min(
+    Math.max(0, desiredWorkers - activeStagedWorkers),
+    stagedQueue.length,
+  );
+  for (let index = 0; index < workersToStart; index += 1) {
+    void runStagedWorker();
   }
 }
 
 export async function stageWorkspaceDataCache(
   urls: string[],
-  _concurrency = 1,
+  concurrency = 3,
   priority: 'background' | 'intent' = 'background',
 ) {
   if (!activeScope || !canPrefetchInBackground()) return;
-  void _concurrency;
   const uniqueUrls = Array.from(new Set(urls));
   if (priority === 'intent') abortStagedReads();
   const tasks = uniqueUrls.map((url) => new Promise<void>((resolve) => {
     stagedQueue.push({ url, priority: priority === 'intent' ? 10 : 1, resolve });
   }));
-  void runStagedQueue();
+  startStagedWorkers(concurrency);
   await Promise.all(tasks);
 }
 

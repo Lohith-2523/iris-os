@@ -10,6 +10,7 @@ import { formatUserMessage } from '@/lib/utils';
 import type { ContractInput, LegalDocumentInput, SowInput } from '@/lib/legal-documents/types';
 import { DocumentWorkspace } from '@/components/documents/document-workspace';
 import { DateInput } from '@/components/ui/date-input';
+import { RequiredFieldLabel } from '@/components/ui/required-field-label';
 
 const date = new Date().toISOString().slice(0, 10);
 const yearEnd = `${new Date().getFullYear()}-12-31`;
@@ -43,7 +44,7 @@ const initialSow: SowInput = {
 
 const inputClass = 'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground outline-none placeholder:text-muted-foreground focus:border-ring';
 const textareaClass = `${inputClass} min-h-28 resize-y leading-relaxed`;
-function Field({ label, children, span = false }: { label: string; children: React.ReactNode; span?: boolean }) { return <label className={`space-y-1.5 ${span ? 'md:col-span-2' : ''}`}><span className="block font-semibold text-muted-foreground">{label}</span>{children}</label>; }
+function Field({ label, children, span = false }: { label: string; children: React.ReactNode; span?: boolean }) { return <label className={`space-y-1.5 ${span ? 'md:col-span-2' : ''}`}><span className="block font-semibold text-muted-foreground"><RequiredFieldLabel label={label} /></span>{children}</label>; }
 
 export default function DocumentsPage() {
   const [kind, setKind] = React.useState<'CONTRACT' | 'SOW'>('CONTRACT');

@@ -1,9 +1,9 @@
 {
-  "date": "2026-07-31",
-  "fontStack": "Clash Display + Sansation, with Geist and Space Grotesk utilities",
-  "palette": "Existing OKLCH graphite workspace tokens with light-mode overrides",
-  "motion": "motion-cut; CSS transitions and Web Animations API",
+  "date": "2026-08-17",
+  "fontStack": "Clash Display + Sansation, with Geist and JetBrains Mono utilities",
+  "palette": "Existing OKLCH graphite, titanium and silver tokens",
+  "motion": "motion-cut; CSS transitions plus one requestAnimationFrame parallax primitive",
   "spacing": "Tailwind 4px scale",
   "framework": "Next.js 16 App Router",
-  "preserve": ["font stack", "workspace palette", "spacing scale", "sidebar and topbar"]
+  "preserve": ["font stack", "workspace palette", "spacing scale", "Iris product UI language"]
 }

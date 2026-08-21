@@ -876,7 +876,7 @@ export default function AgencyLeadsPage() {
             variant="outline"
             size="sm"
             onClick={() => { setExportError(''); setExportOpen(true); }}
-            className="h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
+            className="agency-leads-export h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
           >
             <Download className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Export leads</span>

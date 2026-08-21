@@ -1,12 +1,11 @@
 const ROUTE_DATA: Record<string, readonly string[]> = {
   '/dashboard': [
     '/api/data?domain=dashboard',
-    '/api/data?domain=finance',
     '/api/data?domain=clients',
     '/api/tasks',
     '/api/meta-portal',
     '/api/calendar',
-    '/api/agency-leads?view=kanban',
+    '/api/agency-leads',
     '/api/notifications',
   ],
   '/agency-leads': ['/api/agency-leads?view=kanban', '/api/integrations', '/api/workspace'],
@@ -16,7 +15,7 @@ const ROUTE_DATA: Record<string, readonly string[]> = {
   '/invoices': ['/api/invoices', '/api/projects', '/api/agency-leads', '/api/organization'],
   '/proposals': ['/api/workspace', '/api/agency-leads', '/api/invoices?documentType=PROFORMA'],
   '/documents': ['/api/workspace', '/api/generated-documents?family=LEGAL'],
-  '/projects': ['/api/projects', '/api/data?domain=clients', '/api/data?domain=team', '/api/workspace?include=agencyTypes'],
+  '/projects': ['/api/projects', '/api/data?domain=clients', '/api/data?domain=team', '/api/workspace'],
   '/tasks': ['/api/tasks', '/api/projects', '/api/data?domain=team'],
   '/team': ['/api/data?domain=team', '/api/projects', '/api/workspace'],
   '/teams-dashboard': ['/api/tasks', '/api/calendar', '/api/data?domain=team'],

@@ -32,6 +32,9 @@ describe('isTransientDatabaseConnectionError', () => {
     expect(isTransientDatabaseConnectionError({
       cause: { code: '53300', message: 'too many connections' },
     })).toBe(true);
+    expect(isTransientDatabaseConnectionError({
+      message: 'timeout exceeded when trying to connect',
+    })).toBe(true);
   });
 
   it('does not retry validation or application errors', () => {

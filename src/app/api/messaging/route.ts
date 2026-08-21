@@ -7,19 +7,21 @@ import {
   isAllowedDirectPair,
   messagingNoStoreHeaders,
 } from '@/lib/messaging/server';
+import { isTransientDatabaseConnectionError, withDatabaseConnectionRetry } from '@/lib/database-resilience';
 
 const createConversationSchema = z.object({
   participantUserId: z.string().uuid(),
 });
 
 export async function GET(request: NextRequest) {
+  try {
   const authorization = await getMessagingUser(request);
   if ('error' in authorization) {
     return NextResponse.json({ error: authorization.error }, { status: authorization.status });
   }
   const { user, entitlements } = authorization;
   const eligibleRoles = user.role.toLowerCase() === 'admin' ? ['client', 'member'] : ['admin'];
-  const [directory, conversations] = await Promise.all([
+  const [directory, conversations] = await withDatabaseConnectionRetry(() => Promise.all([
     prisma.user.findMany({
       where: { orgId: user.orgId, id: { not: user.id }, role: { in: eligibleRoles } },
       select: { id: true, name: true, email: true, role: true, avatarUrl: true, clientId: true },
@@ -45,10 +47,11 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { updatedAt: 'desc' },
     }),
-  ]);
+  ]), { maxAttempts: 3, delaysMs: [150, 500] });
 
   return NextResponse.json({
     currentUserId: user.id,
+    currentUserRole: user.role,
     plan: user.organization.plan,
     protocol: { name: 'OPENPGP_SIGNED_E2EE', version: 1, plaintextAccepted: false },
     limits: entitlements.messagingLimits,
@@ -62,6 +65,13 @@ export async function GET(request: NextRequest) {
         : null,
     })),
   }, { headers: messagingNoStoreHeaders() });
+  } catch (error) {
+    console.error('Unable to load messaging inbox:', error);
+    if (isTransientDatabaseConnectionError(error)) {
+      return NextResponse.json({ error: 'Secure messaging is temporarily unavailable. Please retry.' }, { status: 503, headers: { ...messagingNoStoreHeaders(), 'Retry-After': '2' } });
+    }
+    return NextResponse.json({ error: 'Unable to load secure messaging.' }, { status: 500, headers: messagingNoStoreHeaders() });
+  }
 }
 
 export async function POST(request: NextRequest) {

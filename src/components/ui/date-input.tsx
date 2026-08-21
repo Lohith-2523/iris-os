@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { CalendarDays } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export const DATE_INPUT_PATTERN = '[0-9]{2}/[0-9]{2}/[0-9]{4}';
 
@@ -39,9 +40,10 @@ type DateInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' |
   onChange: (value: string) => void;
   min?: string;
   max?: string;
+  containerClassName?: string;
 };
 
-export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, max, className, ...props }: DateInputProps) {
+export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, max, className, containerClassName, ...props }: DateInputProps) {
   const normalizedValue = isoDate(value);
   const [draft, setDraft] = React.useState(() => formatDateForInput(normalizedValue));
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -78,7 +80,7 @@ export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, ma
     }
   };
 
-  return <div className="relative min-w-0">
+  return <div className={cn('relative grid w-full min-w-0 max-w-full', containerClassName)}>
     <input
       {...props}
       ref={inputRef}
@@ -91,20 +93,21 @@ export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, ma
       onBlur={() => validate(draft)}
       pattern={DATE_INPUT_PATTERN}
       title="Use DD/MM/YYYY"
-      className={`${className || ''} pr-10`}
+      className={cn('col-start-1 row-start-1 block w-full min-w-0 max-w-full box-border', className, 'pr-10')}
     />
-    <button type="button" onClick={openCalendar} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground" aria-label="Choose date from calendar" title="Choose date from calendar">
+    <button type="button" onClick={openCalendar} className="relative z-10 col-start-1 row-start-1 my-px mr-px flex w-9 items-center justify-center justify-self-end self-stretch text-muted-foreground transition-colors hover:text-foreground" aria-label="Choose date from calendar" title="Choose date from calendar">
       <CalendarDays className="h-4 w-4" aria-hidden="true" />
     </button>
     <input
       ref={calendarInputRef}
       type="date"
+      data-date-picker-proxy="true"
       value={normalizedValue}
       min={min}
       max={max}
       tabIndex={-1}
       aria-hidden="true"
-      className="absolute h-px w-px overflow-hidden opacity-0 pointer-events-none"
+      className="fixed left-0 top-0 h-px w-px overflow-hidden opacity-0 pointer-events-none"
       onChange={(event) => {
         const nextDate = event.target.value;
         setDraft(formatDateForInput(nextDate));

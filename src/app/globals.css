@@ -4,6 +4,11 @@
 @import "shadcn/tailwind.css";
 @import "../../tokens.css";
 
+html,
+body {
+  overflow-x: clip;
+}
+
 /* Increase the application surface scale by 10%. Body copy and controls keep
    the explicit 16px accessibility floor defined below. */
 html {
@@ -552,8 +557,8 @@ h6,
 }
 
 @theme inline {
-  --font-heading: var(--font-mono);
-  --font-mono: var(--font-mono);
+  --font-heading: var(--font-jetbrains-mono);
+  --font-mono: var(--font-jetbrains-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -1015,7 +1020,7 @@ h6,
 /* Keep date controls legible against the dark input surface. The native
    indicator remains the click target, while a consistent white glyph is
    rendered as the input background because browser icon colors vary. */
-html:root:not(.light) input[type='date'] {
+html:root:not(.light) input[type='date']:not([data-date-picker-proxy]) {
   position: relative;
   color-scheme: dark !important;
   background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='16'%20height='16'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M8%202v4M16%202v4M3%2010h18'/%3E%3Crect%20x='3'%20y='4'%20width='18'%20height='18'%20rx='2'/%3E%3C/svg%3E") !important;
@@ -1025,7 +1030,7 @@ html:root:not(.light) input[type='date'] {
   padding-right: 2.5rem !important;
 }
 
-html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
+html:root:not(.light) input[type='date']:not([data-date-picker-proxy])::-webkit-calendar-picker-indicator {
   position: absolute;
   top: 0;
   right: 0;
@@ -1037,6 +1042,25 @@ html:root:not(.light) input[type='date']::-webkit-calendar-picker-indicator {
   opacity: 0 !important;
   pointer-events: auto;
   cursor: pointer;
+}
+
+/* DateInput keeps a native date control solely to open the browser picker.
+   Workspace form rules otherwise give that invisible proxy a 2.5rem minimum
+   height and padding, making the visible trigger appear beneath its text box. */
+input[data-date-picker-proxy] {
+  position: fixed !important;
+  inset: 0 auto auto 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .workspace-shell input:focus,
@@ -2957,6 +2981,47 @@ button {
   }
 }
 
+/* On 16:10 workspaces, keep the page identity and lead summary on the first
+   row, then anchor the tabbed navigation to the right directly below it. */
+@media (min-width: 75rem) and (min-aspect-ratio: 31 / 20) and (max-aspect-ratio: 33 / 20) {
+  .workspace-shell .agency-leads-header {
+    display: grid;
+    grid-template-areas:
+      "heading summary summary summary"
+      ". tabs export sync";
+    grid-template-columns: minmax(max-content, 1fr) auto auto auto;
+    align-items: start;
+    column-gap: 0.75rem;
+    row-gap: 0.65rem;
+  }
+
+  .workspace-shell .agency-leads-heading {
+    grid-area: heading;
+  }
+
+  .workspace-shell .agency-leads-header-actions {
+    display: contents;
+  }
+
+  .workspace-shell .agency-leads-summary-grid {
+    grid-area: summary;
+    justify-self: end;
+  }
+
+  .workspace-shell .agency-leads-tabs {
+    grid-area: tabs;
+    justify-self: end;
+  }
+
+  .workspace-shell .agency-leads-export {
+    grid-area: export;
+  }
+
+  .workspace-shell .agency-leads-sync {
+    grid-area: sync;
+  }
+}
+
 .workspace-shell .agency-leads-kanban-column .border-dashed {
   border-color: #3f3f46 !important;
   background: #0a0a0a !important;
@@ -3146,4 +3211,150 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 :root.light .specialization-chip {
   background: #2563eb;
   color: #ffffff;
+}
+
+/* Hallmark · responsive refinement: proportional workspace shell · modern-minimal
+ * pre-emit critique: P5 H5 E4 S5 R5 V4 · mobile: 320 / 375 / 414 / 768 */
+.workspace-shell {
+  --workspace-page-gutter: clamp(1rem, 1.15vw + 0.72rem, 2rem);
+  --workspace-section-gap: clamp(1rem, 0.8vw + 0.72rem, 1.5rem);
+  --workspace-card-padding: clamp(1rem, 0.65vw + 0.8rem, 1.5rem);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workspace-main {
+  padding-block: var(--workspace-page-gutter);
+  padding-inline-start: max(var(--workspace-page-gutter), env(safe-area-inset-left));
+  padding-inline-end: max(var(--workspace-page-gutter), env(safe-area-inset-right));
+  padding-bottom: max(var(--workspace-page-gutter), env(safe-area-inset-bottom));
+}
+
+.workspace-topbar {
+  height: 4rem;
+  padding-inline-start: max(clamp(1rem, 1vw + 0.75rem, 1.5rem), env(safe-area-inset-left));
+  padding-inline-end: max(clamp(1rem, 1vw + 0.75rem, 1.5rem), env(safe-area-inset-right));
+}
+
+.workspace-page :is(h1, h2, h3) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace-page .grid > *,
+.workspace-page .flex > * {
+  min-width: 0;
+}
+
+.workspace-page :where(img, canvas, iframe) {
+  max-width: 100%;
+}
+
+.workspace-page :where(input, select, textarea) {
+  max-width: 100%;
+}
+
+.workspace-page .recharts-responsive-container,
+.workspace-page .recharts-wrapper,
+.workspace-page .recharts-surface {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.workspace-table-scroll {
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
+}
+
+.workspace-table {
+  min-width: max-content;
+}
+
+.workspace-button,
+.workspace-nav-link,
+.workspace-command-trigger,
+.workspace-page button {
+  white-space: nowrap;
+}
+
+.workspace-metric-card {
+  min-height: 7.25rem;
+}
+
+.workspace-metric-card-content {
+  display: grid;
+  grid-template-areas:
+    "label icon"
+    "value value";
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(2.5rem, auto) auto;
+  column-gap: 0.75rem;
+  align-items: start;
+  height: 100%;
+}
+
+.workspace-metric-label {
+  grid-area: label;
+  align-self: start;
+  line-height: 1.35;
+}
+
+.workspace-metric-icon {
+  grid-area: icon;
+  align-self: start;
+}
+
+.workspace-metric-value {
+  grid-area: value;
+  margin-top: 0.5rem;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+/* Numeric and ledger data use the same bold JetBrains Mono treatment as the
+   Project Overview, including editable number controls. */
+.workspace-shell :is(.font-mono, input[type='number'], [data-numeric]) {
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Large monospace values in existing cards are primary, standalone metrics.
+   Give them the Project Overview numeral treatment without changing inline
+   dates, IDs, percentages, or numbers inside explanatory copy. */
+.workspace-card :is(.text-base, .text-xl, .text-2xl, .text-3xl, .text-4xl).font-mono {
+  font-family: var(--font-heading);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.workspace-shell .fixed.inset-0 {
+  width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .workspace-metric-card {
+    min-height: 7.5rem;
+  }
+}
+
+@media (min-width: 90rem) {
+  .workspace-page {
+    width: min(100%, 100rem);
+  }
+}
+
+@media (pointer: coarse) {
+  .workspace-button,
+  .workspace-icon-control,
+  .workspace-nav-link,
+  .workspace-command-trigger,
+  .workspace-page button {
+    min-height: 2.75rem;
+  }
 }

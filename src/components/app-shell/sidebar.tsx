@@ -24,6 +24,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Calendar,
   FileSpreadsheet,
   ReceiptText,
@@ -70,6 +71,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     accessPermissions?: string[] | null;
   } | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
+  const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({});
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
   const [upgradePrompt, setUpgradePrompt] = React.useState<{ feature: string; href: string; requiredPlan: PlanId } | null>(null);
   const resolvedPlan = normalizePlan(workspacePlan || plan);
@@ -162,18 +164,11 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
 
   const navigationGroups = React.useMemo<NavigationGroup[]>(() => [
     {
-      label: 'Overview',
+      label: 'Pipeline',
       items: [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
         { name: 'Clients', href: '/clients', icon: Users },
-      ],
-    },
-    {
-      label: 'Finance',
-      items: [
-        { name: 'Finance', href: '/finance', icon: Wallet },
-        { name: 'Invoices', href: '/invoices', icon: ReceiptText },
+        { name: 'Projects', href: '/projects', icon: FolderKanban },
       ],
     },
     {
@@ -186,11 +181,17 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     {
       label: 'Delivery',
       items: [
-        { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'Tasks', href: '/tasks', icon: Activity },
         { name: 'Team', href: '/team', icon: UserCheck },
         { name: 'Calendar', href: '/calendar', icon: Calendar },
         { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
+      ],
+    },
+    {
+      label: 'Finance',
+      items: [
+        { name: 'Finance', href: '/finance', icon: Wallet },
+        { name: 'Invoices', href: '/invoices', icon: ReceiptText },
       ],
     },
     {
@@ -208,7 +209,6 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       return [{
         label: 'Workspace',
         items: [
-          { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard },
           { name: 'Calendar', href: '/calendar', icon: Calendar },
           { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
         ],
@@ -218,7 +218,6 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       return [{
         label: 'Workspace',
         items: [
-          { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard },
           { name: 'Tasks', href: '/tasks', icon: Activity },
           { name: 'Calendar', href: '/calendar', icon: Calendar },
           { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
@@ -233,6 +232,23 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     }
     return navigationGroups;
   }, [navigationGroups, resolvedRole, user?.accessPermissions]);
+
+  const dashboardItem = React.useMemo<NavigationItem | null>(() => {
+    if (resolvedRole === 'client') return { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard };
+    if (resolvedRole === 'member') return { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard };
+    if (resolvedRole === 'sub_admin') {
+      return user?.accessPermissions?.includes('dashboard')
+        ? { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }
+        : null;
+    }
+    return { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard };
+  }, [resolvedRole, user?.accessPermissions]);
+
+  React.useEffect(() => {
+    const activeGroup = visibleGroups.find((group) => group.items.some((item) => pathname === item.href || pathname?.startsWith(item.href + '/')));
+    if (!activeGroup) return;
+    setExpandedGroups((current) => current[activeGroup.label] === false ? { ...current, [activeGroup.label]: true } : current);
+  }, [pathname, visibleGroups]);
 
   const initials = React.useMemo(() => {
     return orgName
@@ -252,6 +268,64 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       .slice(0, 2)
       .toUpperCase();
   }, [user]);
+
+  const renderNavigationItem = (item: NavigationItem) => {
+    const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+    const Icon = item.icon;
+    const isLocked = Boolean(item.requiredPlan && !planIncludes(resolvedPlan, item.requiredPlan));
+
+    return (
+      <Link
+        key={item.name}
+        href={item.href}
+        prefetch={false}
+        onMouseEnter={() => !isLocked && prepareRouteIntent(item.href)}
+        onFocus={() => !isLocked && prepareRouteIntent(item.href)}
+        onPointerDown={() => !isLocked && prepareRouteIntent(item.href)}
+        onClick={(event) => {
+          if (isLocked && item.requiredPlan) {
+            event.preventDefault();
+            setUpgradePrompt({ feature: item.name, href: item.href, requiredPlan: item.requiredPlan });
+            return;
+          }
+          void navigateToRoute(event, item.href);
+        }}
+        title={isCollapsed ? item.name : undefined}
+        aria-current={isActive ? 'page' : undefined}
+        className={cn(
+          'workspace-nav-link group flex items-center rounded-xl transition-[transform,background-color,color,box-shadow,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500',
+          isCollapsed ? 'mb-1 justify-center p-2.5' : 'justify-between px-3 py-2 text-xs font-medium',
+          isActive
+            ? item.highlight
+              ? 'border-l-2 border-l-zinc-300 bg-zinc-900 text-white'
+              : 'border-l-2 border-l-white bg-zinc-900 text-white'
+            : 'hover:bg-zinc-950 hover:text-zinc-200',
+          item.highlight && !isActive && 'font-semibold text-zinc-300',
+          isCollapsed && isActive && 'border-l-0 bg-zinc-900 text-white'
+        )}
+      >
+        <div className="flex items-center gap-2.5">
+          <Icon
+            className={cn(
+              'h-4 w-4 shrink-0 transition-colors',
+              isActive
+                ? item.highlight
+                  ? 'text-zinc-200'
+                  : 'text-white'
+                : 'text-zinc-500 group-hover:text-zinc-300',
+              item.highlight && !isActive && 'text-zinc-300'
+            )}
+          />
+          {!isCollapsed && <span>{item.name}</span>}
+        </div>
+        {!isCollapsed && item.badge && (
+          <span className="scale-90 rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   return (
     <div
@@ -326,73 +400,38 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       {/* Navigation List */}
       <div className="flex-1 overflow-y-auto px-2 py-4">
         <nav className="space-y-4">
-          {visibleGroups.map((group) => (
-            <div key={group.label} className="space-y-1">
-              {!isCollapsed && (
-                <p className="px-3 pb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
-                  {group.label}
-                </p>
-              )}
-              {isCollapsed && <div className="mx-3 mb-2 border-t border-zinc-900" aria-hidden="true" />}
-              {group.items.map((item) => {
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-            const Icon = item.icon;
-            const isLocked = Boolean(item.requiredPlan && !planIncludes(resolvedPlan, item.requiredPlan));
-
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                prefetch={false}
-                onMouseEnter={() => !isLocked && prepareRouteIntent(item.href)}
-                onFocus={() => !isLocked && prepareRouteIntent(item.href)}
-                onPointerDown={() => !isLocked && prepareRouteIntent(item.href)}
-                onClick={(event) => {
-                  if (isLocked && item.requiredPlan) {
-                    event.preventDefault();
-                    setUpgradePrompt({ feature: item.name, href: item.href, requiredPlan: item.requiredPlan });
-                    return;
-                  }
-                  void navigateToRoute(event, item.href);
-                }}
-                title={isCollapsed ? item.name : undefined}
-                aria-current={isActive ? 'page' : undefined}
-                className={cn(
-                  'workspace-nav-link group flex items-center rounded-xl transition-[transform,background-color,color,box-shadow,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500',
-                  isCollapsed ? 'justify-center p-2.5 mb-1' : 'justify-between px-3 py-2 text-xs font-medium',
-                  isActive
-                    ? item.highlight
-                      ? 'bg-zinc-900 text-white border-l-2 border-l-zinc-300'
-                      : 'bg-zinc-900 text-white border-l-2 border-l-white'
-                    : 'hover:bg-zinc-950 hover:text-zinc-200',
-                  item.highlight && !isActive && 'text-zinc-300 font-semibold',
-                  isCollapsed && isActive && 'border-l-0 bg-zinc-900 text-white'
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Icon
-                    className={cn(
-                      'shrink-0 transition-colors h-4 w-4',
-                      isActive
-                        ? item.highlight
-                          ? 'text-zinc-200'
-                          : 'text-white'
-                        : 'text-zinc-500 group-hover:text-zinc-300',
-                      item.highlight && !isActive && 'text-zinc-300'
-                    )}
-                  />
-                  {!isCollapsed && <span>{item.name}</span>}
-                </div>
-                {!isCollapsed && 'badge' in item && typeof item.badge === 'string' && (
-                  <span className="rounded bg-zinc-800 border border-zinc-700 px-1.5 py-0.2 text-[9px] font-semibold text-zinc-400 uppercase tracking-wider scale-90">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-              })}
+          {dashboardItem && (
+            <div className="border-b border-zinc-900 pb-4">
+              {renderNavigationItem(dashboardItem)}
             </div>
-          ))}
+          )}
+          {visibleGroups.map((group) => {
+            const isExpanded = isCollapsed || expandedGroups[group.label] !== false;
+            return (
+              <div key={group.label} className="space-y-1">
+                {!isCollapsed && (
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    aria-controls={`sidebar-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    onClick={() => setExpandedGroups((current) => ({ ...current, [group.label]: !isExpanded }))}
+                    className="group flex w-full cursor-pointer items-center justify-between rounded-lg px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600 transition-colors hover:bg-zinc-950 hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+                  >
+                    <span>{group.label}</span>
+                    <ChevronDown className={cn('h-3 w-3 transition-transform duration-200', !isExpanded && '-rotate-90')} aria-hidden="true" />
+                  </button>
+                )}
+                {isCollapsed && <div className="mx-3 mb-2 border-t border-zinc-900" aria-hidden="true" />}
+                <div
+                  id={`sidebar-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  hidden={!isExpanded}
+                  className="space-y-1"
+                >
+                  {group.items.map(renderNavigationItem)}
+                </div>
+              </div>
+            );
+          })}
         </nav>
       </div>
 

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { MetricCard } from '@/components/ui/metric-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
@@ -47,6 +48,9 @@ import {
   MapPin,
   Phone,
   Copy,
+  ReceiptText,
+  ClipboardList,
+  CheckCircle2,
 } from 'lucide-react';
 
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -298,7 +302,7 @@ function ClientBillingPanel({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="font-semibold text-zinc-400">Address Line 1 *</label>
+                <label className="font-semibold text-zinc-400">Address Line 1 <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input value={form.billingAddressLine1} onChange={(event) => setForm({ ...form, billingAddressLine1: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
@@ -306,19 +310,19 @@ function ClientBillingPanel({
                 <input value={form.billingAddressLine2} onChange={(event) => setForm({ ...form, billingAddressLine2: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
               </div>
               <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400">City *</label>
+                <label className="font-semibold text-zinc-400">City <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input value={form.billingCity} onChange={(event) => setForm({ ...form, billingCity: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
               </div>
               <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400">State / Region *</label>
+                <label className="font-semibold text-zinc-400">State / Region <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input value={form.billingState} onChange={(event) => setForm({ ...form, billingState: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
               </div>
               <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400">Postal Code *</label>
+                <label className="font-semibold text-zinc-400">Postal Code <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input value={form.billingPostalCode} onChange={(event) => setForm({ ...form, billingPostalCode: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
               </div>
               <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-400">Country *</label>
+                <label className="font-semibold text-zinc-400">Country <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input value={form.billingCountry} onChange={(event) => setForm({ ...form, billingCountry: event.target.value })} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white outline-none focus:border-zinc-700" />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
@@ -708,6 +712,13 @@ export default function ClientDetailDashboard({
   const overallProgress = clientProjects.length ? Math.round(clientProjects.reduce((sum: number, project: any) => sum + Number(project.progress || 0), 0) / clientProjects.length) : 0;
   const onboardingInvite = client.onboardingInvite as { email: string; path: string; status: 'PENDING' | 'COMPLETED' | 'EXPIRED'; expiresAt: string } | null | undefined;
   const hasOverviewSpecialization = resolvedAgencyType.includes('seo') || resolvedAgencyType.includes('web design');
+  const overviewMetrics = [
+    { label: 'Revenue', value: formatCurrency(revenue), icon: DollarSign, valueClassName: 'text-emerald-300' },
+    { label: 'Receivables', value: formatCurrency(receivables), icon: ReceiptText, valueClassName: receivables > 0 ? 'text-amber-300' : 'text-emerald-300' },
+    { label: 'Team members', value: assignedSpecialist ? 1 : 0, icon: User, valueClassName: 'text-sky-300' },
+    { label: 'Tasks', value: tasks.length, icon: ClipboardList, valueClassName: 'text-violet-300' },
+    { label: 'Overall progress', value: `${overallProgress}%`, icon: CheckCircle2, valueClassName: overallProgress >= 75 ? 'text-emerald-300' : overallProgress >= 40 ? 'text-sky-300' : 'text-amber-300' },
+  ];
 
   const copyOnboardingLink = async () => {
     if (!onboardingInvite?.path) return;
@@ -722,7 +733,7 @@ export default function ClientDetailDashboard({
   return (
     <div className="space-y-6 font-sans text-xs">
       {/* Top Navigation Row */}
-      <div className="flex items-center justify-between border-b border-zinc-800/60 pb-4">
+      <div className="flex flex-col gap-3 border-b border-zinc-800/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -737,7 +748,7 @@ export default function ClientDetailDashboard({
             <p className="text-[10px] text-zinc-500 mt-0.5">Admin Management Terminal | {client.domain}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'}>
             Status: {client.status}
           </Badge>
@@ -764,7 +775,9 @@ export default function ClientDetailDashboard({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Card><CardHeader><CardDescription>Revenue</CardDescription><CardTitle>{formatCurrency(revenue)}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Receivables</CardDescription><CardTitle>{formatCurrency(receivables)}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Team members</CardDescription><CardTitle>{assignedSpecialist ? 1 : 0}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Tasks</CardDescription><CardTitle>{tasks.length}</CardTitle></CardHeader></Card><Card><CardHeader><CardDescription>Overall progress</CardDescription><CardTitle>{overallProgress}%</CardTitle></CardHeader></Card></div>
+      <div className="client-detail-metrics grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        {overviewMetrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
+      </div>
 
       {activeWorkspaceTab === 'overview' && canManageMetaAccounts && (
         <Card>
@@ -1116,7 +1129,7 @@ export default function ClientDetailDashboard({
                                   onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
                                   className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-none"
                                 >
-                                  <option value="TODO">To-do</option>
+                                  <option value="TODO">To-Do</option>
                                   <option value="IN_PROGRESS">In Progress</option>
                                   <option value="COMPLETED">Completed</option>
                                   <option value="BLOCKED">Blocked</option>
@@ -1228,7 +1241,7 @@ export default function ClientDetailDashboard({
                 </div>
 
                 {hasMetaPerformance ? (
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <Card>
                     <CardHeader className="pb-1">
                       <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Ad Spend</CardTitle>
@@ -1356,7 +1369,7 @@ export default function ClientDetailDashboard({
                   </Badge>
                 </div>
 
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <Card>
                     <CardHeader className="pb-1">
                       <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Leads Captured</CardTitle>
@@ -1583,7 +1596,7 @@ export default function ClientDetailDashboard({
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Lighthouse Performance Audits</CardTitle>
                   <CardDescription className="text-[10px] text-zinc-500">Live preview environment Vitals audit score.</CardDescription>
                 </CardHeader>
-                <CardContent className="pt-4 grid gap-4 grid-cols-4 text-center">
+                <CardContent className="grid grid-cols-2 gap-4 pt-4 text-center sm:grid-cols-4">
                   {[
                     { title: 'Performance', val: 98, color: 'text-emerald-400' },
                     { title: 'Accessibility', val: 96, color: 'text-emerald-400' },
@@ -1875,7 +1888,7 @@ export default function ClientDetailDashboard({
             
             <form onSubmit={handleCreateTask} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">Task Title *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">Task Title <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input
                   type="text"
                   required
@@ -1922,7 +1935,7 @@ export default function ClientDetailDashboard({
                     onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md"
                   >
-                    <option value="TODO">To-do</option>
+                    <option value="TODO">To-Do</option>
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="COMPLETED">Completed</option>
                     <option value="BLOCKED">Blocked</option>

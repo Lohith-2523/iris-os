@@ -144,69 +144,85 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  let wipeStage = 'authorizing the request';
+
   try {
-    const org = await getOrganization(request);
-    if (!org) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const user = await getRequestUser();
-    if (!user || !isOrganizationAdmin(user)) {
+    if (!isOrganizationAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const orgId = org.id;
+    const orgId = user.orgId;
 
-    // Execute deletion of all organization scoped models in a transaction
-    await prisma.$transaction([
-      // 1. Delete direct org-scoped child models
-      prisma.calendarEvent.deleteMany({ where: { orgId } }),
-      prisma.recurringSubscription.deleteMany({ where: { orgId } }),
-      prisma.transaction.deleteMany({ where: { orgId } }),
-      prisma.expense.deleteMany({ where: { orgId } }),
-      prisma.invoice.deleteMany({ where: { orgId } }),
-      
-      // 2. Delete tasks, reports, automations, atlas messages
-      prisma.clientTask.deleteMany({ where: { client: { orgId } } }),
-      prisma.report.deleteMany({ where: { orgId } }),
-      prisma.askAtlasMessage.deleteMany({ where: { orgId } }),
-      prisma.atlasChatSession.deleteMany({ where: { orgId } }),
-      prisma.atlasInsight.deleteMany({ where: { orgId } }),
-      prisma.automationRun.deleteMany({ where: { automation: { orgId } } }),
-      prisma.automation.deleteMany({ where: { orgId } }),
+    // Keep the organization, its users, user preferences, and completed
+    // onboarding state. Everything else owned by the organization is purged
+    // atomically so a failed request never leaves a partially wiped workspace.
+    await prisma.$transaction(async (tx) => {
+      wipeStage = 'deleting generated documents';
+      await tx.generatedDocument.deleteMany({ where: { orgId } });
 
-      // 3. Delete projects & clients (cascades to Milestones, Allocations, ProjectMembers, ProjectStages, Contacts, ClientInvites, ScheduledPosts)
-      prisma.project.deleteMany({ where: { orgId } }),
-      prisma.client.deleteMany({ where: { orgId } }),
+      wipeStage = 'deleting secure messages';
+      await tx.encryptedAttachment.deleteMany({ where: { orgId } });
+      await tx.encryptedMessage.deleteMany({ where: { orgId } });
+      await tx.messagingConversation.deleteMany({ where: { orgId } });
+      await tx.messagingDevice.deleteMany({ where: { orgId } });
 
-      // 4. Delete brands & creatives (cascades to DesignAssets, Campaigns)
-      prisma.designAsset.deleteMany({ where: { brand: { orgId } } }),
-      prisma.campaign.deleteMany({ where: { brand: { orgId } } }),
-      prisma.brand.deleteMany({ where: { orgId } }),
+      wipeStage = 'deleting workspace activity';
+      await tx.notification.deleteMany({ where: { orgId } });
+      await tx.calendarEvent.deleteMany({ where: { orgId } });
+      await tx.googleCalendarConnection.deleteMany({ where: { orgId } });
+      await tx.memberInvite.deleteMany({ where: { orgId } });
 
-      // 5. Delete Meta ads, leads, campaigns
-      prisma.metaLead.deleteMany({ where: { orgId } }),
-      prisma.metaAd.deleteMany({ where: { orgId } }),
-      prisma.metaCampaign.deleteMany({ where: { orgId } }),
-      prisma.agencyMetaAdAccount.deleteMany({ where: { orgId } }),
+      wipeStage = 'deleting financial data';
+      await tx.transaction.deleteMany({ where: { orgId } });
+      await tx.invoice.deleteMany({ where: { orgId } });
+      await tx.expense.deleteMany({ where: { orgId } });
+      await tx.recurringSubscription.deleteMany({ where: { orgId } });
+      await tx.recurringRetainer.deleteMany({ where: { orgId } });
+      await tx.financialForecast.deleteMany({ where: { orgId } });
 
-      // 6. Delete agency leads & integration connections
-      prisma.agencyLead.deleteMany({ where: { orgId } }),
-      prisma.integrationConnection.deleteMany({ where: { orgId } }),
-      prisma.googleCalendarConnection.deleteMany({ where: { orgId } }),
-      prisma.memberInvite.deleteMany({ where: { orgId } }),
+      wipeStage = 'deleting project and client data';
+      await tx.deliverable.deleteMany({ where: { orgId } });
+      await tx.changeRequest.deleteMany({ where: { orgId } });
+      await tx.clientTask.deleteMany({ where: { client: { orgId } } });
+      await tx.project.deleteMany({ where: { orgId } });
+      await tx.metaLead.deleteMany({ where: { orgId } });
+      await tx.client.deleteMany({ where: { orgId } });
+      await tx.agencyLead.deleteMany({ where: { orgId } });
 
-      // 7. Delete financial forecasts (simulated global forecast data)
-      prisma.financialForecast.deleteMany({ where: { orgId } }),
+      wipeStage = 'deleting reports and intelligence data';
+      await tx.report.deleteMany({ where: { orgId } });
+      await tx.strategy.deleteMany({ where: { orgId } });
+      await tx.askAtlasMessage.deleteMany({ where: { orgId } });
+      await tx.atlasChatSession.deleteMany({ where: { orgId } });
+      await tx.atlasInsight.deleteMany({ where: { orgId } });
 
-      // 8. Update organization to reset selection lists
-      prisma.organization.update({
+      wipeStage = 'deleting automations and integrations';
+      await tx.automationRun.deleteMany({ where: { automation: { orgId } } });
+      await tx.automation.deleteMany({ where: { orgId } });
+      await tx.metaPageConnection.deleteMany({ where: { orgId } });
+      await tx.integrationConnection.deleteMany({ where: { orgId } });
+
+      wipeStage = 'deleting campaigns and creative data';
+      await tx.metaAd.deleteMany({ where: { orgId } });
+      await tx.metaCampaign.deleteMany({ where: { orgId } });
+      await tx.agencyMetaAdAccount.deleteMany({ where: { orgId } });
+      await tx.designAsset.deleteMany({ where: { brand: { orgId } } });
+      await tx.campaign.deleteMany({ where: { brand: { orgId } } });
+      await tx.brand.deleteMany({ where: { orgId } });
+
+      wipeStage = 'resetting workspace selections';
+      await tx.organization.update({
         where: { id: orgId },
-        data: {
-          agencyTypes: [],
-          bankNames: [],
-        }
-      })
-    ]);
+        data: { agencyTypes: [], bankNames: [] },
+      });
+    }, {
+      maxWait: 10_000,
+      timeout: 60_000,
+    });
 
     console.log(`Successfully wiped all agency data for organization ID: ${orgId}`);
 
@@ -214,8 +230,10 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'All agency data wiped successfully. Active admin account and organization container preserved.'
     });
-  } catch (error: any) {
-    console.error('Error wiping agency data:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error(`Error wiping agency data while ${wipeStage}:`, error);
+    return NextResponse.json({
+      error: `Unable to wipe agency data while ${wipeStage}. No data was deleted.`,
+    }, { status: 500 });
   }
 }

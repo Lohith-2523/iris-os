@@ -3,9 +3,8 @@
 import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Sparkles, Command, Menu, X, BrainCircuit, Play, ArrowRight, Sun, Moon } from 'lucide-react';
+import { Search, Command, Menu, X, Sun, Moon, MessageSquare, CalendarDays } from 'lucide-react';
 import { Button } from '../ui/button';
-import { formatUserMessage } from '@/lib/utils';
 import { AtlasIcon } from '../ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
 import { NotificationCenter } from '@/components/notifications/notification-center';
@@ -24,9 +23,40 @@ interface TopbarProps {
 interface CommandItem {
   name: string;
   category: string;
-  href?: string;
-  action?: string;
+  description: string;
+  href: string;
+  keywords: string[];
 }
+
+const workspaceCommands: CommandItem[] = [
+  { name: 'Dashboard', category: 'Overview', description: 'Agency health, revenue, expenses, receivables, and performance.', href: '/dashboard', keywords: ['home', 'command center', 'overview', 'agency health', 'revenue', 'expenses', 'receivables', 'performance'] },
+  { name: 'Agency Leads', category: 'Pipeline', description: 'Manage prospects, stages, lead values, notes, and follow-ups.', href: '/agency-leads', keywords: ['pipeline', 'crm', 'prospects', 'sales', 'lead stages', 'follow up', 'export'] },
+  { name: 'Client Leads', category: 'Pipeline', description: 'Review client-scoped leads and opportunities.', href: '/client-leads', keywords: ['client pipeline', 'prospects', 'opportunities', 'sales'] },
+  { name: 'Clients', category: 'Pipeline', description: 'Open the client portfolio, account details, and profitability.', href: '/clients', keywords: ['accounts', 'portfolio', 'contacts', 'profitability', 'churn', 'renewal', 'client details'] },
+  { name: 'Onboard a Client', category: 'Pipeline', description: 'Launch the complete client onboarding workflow.', href: '/clients/onboard', keywords: ['new client', 'add client', 'create client', 'intake', 'onboarding portal'] },
+  { name: 'Projects', category: 'Pipeline', description: 'Manage project delivery, milestones, timelines, and budgets.', href: '/projects', keywords: ['delivery', 'milestones', 'timeline', 'budget', 'project workspace', 'new project'] },
+  { name: 'Tasks', category: 'Delivery', description: 'Open To-Do lists, Kanban boards, assignments, and approvals.', href: '/tasks', keywords: ['to-do', 'todo', 'kanban', 'backlog', 'assignments', 'deliverables', 'approval', 'blocked'] },
+  { name: 'Team', category: 'Delivery', description: 'Manage team members, resources, capacity, and assignments.', href: '/team', keywords: ['people', 'members', 'resources', 'capacity', 'contractors', 'workload', 'utilization'] },
+  { name: 'Calendar', category: 'Delivery', description: 'Review events, meetings, deadlines, and Google Calendar sync.', href: '/calendar', keywords: ['events', 'meetings', 'schedule', 'deadlines', 'reminders', 'google calendar'] },
+  { name: 'Messages', category: 'Delivery', description: 'Open secure team and client conversations.', href: '/messages', keywords: ['chat', 'conversation', 'inbox', 'team chat', 'client chat', 'secure messaging'] },
+  { name: 'Proposals', category: 'Documents', description: 'Create, edit, preview, and send client proposals.', href: '/proposals', keywords: ['documents', 'generate proposal', 'pdf', 'send proposal', 'editor'] },
+  { name: 'Contracts', category: 'Documents', description: 'Create contracts and statements of work.', href: '/documents', keywords: ['documents', 'legal', 'agreement', 'statement of work', 'sow', 'pdf', 'signing'] },
+  { name: 'Financial Ledger', category: 'Finance', description: 'Review revenue, expenses, receivables, and transactions.', href: '/finance', keywords: ['ledger', 'money', 'accounting', 'transactions', 'revenue', 'expenses', 'receivables', 'cash flow', 'bank'] },
+  { name: 'Add an Expense', category: 'Finance', description: 'Open the ledger with Expense selected as the transaction type.', href: '/finance?tab=manual&transactionType=Expense', keywords: ['new expense', 'create expense', 'record expense', 'spend', 'cost'] },
+  { name: 'Record Revenue', category: 'Finance', description: 'Open manual ledger entry for incoming revenue.', href: '/finance?tab=manual', keywords: ['new revenue', 'income', 'payment', 'transaction', 'credit'] },
+  { name: 'Invoices', category: 'Finance', description: 'Create, review, download, and manage invoices.', href: '/invoices', keywords: ['billing', 'invoice pdf', 'payments', 'accounts receivable', 'client billing'] },
+  { name: 'Executive Reporting', category: 'Intelligence', description: 'Generate and review executive reports and PDFs.', href: '/reporting', keywords: ['reports', 'executive report', 'pdf', 'download report', 'scheduled report', 'summary'] },
+  { name: 'Strategy Studio', category: 'Intelligence', description: 'Build strategies with client and project intelligence.', href: '/strategy', keywords: ['analytics', 'planning', 'forecast', 'recommendations', 'client scope', 'project scope'] },
+  { name: 'Analytics', category: 'Intelligence', description: 'Open the analytics entry point for strategic intelligence.', href: '/analytics', keywords: ['strategy', 'analysis', 'metrics', 'performance', 'insights'] },
+  { name: 'Data Explorer', category: 'Intelligence', description: 'Explore operational capacity, billings, overhead, and trends.', href: '/explorer', keywords: ['analytics', 'charts', 'datasets', 'capacity', 'billings', 'overhead', 'margin', 'data'] },
+  { name: 'Atlas AI', category: 'Intelligence', description: 'Ask Atlas and run workspace-aware intelligence workflows.', href: '/atlas', keywords: ['ai', 'assistant', 'ask atlas', 'analysis', 'forecast', 'insights', 'recommendations', 'command center'] },
+  { name: 'Settings', category: 'Administration', description: 'Manage profile, organization, preferences, and integrations.', href: '/settings', keywords: ['profile', 'organization', 'preferences', 'theme', 'integrations', 'account', 'workspace'] },
+  { name: 'Security & Roles', category: 'Administration', description: 'Manage roles, page access, permissions, and offboarding.', href: '/settings/security', keywords: ['security', 'roles', 'permissions', 'access', 'sub-admin', 'offboarding', 'users'] },
+  { name: 'Team Dashboard', category: 'Workspace', description: 'Open the specialist team-member command center.', href: '/teams-dashboard', keywords: ['member dashboard', 'specialist', 'assigned work', 'team workspace'] },
+  { name: 'Client Dashboard', category: 'Workspace', description: 'Open the client-facing performance and delivery portal.', href: '/client-dashboard', keywords: ['client portal', 'campaigns', 'client workspace', 'clearance'] },
+];
+
+const commandSearchText = (item: CommandItem) => [item.name, item.category, item.description, ...item.keywords].join(' ').toLowerCase();
 
 export function Topbar({ onMenuToggle }: TopbarProps) {
   const router = useRouter();
@@ -35,7 +65,6 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
   const [isCommandOpen, setIsCommandOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [atlasQuery, setAtlasQuery] = React.useState('');
-  const [commandResults, setCommandResults] = React.useState<CommandItem[]>([]);
   const [theme, setTheme] = React.useState<WorkspaceTheme>('dark');
   const hasOptimisticThemeRef = React.useRef(false);
 
@@ -51,7 +80,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     if (hasThemeCookie) return;
 
     let isCurrent = true;
-    void fetch('/api/workspace', { cache: 'no-store' })
+    void fetch('/api/workspace')
       .then((res) => res.ok ? res.json() : null)
       .then((workspace) => {
         const workspaceTheme = workspace?.user?.preferences?.theme;
@@ -109,46 +138,38 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
     setAtlasQuery('');
   };
 
-  const navCommands = [
-    { name: 'Go to Dashboard', category: 'Navigation', href: '/dashboard' },
-    { name: 'Go to Finance Ledger', category: 'Navigation', href: '/finance' },
-    { name: 'Go to Client Portfolio', category: 'Navigation', href: '/clients' },
-    { name: 'Go to Project Delivery', category: 'Navigation', href: '/projects' },
-    { name: 'Go to Atlas AI Intelligence', category: 'Navigation', href: '/atlas' },
-    { name: 'Go to Settings Console', category: 'Navigation', href: '/settings' },
-    { name: 'Export Latest Financial Report', category: 'Action', action: 'export-report' },
-    { name: 'Review Contractor Profit Leak', category: 'Action', action: 'view-leak' },
+  const quickAccess = [
+    { name: 'Messages', description: 'Open secure team and client conversations', href: '/messages', icon: MessageSquare },
+    { name: 'Calendar', description: 'Review meetings, deadlines, and reminders', href: '/calendar', icon: CalendarDays },
+    { name: 'Atlas', description: 'Ask Atlas or run an intelligence workflow', href: '/atlas', icon: AtlasIcon },
   ];
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (!val.trim()) {
-      setCommandResults([]);
-      return;
-    }
+  const commandResults = React.useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (!normalizedQuery) return [];
+    const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
 
-    const filtered = navCommands.filter((c) =>
-      c.name.toLowerCase().includes(val.toLowerCase())
-    );
-    setCommandResults(filtered);
-  };
+    return workspaceCommands
+      .filter((item) => tokens.every((token) => commandSearchText(item).includes(token)))
+      .sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const aRank = aName === normalizedQuery ? 0 : aName.startsWith(normalizedQuery) ? 1 : aName.includes(normalizedQuery) ? 2 : 3;
+        const bRank = bName === normalizedQuery ? 0 : bName.startsWith(normalizedQuery) ? 1 : bName.includes(normalizedQuery) ? 2 : 3;
+        return aRank - bRank || a.name.localeCompare(b.name);
+      });
+  }, [searchQuery]);
 
-  const executeCommand = (item: CommandItem) => {
+  const executeCommand = (item: Pick<CommandItem, 'name' | 'href'>) => {
     setIsCommandOpen(false);
     setSearchQuery('');
-    setCommandResults([]);
-    if (item.href) {
-      prepareWorkspaceDataCacheForRouteChange(item.href);
-      router.push(item.href);
-    } else if (item.action) {
-      alert(formatUserMessage(`Lohith, triggering action: ${item.name}`));
-    }
+    prepareWorkspaceDataCacheForRouteChange(item.href.split('?')[0]);
+    router.push(item.href);
   };
 
   return (
     <>
-      <header className="workspace-topbar flex h-16 w-full items-center justify-between border-b border-zinc-800 bg-[#09090b] px-6">
+      <header className="workspace-topbar flex w-full items-center justify-between border-b border-zinc-800 bg-[#09090b]">
         {/* Left: Mobile Toggle & Brand indicator */}
         <div className="flex items-center gap-4">
           <Button
@@ -192,6 +213,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             title="Toggle theme profile"
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
             aria-pressed={theme === 'light'}
+            data-skip-async-feedback
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
@@ -225,7 +247,6 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             onClick={() => {
               setIsCommandOpen(false);
               setSearchQuery('');
-              setCommandResults([]);
             }}
           />
 
@@ -242,9 +263,20 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                 <input
                   type="text"
                   autoFocus
-                  placeholder="Type a route command or action (e.g. dashboard, sync)..."
+                  placeholder="Search pages and features…"
                   value={searchQuery}
-                  onChange={handleSearchChange}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && commandResults[0]) {
+                      event.preventDefault();
+                      executeCommand(commandResults[0]);
+                    }
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      setIsCommandOpen(false);
+                      setSearchQuery('');
+                    }
+                  }}
                   className="workspace-command-search-input !min-h-0 h-full w-full bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
                 />
               </div>
@@ -254,7 +286,6 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                 onClick={() => {
                   setIsCommandOpen(false);
                   setSearchQuery('');
-                  setCommandResults([]);
                 }}
                 className="h-8 w-8 shrink-0 text-zinc-500 hover:text-white"
                 aria-label="Close workspace search"
@@ -264,62 +295,48 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             </div>
 
             {/* List Results */}
-            <div className="max-h-[300px] overflow-y-auto p-2">
+            <div className="max-h-[440px] overflow-y-auto p-2">
               {searchQuery && commandResults.length === 0 ? (
                 <div className="p-4 text-center text-xs text-zinc-500">
                   No matching commands found.
                 </div>
               ) : searchQuery && commandResults.length > 0 ? (
                 <div className="space-y-1">
-                  {commandResults.map((item, idx) => (
-                    <div
-                      key={idx}
+                  {commandResults.map((item) => (
+                    <button
+                      type="button"
+                      key={`${item.href}-${item.name}`}
                       onClick={() => executeCommand(item)}
-                      className="workspace-command-item flex items-center justify-between rounded-xl px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer transition-colors"
+                      className="workspace-command-item flex w-full items-center justify-between gap-4 rounded-xl px-3 py-3 text-left text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer transition-colors"
                     >
-                      <span>{item.name}</span>
-                      <span className="rounded bg-zinc-900 border border-zinc-800 px-1.5 py-0.2 text-[9px] text-zinc-500 uppercase tracking-wider">
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold">{item.name}</span>
+                        <span className="mt-0.5 block truncate text-xs text-zinc-500">{item.description}</span>
+                      </span>
+                      <span className="shrink-0 rounded bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500 uppercase tracking-wider">
                         {item.category}
                       </span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
                 <div className="space-y-4 p-2">
                   <div>
-                    <h5 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider px-2 mb-1.5">Suggestions</h5>
-                    <div className="space-y-1">
-                      {navCommands.slice(0, 4).map((item, idx) => (
-                        <div
-                          key={idx}
+                    <h5 className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Quick access</h5>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {quickAccess.map((item) => {
+                        const Icon = item.icon;
+                        return <button
+                          type="button"
+                          key={item.href}
                           onClick={() => executeCommand(item)}
-                          className="workspace-command-item flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs text-zinc-300 hover:bg-zinc-900 hover:text-white cursor-pointer transition-colors"
+                          className="workspace-command-item group flex min-h-28 flex-col items-start rounded-xl border border-zinc-850 bg-zinc-950/60 p-3 text-left text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-white"
                         >
-                          <Play className="h-3 w-3 text-zinc-500" />
-                          <span>{item.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h5 className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider px-2 mb-1.5">AI Operations</h5>
-                    <div
-                      onClick={() => {
-                        setIsCommandOpen(false);
-                        prepareWorkspaceDataCacheForRouteChange('/atlas');
-                        router.push('/atlas');
-                      }}
-                      className="flex items-center justify-between rounded-md bg-zinc-900/40 border border-zinc-800/80 p-3 mx-1 hover:bg-zinc-900 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <BrainCircuit className="h-4.5 w-4.5 text-zinc-300" />
-                        <div>
-                          <span className="block text-xs font-semibold text-white">Ask Atlas Command Center</span>
-                          <span className="block text-[10px] text-zinc-500 mt-0.5">Solve profit leaks and check team capacity charts.</span>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-zinc-500" />
+                          <span className="grid h-8 w-8 place-items-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 group-hover:text-white"><Icon className="h-4 w-4" /></span>
+                          <span className="mt-3 text-xs font-bold">{item.name}</span>
+                          <span className="mt-1 text-[9px] leading-relaxed text-zinc-500">{item.description}</span>
+                        </button>;
+                      })}
                     </div>
                   </div>
                 </div>

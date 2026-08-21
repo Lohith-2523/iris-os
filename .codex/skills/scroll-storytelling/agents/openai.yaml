@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scroll Storytelling"
+  short_description: "Craft polished scroll-linked web motion"
+  default_prompt: "Use $scroll-storytelling to add performant, accessible scroll-triggered motion to this page."

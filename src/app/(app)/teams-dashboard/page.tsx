@@ -385,7 +385,7 @@ export default function TeamsDashboardPage() {
           {/* Kanban Columns Grid */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-4 items-stretch overflow-x-auto min-h-[500px]">
             {([
-              { id: 'TODO', label: 'To-do / Pending', border: 'border-zinc-900 bg-zinc-950/10' },
+              { id: 'TODO', label: 'To-Do / Pending', border: 'border-zinc-900 bg-zinc-950/10' },
               { id: 'IN_PROGRESS', label: 'In Progress', border: 'border-amber-900/20 bg-amber-950/5' },
               { id: 'BLOCKED', label: 'Blocked', border: 'border-rose-900/20 bg-rose-950/5' },
               { id: 'COMPLETED', label: 'Completed', border: 'border-emerald-900/20 bg-emerald-950/5' }
@@ -612,7 +612,7 @@ export default function TeamsDashboardPage() {
                     onChange={(e) => handleUpdateStatus(selectedTask.id, e.target.value as Task['status'])}
                     className="mt-1 bg-zinc-900 border border-zinc-800 text-white rounded px-2.5 py-1 text-xs focus:outline-none capitalize font-semibold cursor-pointer"
                   >
-                    <option value="TODO">To-do</option>
+                    <option value="TODO">To-Do</option>
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="BLOCKED">Blocked</option>
                     <option value="COMPLETED">Completed</option>

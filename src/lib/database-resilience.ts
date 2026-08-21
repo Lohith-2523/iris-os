@@ -8,7 +8,7 @@ const TRANSIENT_DATABASE_CODES = new Set([
 ]);
 
 const TRANSIENT_DATABASE_MESSAGE =
-  /max clients reached|too many (?:database )?connections|connection pool timeout|timed out fetching a new connection|cannot connect now|database is starting up/i;
+  /max clients reached|too many (?:database )?connections|connection pool timeout|connection timeout|timeout exceeded when trying to connect|timed out fetching a new connection|cannot connect now|database is starting up/i;
 
 type ErrorLike = {
   code?: unknown;

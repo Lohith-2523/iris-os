@@ -10,6 +10,7 @@ import { formatUserMessage } from '@/lib/utils';
 import type { ProposalInput } from '@/lib/proposals/types';
 import { DocumentWorkspace } from '@/components/documents/document-workspace';
 import { DateInput } from '@/components/ui/date-input';
+import { RequiredFieldLabel } from '@/components/ui/required-field-label';
 
 const today = new Date();
 const thirtyDays = new Date(today.getTime() + 30 * 86400000);
@@ -39,7 +40,7 @@ const initialProposal: ProposalInput = {
 };
 
 function Field({ label, children, span = false }: { label: string; children: React.ReactNode; span?: boolean }) {
-  return <label className={`space-y-1.5 ${span ? 'md:col-span-2' : ''}`}><span className="block font-semibold text-muted-foreground">{label}</span>{children}</label>;
+  return <label className={`space-y-1.5 ${span ? 'md:col-span-2' : ''}`}><span className="block font-semibold text-muted-foreground"><RequiredFieldLabel label={label} /></span>{children}</label>;
 }
 
 const inputClass = 'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground outline-none placeholder:text-muted-foreground focus:border-ring';

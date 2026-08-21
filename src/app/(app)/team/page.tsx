@@ -813,7 +813,7 @@ export default function TeamPage() {
                     {/* Basic Details: Name, Email, Phone */}
                     <div className="grid gap-4 sm:grid-cols-3">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Full Name *</label>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Full Name <span className="text-rose-500" aria-hidden="true">*</span></label>
                         <input
                           type="text"
                           required
@@ -824,7 +824,7 @@ export default function TeamPage() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Email Address *</label>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Email Address <span className="text-rose-500" aria-hidden="true">*</span></label>
                         <input
                           type="email"
                           required
@@ -938,7 +938,7 @@ export default function TeamPage() {
                   )}
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Select Specialist *</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Select Specialist <span className="text-rose-500" aria-hidden="true">*</span></label>
                     <select
                       required
                       value={selectedExistingId}
@@ -1305,7 +1305,7 @@ export default function TeamPage() {
                                   onChange={(e) => setTaskEditForm(prev => ({ ...prev, status: e.target.value }))}
                                   className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-md"
                                 >
-                                  <option value="TODO">To-do</option>
+                                  <option value="TODO">To-Do</option>
                                   <option value="IN_PROGRESS">In Progress</option>
                                   <option value="COMPLETED">Completed</option>
                                   <option value="BLOCKED">Blocked</option>

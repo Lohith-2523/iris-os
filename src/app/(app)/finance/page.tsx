@@ -301,12 +301,12 @@ export default function FinancePage() {
           typeof stored.reportYAxis === 'string' && typeof stored.reportTimeframe === 'string';
       },
     );
-    setActiveTab(saved.activeTab);
+    setActiveTab(searchParams.get('tab') === 'manual' ? 'manual' : saved.activeTab);
     setTimeFrame(saved.timeFrame);
-    setReportXAxis(saved.reportXAxis);
+    setReportXAxis(saved.reportXAxis === 'Channel Source' ? 'Ledger Type' : saved.reportXAxis);
     setReportYAxis(saved.reportYAxis);
     setReportTimeframe(saved.reportTimeframe);
-  }, [uiScope]);
+  }, [searchParams, uiScope]);
 
   React.useEffect(() => {
     writeWorkspaceUiPreference(uiScope, 'finance', { activeTab, timeFrame, reportXAxis, reportYAxis, reportTimeframe });
@@ -372,13 +372,24 @@ export default function FinancePage() {
 
   React.useEffect(() => {
     const invoiceId = searchParams.get('invoiceId');
-    if (searchParams.get('tab') !== 'manual' || !invoiceId) return;
+    const transactionType = searchParams.get('transactionType');
+    if (searchParams.get('tab') !== 'manual') return;
     setActiveTab('manual');
-    setFormCategory('Revenue');
     setFormDate(new Date().toISOString().slice(0, 10));
-    setFormInvoiceId(invoiceId);
-    setFormYourAccount('');
-    setFormAmount('');
+    if (invoiceId) {
+      setFormCategory('Revenue');
+      setFormInvoiceId(invoiceId);
+      setFormYourAccount('');
+      setFormAmount('');
+      return;
+    }
+    if (transactionType === 'Expense') {
+      setFormCategory('Expense');
+      setFormInvoiceId('');
+      setFormDetails('');
+      setFormAmount('');
+      setFormComments('');
+    }
   }, [searchParams]);
 
   React.useEffect(() => {
@@ -1127,7 +1138,7 @@ export default function FinancePage() {
         key = tx.customer || 'General Overhead';
       } else if (xAxis === 'Category') {
         key = tx.rawStatus === 'EXPENSE' || tx.amountUSD < 0 ? (tx.details || 'General Expense') : 'Revenue';
-      } else if (xAxis === 'Channel Source') {
+      } else if (xAxis === 'Ledger Type') {
         key = tx.source || 'Manual Ledger';
       } else if (xAxis === 'Time (Monthly)') {
         const d = new Date(tx.date);
@@ -1450,7 +1461,7 @@ export default function FinancePage() {
       {activeTab === 'overview' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Metric Cards Grid */}
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="min-h-[164px] flex flex-col justify-between bg-zinc-900/90 border border-zinc-800/80 rounded-xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Revenue</CardTitle>
@@ -1615,7 +1626,7 @@ export default function FinancePage() {
           </div>
 
           {/* Middle Row */}
-          <div className="grid gap-6 md:grid-cols-[minmax(220px,1fr)_minmax(0,4.2fr)] md:items-stretch">
+          <div className="grid gap-6 xl:grid-cols-[minmax(220px,1fr)_minmax(0,4.2fr)] xl:items-stretch">
             {/* Left Column: Profitability Metrics */}
             <div className="flex min-h-[560px] flex-col gap-6">
               <ExpandableCard 
@@ -1847,7 +1858,7 @@ export default function FinancePage() {
                         >
                           <option value="Client">Client</option>
                           <option value="Category">Category (Expenses)</option>
-                          <option value="Channel Source">Channel Source</option>
+                          <option value="Ledger Type">Ledger Type</option>
                           <option value="Time (Monthly)">Time (Monthly)</option>
                         </select>
                       </div>
@@ -1914,7 +1925,7 @@ export default function FinancePage() {
                   <CardDescription>Choose how to group and measure your financial ledger.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-xs">
-                  <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">X-Axis Grouping</span><select value={reportXAxis} onChange={(event) => setReportXAxis(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="Client">Client</option><option value="Category">Category (Expenses)</option><option value="Channel Source">Channel Source</option><option value="Time (Monthly)">Time (Monthly)</option></select></label>
+                  <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">X-Axis Grouping</span><select value={reportXAxis} onChange={(event) => setReportXAxis(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="Client">Client</option><option value="Category">Category (Expenses)</option><option value="Ledger Type">Ledger Type</option><option value="Time (Monthly)">Time (Monthly)</option></select></label>
                   <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Y-Axis Metric</span><select value={reportYAxis} onChange={(event) => setReportYAxis(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="Revenue">Revenue</option><option value="Expenses">Expenses</option><option value="Net Profit">Net Profit</option><option value="Profit Margin">Profit Margin (%)</option></select></label>
                   <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Timeframe</span><select value={reportTimeframe} onChange={(event) => setReportTimeframe(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="All Time">All Time</option><option value="Yearly">Yearly</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option></select></label>
                   <div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => setIsFinancialReportOpen(false)}>Cancel</Button><Button onClick={() => { generateCustomReport(reportXAxis, reportYAxis, reportTimeframe); setIsFinancialReportOpen(false); }}>Generate report</Button></div>
@@ -2042,8 +2053,8 @@ export default function FinancePage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Transaction ID / #</TableHead>
-                        <TableHead>Channel Source</TableHead>
-                        <TableHead>Transaction accounts</TableHead>
+                        <TableHead>Ledger Type</TableHead>
+                        <TableHead>Transaction details</TableHead>
                         <TableHead>Date Logged</TableHead>
                         <TableHead className="text-right">Amount ({currencyState})</TableHead>
                         <TableHead className="text-right">Status</TableHead>

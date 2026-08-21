@@ -891,7 +891,7 @@ export default function ClientOnboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {/* Sidebar Steps tracker */}
         <div className="md:col-span-1 space-y-1.5">
           {[
@@ -950,7 +950,7 @@ export default function ClientOnboardPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Company Name *</label>
+                      <label className="font-semibold text-zinc-400 block">Company Name <span className="text-rose-500" aria-hidden="true">*</span></label>
                       <input
                         type="text"
                         name="name"
@@ -1057,7 +1057,7 @@ export default function ClientOnboardPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Client Name *</label>
+                      <label className="font-semibold text-zinc-400 block">Client Name <span className="text-rose-500" aria-hidden="true">*</span></label>
                       <input
                         type="text"
                         name="clientName"
@@ -1083,7 +1083,7 @@ export default function ClientOnboardPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Client Email *</label>
+                      <label className="font-semibold text-zinc-400 block">Client Email <span className="text-rose-500" aria-hidden="true">*</span></label>
                       <input
                         type="email"
                         name="clientEmail"
@@ -1115,7 +1115,7 @@ export default function ClientOnboardPage() {
                   <div className="space-y-4 pt-2 border-t border-zinc-900/60 animate-fadeIn">
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Project Name *</label>
+                          <label className="font-semibold text-zinc-400 block">Project Name <span className="text-rose-500" aria-hidden="true">*</span></label>
                           <input
                             type="text"
                             name="projectName"
@@ -1158,7 +1158,7 @@ export default function ClientOnboardPage() {
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                           <div className="space-y-1.5">
-                            <label className="font-semibold text-zinc-400 block">Payment Type *</label>
+                            <label className="font-semibold text-zinc-400 block">Payment Type <span className="text-rose-500" aria-hidden="true">*</span></label>
                             <select
                               name="projectPaymentType"
                               value={formData.projectPaymentType}
@@ -1170,7 +1170,7 @@ export default function ClientOnboardPage() {
                             </select>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="font-semibold text-zinc-400 block">Client Payment ({getCurrencySymbol(currencyState)}) *</label>
+                            <label className="font-semibold text-zinc-400 block">Client Payment ({getCurrencySymbol(currencyState)}) <span className="text-rose-500" aria-hidden="true">*</span></label>
                             <input
                               type="number"
                               min="0.01"
@@ -1197,7 +1197,7 @@ export default function ClientOnboardPage() {
                             </select>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="font-semibold text-zinc-400 block">Invoice Date *</label>
+                            <label className="font-semibold text-zinc-400 block">Invoice Date <span className="text-rose-500" aria-hidden="true">*</span></label>
                             <DateInput
                               value={formData.projectPaymentStartDate}
                               onChange={(value) => setFormData((current) => ({ ...current, projectPaymentStartDate: value }))}
@@ -1255,7 +1255,7 @@ export default function ClientOnboardPage() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Start Date *</label>
+                          <label className="font-semibold text-zinc-400 block">Start Date <span className="text-rose-500" aria-hidden="true">*</span></label>
                           <DateInput
                             required
                             value={formData.projectStartDate}
@@ -1340,7 +1340,8 @@ export default function ClientOnboardPage() {
                                       return { ...prev, projectStages: nextStages };
                                     });
                                   }}
-                                  className="w-35 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
+                                  containerClassName="w-35 shrink-0"
+                                  className="text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
                                 />
                                 <span>to</span>
                                 <DateInput
@@ -1353,7 +1354,8 @@ export default function ClientOnboardPage() {
                                       return { ...prev, projectStages: nextStages };
                                     });
                                   }}
-                                  className="w-35 text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
+                                  containerClassName="w-35 shrink-0"
+                                  className="text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
                                 />
                               </div>
                               <button

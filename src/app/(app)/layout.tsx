@@ -19,12 +19,12 @@ import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-d
 import { planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import {
   configureWorkspaceDataCache,
+  primeWorkspaceJson,
   prepareWorkspaceDataCacheForRouteChange,
   prepareWorkspaceDataCacheForNavigation,
   stageWorkspaceDataCache,
   startWorkspaceDataBackgroundChecks,
   stopWorkspaceDataBackgroundChecks,
-  workspaceFetch,
 } from '@/lib/workspace-data-cache';
 import { workspaceDataUrlsForRoute } from '@/lib/workspace-route-data';
 
@@ -54,26 +54,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const fetchUser = React.useCallback(async () => {
     try {
-      const res = await fetch('/api/user', { cache: 'no-store' });
+      const res = await fetch('/api/workspace', { cache: 'no-store' });
       if (res.ok) {
-        const data = await res.json();
-        configureWorkspaceDataCache({ userId: data.id, orgId: data.orgId });
-        setAtlasAIWorkspaceScope({ userId: data.id, orgId: data.orgId });
-        const workspaceRes = await workspaceFetch('/api/workspace');
-        let activePlan = 'BASIC';
-        if (workspaceRes.ok) {
-          const workspace = await workspaceRes.json();
-          activePlan = workspace.organization.plan || 'BASIC';
-          setUser({
-            ...data,
-            plan: activePlan,
-            organizationName: workspace.organization.name || 'Agency Workspace',
-            organizationLogoDataUrl: workspace.organization.invoiceLogoDataUrl || null,
-          });
-          setActiveWorkspaceContext({ userName: data.name, currency: workspace.organization.currency });
-        } else {
-          setUser({ ...data, plan: 'BASIC' });
-        }
+        const workspace = await res.json();
+        const data = workspace.user;
+        const orgId = data.orgId || workspace.organization.id;
+        configureWorkspaceDataCache({ userId: data.id, orgId });
+        primeWorkspaceJson('/api/workspace', workspace);
+        setAtlasAIWorkspaceScope({ userId: data.id, orgId });
+        const activePlan = workspace.organization.plan || 'BASIC';
+        setUser({
+          ...data,
+          orgId,
+          plan: activePlan,
+          organizationName: workspace.organization.name || 'Agency Workspace',
+          organizationLogoDataUrl: workspace.organization.invoiceLogoDataUrl || null,
+        });
+        setActiveWorkspaceContext({ userName: data.name, currency: workspace.organization.currency });
         const startupTasks: Promise<unknown>[] = [];
         if (activePlan !== 'BASIC') {
           startupTasks.push(
@@ -164,7 +161,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="workspace-shell min-h-screen w-screen bg-[#09090b]">
+      <div className="workspace-shell min-h-dvh w-full bg-[#09090b]">
         <WorkspaceRuntime />
         <WorkspaceBootstrapLoader />
       </div>
@@ -172,7 +169,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="workspace-shell flex h-screen w-screen overflow-hidden bg-[#09090b]">
+    <div className="workspace-shell flex h-dvh w-full overflow-hidden bg-[#09090b]">
       <WorkspaceRuntime />
       {/* Desktop Sidebar */}
       <Sidebar className="hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
@@ -187,7 +184,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           />
 
           {/* Sidebar Drawer */}
-          <div className="workspace-drawer relative z-50 flex h-full w-[282px] transform transition-transform duration-300 ease-in-out">
+          <div className="workspace-drawer relative z-50 flex h-full w-[282px] max-w-[calc(100%-3.5rem)] transform transition-transform duration-300 ease-in-out">
             <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
             <button
               onClick={() => setIsMobileOpen(false)}
@@ -206,7 +203,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         
         {/* Page Content area */}
         <main
-          className="workspace-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0c0c0e] p-4 sm:p-6 lg:p-8"
+          className="workspace-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-clip overscroll-contain bg-[#0c0c0e]"
         >
            {isSubAdminGated ? (
             <div className="flex h-[70vh] flex-col items-center justify-center">

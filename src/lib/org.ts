@@ -3,6 +3,7 @@ import 'server-only';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { prisma } from './db';
 import { createClient } from './server';
+import { withDatabaseConnectionRetry } from './database-resilience';
 
 const userWithWorkspace = {
   organization: {
@@ -38,28 +39,30 @@ export async function getRequestUser(_request?: unknown) {
   if (!identity?.email) return null;
 
   const normalizedEmail = identity.email.trim().toLowerCase();
-  const userByAuthId = await prisma.user.findUnique({
-    where: { authUserId: identity.id },
-    include: userWithWorkspace,
-  });
+  return withDatabaseConnectionRetry(async () => {
+    const userByAuthId = await prisma.user.findUnique({
+      where: { authUserId: identity.id },
+      include: userWithWorkspace,
+    });
 
-  if (userByAuthId) return userByAuthId.accessRevokedAt ? null : userByAuthId;
+    if (userByAuthId) return userByAuthId.accessRevokedAt ? null : userByAuthId;
 
-  const userByEmail = await prisma.user.findFirst({
-    where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
-    include: userWithWorkspace,
-  });
+    const userByEmail = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      include: userWithWorkspace,
+    });
 
-  if (!userByEmail || userByEmail.accessRevokedAt) return null;
-  if (!hasVerifiedEmail(identity)) throw new WorkspaceIdentityConflictError();
+    if (!userByEmail || userByEmail.accessRevokedAt) return null;
+    if (!hasVerifiedEmail(identity)) throw new WorkspaceIdentityConflictError();
 
-  // A verified email can reclaim a legacy or partially provisioned workspace
-  // after its Supabase auth subject has been recreated.
-  return prisma.user.update({
-    where: { id: userByEmail.id },
-    data: { authUserId: identity.id, email: normalizedEmail },
-    include: userWithWorkspace,
-  });
+    // A verified email can reclaim a legacy or partially provisioned workspace
+    // after its Supabase auth subject has been recreated.
+    return prisma.user.update({
+      where: { id: userByEmail.id },
+      data: { authUserId: identity.id, email: normalizedEmail },
+      include: userWithWorkspace,
+    });
+  }, { maxAttempts: 3, delaysMs: [150, 500] });
 }
 
 export async function provisionAuthenticatedUser(identity: SupabaseUser) {

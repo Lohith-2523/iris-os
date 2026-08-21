@@ -1,0 +1,16 @@
+
+> temp-app@0.1.0 dev
+> prisma generate && next dev
+
+
+✔ Generated Prisma Client (v7.9.1) to .\node_modules\@prisma\client in 345ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://100.104.47.56:3001
+- Environments: .env.local, .env
+✓ Ready in 671ms
+[?25h

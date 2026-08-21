@@ -1,5 +1,24 @@
 [
   {
+    "date": "2026-08-17",
+    "scope": "public pricing page",
+    "macrostructure": "Catalogue",
+    "theme": "Iris OS graphite and metallic silver",
+    "axes": ["dark paper", "geometric sans", "neutral accent"],
+    "nav": "N9 Edge-aligned minimal",
+    "footer": "Ft2 Inline single line",
+    "enrichment": "none",
+    "brief": "Dedicated Iris OS pricing route with the landing-page plans moved out of the homepage"
+  },
+  {
+    "date": "2026-08-16",
+    "scope": "app",
+    "macrostructure": "Existing Iris workspace shell",
+    "theme": "Iris OS graphite and metallic silver",
+    "enrichment": "shared metric icon system",
+    "brief": "Full-app proportional responsive refinement with unified standalone metrics and aligned Project and Client Detail card icons"
+  },
+  {
     "date": "2026-08-02",
     "scope": "app",
     "macrostructure": "Split Studio",
@@ -27,5 +46,16 @@
     "theme": "CrystalOS graphite",
     "enrichment": "none",
     "brief": "Admin-only Atlas daily briefing with staged updates and an action-card ring"
+  },
+  {
+    "date": "2026-08-17",
+    "scope": "public landing page",
+    "macrostructure": "Workbench",
+    "theme": "Iris OS graphite and metallic silver",
+    "axes": ["dark paper", "geometric sans", "neutral accent"],
+    "nav": "N1b SaaS three-section",
+    "footer": "Ft5 Statement",
+    "enrichment": "code-native Iris workspace scenes with restrained scroll parallax",
+    "brief": "Spec-driven Iris OS launch page that lets visitors experience connected agency workflows and governed Atlas execution"
   }
 ]

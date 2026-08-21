@@ -42,6 +42,7 @@ type DisplayMessage = Omit<WireMessage, 'attachments'> & {
 type ReceiptState = { messageId: string; clientMessageId: string; readAt: string | null };
 type InboxPayload = {
   currentUserId: string;
+  currentUserRole: string;
   directory: Person[];
   conversations: Conversation[];
   limits: MessagingLimits;
@@ -49,6 +50,11 @@ type InboxPayload = {
 
 const initials = (name: string) => name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 const shortTime = (value: string) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const chatAccentPalette = ['#c49a58', '#8f7fbd', '#5f9b8e', '#b87777', '#6489ad', '#a57699', '#89935f', '#9a7a62'];
+const chatAccent = (conversationId: string) => {
+  const hash = Array.from(conversationId).reduce((value, character) => ((value * 31) + character.charCodeAt(0)) >>> 0, 0);
+  return chatAccentPalette[hash % chatAccentPalette.length];
+};
 
 export default function MessagesPage() {
   const [directory, setDirectory] = React.useState<Person[]>([]);
@@ -56,6 +62,8 @@ export default function MessagesPage() {
   const [selected, setSelected] = React.useState<Conversation | null>(null);
   const [messages, setMessages] = React.useState<DisplayMessage[]>([]);
   const [currentUserId, setCurrentUserId] = React.useState('');
+  const [currentUserRole, setCurrentUserRole] = React.useState('');
+  const [audience, setAudience] = React.useState<'team' | 'clients'>('team');
   const [draft, setDraft] = React.useState('');
   const [error, setError] = React.useState('');
   const protocol = React.useMemo(() => getMessagingProtocol(), []);
@@ -84,6 +92,7 @@ export default function MessagesPage() {
     setDirectory(payload.directory || []);
     setConversations(payload.conversations || []);
     setCurrentUserId(payload.currentUserId);
+    setCurrentUserRole(payload.currentUserRole || '');
     setLimits(payload.limits);
   }, []);
 
@@ -91,14 +100,21 @@ export default function MessagesPage() {
 
   React.useEffect(() => {
     let current = true;
-    void Promise.allSettled([protocol.prepare(), requestInbox()]).then(([protocolResult, inboxResult]) => {
-      if (!current) return;
-      if (protocolResult.status === 'fulfilled') setProtocolReady(true);
-      else setProtocolError(protocolResult.reason instanceof Error ? protocolResult.reason.message : 'Secure device setup failed.');
-      if (inboxResult.status === 'fulfilled') applyInbox(inboxResult.value);
-      else setError(inboxResult.reason instanceof Error ? inboxResult.reason.message : 'Unable to load messaging.');
-      setPageReady(true);
-    });
+    void requestInbox()
+      .then(async (inbox) => {
+        if (!current) return;
+        applyInbox(inbox);
+        try {
+          await protocol.prepare({ userId: inbox.currentUserId });
+          if (current) setProtocolReady(true);
+        } catch (prepareError) {
+          if (current) setProtocolError(prepareError instanceof Error ? prepareError.message : 'Secure device setup failed.');
+        }
+      })
+      .catch((inboxError) => {
+        if (current) setError(inboxError instanceof Error ? inboxError.message : 'Unable to load messaging.');
+      })
+      .finally(() => { if (current) setPageReady(true); });
     return () => { current = false; };
   }, [applyInbox, protocol, requestInbox]);
 
@@ -402,6 +418,21 @@ export default function MessagesPage() {
     return <PageSkeleton variant="messages" />;
   }
 
+  const isAdmin = currentUserRole.toLowerCase() === 'admin';
+  const matchesAudience = (person: Person | null) => Boolean(person) && (audience === 'clients'
+    ? person!.role.toLowerCase() === 'client'
+    : person!.role.toLowerCase() === 'member');
+  const visibleDirectory = isAdmin ? directory.filter(matchesAudience) : directory;
+  const visibleConversations = isAdmin ? conversations.filter((conversation) => matchesAudience(conversation.participant)) : conversations;
+
+  const selectAudience = (nextAudience: 'team' | 'clients') => {
+    setAudience(nextAudience);
+    if (selected?.participant) {
+      const selectedIsClient = selected.participant.role.toLowerCase() === 'client';
+      if ((nextAudience === 'clients') !== selectedIsClient) setSelected(null);
+    }
+  };
+
   return (
     <section className={styles.shell} aria-label="Secure messaging workspace">
       <div className={styles.frame}>
@@ -412,22 +443,28 @@ export default function MessagesPage() {
             <p className={styles.subtitle}>Private owner-to-client and owner-to-team conversations.</p>
           </header>
           <div className={styles.directory}>
-            <div className={styles.sectionLabel}>Start a conversation</div>
+            {isAdmin && <div className={styles.audienceTabs} role="tablist" aria-label="Conversation audience">
+              <button type="button" role="tab" aria-selected={audience === 'team'} className={audience === 'team' ? styles.activeAudience : ''} onClick={() => selectAudience('team')}>Teams</button>
+              <button type="button" role="tab" aria-selected={audience === 'clients'} className={audience === 'clients' ? styles.activeAudience : ''} onClick={() => selectAudience('clients')}>Clients</button>
+            </div>}
+            <div className={styles.sectionLabel}>{isAdmin ? `${audience === 'team' ? 'Team' : 'Client'} directory` : 'Start a secure conversation'}</div>
             <div className={styles.contactStrip}>
-              {directory.map((person) => (
+              {visibleDirectory.map((person) => (
                 <button key={person.id} className={styles.contactButton} onClick={() => void startConversation(person)} title={person.email}>
                   <span className={styles.avatar}>{initials(person.name)}</span>
                   <span className={styles.contactName}>{person.name.split(' ')[0]}</span>
                 </button>
               ))}
+              {visibleDirectory.length === 0 && <span className={styles.directoryEmpty}>No {audience === 'team' ? 'team members' : 'clients'} available.</span>}
             </div>
           </div>
           <div className={styles.threadList}>
-            <div className={styles.sectionLabel}>Conversations</div>
-            {conversations.map((conversation) => conversation.participant && (
+            <div className={styles.sectionLabel}>{isAdmin ? `${audience === 'team' ? 'Team' : 'Client'} conversations` : 'Conversations'}</div>
+            {visibleConversations.map((conversation) => conversation.participant && (
               <button
                 key={conversation.id}
                 className={`${styles.threadButton} ${selected?.id === conversation.id ? styles.activeThread : ''}`}
+                style={{ '--chat-accent': chatAccent(conversation.id) } as React.CSSProperties}
                 onClick={() => setSelected(conversation)}
               >
                 <span className={styles.avatar}>{initials(conversation.participant.name)}</span>
@@ -438,6 +475,7 @@ export default function MessagesPage() {
                 <span className={styles.time}>{shortTime(conversation.updatedAt)}</span>
               </button>
             ))}
+            {visibleConversations.length === 0 && <div className={styles.threadEmpty}>No conversations in this section yet.</div>}
           </div>
           {error && <div className={styles.error}>{error}</div>}
         </aside>
@@ -467,7 +505,7 @@ export default function MessagesPage() {
                 {conversationLoading ? (
                   <div className={styles.threadLoading} role="status"><LoaderCircle className={styles.loadingSpinner} size={19} />Decrypting conversation…</div>
                 ) : messages.length === 0 ? (
-                  <div className={styles.empty}><div><span className={styles.emptyIcon}><LockKeyhole size={23} /></span><h2>A private conversation</h2><p>Only ciphertext is accepted by Iris OS. Message content and encryption keys never reach the server.</p></div></div>
+                  <div className={styles.empty}><div><span className={styles.emptyIcon}><LockKeyhole size={23} /></span><h2>A private conversation</h2><p>End-to-End Encryption, powered by CipherText</p></div></div>
                 ) : messages.map((message) => (
                   <div key={message.id} className={`${styles.bubble} ${message.senderUserId === currentUserId ? styles.mine : ''}`}>
                     {message.plaintext || 'Encrypted message — unlock with a registered secure device.'}

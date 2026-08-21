@@ -8,6 +8,13 @@ import { DateTimeInput } from '@/components/ui/date-input';
 
 type Notification = { id: string; type: string; title: string; body: string; href: string | null; actionLabel: string | null; readAt: string | null; createdAt: string };
 
+const notificationTone = (type: string) => {
+  if (type === 'ISSUE') return { priority: 'Critical', title: 'text-rose-300', glow: 'shadow-[inset_0_-18px_24px_-24px_rgba(244,63,94,0.95)]' };
+  if (type === 'DELAY' || type === 'APPROVAL') return { priority: 'High', title: 'text-amber-300', glow: 'shadow-[inset_0_-18px_24px_-24px_rgba(245,158,11,0.9)]' };
+  if (type === 'MESSAGE' || type === 'REMINDER') return { priority: 'Medium', title: 'text-sky-300', glow: 'shadow-[inset_0_-18px_24px_-24px_rgba(56,189,248,0.85)]' };
+  return { priority: 'Low', title: 'text-zinc-200', glow: 'shadow-[inset_0_-18px_24px_-24px_rgba(161,161,170,0.7)]' };
+};
+
 export function NotificationCenter() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
@@ -60,9 +67,29 @@ export function NotificationCenter() {
     if (ok) { setReminder({ title: '', scheduledAt: '', href: '/dashboard' }); setShowReminder(false); }
   };
 
+  const renderNotification = (item: Notification) => {
+    const tone = notificationTone(item.type);
+    return <button
+      key={item.id}
+      data-priority={tone.priority.toLowerCase()}
+      onClick={() => void openNotification(item)}
+      className={`block w-full border-b border-zinc-900 p-4 text-left transition-colors hover:bg-zinc-900/60 ${tone.glow} ${item.readAt ? 'opacity-65' : 'bg-zinc-900/25'}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={`font-semibold ${tone.title}`}>{item.title}</div>
+        <span className="rounded-full border border-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{tone.priority} · {item.type}</span>
+      </div>
+      <div className="mt-1 leading-relaxed text-zinc-400">{item.body}</div>
+      <div className="mt-2 flex items-center justify-between text-zinc-600">
+        <span>{new Date(item.createdAt).toLocaleString()}</span>
+        {item.actionLabel && <span className="font-semibold text-zinc-300">{item.actionLabel} →</span>}
+      </div>
+    </button>;
+  };
+
   return <div className="relative">
-    {popup && <div role="alert" className="fixed right-5 top-20 z-[100] w-[min(92vw,410px)] rounded-2xl border border-zinc-700 bg-zinc-950 p-4 text-white shadow-2xl">
-      <div className="flex items-start justify-between gap-4"><div><div className="font-bold">{popup.title}</div><p className="mt-1 leading-relaxed text-zinc-400">{popup.body}</p></div><button type="button" onClick={() => setPopup(null)} aria-label="Dismiss notification" className="text-zinc-500 hover:text-white"><X className="h-4 w-4" /></button></div>
+    {popup && <div role="alert" data-priority={notificationTone(popup.type).priority.toLowerCase()} className={`fixed right-5 top-20 z-[100] w-[min(92vw,410px)] rounded-2xl border border-zinc-700 bg-zinc-950 p-4 text-white shadow-2xl ${notificationTone(popup.type).glow}`}>
+      <div className="flex items-start justify-between gap-4"><div><div className={`font-bold ${notificationTone(popup.type).title}`}>{popup.title}</div><p className="mt-1 leading-relaxed text-zinc-400">{popup.body}</p></div><button type="button" onClick={() => setPopup(null)} aria-label="Dismiss notification" className="text-zinc-500 hover:text-white"><X className="h-4 w-4" /></button></div>
       <Button type="button" size="sm" className="mt-3" onClick={() => { setPopup(null); void openNotification(popup); }}>{popup.actionLabel}</Button>
     </div>}
     <button type="button" onClick={() => setOpen((value) => !value)} className="relative grid h-11 w-11 place-items-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}>
@@ -80,7 +107,7 @@ export function NotificationCenter() {
         </div>
         <Button disabled={saving} type="submit">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Schedule reminder</Button>
       </form>}
-      <div className="max-h-[520px] overflow-y-auto">{items.length ? items.map((item) => <button key={item.id} onClick={() => void openNotification(item)} className={`block w-full border-b border-zinc-900 p-4 text-left hover:bg-zinc-900/60 ${item.readAt ? 'opacity-65' : 'bg-zinc-900/25'}`}><div className="flex items-start justify-between gap-3"><div className="font-semibold text-white">{item.title}</div><span className="rounded-full border border-zinc-800 px-2 py-0.5 text-xs text-zinc-400">{item.type}</span></div><div className="mt-1 leading-relaxed text-zinc-400">{item.body}</div><div className="mt-2 flex items-center justify-between text-zinc-600"><span>{new Date(item.createdAt).toLocaleString()}</span>{item.actionLabel && <span className="font-semibold text-zinc-300">{item.actionLabel} →</span>}</div></button>) : <div className="p-10 text-center text-zinc-500">You’re all caught up.</div>}</div>
+      <div className="max-h-[520px] overflow-y-auto">{items.length ? items.map(renderNotification) : <div className="p-10 text-center text-zinc-500">You’re all caught up.</div>}</div>
     </div>}
   </div>;
 }

@@ -819,7 +819,7 @@ export default function TasksPage() {
             <form onSubmit={handleCreateTask} className="space-y-4">
               {createTaskError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-rose-200">{createTaskError}</div>}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Task Title *</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Task Title <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input
                   type="text"
                   required
@@ -882,7 +882,7 @@ export default function TasksPage() {
                     onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 cursor-pointer"
                   >
-                    <option value="TODO">To-do</option>
+                    <option value="TODO">To-Do</option>
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option>
                     <option value="COMPLETED">Completed</option>
@@ -1006,7 +1006,7 @@ export default function TasksPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-semibold text-zinc-500">Task name *</label>
+                    <label className="text-[9px] font-semibold text-zinc-500">Task name <span className="text-rose-500" aria-hidden="true">*</span></label>
                     <input
                       type="text"
                       value={editTaskForm.title}
@@ -1041,7 +1041,7 @@ export default function TasksPage() {
                         }}
                         className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
                       >
-                        <option value="TODO">To-do</option>
+                        <option value="TODO">To-Do</option>
                         <option value="IN_PROGRESS">In Progress</option>
                         <option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option>
                         <option value="COMPLETED">Completed</option>

@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { MetricCard } from '@/components/ui/metric-card';
 import { cn, formatCurrency } from '@/lib/utils';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
 
@@ -117,7 +118,7 @@ export function ProjectBreakdownDrawer({
       }}
     >
       <aside className="flex h-full w-full max-w-[1120px] flex-col border-l border-border bg-background text-foreground shadow-2xl animate-slideIn">
-        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-7">
+        <header className="flex shrink-0 flex-col items-start justify-between gap-4 border-b border-border px-5 py-5 sm:flex-row sm:px-7">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">Project breakdown</span>
@@ -130,7 +131,7 @@ export function ProjectBreakdownDrawer({
               {project.client?.name || 'Client project'} · {project.serviceLine || 'Service delivery'}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
             {onEdit && (
               <Button type="button" variant="outline" onClick={onEdit} className="gap-2">
                 <Edit2 className="h-4 w-4" /> Edit
@@ -144,18 +145,8 @@ export function ProjectBreakdownDrawer({
 
         <div className="shrink-0 border-b border-border px-5 py-5 sm:px-7">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {metrics.map(({ label, value, icon: Icon }) => (
-              <Card key={label} className="bg-card/70 shadow-none">
-                <CardContent className="flex items-center justify-between gap-3 p-4">
-                  <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">{label}</p>
-                    <p className="mt-1 truncate text-xl font-bold">{value}</p>
-                  </div>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40">
-                    <Icon className="h-5 w-5 text-muted-foreground" />
-                  </span>
-                </CardContent>
-              </Card>
+            {metrics.map(({ label, value, icon }) => (
+              <MetricCard key={label} label={label} value={value} icon={icon} />
             ))}
           </div>
         </div>

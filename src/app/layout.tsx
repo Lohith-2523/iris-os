@@ -38,7 +38,7 @@ const clashDisplay = localFont({
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', preload: false });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains-mono', preload: false });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

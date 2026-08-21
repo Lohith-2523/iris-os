@@ -231,9 +231,9 @@ export default function AtlasPage() {
                 <div className={`h-8 w-8 rounded-none border flex items-center justify-center shrink-0 shadow-md ${
                   msg.role === 'user' 
                     ? 'bg-zinc-800 border-zinc-700 text-zinc-200' 
-                    : 'bg-zinc-100 border-zinc-200 text-zinc-950 font-bold'
+                    : 'bg-[#121215] border-zinc-800 text-white font-bold'
                 }`}>
-                  {msg.role === 'user' ? <User className="h-4 w-4" /> : <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4" />}
+                  {msg.role === 'user' ? <User className="h-4 w-4" /> : <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4 !text-white" />}
                 </div>
 
                 {/* Message Bubble */}
@@ -251,8 +251,8 @@ export default function AtlasPage() {
 
             {isLoading && (
               <div className="flex gap-3 text-xs mr-auto items-center">
-                <div className="h-8 w-8 rounded-none bg-zinc-100 border border-zinc-200 text-zinc-950 font-bold flex items-center justify-center animate-pulse">
-                  <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4 animate-spin" />
+                <div className="h-8 w-8 rounded-none bg-[#121215] border border-zinc-800 text-white font-bold flex items-center justify-center animate-pulse">
+                  <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4 animate-spin !text-white" />
                 </div>
                 <div className="rounded-none p-4 bg-[#121215] border border-zinc-850 text-zinc-500 font-sans italic">
                   Atlas is working...

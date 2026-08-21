@@ -22,8 +22,9 @@ import {
   Sparkles,
   TrendingUp,
   Users,
-  FolderKanban,
-  AlertTriangle,
+  ReceiptText,
+  ArrowDownRight,
+  Plus,
   ArrowUpRight,
   Activity,
   ArrowRight,
@@ -39,7 +40,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSkippedAll, setIsSkippedAll] = React.useState(false);
-  const [dbData, setDbData] = React.useState<any>(null);
   const [isRevenueModalOpen, setIsRevenueModalOpen] = React.useState(false);
   const [financeData, setFinanceData] = React.useState<any>(null);
   const [clientsList, setClientsList] = React.useState<any[]>([]);
@@ -105,51 +105,43 @@ export default function DashboardPage() {
   React.useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/data?domain=dashboard');
-        if (res.ok) {
-          const json = await res.json();
-          setDbData(json);
+        const [
+          dashboardRes,
+          clientsRes,
+          tasksRes,
+          metaRes,
+          calendarRes,
+          agencyLeadsRes,
+          notificationRes,
+        ] = await Promise.all([
+          fetch('/api/data?domain=dashboard'),
+          fetch('/api/data?domain=clients'),
+          fetch('/api/tasks'),
+          fetch('/api/meta-portal'),
+          fetch('/api/calendar'),
+          fetch('/api/agency-leads'),
+          fetch('/api/notifications'),
+        ]);
+
+        const [dashboard, clients, tasks, meta, calendar, agencyLeads, notificationData] = await Promise.all([
+          dashboardRes.ok ? dashboardRes.json() : null,
+          clientsRes.ok ? clientsRes.json() : null,
+          tasksRes.ok ? tasksRes.json() : null,
+          metaRes.ok ? metaRes.json() : null,
+          calendarRes.ok ? calendarRes.json() : null,
+          agencyLeadsRes.ok ? agencyLeadsRes.json() : null,
+          notificationRes.ok ? notificationRes.json() : null,
+        ]);
+
+        if (dashboard) {
+          setFinanceData(dashboard);
         }
-
-        const financeRes = await fetch('/api/data?domain=finance');
-        if (financeRes.ok) setFinanceData(await financeRes.json());
-        
-        const clientsRes = await fetch('/api/data?domain=clients');
-        if (clientsRes.ok) {
-          const clientsJson = await clientsRes.json();
-          setClientsList(clientsJson);
-        }
-
-        const tasksRes = await fetch('/api/tasks');
-        if (tasksRes.ok) {
-          const tasksJson = await tasksRes.json();
-          setTasksList(tasksJson);
-        }
-        
-        // Fetch Meta ads data
-          const metaRes = await fetch('/api/meta-portal');
-          if (metaRes.ok) {
-            const metaJson = await metaRes.json();
-            setMetaData(metaJson);
-          }
-
-          const calendarRes = await fetch('/api/calendar');
-          if (calendarRes.ok) {
-            const calendarJson = await calendarRes.json();
-            setCalendarEvents(calendarJson.events || []);
-          }
-
-          const agencyLeadsRes = await fetch('/api/agency-leads');
-          if (agencyLeadsRes.ok) {
-            const agencyLeadsJson = await agencyLeadsRes.json();
-            setAgencyLeadsData(agencyLeadsJson);
-          }
-
-          const notificationRes = await fetch('/api/notifications');
-          if (notificationRes.ok) {
-            const notificationJson = await notificationRes.json();
-            setNotifications(notificationJson.notifications || []);
-          }
+        if (clients) setClientsList(clients);
+        if (tasks) setTasksList(tasks);
+        if (meta) setMetaData(meta);
+        if (calendar) setCalendarEvents(calendar.events || []);
+        if (agencyLeads) setAgencyLeadsData(agencyLeads);
+        if (notificationData) setNotifications(notificationData.notifications || []);
       } catch (e) {
         console.error(e);
       }
@@ -160,7 +152,7 @@ export default function DashboardPage() {
   
   const handleConnect = (id: string) => {
     if (id === 'google') {
-      window.location.href = '/api/google/auth';
+      window.location.assign('/api/google/auth');
       return;
     }
     // Meta is marked connected only after the provider SDK reports a successful login.
@@ -475,8 +467,6 @@ export default function DashboardPage() {
         <div aria-hidden="true" className="dashboard-command-center-banner absolute inset-0 pointer-events-none" />
         <div className="relative z-10">
           <div className="dashboard-welcome-card inline-flex items-center gap-3 rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
-            <span className="font-black uppercase tracking-[0.18em] text-zinc-400">Iris OS</span>
-            <span className="h-6 w-px bg-zinc-700" />
             <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Welcome, {currentUserName}</h1>
           </div>
           <p className="mt-3 text-zinc-500">Real-time financial, operational, and paid creative performance intelligence.</p>
@@ -675,7 +665,7 @@ export default function DashboardPage() {
            {/* Top Row: 4 Metric Cards */}
           <div className="space-y-6">
             {/* Top 4 Metrics */}
-            <div className="grid gap-6 md:grid-cols-4">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <ExpandableCard 
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
@@ -763,49 +753,55 @@ export default function DashboardPage() {
             <ExpandableCard
               className="min-h-[164px] flex flex-col justify-between"
               expandedContent={
-                <div className="flex h-full min-h-0 flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white">Active Projects</h3>
-                    <span className="text-[10px] font-mono text-zinc-500">{dbData?.activeProjects?.length ?? 0} active</span>
+                <div className="flex h-full flex-col space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-white">Expense Overview</h3>
+                  <div className="space-y-3 font-sans text-xs">
+                    <div className="flex items-center justify-between border-b border-zinc-855 py-2">
+                      <span className="font-semibold text-zinc-400">Gross Billings</span>
+                      <span className="font-mono font-bold text-white">
+                        {financeData ? formatCurrency(financeData.grossBillings) : formatCurrency(0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-zinc-855 py-2">
+                      <span className="font-semibold text-zinc-400">Total Expenses</span>
+                      <span className="font-mono font-bold text-rose-400">
+                        {financeData ? formatCurrency(financeData.totalExpenses) : formatCurrency(0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <span className="font-semibold text-zinc-300">Expense Ratio</span>
+                      <span className="font-mono font-bold text-zinc-200">
+                        {financeData?.grossBillings > 0 ? `${((financeData.totalExpenses / financeData.grossBillings) * 100).toFixed(1)}%` : '0.0%'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                    {dbData?.activeProjects?.length ? dbData.activeProjects.map((project: any) => {
-                      const progress = Math.max(0, Math.min(100, Number(project.progress) || 0));
-                      return (
-                        <div key={project.id} className="rounded-md border border-zinc-850 bg-zinc-950/30 p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <span className="block truncate text-xs font-semibold text-zinc-200">{project.name}</span>
-                              <span className="mt-0.5 block truncate text-[10px] text-zinc-500">{project.clientName}</span>
-                            </div>
-                            <span className="shrink-0 text-[10px] font-mono font-semibold text-zinc-300">{progress}%</span>
-                          </div>
-                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
-                            <div className="h-full rounded-full bg-zinc-300" style={{ width: `${progress}%` }} />
-                          </div>
-                          <span className="mt-2 block text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
-                            {project.status.replaceAll('_', ' ')}
-                          </span>
-                        </div>
-                      );
-                    }) : (
-                      <div className="py-6 text-center text-xs text-zinc-500">No active projects to display.</div>
-                    )}
+                  <div className="mt-6 border-t border-zinc-800 pt-5">
+                    <Button
+                      type="button"
+                      className="h-9 w-full gap-2 text-xs font-semibold"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        router.push('/finance?tab=manual&transactionType=Expense');
+                      }}
+                    >
+                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                      Add expense
+                    </Button>
                   </div>
                 </div>
               }
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Active Projects</CardTitle>
-                <FolderKanban className="h-4 w-4 text-zinc-500" />
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Expenses</CardTitle>
+                <ReceiptText className="h-4 w-4 text-zinc-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold font-mono tracking-tight text-white">
-                  {dbData ? dbData.activeProjectsCount : 0}
+                <div className="text-2xl font-bold font-mono tracking-tight text-rose-400">
+                  {financeData ? formatCurrency(financeData.totalExpenses) : formatCurrency(0)}
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-amber-400 font-semibold">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  <span>{dbData?.projectRisks?.length ?? 0} project risks flagged</span>
+                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400 font-semibold">
+                  <ArrowDownRight className="h-3.5 w-3.5" />
+                  <span>Recorded operating expenses</span>
                 </div>
               </CardContent>
             </ExpandableCard>
@@ -850,7 +846,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Middle Row */}
-            <div className="grid gap-6 md:grid-cols-[minmax(180px,0.9fr)_minmax(420px,3.2fr)_minmax(180px,0.9fr)] md:items-stretch">
+            <div className="grid gap-6 xl:grid-cols-[minmax(180px,0.9fr)_minmax(420px,3.2fr)_minmax(180px,0.9fr)] xl:items-stretch">
             <div className="flex min-h-[560px] flex-col gap-6">
               <ExpandableCard 
                 className="min-h-[230px] flex-1 flex flex-col justify-between overflow-hidden"
@@ -1105,7 +1101,7 @@ export default function DashboardPage() {
                         <div key={t.id} className="flex items-center justify-between text-[11px] py-1 border-b border-zinc-900/40">
                           <span className="text-zinc-300 truncate pr-2 font-medium">{t.title}</span>
                           <Badge className="scale-90 text-[9px] uppercase font-mono font-bold shrink-0" variant={t.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'}>
-                            {t.status === 'IN_PROGRESS' ? 'Active' : 'To-do'}
+                            {t.status === 'IN_PROGRESS' ? 'Active' : 'To-Do'}
                           </Badge>
                         </div>
                       ))

@@ -131,8 +131,7 @@ export async function GET(request: NextRequest) {
       case 'dashboard': {
         // Compute dashboard executive metrics
         const revenueClientScope = user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {};
-        const [clients, allClients, projects, invoices, expenses, transactions] = await Promise.all([
-          prisma.client.findMany({ where: { orgId, status: 'ACTIVE', ...clientScope } }),
+        const [allClients, projects, invoices, expenses, transactions] = await Promise.all([
           prisma.client.findMany({ where: { orgId, ...clientScope } }),
           prisma.project.findMany({
             where: { orgId, ...projectScope },
@@ -146,6 +145,7 @@ export async function GET(request: NextRequest) {
           }),
         ]);
 
+        const clients = allClients.filter((client) => client.status === 'ACTIVE');
         const activeClientsCount = clients.length;
         const totalClientsCount = allClients.length;
         const activeProjects = projects

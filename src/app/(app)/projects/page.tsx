@@ -157,36 +157,39 @@ export default function ProjectsPage() {
   const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
-      const projRes = await fetch('/api/projects');
+      const [projRes, clientsRes, teamRes, workspaceRes] = await Promise.all([
+        fetch('/api/projects'),
+        fetch('/api/data?domain=clients'),
+        fetch('/api/data?domain=team'),
+        fetch('/api/workspace'),
+      ]);
+
       if (projRes.ok) {
         const data = await projRes.json();
         setProjects(data);
 
-        // If a project is currently selected in drawer, sync its data
-        if (selectedProject) {
-          const freshProj = data.find((p: any) => p.id === selectedProject.id);
-          if (freshProj) {
-            setSelectedProject(freshProj);
-          }
-        }
+        // If a project is currently selected in the drawer, sync it without
+        // making the loader depend on selection state.
+        setSelectedProject((current: any) => {
+          if (!current) return current;
+          return data.find((project: any) => project.id === current.id) || current;
+        });
       }
 
-      const clientsRes = await fetch('/api/data?domain=clients');
       if (clientsRes.ok) {
         const data = await clientsRes.json();
         setClients(data);
       }
 
-      const teamRes = await fetch('/api/data?domain=team');
       if (teamRes.ok) {
         const data = await teamRes.json();
         setTeamMembers(data.filter((t: any) => t.role?.toLowerCase() !== 'client'));
       }
 
-      const workspaceRes = await fetch('/api/workspace?include=agencyTypes');
       if (workspaceRes.ok) {
         const workspace = await workspaceRes.json();
         setCurrencyState(workspace.organization?.currency || 'USD');
+        setCanManageChangeRequests(workspace.user?.role?.toLowerCase() === 'admin');
         const serviceLines = agencyServiceLines(workspace.organization?.agencyTypes);
         setAvailableServiceLines(serviceLines);
         setNewProjectForm((current) => ({
@@ -194,22 +197,16 @@ export default function ProjectsPage() {
           serviceLine: serviceLines.includes(current.serviceLine) ? current.serviceLine : serviceLines[0] || '',
         }));
       }
-
-      const userRes = await fetch('/api/user');
-      if (userRes.ok) {
-        const currentUser = await userRes.json();
-        setCanManageChangeRequests(currentUser.role?.toLowerCase() === 'admin');
-      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [selectedProject?.id]);
+  }, []);
 
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Initialize Edit form when detail drawer opens
   React.useEffect(() => {
@@ -517,7 +514,7 @@ export default function ProjectsPage() {
   return (
     <div className="space-y-6 font-sans text-xs">
       {/* Top Banner Row */}
-      <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+      <div className="flex flex-col gap-3 border-b border-zinc-900 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white silver-text-gradient">Projects Workspace</h1>
           <p className="text-[10px] text-zinc-550 mt-0.5">Core Agency Program & Program Allocation Management Hub</p>
@@ -541,36 +538,36 @@ export default function ProjectsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-sky-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(56,189,248,0.7)]">
           <CardHeader className="pb-1.5">
             <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Active Campaigns / Projects</CardTitle>
           </CardHeader>
           <CardContent className="flex items-baseline gap-2">
-            <div className="text-xl font-bold font-mono tracking-tight text-white">{stats.active}</div>
+            <div className="text-xl font-bold font-mono tracking-tight text-sky-300">{stats.active}</div>
             <span className="text-[9px] text-zinc-550">out of {stats.total} total</span>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="border-amber-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(245,158,11,0.65)]">
           <CardHeader className="pb-1.5">
             <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Total Program Backlog</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold font-mono tracking-tight text-white">{projects.filter(p => p.status === 'NOT_STARTED').length} Projects</div>
+            <div className="text-xl font-bold font-mono tracking-tight text-amber-300">{projects.filter(p => p.status === 'NOT_STARTED').length} Projects</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-emerald-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(52,211,153,0.65)]">
           <CardHeader className="pb-1.5">
             <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Project Contract Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold font-mono tracking-tight text-white">{formatCurrency(stats.contractedValue)}</div>
+            <div className="text-xl font-bold font-mono tracking-tight text-emerald-300">{formatCurrency(stats.contractedValue)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={stats.delayCount > 0 ? 'border-rose-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(244,63,94,0.65)]' : 'border-emerald-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(52,211,153,0.55)]'}>
           <CardHeader className="pb-1.5">
             <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Stage & task delays</CardTitle>
           </CardHeader>
@@ -594,7 +591,7 @@ export default function ProjectsPage() {
           No clients onboarded. Click &ldquo;New Project&rdquo; or onboard clients first.
         </div>
       ) : (
-        <div ref={gridRef} className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <div ref={gridRef} className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sortedClients.map((client) => {
             const isExpanded = expandedClientId === client.id;
             const clientProjects = projects.filter(p => p.clientId === client.id);
@@ -617,7 +614,7 @@ export default function ProjectsPage() {
                 className={cn(
                   "project-client-card transition-all duration-300 flex flex-col justify-between border border-zinc-800/80 border-l-8 overflow-hidden relative shadow-lg",
                   isExpanded 
-                    ? "project-client-card-expanded col-span-1 md:col-span-2 row-span-2 h-[610px] bg-zinc-900/50"
+                    ? "project-client-card-expanded col-span-1 md:col-span-2 row-span-2 h-[clamp(34rem,76dvh,44rem)] bg-zinc-900/50"
                     : "col-span-1 h-[350px] bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer hover:border-zinc-750/80 hover:scale-[1.01] hover:shadow-indigo-500/5"
                 )}
               >
@@ -828,7 +825,7 @@ export default function ProjectsPage() {
             <form onSubmit={handleCreateProject} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Project Name *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Project Name <span className="text-rose-500" aria-hidden="true">*</span></label>
                   <input
                     type="text"
                     required
@@ -839,7 +836,7 @@ export default function ProjectsPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Associate Client *</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Associate Client <span className="text-rose-500" aria-hidden="true">*</span></label>
                   <select
                     required
                     value={newProjectForm.clientId}
@@ -899,7 +896,7 @@ export default function ProjectsPage() {
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Payment Type *</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Payment Type <span className="text-rose-500" aria-hidden="true">*</span></label>
                     <select
                       value={newProjectForm.paymentType}
                       onChange={(e) => handleCreationInputChange('paymentType', e.target.value)}
@@ -910,7 +907,7 @@ export default function ProjectsPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Client Payment ({getCurrencySymbol(currencyState)}) *</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Client Payment ({getCurrencySymbol(currencyState)}) <span className="text-rose-500" aria-hidden="true">*</span></label>
                     <input
                       type="number"
                       min="0.01"
@@ -936,7 +933,7 @@ export default function ProjectsPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Invoice Date *</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Invoice Date <span className="text-rose-500" aria-hidden="true">*</span></label>
                     <DateInput
                       required
                       value={newProjectForm.paymentStartDate}
@@ -978,7 +975,7 @@ export default function ProjectsPage() {
                 </label>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Internal Budget ({getCurrencySymbol(currencyState)})</label>
                   <input
@@ -1073,7 +1070,8 @@ export default function ProjectsPage() {
                               return { ...prev, stages: newStages };
                             });
                           }}
-                          className="w-35 bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
+                          containerClassName="w-35 shrink-0"
+                          className="bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
                         />
                         <span>to</span>
                         <DateInput
@@ -1084,7 +1082,8 @@ export default function ProjectsPage() {
                               return { ...prev, stages: newStages };
                             });
                           }}
-                          className="w-35 bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
+                          containerClassName="w-35 shrink-0"
+                          className="bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
                         />
                       </div>
                       <div className="flex gap-0.5 shrink-0">
@@ -1452,7 +1451,8 @@ export default function ProjectsPage() {
                                   return { ...prev, stages: newStages };
                                 });
                               }}
-                              className="w-22 bg-zinc-900 border border-zinc-800 px-0.5 text-zinc-300 text-[8px] outline-none"
+                              containerClassName="w-22 shrink-0"
+                              className="bg-zinc-900 border border-zinc-800 px-0.5 text-zinc-300 text-[8px] outline-none"
                             />
                             <span>to</span>
                             <DateInput
@@ -1463,7 +1463,8 @@ export default function ProjectsPage() {
                                   return { ...prev, stages: newStages };
                                 });
                               }}
-                              className="w-22 bg-zinc-900 border border-zinc-800 px-0.5 text-zinc-300 text-[8px] outline-none"
+                              containerClassName="w-22 shrink-0"
+                              className="bg-zinc-900 border border-zinc-800 px-0.5 text-zinc-300 text-[8px] outline-none"
                             />
                           </div>
                           <div className="flex gap-0.5 shrink-0">

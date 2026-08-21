@@ -30,4 +30,28 @@ describe('AsyncButtonFeedback', () => {
     expect(button).not.toHaveClass('workspace-auto-pending');
     expect(button).not.toHaveAttribute('aria-busy');
   });
+
+  it('does not add loading feedback to an opted-out API-backed button', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)));
+
+    function Example() {
+      return (
+        <button
+          data-skip-async-feedback
+          onClick={() => { void window.fetch('/api/workspace', { method: 'PATCH' }); }}
+        >
+          Toggle theme
+        </button>
+      );
+    }
+
+    render(<><AsyncButtonFeedback /><Example /></>);
+    const button = screen.getByRole('button', { name: 'Toggle theme' });
+    fireEvent.click(button);
+    act(() => vi.advanceTimersByTime(150));
+
+    expect(button).not.toHaveClass('workspace-auto-pending');
+    expect(button).not.toHaveAttribute('aria-busy');
+  });
 });

@@ -50,6 +50,43 @@
   --radius-briefing-round: 999px;
 }
 
+/* Iris OS public landing — metallic workbench */
+:root {
+  --color-landing-paper: oklch(0.105 0.006 255);
+  --color-landing-surface: oklch(0.145 0.007 255);
+  --color-landing-surface-raised: oklch(0.185 0.009 255);
+  --color-landing-surface-inset: oklch(0.08 0.005 255);
+  --color-landing-rule: oklch(0.32 0.01 255 / 0.52);
+  --color-landing-rule-strong: oklch(0.56 0.012 255 / 0.62);
+  --color-landing-ink: oklch(0.965 0.004 255);
+  --color-landing-muted: oklch(0.75 0.012 255);
+  --color-landing-quiet: oklch(0.61 0.012 255);
+  --color-landing-accent: oklch(0.9 0.008 255);
+  --color-landing-accent-ink: oklch(0.15 0.008 255);
+  --color-landing-positive: oklch(0.78 0.07 155);
+  --color-landing-plan: oklch(0.78 0.055 255);
+  --color-landing-consent: oklch(0.82 0.07 82);
+  --color-landing-future: oklch(0.7 0.025 300);
+  --color-landing-metal-dark: oklch(0.3 0.01 255);
+  --color-landing-metal-mid: oklch(0.58 0.012 255);
+  --color-landing-metal-light: oklch(0.82 0.009 255);
+  --color-landing-shadow: oklch(0.01 0.005 255 / 0.48);
+  --color-landing-shadow-soft: oklch(0.02 0.005 255 / 0.24);
+  --color-landing-highlight-strong: oklch(1 0.005 255 / 0.72);
+  --color-landing-highlight: oklch(1 0.005 255 / 0.08);
+  --color-landing-highlight-soft: oklch(1 0.005 255 / 0.04);
+  --color-landing-bloom-hero: oklch(0.72 0.015 255 / 0.08);
+  --color-landing-bloom-network: oklch(0.32 0.01 255 / 0.18);
+  --color-landing-bloom-atlas: oklch(0.35 0.012 255 / 0.16);
+  --color-landing-bloom-final: oklch(0.45 0.01 255 / 0.12);
+  --gradient-landing-button-primary: linear-gradient(145deg, oklch(0.96 0.006 255), oklch(0.82 0.01 255) 48%, oklch(0.67 0.014 255));
+  --gradient-landing-button-secondary: linear-gradient(145deg, oklch(0.25 0.012 255), oklch(0.15 0.008 255) 58%, oklch(0.105 0.006 255));
+  --radius-landing-control: 999px;
+  --shadow-landing-button-raised: inset 0 1px 0 oklch(1 0.005 255 / 0.78), inset 0 -1px 0 oklch(0.2 0.008 255 / 0.48), 0 0.55rem 1.25rem oklch(0.01 0.005 255 / 0.32);
+  --shadow-landing-button-recessed: inset 0 1px 0 oklch(1 0.005 255 / 0.12), inset 0 0.45rem 0.85rem oklch(0.01 0.005 255 / 0.38), 0 0.35rem 0.9rem oklch(0.01 0.005 255 / 0.22);
+  --shadow-landing-raised: 0 2rem 5rem oklch(0.015 0 0 / 0.48), inset 0 1px 0 oklch(1 0 0 / 0.075);
+}
+
 /* Iris OS authentication surface */
 :root {
   --color-auth-canvas: oklch(0.135 0.008 255);

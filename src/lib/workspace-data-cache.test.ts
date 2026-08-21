@@ -4,6 +4,7 @@ import {
   checkWorkspaceDataRevision,
   configureWorkspaceDataCache,
   invalidateWorkspaceDataCache,
+  primeWorkspaceJson,
   prepareWorkspaceDataCacheForRouteChange,
   stageWorkspaceDataCache,
   workspaceFetch,
@@ -55,6 +56,35 @@ describe('workspace data cache', () => {
     expect(networkFetch).toHaveBeenCalledTimes(1);
     expect(promoted.headers.get('X-Workspace-Cache')).toBe('STAGED');
     expect(await promoted.json()).toEqual([{ id: 'task-1', title: 'Staged task' }]);
+  });
+
+  it('primes bootstrap JSON without making a duplicate network request', async () => {
+    const networkFetch = vi.fn(async () => jsonResponse({ error: 'unexpected request' }, 500));
+    vi.stubGlobal('fetch', networkFetch);
+    const workspace = { organization: { id: 'org-1' }, user: { id: 'user-1' } };
+
+    primeWorkspaceJson('/api/workspace', workspace);
+    const response = await workspaceFetch('/api/workspace');
+
+    expect(networkFetch).not.toHaveBeenCalled();
+    expect(response.headers.get('X-Workspace-Cache')).toBe('HIT');
+    expect(await response.json()).toEqual(workspace);
+  });
+
+  it('stages independent route data with bounded concurrency', async () => {
+    const releases: Array<(response: Response) => void> = [];
+    const networkFetch = vi.fn(() => new Promise<Response>((resolve) => releases.push(resolve)));
+    vi.stubGlobal('fetch', networkFetch);
+
+    const staging = stageWorkspaceDataCache([
+      '/api/projects',
+      '/api/data?domain=clients',
+      '/api/data?domain=team',
+    ], 3);
+
+    await vi.waitFor(() => expect(networkFetch).toHaveBeenCalledTimes(3));
+    releases.forEach((release) => release(jsonResponse([])));
+    await staging;
   });
 
   it('patches an entity list from an authoritative mutation response', async () => {

@@ -40,7 +40,11 @@ export function AsyncButtonFeedback() {
         event.stopPropagation();
         return;
       }
-      recentButton = target instanceof HTMLButtonElement && !target.disabled ? target : null;
+      recentButton = target instanceof HTMLButtonElement
+        && !target.disabled
+        && !target.hasAttribute('data-skip-async-feedback')
+        ? target
+        : null;
       recentClickAt = performance.now();
     };
 
