@@ -109,7 +109,7 @@ export function ProjectBreakdownDrawer({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-fadeIn"
+      className="project-breakdown-drawer-shell fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-fadeIn"
       role="dialog"
       aria-modal="true"
       aria-label={`${project.name} project breakdown`}
@@ -117,8 +117,8 @@ export function ProjectBreakdownDrawer({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <aside className="flex h-full w-full max-w-[1120px] flex-col border-l border-border bg-background text-foreground shadow-2xl animate-slideIn">
-        <header className="flex shrink-0 flex-col items-start justify-between gap-4 border-b border-border px-5 py-5 sm:flex-row sm:px-7">
+      <aside className="project-breakdown-drawer flex h-full min-h-0 w-full max-w-[1120px] flex-col overflow-hidden border-l border-border bg-background text-foreground shadow-2xl animate-slideIn">
+        <header className="project-breakdown-header flex shrink-0 flex-col items-start justify-between gap-4 border-b border-border px-5 py-5 sm:flex-row sm:px-7">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">Project breakdown</span>
@@ -126,7 +126,7 @@ export function ProjectBreakdownDrawer({
                 {statusLabel(project.status)}
               </Badge>
             </div>
-            <h2 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">{project.name}</h2>
+            <h2 className="break-words text-2xl font-bold tracking-tight sm:text-3xl">{project.name}</h2>
             <p className="mt-1 text-base text-muted-foreground">
               {project.client?.name || 'Client project'} · {project.serviceLine || 'Service delivery'}
             </p>
@@ -143,15 +143,15 @@ export function ProjectBreakdownDrawer({
           </div>
         </header>
 
-        <div className="shrink-0 border-b border-border px-5 py-5 sm:px-7">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="project-breakdown-metrics-shell shrink-0 border-b border-border px-5 py-5 sm:px-7">
+          <div className="project-breakdown-metrics grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {metrics.map(({ label, value, icon }) => (
               <MetricCard key={label} label={label} value={value} icon={icon} />
             ))}
           </div>
         </div>
 
-        <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-5 pt-3 sm:px-7" aria-label="Project breakdown sections">
+        <nav className="project-breakdown-tabs flex shrink-0 gap-1 overflow-x-auto border-b border-border px-5 pt-3 sm:px-7" aria-label="Project breakdown sections">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -169,7 +169,7 @@ export function ProjectBreakdownDrawer({
           ))}
         </nav>
 
-        <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">
+        <div className="project-breakdown-scroll min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
           {activeTab === 'overview' && (
             <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
               <Card>
@@ -313,7 +313,7 @@ export function ProjectBreakdownDrawer({
         </div>
 
         {onOpenTasks && (
-          <footer className="flex shrink-0 justify-end border-t border-border px-5 py-4 sm:px-7">
+          <footer className="project-breakdown-footer flex shrink-0 justify-end border-t border-border px-5 py-4 sm:px-7">
             <Button type="button" onClick={onOpenTasks} className="gap-2">Open full task workspace <ArrowRight className="h-4 w-4" /></Button>
           </footer>
         )}

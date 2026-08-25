@@ -16,6 +16,7 @@ import { MAX_SOURCE_IMAGE_BYTES, processBrowserImage } from '@/lib/browser-image
 import { createClient } from '@/lib/client';
 import { clearWorkspaceUiPreferences } from '@/lib/workspace-ui-storage';
 import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
+import { mergeAgencySpecializations } from '@/lib/agency-specializations';
 import {
   getMetaSdkStatus,
   META_SDK_ERROR_EVENT,
@@ -623,6 +624,7 @@ export default function SettingsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const specializationsToSave = mergeAgencySpecializations(selectedTypes, specializationInput);
     setSaveStatus('saving');
     setErrorMessage('');
 
@@ -644,7 +646,7 @@ export default function SettingsPage() {
           invoiceBrandColor,
           plan,
           hasAddon,
-          agencyTypes: selectedTypes,
+          agencyTypes: specializationsToSave,
           bankNames: selectedBanks,
           currency,
           aiSharingConsent: aiSharingConsent,
@@ -655,6 +657,8 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
+        setSelectedTypes(specializationsToSave);
+        setSpecializationInput('');
         setSaveStatus('success');
         setTimeout(() => setSaveStatus('idle'), 3000);
         window.dispatchEvent(new Event('currency-updated'));

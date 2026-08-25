@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing name or clientId' }, { status: 400 });
     }
     if (!isSelectedAgencyServiceLine(serviceLine, user.organization.agencyTypes)) {
-      return NextResponse.json({ error: 'Select a project service line enabled in Agency Settings.' }, { status: 400 });
+      return NextResponse.json({ error: 'Select a project specialization enabled in Agency Settings.' }, { status: 400 });
     }
 
     const commercials = parseProjectCommercials({
@@ -323,7 +323,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
     }
     if (serviceLine !== undefined && !isSelectedAgencyServiceLine(serviceLine, user.organization.agencyTypes)) {
-      return NextResponse.json({ error: 'Select a project service line enabled in Agency Settings.' }, { status: 400 });
+      return NextResponse.json({ error: 'Select a project specialization enabled in Agency Settings.' }, { status: 400 });
     }
 
     const commercials = parseProjectCommercials({

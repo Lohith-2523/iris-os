@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'An initial project requires a project name' }, { status: 400 });
     }
     if (initialProject && !isSelectedAgencyServiceLine(initialProject.serviceLine, org.agencyTypes)) {
-      return NextResponse.json({ error: 'Select an initial project service line enabled in Agency Settings.' }, { status: 400 });
+      return NextResponse.json({ error: 'Select an initial project specialization enabled in Agency Settings.' }, { status: 400 });
     }
     if (initialProject && !initialProject.startDate) {
       return NextResponse.json({ error: 'An initial project requires a start date' }, { status: 400 });

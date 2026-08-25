@@ -328,7 +328,7 @@ export default function ClientOnboardPage() {
       return;
     }
     if (createProject && !availableServiceLines.includes(formData.projectServiceLine)) {
-      setFormError(formatUserMessage('Select a service line enabled in Agency Settings before creating the project.'));
+      setFormError(formatUserMessage('Select a specialization enabled in Agency Settings before creating the project.'));
       return;
     }
     if (createProject && (!formData.projectPaymentAmount || Number(formData.projectPaymentAmount) <= 0)) {
@@ -1126,7 +1126,7 @@ export default function ClientOnboardPage() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="font-semibold text-zinc-400 block">Service Focus Line</label>
+                          <label className="font-semibold text-zinc-400 block">Specialization</label>
                           <select
                             required
                             name="projectServiceLine"
@@ -1146,8 +1146,10 @@ export default function ClientOnboardPage() {
                           <span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
                           <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls to this client workspace.</span>
                         </span>
-                        <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={formData.projectMetaIntegrationEnabled} onClick={() => setFormData((current) => ({ ...current, projectMetaIntegrationEnabled: !current.projectMetaIntegrationEnabled }))} className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full border transition-colors ${formData.projectMetaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
-                          <span className={`pointer-events-none absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ease-out ${formData.projectMetaIntegrationEnabled ? 'translate-x-[18px] bg-black' : 'translate-x-0 bg-zinc-500'}`} />
+                        <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={formData.projectMetaIntegrationEnabled} onClick={() => setFormData((current) => ({ ...current, projectMetaIntegrationEnabled: !current.projectMetaIntegrationEnabled }))} className="meta-integration-switch-hitbox grid h-11 w-11 shrink-0 place-items-center rounded-full">
+                          <span aria-hidden="true" className={`meta-integration-switch relative block h-5 w-9 overflow-hidden rounded-full border transition-colors ${formData.projectMetaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
+                            <span className={`pointer-events-none absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ease-out ${formData.projectMetaIntegrationEnabled ? 'translate-x-[18px] bg-black' : 'translate-x-0 bg-zinc-500'}`} />
+                          </span>
                         </button>
                       </div>
 
@@ -1481,7 +1483,7 @@ export default function ClientOnboardPage() {
                         <span className="font-semibold text-white">{formData.projectName}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-zinc-400">Service Focus:</span>
+                        <span className="text-zinc-400">Specialization:</span>
                         <span className="text-zinc-300">{formData.projectServiceLine}</span>
                       </div>
                       <div className="flex justify-between">

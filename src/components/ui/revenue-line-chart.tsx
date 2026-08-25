@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from 'recharts';
+import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 
 interface RevenueLineChartProps {
@@ -40,9 +41,8 @@ export function RevenueLineChart({
         <CardTitle className="text-sm font-semibold text-white">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className={contentClassName ?? "h-72"}>
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+      <CardContent className={cn('revenue-line-chart-frame min-h-64 min-w-0 w-full', contentClassName ?? 'h-72')}>
+          <AreaChart responsive style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 256 }} data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="revenue-area" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.32} />
@@ -112,7 +112,6 @@ export function RevenueLineChart({
               activeDot={{ r: 6, strokeWidth: 0 }}
             />
           </AreaChart>
-        </ResponsiveContainer>
       </CardContent>
     </Card>
   );

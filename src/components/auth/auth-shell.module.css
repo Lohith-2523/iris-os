@@ -475,3 +475,25 @@
     transition-duration: var(--dur-auth-reduced);
   }
 }
+
+/* Hallmark · geometry-aware Split Studio · design-system: design.md
+ * Iris geometry-aware composition system — shared by login and signup. */
+@media (min-width: 75rem) and (max-height: 50rem) {
+  .formPanel { padding-block: var(--space-auth-sm); }
+  .card { padding-block: var(--space-auth-xs); }
+  .header { margin-bottom: var(--space-auth-md); }
+  .content, .form { gap: var(--space-auth-sm); }
+}
+
+@media (min-width: 100rem) and (max-aspect-ratio: 2 / 1) {
+  .formPanel { place-items: center end; padding-inline: clamp(7rem, 9vw, 13rem); }
+  .abstractShape { right: clamp(-15rem, -9vw, -8rem); width: max(52vw, 58rem); }
+  .card { width: min(100%, 30rem); }
+}
+
+@media (min-width: 120rem) and (min-aspect-ratio: 2 / 1) {
+  .formPanel { width: 44%; margin-left: auto; padding-inline: clamp(5rem, 6vw, 9rem); }
+  .abstractShape { right: -18rem; width: max(58rem, 50vw); height: max(80rem, 175svh); }
+  .card { width: min(100%, 31rem); }
+  .video { object-position: 34% center; }
+}

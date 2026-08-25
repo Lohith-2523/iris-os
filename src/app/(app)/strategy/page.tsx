@@ -288,7 +288,7 @@ export default function StrategyPage() {
                     </div>
                     <span className="text-[10px] font-medium text-zinc-600">{historyCount} saved</span>
                   </div>
-                  <div className="pt-2">
+                  <div className="min-w-0 pt-2">
                     <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">{section.eyebrow}</p>
                     <CardTitle className="mt-1 text-sm text-white">{section.label}</CardTitle>
                     <CardDescription className="mt-1.5 leading-relaxed">{section.description}</CardDescription>

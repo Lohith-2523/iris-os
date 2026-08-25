@@ -32,9 +32,26 @@ export function agencyServiceLines(agencyTypes: unknown): string[] {
   return Array.from(new Set(
     agencyTypes
       .filter((value): value is string => typeof value === 'string')
-      .map((value) => value.trim().replace(/\s+Agency(?=\s|\(|$)/i, ''))
+      .flatMap((value) => value.split(','))
+      .map((value) => value.trim().replace(/\s+/g, ' '))
       .filter(Boolean),
   ));
+}
+
+export function mergeAgencySpecializations(current: unknown, pending: unknown): string[] {
+  const values = [
+    ...(Array.isArray(current) ? current : []),
+    ...(typeof pending === 'string' ? pending.split(',') : []),
+  ];
+  const seen = new Set<string>();
+  return values.flatMap((value) => {
+    if (typeof value !== 'string') return [];
+    const specialization = value.trim().replace(/\s+/g, ' ');
+    const key = normalizedSpecialization(specialization);
+    if (!specialization || !key || seen.has(key)) return [];
+    seen.add(key);
+    return [specialization];
+  });
 }
 
 export function isMetaEnabledServiceLine(serviceLine: unknown) {

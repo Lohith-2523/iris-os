@@ -1,5 +1,27 @@
 [
   {
+    "date": "2026-08-25",
+    "scope": "all workspace phone and tablet surfaces",
+    "macrostructure": "Touch-first Workbench",
+    "theme": "Iris OS graphite, porcelain, and metallic silver",
+    "axes": ["safe-area phone canvas", "adaptive tablet rail", "role-aware bottom navigation"],
+    "nav": "phone bottom navigation and tablet compact rail",
+    "footer": "none",
+    "enrichment": "none",
+    "brief": "Native-feeling phone and tablet workspaces with portable platform design language and restored scrolling"
+  },
+  {
+    "date": "2026-08-25",
+    "scope": "app and public surfaces",
+    "macrostructure": "Geometry-aware Workbench with Split Studio authentication",
+    "theme": "Iris OS graphite, porcelain, and metallic silver",
+    "axes": ["dark and porcelain paper", "geometric sans", "neutral accent"],
+    "nav": "existing Iris workspace rail and N1b landing navigation",
+    "footer": "Ft5 landing statement and inline auth switch",
+    "enrichment": "existing product scenes and supplied auth video",
+    "brief": "Six viewport compositions across every workspace plus landing, login, and signup with an additive rollback layer"
+  },
+  {
     "date": "2026-08-17",
     "scope": "public pricing page",
     "macrostructure": "Catalogue",

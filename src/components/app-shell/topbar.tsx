@@ -176,7 +176,7 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
             variant="ghost"
             size="icon"
             onClick={onMenuToggle}
-            className="md:hidden text-zinc-400 hover:text-white"
+            className="workspace-menu-toggle md:hidden text-zinc-400 hover:text-white"
             aria-label="Open navigation"
           >
             <Menu className="h-5 w-5" />

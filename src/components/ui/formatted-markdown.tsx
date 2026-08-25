@@ -28,7 +28,7 @@ export function FormattedMarkdown({ text, className = '' }: { text: string; clas
   const blocks = parseMarkdown(text);
 
   return (
-    <div className={`formatted-markdown space-y-3.5 font-sans text-xs leading-relaxed text-muted-foreground ${className}`}>
+    <div className={`formatted-markdown min-w-0 break-words space-y-3.5 font-sans text-xs leading-relaxed text-muted-foreground ${className}`}>
       {blocks.map((block, index) => {
         const key = `${block.type}-${index}`;
         if (block.type === 'heading') {

@@ -4,13 +4,25 @@ import {
   clientHasMetaEnabledProject,
   isMetaEnabledServiceLine,
   isSelectedAgencyServiceLine,
+  mergeAgencySpecializations,
 } from './agency-specializations';
 
 describe('agency specialization service lines', () => {
   it('uses the unique specializations selected in agency settings', () => {
     expect(agencyServiceLines(['SEO Agency', ' SEO Agency ', 'Graphic Design Agency'])).toEqual([
-      'SEO',
-      'Graphic Design',
+      'SEO Agency',
+      'Graphic Design Agency',
+    ]);
+  });
+
+  it('preserves manually entered labels and accepts comma-delimited legacy values', () => {
+    expect(agencyServiceLines(['Healthcare marketing, B2B SaaS'])).toEqual(['Healthcare marketing', 'B2B SaaS']);
+  });
+
+  it('merges an unsaved input value into the submitted specialization list', () => {
+    expect(mergeAgencySpecializations(['SEO Agency'], 'Healthcare marketing, seo')).toEqual([
+      'SEO Agency',
+      'Healthcare marketing',
     ]);
   });
 

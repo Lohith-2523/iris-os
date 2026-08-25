@@ -130,14 +130,14 @@ export default function ReportingPage() {
           const Icon = option.icon;
           const selected = selectedKind === option.kind;
           return (
-            <button key={option.kind} type="button" onClick={() => setSelectedKind(option.kind)} className={`rounded-lg border p-4 text-left transition-colors ${selected ? 'border-zinc-500 bg-zinc-900/70' : 'border-zinc-850 bg-zinc-950/30 hover:border-zinc-700 hover:bg-zinc-900/35'}`}>
+            <button key={option.kind} type="button" onClick={() => setSelectedKind(option.kind)} className={`min-w-0 overflow-hidden rounded-lg border p-4 text-left transition-colors ${selected ? 'border-zinc-500 bg-zinc-900/70' : 'border-zinc-850 bg-zinc-950/30 hover:border-zinc-700 hover:bg-zinc-900/35'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className={`workspace-selected-icon flex h-9 w-9 items-center justify-center rounded-md border ${selected ? 'border-zinc-600 bg-white text-zinc-950' : 'border-zinc-800 bg-zinc-900 text-zinc-400'}`}><Icon className="h-4 w-4" /></div>
                 {selected && <Badge variant="outline" className="border-zinc-600 text-[9px] text-zinc-200">Selected</Badge>}
               </div>
-              <div className="mt-4 text-sm font-semibold text-white">{option.title}</div>
-              <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{option.description}</div>
-              <p className="mt-2 text-[11px] leading-5 text-zinc-500">{option.detail}</p>
+              <div className="mt-4 min-w-0 break-words text-sm font-semibold text-white">{option.title}</div>
+              <div className="mt-0.5 min-w-0 break-words text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{option.description}</div>
+              <p className="mt-2 min-w-0 break-words text-[11px] leading-5 text-zinc-500">{option.detail}</p>
             </button>
           );
         })}
@@ -164,7 +164,7 @@ export default function ReportingPage() {
       <div className={`grid gap-6 ${selectedReport ? 'xl:grid-cols-[minmax(0,1fr)_minmax(520px,0.9fr)]' : ''}`}>
         <Card className="min-w-0 border-zinc-800/80 bg-zinc-950/35">
           <CardHeader className="flex flex-row items-start justify-between gap-4">
-            <div><CardTitle className="text-sm text-white">PDF report archive</CardTitle><CardDescription>View or download any generated branded report.</CardDescription></div>
+            <div className="min-w-0"><CardTitle className="text-sm text-white">PDF report archive</CardTitle><CardDescription>View or download any generated branded report.</CardDescription></div>
             <Badge variant="outline" className="border-zinc-800 text-zinc-400">{reports.length} reports</Badge>
           </CardHeader>
           <CardContent className="p-0">

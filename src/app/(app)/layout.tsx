@@ -16,7 +16,9 @@ import { canShowAtlasLauncher } from '@/lib/workspace-launchers';
 import { AsyncButtonFeedback } from '@/components/app-shell/async-button-feedback';
 import { WorkspaceBootstrapLoader } from '@/components/ui/page-skeletons';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
+import { MobileBottomNavigation } from '@/components/app-shell/mobile-bottom-navigation';
 import { planIncludes, type PlanId } from '@/lib/plan-entitlements';
+import { resolveWorkspaceLayoutFamily, useWorkspaceLayoutMode } from '@/lib/workspace-layout-mode';
 import {
   configureWorkspaceDataCache,
   primeWorkspaceJson,
@@ -46,7 +48,9 @@ function WorkspaceRuntime() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const layoutMode = useWorkspaceLayoutMode();
   const pathname = usePathname();
+  const layoutFamily = resolveWorkspaceLayoutFamily(pathname);
   const router = useRouter();
   
   const [user, setUser] = React.useState<{ id: string; orgId: string; name: string; role: string; plan: string; organizationName?: string; organizationLogoDataUrl?: string | null; accessPermissions?: string[] | null } | null>(null);
@@ -169,10 +173,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="workspace-shell flex h-dvh w-full overflow-hidden bg-[#09090b]">
+    <div
+      className="workspace-shell flex h-dvh w-full overflow-hidden bg-[#09090b]"
+      data-layout-mode={layoutMode}
+      data-layout-family={layoutFamily}
+    >
       <WorkspaceRuntime />
       {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
+      <Sidebar className="workspace-desktop-sidebar hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
 
       {/* Mobile Sidebar overlay drawer */}
       {isMobileOpen && (
@@ -292,6 +300,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </main>
       </div>
+      {user && <MobileBottomNavigation role={user.role} plan={user.plan} accessPermissions={user.accessPermissions} onMore={() => setIsMobileOpen(true)} />}
       <SubscriptionPlanDialog open={isPlanGated} currentPlan={user?.plan} feature={planGate?.feature || 'this feature'} requiredPlan={planGate?.requiredPlan || 'PRO'} canManage={user?.role.toLowerCase() === 'admin'} onClose={() => router.push('/dashboard')} onPlanChanged={(nextPlan) => setUser(current => current ? { ...current, plan: nextPlan } : current)} />
       {user && canShowAtlasLauncher(user.role) && (
         <AtlasFloatingLauncher workspacePlan={user.plan} canManagePlan={user.role.toLowerCase() === 'admin'} />

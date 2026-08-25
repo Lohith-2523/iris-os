@@ -488,3 +488,69 @@
 @media (min-width: 40rem) {
   .beforeAfter > div { grid-template-columns: minmax(0, 1fr) 5rem minmax(0, 1fr); }
 }
+
+/* Hallmark · geometry-aware Workbench · design-system: design.md
+ * Iris geometry-aware composition system — additive and independently revertible. */
+@media (min-width: 75rem) and (max-width: 99.99rem) and (max-height: 56rem) {
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(20rem, 0.68fr) minmax(36rem, 1.32fr);
+    grid-template-rows: 1fr auto;
+    align-items: center;
+    gap: 1.5rem 3rem;
+    min-height: auto;
+    padding-block: 5rem 6.5rem;
+  }
+  .heroCopy { display: block; }
+  .heroCopy > p, .heroActions, .trustLabels { margin-top: 1.1rem; }
+  .parallaxWorkbench { margin-top: 0; }
+  .heroStatement { grid-column: 1 / -1; margin-top: 0; }
+  .workspaceShell { min-height: 29rem; }
+  .executionSection, .integrationsSection, .productSection, .commercialSection,
+  .coordinationSection, .rolesSection, .trustSection, .futureSection, .faqSection {
+    padding-block: clamp(3.5rem, 7vw, 5.5rem);
+  }
+}
+
+@media (min-width: 100rem) and (max-aspect-ratio: 2 / 1) {
+  .contentWidth, .footer, .navInner { width: min(100% - 6rem, 96rem); }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(23rem, 0.72fr) minmax(42rem, 1.28fr);
+    grid-template-rows: 1fr auto;
+    align-items: center;
+    gap: 2rem 4rem;
+    width: min(100% - 6rem, 104rem);
+    min-height: 100svh;
+    padding-block: 7rem 9.5rem;
+  }
+  .heroCopy { display: block; }
+  .parallaxWorkbench { margin-top: 0; }
+  .heroStatement { grid-column: 1 / -1; margin-top: 0; }
+  .splitSection { grid-template-columns: minmax(22rem, 0.72fr) minmax(0, 1.28fr); gap: 5rem; }
+  .fragmentSection > div { grid-template-columns: minmax(22rem, 0.68fr) minmax(34rem, 1.32fr); gap: 5rem; }
+  .providerGrid { grid-template-columns: minmax(25rem, 0.82fr) minmax(30rem, 1.18fr); }
+}
+
+@media (min-width: 120rem) and (min-aspect-ratio: 2 / 1) {
+  .contentWidth, .footer, .navInner { width: min(100% - 7rem, 112rem); }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(24rem, 0.72fr) minmax(46rem, 1.28fr);
+    grid-template-rows: 1fr auto;
+    align-items: center;
+    gap: 2rem 5rem;
+    width: min(100% - 7rem, 124rem);
+    min-height: 100svh;
+    padding-block: 7rem 9.5rem;
+  }
+  .heroCopy { display: block; align-self: center; }
+  .heroCopy > p { margin-top: 1.5rem; }
+  .heroActions, .trustLabels { margin-top: 1.5rem; }
+  .parallaxWorkbench { align-self: center; margin-top: 0; }
+  .heroStatement { grid-column: 1 / -1; margin-top: 0; }
+  .workspaceShell { min-height: min(38rem, 70svh); }
+  .splitSection { grid-template-columns: minmax(24rem, 0.62fr) minmax(0, 1.38fr); gap: 6rem; }
+  .atlasHeading, .futureHeader { grid-template-columns: minmax(0, 0.72fr) minmax(26rem, 1.28fr); }
+  .trustPanel { grid-template-columns: repeat(4, minmax(16rem, 1fr)); }
+}

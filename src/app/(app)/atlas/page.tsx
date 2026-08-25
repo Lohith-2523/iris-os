@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Send, User, Trash2, MessageSquare, Plus } from 'lucide-react';
@@ -28,6 +29,27 @@ export default function AtlasPage() {
   const [query, setQuery] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [chatError, setChatError] = React.useState<string | null>(null);
+  const [userAvatarUrl, setUserAvatarUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    const loadAvatar = async () => {
+      try {
+        const response = await globalThis.fetch('/api/user', { cache: 'no-store' });
+        if (!response.ok) return;
+        const profile = await response.json();
+        if (active) setUserAvatarUrl(typeof profile.avatarUrl === 'string' && profile.avatarUrl ? profile.avatarUrl : null);
+      } catch {
+        if (active) setUserAvatarUrl(null);
+      }
+    };
+    void loadAvatar();
+    window.addEventListener('user-updated', loadAvatar);
+    return () => {
+      active = false;
+      window.removeEventListener('user-updated', loadAvatar);
+    };
+  }, []);
 
   const loadSessions = React.useCallback(async () => {
     const data = await AtlasAIService.getSessions();
@@ -228,12 +250,16 @@ export default function AtlasPage() {
                 }`}
               >
                 {/* Avatar Icon */}
-                <div className={`h-8 w-8 rounded-none border flex items-center justify-center shrink-0 shadow-md ${
+                <div className={`atlas-chat-avatar h-8 w-8 rounded-full border flex items-center justify-center shrink-0 overflow-hidden shadow-md ${
                   msg.role === 'user' 
                     ? 'bg-zinc-800 border-zinc-700 text-zinc-200' 
                     : 'bg-[#121215] border-zinc-800 text-white font-bold'
                 }`}>
-                  {msg.role === 'user' ? <User className="h-4 w-4" /> : <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4 !text-white" />}
+                  {msg.role === 'user'
+                    ? userAvatarUrl
+                      ? <Image src={userAvatarUrl} alt="Your profile" width={32} height={32} unoptimized className="h-full w-full rounded-full object-cover" />
+                      : <User className="h-4 w-4" />
+                    : <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4" />}
                 </div>
 
                 {/* Message Bubble */}
@@ -251,8 +277,8 @@ export default function AtlasPage() {
 
             {isLoading && (
               <div className="flex gap-3 text-xs mr-auto items-center">
-                <div className="h-8 w-8 rounded-none bg-[#121215] border border-zinc-800 text-white font-bold flex items-center justify-center animate-pulse">
-                  <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4 animate-spin !text-white" />
+                <div className="atlas-chat-avatar h-8 w-8 rounded-full bg-[#121215] border border-zinc-800 text-white font-bold flex items-center justify-center animate-pulse">
+                  <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4 animate-spin" />
                 </div>
                 <div className="rounded-none p-4 bg-[#121215] border border-zinc-850 text-zinc-500 font-sans italic">
                   Atlas is working...

@@ -348,7 +348,7 @@ export default function ProjectsPage() {
       return;
     }
     if (!availableServiceLines.includes(newProjectForm.serviceLine)) {
-      setFormError('Select a service line enabled in Agency Settings.');
+      setFormError('Select a specialization enabled in Agency Settings.');
       return;
     }
     if (!paymentAmount || Number(paymentAmount) <= 0 || !paymentStartDate) {
@@ -680,7 +680,7 @@ export default function ProjectsPage() {
                                 </div>
                                 <div className="project-client-project-meta grid text-zinc-400">
                                   <div className="min-w-0">
-                                    <span className="project-client-project-label block text-zinc-655 uppercase font-bold">Service Focus</span>
+                                    <span className="project-client-project-label block text-zinc-655 uppercase font-bold">Specialization</span>
                                     <span className="project-client-project-value block truncate font-semibold text-zinc-300" title={proj.serviceLine || 'Paid Ads'}>{proj.serviceLine || 'Paid Ads'}</span>
                                   </div>
                                   <div className="min-w-0">
@@ -855,7 +855,7 @@ export default function ProjectsPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Service Focus Line</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Specialization</label>
                   <select
                     required
                     value={newProjectForm.serviceLine}
@@ -884,8 +884,10 @@ export default function ProjectsPage() {
                   <span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
                   <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls for this project&apos;s client.</span>
                 </span>
-                <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={newProjectForm.metaIntegrationEnabled} onClick={() => handleCreationInputChange('metaIntegrationEnabled', !newProjectForm.metaIntegrationEnabled)} className={`relative h-5 w-9 shrink-0 overflow-hidden rounded-full border transition-colors ${newProjectForm.metaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
-                  <span className={`pointer-events-none absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ease-out ${newProjectForm.metaIntegrationEnabled ? 'translate-x-[18px] bg-black' : 'translate-x-0 bg-zinc-500'}`} />
+                <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={newProjectForm.metaIntegrationEnabled} onClick={() => handleCreationInputChange('metaIntegrationEnabled', !newProjectForm.metaIntegrationEnabled)} className="meta-integration-switch-hitbox grid h-11 w-11 shrink-0 place-items-center rounded-full">
+                  <span aria-hidden="true" className={`meta-integration-switch relative block h-5 w-9 overflow-hidden rounded-full border transition-colors ${newProjectForm.metaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
+                    <span className={`pointer-events-none absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full transition-transform duration-150 ease-out ${newProjectForm.metaIntegrationEnabled ? 'translate-x-[18px] bg-black' : 'translate-x-0 bg-zinc-500'}`} />
+                  </span>
                 </button>
               </div>
 
@@ -1226,7 +1228,7 @@ export default function ProjectsPage() {
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Service focus</label>
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Specialization</label>
                       <select
                         required
                         value={editForm.serviceLine}
@@ -1537,7 +1539,7 @@ export default function ProjectsPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Service Line</span>
+                    <span className="block text-[8px] text-zinc-650 uppercase font-bold">Specialization</span>
                     <span className="font-semibold text-zinc-300">{selectedProject.serviceLine || 'PPC Campaign'}</span>
                   </div>
                   <div>

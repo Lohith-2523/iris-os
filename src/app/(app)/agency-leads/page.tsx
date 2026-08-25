@@ -816,7 +816,7 @@ export default function AgencyLeadsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="agency-leads-page space-y-6">
       {/* Header */}
       <div className="agency-leads-header flex flex-col gap-2 border-b border-zinc-800/60 pb-5 md:flex-row md:items-center md:justify-between">
         <div className="agency-leads-heading">
@@ -828,7 +828,7 @@ export default function AgencyLeadsPage() {
         <div className="agency-leads-header-actions flex flex-wrap items-center justify-end gap-3">
           <div className="agency-leads-summary-grid grid grid-cols-2 gap-2 sm:grid-cols-4">
             {leadSummaryMetrics.map(({ label, value, icon: Icon }) => (
-              <div key={label} className="min-w-[116px] rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 shadow-sm">
+              <div key={label} className="agency-leads-summary-card min-w-[116px] rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2.5 shadow-sm">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</span>
                   <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-zinc-600" />
@@ -837,6 +837,7 @@ export default function AgencyLeadsPage() {
               </div>
             ))}
           </div>
+          <div className="agency-leads-controls flex flex-wrap items-center justify-end gap-3">
           {/* Tab Selection */}
           <div className="agency-leads-tabs workspace-segmented-control flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-lg">
             <button
@@ -872,25 +873,28 @@ export default function AgencyLeadsPage() {
               </button>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { setExportError(''); setExportOpen(true); }}
-            className="agency-leads-export h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
-          >
-            <Download className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>Export leads</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSyncData}
-            disabled={syncing}
-            className="agency-leads-sync h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
-            <span>Sync</span>
-          </Button>
+          <div className="agency-leads-utilities flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setExportError(''); setExportOpen(true); }}
+              className="agency-leads-export h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Export leads</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncData}
+              disabled={syncing}
+              className="agency-leads-sync h-8 gap-1.5 rounded-md border-zinc-800 text-zinc-300"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+              <span>Sync</span>
+            </Button>
+          </div>
+          </div>
         </div>
       </div>
 
@@ -935,8 +939,8 @@ export default function AgencyLeadsPage() {
           </div>}
 
           {/* Filters */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between pb-2">
-            <div className="flex max-w-sm flex-1 items-center gap-2.5 rounded-md border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
+          <div className="agency-leads-filter-bar flex flex-col gap-4 md:flex-row md:items-center justify-between pb-2">
+            <div className="agency-leads-search flex max-w-sm flex-1 items-center gap-2.5 rounded-md border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
               <Search aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
               <input
                 type="text"
@@ -982,7 +986,7 @@ export default function AgencyLeadsPage() {
                       setDraggedStageId(null);
                     }}
                     onDragEnd={() => setDraggedStageId(null)}
-                    className={`grid grid-cols-[auto_minmax(0,1fr)_120px_auto] gap-3 rounded-xl border p-2 transition ${draggedStageId === stage.id ? 'border-zinc-500 bg-zinc-900/80 opacity-60' : 'border-zinc-800 bg-zinc-950/30'}`}
+                    className={`agency-leads-stage-row grid grid-cols-[auto_minmax(0,1fr)_120px_auto] gap-3 rounded-xl border p-2 transition ${draggedStageId === stage.id ? 'border-zinc-500 bg-zinc-900/80 opacity-60' : 'border-zinc-800 bg-zinc-950/30'}`}
                   >
                     <button type="button" className="cursor-grab touch-none rounded-lg px-1 text-zinc-500 hover:text-white active:cursor-grabbing" aria-label={`Drag ${stage.label} to reorder`} title="Drag to reorder">
                       <GripVertical className="h-5 w-5" aria-hidden="true" />
@@ -1034,7 +1038,7 @@ export default function AgencyLeadsPage() {
           )}
 
           {/* KANBAN BOARD */}
-          <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+          <div className="agency-leads-kanban-viewport w-full max-w-full overflow-x-auto overscroll-x-contain">
           <div className="agency-leads-kanban-board grid min-w-max grid-cols-1 items-stretch gap-4 min-h-[715px]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(286px, 1fr))` }}>
             {columns.map((col) => {
               const colLeads = filteredLeads.filter(
@@ -1066,7 +1070,7 @@ export default function AgencyLeadsPage() {
                   </div>
 
                   {/* Column Cards */}
-                  <div className="flex max-h-[858px] flex-1 flex-col gap-2 overflow-y-auto scrollbar-none">
+                  <div className="agency-leads-kanban-list flex max-h-[858px] flex-1 flex-col gap-2 overflow-y-auto scrollbar-none">
                     {colLeads.length === 0 ? (
                       <div className="h-full flex items-center justify-center border border-dashed border-zinc-900 p-6 text-center text-[10px] text-zinc-650 italic rounded-md">
                         Drop leads here
@@ -1079,8 +1083,8 @@ export default function AgencyLeadsPage() {
                           onDragStart={(e) => handleDragStart(e, lead.leadId)}
                           className="agency-leads-kanban-card p-3 border border-zinc-900 bg-zinc-950/40 hover:bg-zinc-900/40 transition-all select-none text-[11px] relative group rounded-md cursor-grab active:cursor-grabbing"
                         >
-                          <div className="flex justify-between items-start">
-                            <span className="font-semibold text-white truncate max-w-[110px]">
+                          <div className="flex min-w-0 justify-between gap-3 items-start">
+                            <span className="agency-leads-card-name min-w-0 font-semibold text-white">
                               {lead.fullName}
                             </span>
                             <button
@@ -1092,11 +1096,11 @@ export default function AgencyLeadsPage() {
                               <Eye className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                          <span className="text-[10px] text-zinc-500 font-mono block mt-0.5 truncate">
+                          <span className="agency-leads-card-email mt-0.5 block text-[10px] text-zinc-500 font-mono">
                             {lead.email || 'Email not provided'}
                           </span>
                           {lead.sourceProvider === 'META' && <Badge variant="outline" className="mt-2 border-blue-900/50 text-[8px] text-blue-300">Meta lead</Badge>}
-                          <span className="text-[9px] text-zinc-600 font-sans block mt-2 border-t border-zinc-900 pt-1.5 truncate">
+                          <span className="agency-leads-card-approach mt-2 block border-t border-zinc-900 pt-1.5 text-[9px] text-zinc-600 font-sans">
                             Approach: {lead.approachMethod || 'Not set'}
                           </span>
                           <div className={`mt-3 grid gap-2 ${lead.phone ? 'grid-cols-2' : 'grid-cols-1'}`}>
