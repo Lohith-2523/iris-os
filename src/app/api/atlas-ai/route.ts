@@ -45,6 +45,8 @@ import {
   reserveAtlasTokens,
   settleAtlasTokenReservation,
 } from '@/lib/atlas-ai/token-budget';
+import { consumeServerSentEvents } from '@/lib/atlas-ai/provider-stream';
+import { encodeAtlasStreamEvent, responseTextChunks } from '@/lib/atlas-ai/stream-protocol';
 
 const AUTOMATIC_INSIGHT_TTL_MS = 30 * 60 * 1000;
 const CHAT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
@@ -389,7 +391,7 @@ If these represent billable hours or contract rates, the projected direct impact
 Currently, senior specialist capacity is constrained, presenting a bottleneck for new client onboarding. I advise establishing a structured campaign checklist, auditing Vortex contract roles, and using the Canva Template Autofills to accelerate deliverable pipelines.`;
 }
 
-export async function POST(request: NextRequest) {
+async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string) => void) {
   try {
     const parsed = atlasRequestSchema.safeParse(await request.json());
     if (!parsed.success) {
@@ -500,7 +502,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
     const tokenBudget = { orgId: user.orgId, plan };
 
     // Helper functions 
-    const callGemini = async (prompt: string, customFallback?: string) => {
+    const callGemini = async (prompt: string, customFallback?: string, streamOutput = false) => {
       const fallback = customFallback !== undefined ? customFallback : (!org.aiSharingConsent
         ? "Atlas AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Atlas AI Analysis' in Settings > AI Settings & Data Privacy."
         : applyBillingCurrency(MOCK_REPLIES.dashboard));
@@ -512,10 +514,15 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
         output: 1024,
       });
       let reservationSettled = false;
+      let streamedOutput = '';
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
+        const shouldStream = streamOutput && Boolean(onDelta);
+        const method = shouldStream ? 'streamGenerateContent' : 'generateContent';
+        const streamParameter = shouldStream ? '&alt=sse' : '';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:${method}?key=${geminiKey}${streamParameter}`;
         const res = await fetch(url, {
           method: 'POST',
+          signal: request.signal,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
@@ -527,6 +534,29 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           reservationSettled = true;
           console.warn(`Gemini API failed with status ${res.status}. Falling back to mock replies.`);
           return fallback;
+        }
+        if (shouldStream) {
+          let inputTokens: number | undefined;
+          let outputTokens: number | undefined;
+          await consumeServerSentEvents(res, (raw) => {
+            const event = JSON.parse(raw) as {
+              candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+              usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+            };
+            const delta = event.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || '';
+            if (delta) {
+              streamedOutput += delta;
+              onDelta?.(delta);
+            }
+            inputTokens = event.usageMetadata?.promptTokenCount ?? inputTokens;
+            outputTokens = event.usageMetadata?.candidatesTokenCount ?? outputTokens;
+          });
+          await settleAtlasTokenReservation(reservation, {
+            input: inputTokens ?? estimateInputTokens(prompt),
+            output: outputTokens ?? estimateInputTokens(streamedOutput),
+          });
+          reservationSettled = true;
+          return streamedOutput || fallback;
         }
         const data = await res.json() as {
           candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
@@ -542,12 +572,13 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
       } catch (error) {
         if (!reservationSettled) await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
         if (error instanceof AtlasTokenLimitError) throw error;
+        if (streamedOutput) throw error;
         console.error('Gemini API call exception. Falling back to mock replies:', error);
         return fallback;
       }
     };
 
-    const callChatGPT = async (systemPrompt: string, userPrompt: string) => {
+    const callChatGPT = async (systemPrompt: string, userPrompt: string, streamOutput = false) => {
       let fallback = applyBillingCurrency(action === 'forecasting' ? MOCK_REPLIES.forecasting : MOCK_REPLIES.finance);
       if (action === 'parse-team-file') {
         const extracted: any[] = [];
@@ -584,7 +615,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
       const executeGeminiFallback = async () => {
         console.warn('ChatGPT API failed. Rerouting to Gemini...');
         const combinedPrompt = `System instructions: ${systemPrompt}\n\nUser request: ${userPrompt}`;
-        return await callGemini(combinedPrompt, fallback);
+        return await callGemini(combinedPrompt, fallback, streamOutput);
       };
 
       if (!openaiKey) {
@@ -597,10 +628,13 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
         output: 1024,
       });
       let reservationSettled = false;
+      let streamedOutput = '';
       try {
+        const shouldStream = streamOutput && Boolean(onDelta);
         const url = 'https://api.openai.com/v1/chat/completions';
         const res = await fetch(url, {
           method: 'POST',
+          signal: request.signal,
           headers: {
             'Authorization': `Bearer ${openaiKey}`,
             'Content-Type': 'application/json'
@@ -613,6 +647,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
             ],
             temperature: 0.5,
             max_tokens: 1024,
+            ...(shouldStream ? { stream: true, stream_options: { include_usage: true } } : {}),
           })
         });
         if (!res.ok) {
@@ -620,6 +655,29 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           reservationSettled = true;
           console.warn(`ChatGPT API failed with status ${res.status}.`);
           return await executeGeminiFallback();
+        }
+        if (shouldStream) {
+          let inputTokens: number | undefined;
+          let outputTokens: number | undefined;
+          await consumeServerSentEvents(res, (raw) => {
+            const event = JSON.parse(raw) as {
+              choices?: Array<{ delta?: { content?: string } }>;
+              usage?: { prompt_tokens?: number; completion_tokens?: number } | null;
+            };
+            const delta = event.choices?.[0]?.delta?.content || '';
+            if (delta) {
+              streamedOutput += delta;
+              onDelta?.(delta);
+            }
+            inputTokens = event.usage?.prompt_tokens ?? inputTokens;
+            outputTokens = event.usage?.completion_tokens ?? outputTokens;
+          });
+          await settleAtlasTokenReservation(reservation, {
+            input: inputTokens ?? estimateInputTokens(systemPrompt, userPrompt),
+            output: outputTokens ?? estimateInputTokens(streamedOutput),
+          });
+          reservationSettled = true;
+          return streamedOutput || await executeGeminiFallback();
         }
         const data = await res.json() as {
           choices?: Array<{ message?: { content?: string } }>;
@@ -635,12 +693,13 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
       } catch (error) {
         if (!reservationSettled) await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
         if (error instanceof AtlasTokenLimitError) throw error;
+        if (streamedOutput) throw error;
         console.error('ChatGPT API call exception:', error);
         return await executeGeminiFallback();
       }
     };
 
-    const callAtlasAI = async (systemPrompt: string, userPrompt: string) => {
+    const callAtlasAI = async (systemPrompt: string, userPrompt: string, streamOutput = false) => {
       const fallback = !org.aiSharingConsent
         ? "Atlas AI is currently running in reasoning-only mode. To analyze your actual transaction metrics and lead database, please enable 'Atlas AI Analysis' in Settings > AI Settings & Data Privacy."
         : applyBillingCurrency(MOCK_REPLIES.askGeneral(userPrompt));
@@ -652,10 +711,13 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
         output: 1024,
       });
       let reservationSettled = false;
+      let streamedOutput = '';
       try {
+        const shouldStream = streamOutput && Boolean(onDelta);
         const url = 'https://api.anthropic.com/v1/messages';
         const res = await fetch(url, {
           method: 'POST',
+          signal: request.signal,
           headers: {
             'x-api-key': anthropicKey,
             'anthropic-version': '2023-06-01',
@@ -665,7 +727,8 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
             model: process.env.ANTHROPIC_ATLAS_MODEL?.trim() || ['cla', 'ude-opus-4-6'].join(''),
             max_tokens: 1024,
             messages: [{ role: 'user', content: userPrompt }],
-            system: systemPrompt
+            system: systemPrompt,
+            ...(shouldStream ? { stream: true } : {}),
           })
         });
         if (!res.ok) {
@@ -673,6 +736,33 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           reservationSettled = true;
           console.warn(`Atlas AI provider failed with status ${res.status}. Falling back to mock replies.`);
           return fallback;
+        }
+        if (shouldStream) {
+          let inputTokens: number | undefined;
+          let outputTokens: number | undefined;
+          await consumeServerSentEvents(res, (raw) => {
+            const event = JSON.parse(raw) as {
+              type?: string;
+              delta?: { type?: string; text?: string };
+              message?: { usage?: { input_tokens?: number; output_tokens?: number } };
+              usage?: { input_tokens?: number; output_tokens?: number };
+            };
+            const delta = event.type === 'content_block_delta' && event.delta?.type === 'text_delta'
+              ? event.delta.text || ''
+              : '';
+            if (delta) {
+              streamedOutput += delta;
+              onDelta?.(delta);
+            }
+            inputTokens = event.message?.usage?.input_tokens ?? event.usage?.input_tokens ?? inputTokens;
+            outputTokens = event.message?.usage?.output_tokens ?? event.usage?.output_tokens ?? outputTokens;
+          });
+          await settleAtlasTokenReservation(reservation, {
+            input: inputTokens ?? estimateInputTokens(systemPrompt, userPrompt),
+            output: outputTokens ?? estimateInputTokens(streamedOutput),
+          });
+          reservationSettled = true;
+          return streamedOutput || fallback;
         }
         const data = await res.json() as {
           content?: Array<{ text?: string }>;
@@ -688,6 +778,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
       } catch (error) {
         if (!reservationSettled) await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
         if (error instanceof AtlasTokenLimitError) throw error;
+        if (streamedOutput) throw error;
         console.error('Atlas AI provider call exception. Falling back to mock replies:', error);
         return fallback;
       }
@@ -1162,15 +1253,15 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           Context: ${JSON.stringify(context || {})}
           
           ${dbContextText}`;
-          output = await callGemini(prompt);
+          output = await callGemini(prompt, undefined, true);
         } else if (delegatedModel === 'ChatGPT') {
           const systemPrompt = 'You are Atlas AI, the financial and data forecasting intelligence for Iris OS. Focus on contractor rate analysis, SaaS cost leak audits, numerical calculations, and cash flow projections.';
           const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}\n\n${dbContextText}`;
-          output = await callChatGPT(systemPrompt, userPrompt);
+          output = await callChatGPT(systemPrompt, userPrompt, true);
         } else {
           const systemPrompt = 'You are Atlas AI, the senior strategies counselor and cognitive planning assistant for Iris OS. Focus on campaign optimizations, team structure risk mitigations, planning checklists, and deep logical reasoning.';
           const userPrompt = `Query: ${query}\nContext: ${JSON.stringify(context || {})}\n\n${dbContextText}`;
-          output = await callAtlasAI(systemPrompt, userPrompt);
+          output = await callAtlasAI(systemPrompt, userPrompt, true);
         }
 
         const isMockResponse = (
@@ -1288,4 +1379,62 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
     }
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
+}
+
+export async function POST(request: NextRequest) {
+  if (!request.headers.get('accept')?.includes('application/x-ndjson')) {
+    return handleAtlasRequest(request);
+  }
+
+  const encoder = new TextEncoder();
+  let cancelled = false;
+  let emittedProviderDelta = false;
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const emit = (event: Parameters<typeof encodeAtlasStreamEvent>[0]) => {
+        if (!cancelled) controller.enqueue(encoder.encode(encodeAtlasStreamEvent(event)));
+      };
+      void handleAtlasRequest(request, (delta) => {
+        if (!delta) return;
+        emittedProviderDelta = true;
+        emit({ type: 'delta', delta });
+      })
+        .then(async (response) => {
+          const data = await response.json().catch(() => ({})) as Record<string, unknown>;
+          if (!response.ok) {
+            emit({
+              type: 'error',
+              error: typeof data.error === 'string' ? data.error : 'Atlas AI could not complete this request.',
+              status: response.status,
+            });
+            return;
+          }
+          if (!emittedProviderDelta && typeof data.result === 'string') {
+            for (const delta of responseTextChunks(data.result)) {
+              emit({ type: 'delta', delta });
+              await new Promise((resolve) => setTimeout(resolve, 12));
+            }
+          }
+          emit({ type: 'done', data });
+        })
+        .catch((error) => {
+          emit({ type: 'error', error: error instanceof Error ? error.message : 'Atlas AI stream failed.' });
+        })
+        .finally(() => {
+          if (!cancelled) controller.close();
+        });
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'Cache-Control': 'private, no-cache, no-transform',
+      'X-Accel-Buffering': 'no',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }

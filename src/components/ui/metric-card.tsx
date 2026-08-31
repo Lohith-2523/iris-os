@@ -25,7 +25,7 @@ export function MetricCard({
         <span className="workspace-metric-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/40">
           <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
         </span>
-        <p className={cn('workspace-metric-value min-w-0 truncate', valueClassName)}>{value}</p>
+        <p className={cn('workspace-metric-value min-w-0 break-words', valueClassName)}>{value}</p>
       </CardContent>
     </Card>
   );

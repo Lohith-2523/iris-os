@@ -17,6 +17,7 @@ import { createClient } from '@/lib/client';
 import { clearWorkspaceUiPreferences } from '@/lib/workspace-ui-storage';
 import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
 import { mergeAgencySpecializations } from '@/lib/agency-specializations';
+import { entitlementsFor, type PlanId } from '@/lib/plan-entitlements';
 import {
   getMetaSdkStatus,
   META_SDK_ERROR_EVENT,
@@ -51,8 +52,26 @@ import {
   Loader2,
   X,
   LogOut,
-  Camera
+  Camera,
+  Gauge,
+  UsersRound,
+  UserRoundCog,
+  Bot,
 } from 'lucide-react';
+
+const SETTINGS_PLANS: Array<{ id: PlanId; name: string; price: string; description: string; features: string[] }> = [
+  { id: 'BASIC', name: 'Basic', price: '$99', description: 'Core agency operations', features: ['5 clients', '2 team members', 'Core finance and delivery'] },
+  { id: 'PRO', name: 'Pro', price: '$299', description: 'AI-enabled collaboration', features: ['15 clients', '4 team members', 'Atlas AI and secure messages'] },
+  { id: 'ADVANCED', name: 'Advanced', price: '$599', description: 'Complete enterprise workspace', features: ['30 clients', '15 team members', 'Full Atlas, Strategy and Briefing'] },
+];
+
+type WorkspaceUsage = {
+  clients: number;
+  teamMembers: number;
+  subAdmins: number;
+  atlasTokensUsed: number;
+  atlasTokenLimit: number | null;
+};
 
 function IntegrationLogo({ provider }: { provider: string }) {
   if (provider === 'META') return <span className="integration-meta-logo" aria-label="Meta"><Image src="/meta_light.png" alt="Meta" width={128} height={56} unoptimized className="integration-meta-logo-light h-14 w-auto object-contain" /><Image src="/meta_dark.png" alt="Meta" width={128} height={56} unoptimized className="integration-meta-logo-dark h-14 w-auto object-contain" /></span>;
@@ -214,6 +233,7 @@ export default function SettingsPage() {
   const [hasFinancialData, setHasFinancialData] = React.useState(false);
   const [plan, setPlan] = React.useState<'BASIC' | 'PRO' | 'ADVANCED'>('PRO');
   const [hasAddon, setHasAddon] = React.useState(false);
+  const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, teamMembers: 0, subAdmins: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
   const [specializationInput, setSpecializationInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
@@ -436,7 +456,10 @@ export default function SettingsPage() {
     async function loadOrg() {
       try {
         let organizationBillingEmail: string | null = null;
-        const res = await fetch('/api/organization');
+        const [res, userRes] = await Promise.all([
+          fetch('/api/organization'),
+          fetch('/api/user'),
+        ]);
         if (res.ok) {
           const data = await res.json();
           setOrgName(data.name);
@@ -463,14 +486,29 @@ export default function SettingsPage() {
           organizationBillingEmail = data.billingEmail || null;
         }
 
-        {
-          const userRes = await fetch('/api/user');
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            setCurrentUser(userData);
-            setBillingEmail(organizationBillingEmail || userData.email);
-          }
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setCurrentUser(userData);
+          setBillingEmail(organizationBillingEmail || userData.email);
         }
+        const [clientsRes, teamRes, atlasUsageRes] = await Promise.all([
+          fetch('/api/data?domain=clients'),
+          fetch('/api/data?domain=team'),
+          fetch('/api/atlas-ai/usage'),
+        ]);
+        const [clients, team, atlasUsage] = await Promise.all([
+          clientsRes.ok ? clientsRes.json() : [],
+          teamRes.ok ? teamRes.json() : [],
+          atlasUsageRes.ok ? atlasUsageRes.json() : null,
+        ]);
+        const activeTeam = Array.isArray(team) ? team : [];
+        setWorkspaceUsage({
+          clients: Array.isArray(clients) ? clients.length : 0,
+          teamMembers: activeTeam.filter((member: { role?: string }) => member.role?.toLowerCase() === 'member').length,
+          subAdmins: activeTeam.filter((member: { role?: string }) => member.role?.toLowerCase() === 'sub_admin').length,
+          atlasTokensUsed: Number(atlasUsage?.usage?.total || 0),
+          atlasTokenLimit: typeof atlasUsage?.limits?.total === 'number' ? atlasUsage.limits.total : null,
+        });
       } catch (e) {
         console.error('Error loading organization:', e);
       } finally {
@@ -675,6 +713,13 @@ export default function SettingsPage() {
       setErrorMessage('An unexpected connection error occurred.');
     }
   };
+
+  const activeEntitlements = entitlementsFor(plan);
+  const usageRows = [
+    { label: 'Clients onboarded', value: workspaceUsage.clients, limit: activeEntitlements.clientLimit, icon: UsersRound },
+    { label: 'Team members', value: workspaceUsage.teamMembers, limit: activeEntitlements.teamMemberLimit, icon: UserRoundCog },
+    { label: 'Specializations', value: selectedTypes.length, limit: activeEntitlements.specializationLimit, icon: Target },
+  ];
 
   if (isLoading) {
     return <PageSkeleton variant="settings" />;
@@ -1344,6 +1389,48 @@ export default function SettingsPage() {
 
       {activeTab === 'billing' && (
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white"><Gauge className="h-4.5 w-4.5 text-zinc-400" /><span>Workspace usage limits</span></CardTitle>
+              <CardDescription>Live consumption against the capacity included with the {plan.toLowerCase()} plan.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
+                {usageRows.map(({ label, value, limit, icon: Icon }) => {
+                  const percent = Math.min(100, limit > 0 ? (value / limit) * 100 : 0);
+                  return <div key={label} className="min-w-0">
+                    <div className="mb-2 flex items-center justify-between gap-3 text-xs"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Icon className="h-4 w-4 shrink-0 text-zinc-500" />{label}</span><span className="shrink-0 font-mono font-bold tabular-nums text-white">{value} / {limit}</span></div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={value}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${percent}%` }} /></div>
+                  </div>;
+                })}
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-col items-start gap-2 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Bot className="h-4 w-4 shrink-0 text-zinc-500" />Atlas credits used</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.atlasTokensUsed.toLocaleString()} / {workspaceUsage.atlasTokenLimit?.toLocaleString() || 'Not included'}</span></div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label="Atlas credits used" aria-valuemin={0} aria-valuemax={workspaceUsage.atlasTokenLimit || 1} aria-valuenow={workspaceUsage.atlasTokensUsed}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${workspaceUsage.atlasTokenLimit ? Math.min(100, (workspaceUsage.atlasTokensUsed / workspaceUsage.atlasTokenLimit) * 100) : 0}%` }} /></div>
+                </div>
+                <div className="flex min-h-11 flex-wrap items-center justify-between gap-3 border-t border-zinc-850 pt-4 text-xs md:col-span-2"><span className="flex items-center gap-2 font-semibold text-zinc-300"><UserRoundCog className="h-4 w-4 text-zinc-500" />Sub-admins</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.subAdmins} active <span className="font-sans font-normal text-zinc-500">· managed separately</span></span></div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <section aria-labelledby="settings-plan-options" className="space-y-4">
+            <div><h2 id="settings-plan-options" className="text-base font-bold text-white">Plan options</h2><p className="mt-1 text-xs text-zinc-500">The same three workspace tiers available during agency onboarding.</p></div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {SETTINGS_PLANS.map((tier) => {
+                const isCurrent = tier.id === plan;
+                return <Card key={tier.id} className={`flex min-h-[290px] flex-col ${isCurrent ? 'border-zinc-500 bg-zinc-900/45' : 'border-zinc-850'}`}>
+                  <CardHeader className="flex-1">
+                    <div className="flex items-start justify-between gap-3"><div><CardTitle className="text-base font-bold text-white">{tier.name}</CardTitle><CardDescription className="mt-1">{tier.description}</CardDescription></div>{isCurrent && <Badge variant="outline" className="whitespace-nowrap border-zinc-600 text-[9px] uppercase text-zinc-300">Current plan</Badge>}</div>
+                    <div className="mt-5"><span className="font-mono text-3xl font-black tabular-nums text-white">{tier.price}</span><span className="ml-1 text-xs text-zinc-500">/ month</span></div>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 border-t border-zinc-850 pt-4 text-xs text-zinc-300">{tier.features.map((feature) => <li key={feature} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />{feature}</li>)}</ul>
+                    <Button type="button" variant={isCurrent ? 'outline' : 'default'} disabled={isCurrent} onClick={() => { window.location.href = '/onboarding?step=pricing&redirect=/settings'; }} className="mt-5 h-10 w-full whitespace-nowrap text-xs font-bold">{isCurrent ? 'Current plan' : `View ${tier.name}`}</Button>
+                  </CardContent>
+                </Card>;
+              })}
+            </div>
+          </section>
+
           <div className="grid gap-6 md:grid-cols-3">
             {/* Plan Tier Display */}
             <div className="md:col-span-2 space-y-6">

@@ -3,7 +3,9 @@ import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { isTaskStatus, normalizeTaskStatusProgress } from '@/lib/tasks/status-progress';
 import { createNotification, notifyOrganizationAdmins } from '@/lib/notifications';
-import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
+import { cursorHeaders, readCursorPage } from '@/lib/cursor-pagination';
+import { getRequestSecurityContext } from '@/server/security/request-security-context';
+import { listTasks } from '@/server/domains/task-service';
 
 function isTaskWriteConflict(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -20,8 +22,8 @@ const taskApprovalStatuses = new Set(['NOT_REQUIRED', 'NEEDS_CLIENT_APPROVAL', '
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getRequestUser(request);
-    if (!user) {
+    const ctx = await getRequestSecurityContext();
+    if (!ctx) {
       return NextResponse.json([]);
     }
 
@@ -30,52 +32,8 @@ export async function GET(request: NextRequest) {
     const assignedToId = searchParams.get('assignedToId');
     const projectId = searchParams.get('projectId');
 
-    const defaultInclude = {
-      assignedTo: true,
-      client: true,
-      project: true,
-      stage: true,
-      updates: {
-        take: 25,
-        orderBy: { createdAt: 'desc' as const }
-      },
-      comments: {
-        take: 25,
-        include: {
-          user: true
-        },
-        orderBy: { createdAt: 'desc' as const }
-      },
-      parentTask: true,
-      nextTasks: { take: 25 },
-      deliverables: { take: 25, orderBy: { createdAt: 'desc' as const } },
-    };
-
-    const role = user.role.toLowerCase();
-    const visibilityWhere: any = {
-      client: { orgId: user.orgId },
-      ...(role === 'client' && user.clientId ? { clientId: user.clientId } : {}),
-      ...(role === 'member' ? { assignedToId: user.id } : {}),
-    };
-    const requestedWhere: any = {
-      ...(projectId ? { projectId } : {}),
-      ...(clientId ? { clientId } : {}),
-      ...(assignedToId ? { assignedToId } : {}),
-    };
-
     const pageRequest = readCursorPage(request);
-    const tasks = await prisma.clientTask.findMany({
-      where: {
-        ...visibilityWhere,
-        ...requestedWhere,
-        ...descendingCursorWhere(pageRequest.cursor, 'createdAt'),
-      },
-      include: defaultInclude,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: pageRequest.take,
-    });
-
-    const page = finishCursorPage(tasks, pageRequest.limit, (task) => task.createdAt);
+    const page = await listTasks(ctx, pageRequest, { clientId, assignedToId, projectId });
     return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching tasks:', error);
@@ -118,6 +76,13 @@ export async function POST(request: NextRequest) {
       const client = await prisma.client.findUnique({ where: { id: clientId } });
       if (!client || client.orgId !== requestUser.orgId) {
         return NextResponse.json({ error: 'Unauthorized client scope' }, { status: 403 });
+      }
+      if (projectId) {
+        const project = await prisma.project.findFirst({
+          where: { id: projectId, clientId, client: { orgId: requestUser.orgId } },
+          select: { id: true },
+        });
+        if (!project) return NextResponse.json({ error: 'Project must belong to the selected client.' }, { status: 400 });
       }
       const requestedStatus = status || 'TODO';
       const requestedProgress = progress !== undefined ? Number(progress) : 0;

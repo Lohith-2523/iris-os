@@ -3,12 +3,12 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { sendIrisEmail } from '@/lib/email/iris-email';
+import { SECURITY_ALLOWED_PAGES } from '@/lib/security-pages';
 
-const allowedPages = ['dashboard', 'finance', 'agency-leads', 'clients', 'projects', 'tasks', 'team', 'calendar', 'messages', 'reporting', 'analytics', 'invoices', 'atlas', 'strategy', 'settings'] as const;
 const schema = z.object({
   action: z.enum(['make_sub_admin', 'update_permissions', 'offboard']),
   userId: z.string().uuid(),
-  permissions: z.array(z.enum(allowedPages)).optional(),
+  permissions: z.array(z.enum(SECURITY_ALLOWED_PAGES)).optional(),
   feedback: z.string().trim().min(5).max(3000).optional(),
 });
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     select: { id: true, name: true, email: true, phone: true, role: true, accessPermissions: true, offboardedAt: true, accessRevokedAt: true, createdAt: true },
     orderBy: [{ accessRevokedAt: 'asc' }, { role: 'asc' }, { name: 'asc' }],
   });
-  return NextResponse.json({ users, plan: user.organization.plan, hasAddon: user.organization.hasAddon, allowedPages });
+  return NextResponse.json({ users, plan: user.organization.plan, hasAddon: user.organization.hasAddon, allowedPages: SECURITY_ALLOWED_PAGES });
 }
 
 export async function POST(request: NextRequest) {

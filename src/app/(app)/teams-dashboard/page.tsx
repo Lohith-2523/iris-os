@@ -92,14 +92,16 @@ export default function TeamsDashboardPage() {
   const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
-      // 1. Fetch user profile
-      const userRes = await fetch('/api/user');
+      const [userRes, tasksRes, calRes, teamRes] = await Promise.all([
+        fetch('/api/workspace'),
+        fetch('/api/tasks'),
+        fetch('/api/calendar'),
+        fetch('/api/data?domain=team'),
+      ]);
       if (!userRes.ok) throw new Error('User not found');
-      const userData = await userRes.json();
+      const userData = (await userRes.json()).user;
       setCurrentUser(userData);
 
-      // 2. Fetch tasks
-      const tasksRes = await fetch('/api/tasks');
       if (tasksRes.ok) {
         const tasksData: Task[] = await tasksRes.json();
         // Filter tasks assigned to the current member
@@ -113,15 +115,11 @@ export default function TeamsDashboardPage() {
         }
       }
 
-      // 3. Fetch calendar events
-      const calRes = await fetch('/api/calendar');
       if (calRes.ok) {
         const calData = await calRes.json();
         setCalendarEvents(calData.events || []);
       }
 
-      // 4. Fetch team members (for carry over re-assignment)
-      const teamRes = await fetch('/api/data?domain=team');
       if (teamRes.ok) {
         const teamData = await teamRes.json();
         // Exclude current user from the re-assignee dropdown list
@@ -327,7 +325,7 @@ export default function TeamsDashboardPage() {
           <Lock className="h-8 w-8 text-rose-500 mx-auto" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Access Restricted</h2>
           <p className="text-xs text-zinc-500 font-sans leading-relaxed">
-            The teams workspace is exclusively configured for internal specialists ('member' role). Your current role is '{currentUser.role}'.
+            The teams workspace is exclusively configured for internal specialists (&apos;member&apos; role). Your current role is &apos;{currentUser.role}&apos;.
           </p>
         </div>
       </div>

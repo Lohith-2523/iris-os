@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { AtlasIcon } from '../ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
 import { NotificationCenter } from '@/components/notifications/notification-center';
+import { AtlasTopbarMenu } from '@/components/atlas/atlas-floating-launcher';
 import {
   applyWorkspaceTheme,
   hasPersistedWorkspaceTheme,
@@ -18,6 +19,9 @@ import {
 
 interface TopbarProps {
   onMenuToggle: () => void;
+  atlasMenuEnabled?: boolean;
+  workspacePlan?: string;
+  canManagePlan?: boolean;
 }
 
 interface CommandItem {
@@ -58,7 +62,7 @@ const workspaceCommands: CommandItem[] = [
 
 const commandSearchText = (item: CommandItem) => [item.name, item.category, item.description, ...item.keywords].join(' ').toLowerCase();
 
-export function Topbar({ onMenuToggle }: TopbarProps) {
+export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, canManagePlan }: TopbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const isClient = pathname === '/client-dashboard';
@@ -185,20 +189,22 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
         </div>
 
         {/* Center: Ask Atlas Form */}
-        {!isClient && (
-          <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <form onSubmit={handleAtlasSubmit} className="workspace-topbar-search flex h-9 items-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 pl-3 transition-all focus-within:border-zinc-700 focus-within:bg-zinc-900/80">
-              <AtlasIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-              <input
-                type="text"
-                aria-label="Ask Atlas AI"
-                placeholder="Ask Atlas AI"
-                value={atlasQuery}
-                onChange={(e) => setAtlasQuery(e.target.value)}
-                className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
-              />
-              <button type="submit" className="hidden" />
-            </form>
+        {!isClient && atlasMenuEnabled && (
+          <div className="mx-2 max-w-fit flex-1 md:mx-4 md:max-w-md">
+            <div className="workspace-topbar-search flex h-9 w-9 items-center justify-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 transition-colors focus-within:border-zinc-700 focus-within:bg-zinc-900/80 md:w-full md:justify-start md:pl-3">
+              <AtlasTopbarMenu workspacePlan={workspacePlan} canManagePlan={canManagePlan} />
+              <form onSubmit={handleAtlasSubmit} className="hidden h-full min-w-0 flex-1 md:flex">
+                <input
+                  type="text"
+                  aria-label="Ask Atlas AI"
+                  placeholder="Ask Atlas AI"
+                  value={atlasQuery}
+                  onChange={(e) => setAtlasQuery(e.target.value)}
+                  className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
+                />
+                <button type="submit" className="hidden" />
+              </form>
+            </div>
           </div>
         )}
 
@@ -252,14 +258,13 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
 
           {/* Dialog Container */}
           <div
-            className="workspace-command-dialog relative z-50 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-800 bg-[#0d0e12] shadow-2xl transition-all"
+            className="workspace-command-dialog relative z-50 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-800 bg-[#0d0e12] shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-label="Workspace command menu"
           >
-            <div className="flex items-center gap-3 border-b border-zinc-800 p-3">
-              <div className="workspace-command-search-field flex h-10 min-w-0 flex-1 items-center rounded-lg border border-zinc-800 bg-zinc-950 px-3">
-                <Search className="mr-2 h-4 w-4 shrink-0 text-zinc-500" />
+            <div className="workspace-command-search-field flex h-14 min-w-0 items-center border-b border-zinc-800 px-4" role="search">
+                <Search className="mr-3 h-4 w-4 shrink-0 text-zinc-500" />
                 <input
                   type="text"
                   autoFocus
@@ -277,9 +282,8 @@ export function Topbar({ onMenuToggle }: TopbarProps) {
                       setSearchQuery('');
                     }
                   }}
-                  className="workspace-command-search-input !min-h-0 h-full w-full bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
+                  className="workspace-command-search-input !min-h-0 h-full min-w-0 flex-1 bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
                 />
-              </div>
               <Button
                 variant="ghost"
                 size="icon"

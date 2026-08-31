@@ -118,3 +118,6 @@ Every feature should include:
 - Route smoke tests for page rendering.
 - Playwright workflow coverage for the main user path.
 - Responsive checks for desktop and mobile layout quality.
+# Execution architecture update (27 August 2026)
+
+Authenticated workspace execution now uses a request-scoped Supabase/Prisma security context, server-only domain services, parallel page read models, Server Component page loaders, and narrow interactive Client Components. See `docs/architecture/iris-os-architecture.md` for current request paths, invariants, migration status, baselines, and rollback location.

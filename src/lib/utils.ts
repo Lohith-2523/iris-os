@@ -19,8 +19,11 @@ export function formatUserMessage(message: string): string {
   return firstName ? message.replace(/Lohith/g, firstName) : message;
 }
 
-export function formatCurrency(amount: number, decimals: number = 0): string {
-  const currency = activeCurrency;
+export function formatCurrencyFor(
+  amount: number,
+  currency: string,
+  decimals: number = 0,
+): string {
   let symbol = 'USD';
   let locale = 'en-US';
 
@@ -47,6 +50,10 @@ export function formatCurrency(amount: number, decimals: number = 0): string {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
   }).format(amount);
+}
+
+export function formatCurrency(amount: number, decimals: number = 0): string {
+  return formatCurrencyFor(amount, activeCurrency, decimals);
 }
 
 export function formatPercent(value: number): string {

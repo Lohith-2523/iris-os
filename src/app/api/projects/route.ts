@@ -7,85 +7,22 @@ import {
   InvoiceServiceError,
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
-import { getDeliveryDelaySummary } from '@/lib/delivery-delays';
 import { isSelectedAgencyServiceLine } from '@/lib/agency-specializations';
-import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
+import { cursorHeaders, readCursorPage } from '@/lib/cursor-pagination';
+import { getRequestSecurityContext } from '@/server/security/request-security-context';
+import { listProjects } from '@/server/domains/project-service';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getRequestUser(request);
-    if (!user) {
+    const ctx = await getRequestSecurityContext();
+    if (!ctx) {
       return NextResponse.json([]);
     }
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
-
-    const defaultInclude = {
-      client: true,
-      members: {
-        take: 100,
-        include: {
-          user: true,
-        }
-      },
-      tasks: {
-        take: 100,
-        orderBy: { createdAt: 'desc' as const },
-        include: {
-          assignedTo: true,
-          stage: true,
-        }
-      },
-      milestones: { take: 100, orderBy: { createdAt: 'desc' as const } },
-      allocations: { take: 100 },
-      stages: {
-        take: 100,
-        orderBy: { position: 'asc' as const }
-      },
-      invoices: {
-        take: 50,
-        orderBy: { issuedDate: 'desc' as const },
-      },
-      deliverables: {
-        take: 50,
-        include: {
-          task: { select: { id: true, title: true, stage: { select: { id: true, name: true } } } },
-        },
-        orderBy: { createdAt: 'desc' as const },
-      },
-      changeRequests: {
-        take: 50,
-        orderBy: { createdAt: 'desc' as const },
-      },
-    };
-
     const pageRequest = readCursorPage(request);
-    const scopedWhere = {
-      orgId: user.orgId,
-      ...descendingCursorWhere(pageRequest.cursor, 'createdAt'),
-      ...(user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {}),
-      ...(clientId ? { clientId } : {}),
-    };
-
-    const projects = await prisma.project.findMany({
-      where: scopedWhere,
-      include: defaultInclude,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: pageRequest.take,
-    });
-
-    const page = finishCursorPage(projects, pageRequest.limit, (project) => project.createdAt);
-    return NextResponse.json(page.items.map((project) => {
-      const delays = getDeliveryDelaySummary(project);
-      return {
-        ...project,
-        deliveryDelays: {
-          stages: delays.delayedStages.map((stage) => ({ id: stage.id, name: stage.name, endDate: stage.endDate })),
-          tasks: delays.delayedTasks.map((task) => ({ title: task.title, deadline: task.deadline, stageId: task.stageId })),
-          total: delays.total,
-        },
-      };
-    }), { headers: cursorHeaders(page, pageRequest.limit) });
+    const page = await listProjects(ctx, pageRequest, clientId);
+    return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching projects:', error);
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });

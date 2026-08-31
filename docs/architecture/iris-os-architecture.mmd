@@ -1,0 +1,53 @@
+graph TB
+  subgraph Browser["Browser"]
+    RSC["Populated RSC and HTML"]
+    Interactive["Interactive Client Components"]
+    Cache["workspaceFetch refresh cache"]
+    Crypto["Messaging OpenPGP + IndexedDB keys"]
+  end
+
+  subgraph Request["Next.js 16 request path"]
+    Proxy["Minimal proxy: Supabase refresh, route gate, headers"]
+    Router["App Router Server Components"]
+    Security["RequestSecurityContext: React cache per request"]
+    ReadModels["Page read models: parallel orchestration"]
+    Services["Server-only domain services"]
+    API["Route handlers: external HTTP + mutations + refresh reads"]
+    ClientShell["WorkspaceShell client interaction boundary"]
+  end
+
+  subgraph Persistence["Trusted persistence boundary"]
+    Prisma["Prisma ORM, bounded reads, transactions, advisory locks"]
+    Postgres["PostgreSQL tenant-scoped data"]
+    Ciphertext["Ciphertext-only messaging records"]
+  end
+
+  subgraph Providers["External providers"]
+    Supabase["Supabase Auth"]
+    Adapters["Google, Meta, Canva, finance, SMTP adapters"]
+    Atlas["Gemini, OpenAI, Anthropic through Atlas orchestration"]
+  end
+
+  Browser --> Proxy
+  Proxy <--> Supabase
+  Proxy --> Router
+  Router --> Security
+  Security --> Supabase
+  Security --> Prisma
+  Router --> ReadModels
+  ReadModels --> Services
+  Services --> Prisma
+  Prisma --> Postgres
+  Router --> ClientShell
+  ClientShell --> RSC
+  RSC --> Interactive
+  Interactive --> Cache
+  Cache --> API
+  API --> Security
+  API --> Services
+  API --> Prisma
+  API --> Adapters
+  API --> Atlas
+  Crypto --> API
+  API --> Ciphertext
+  Ciphertext --> Prisma

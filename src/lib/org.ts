@@ -1,9 +1,11 @@
 import 'server-only';
 
+import { cache } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { prisma } from './db';
 import { createClient } from './server';
 import { withDatabaseConnectionRetry } from './database-resilience';
+import { measureServerOperation } from '@/server/observability/performance';
 
 const userWithWorkspace = {
   organization: {
@@ -26,44 +28,52 @@ function hasVerifiedEmail(identity: SupabaseUser) {
   return Boolean(identity.email_confirmed_at || identity.confirmed_at);
 }
 
-export async function getAuthenticatedIdentity(): Promise<SupabaseUser | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user?.email) return null;
-  return data.user;
+async function resolveAuthenticatedIdentity(): Promise<SupabaseUser | null> {
+  return measureServerOperation('identity.supabase.get-user', async () => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user?.email) return null;
+    return data.user;
+  });
 }
 
-export async function getRequestUser(_request?: unknown) {
-  void _request;
-  const identity = await getAuthenticatedIdentity();
-  if (!identity?.email) return null;
+export const getAuthenticatedIdentity = cache(resolveAuthenticatedIdentity);
 
-  const normalizedEmail = identity.email.trim().toLowerCase();
-  return withDatabaseConnectionRetry(async () => {
-    const userByAuthId = await prisma.user.findUnique({
-      where: { authUserId: identity.id },
-      include: userWithWorkspace,
-    });
+async function resolveRequestUser(_request?: unknown) {
+  return measureServerOperation('identity.workspace-user', async () => {
+    void _request;
+    const identity = await getAuthenticatedIdentity();
+    if (!identity?.email) return null;
 
-    if (userByAuthId) return userByAuthId.accessRevokedAt ? null : userByAuthId;
+    const normalizedEmail = identity.email.trim().toLowerCase();
+    return withDatabaseConnectionRetry(async () => {
+      const userByAuthId = await prisma.user.findUnique({
+        where: { authUserId: identity.id },
+        include: userWithWorkspace,
+      });
 
-    const userByEmail = await prisma.user.findFirst({
-      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
-      include: userWithWorkspace,
-    });
+      if (userByAuthId) return userByAuthId.accessRevokedAt ? null : userByAuthId;
 
-    if (!userByEmail || userByEmail.accessRevokedAt) return null;
-    if (!hasVerifiedEmail(identity)) throw new WorkspaceIdentityConflictError();
+      const userByEmail = await prisma.user.findFirst({
+        where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+        include: userWithWorkspace,
+      });
 
-    // A verified email can reclaim a legacy or partially provisioned workspace
-    // after its Supabase auth subject has been recreated.
-    return prisma.user.update({
-      where: { id: userByEmail.id },
-      data: { authUserId: identity.id, email: normalizedEmail },
-      include: userWithWorkspace,
-    });
-  }, { maxAttempts: 3, delaysMs: [150, 500] });
+      if (!userByEmail || userByEmail.accessRevokedAt) return null;
+      if (!hasVerifiedEmail(identity)) throw new WorkspaceIdentityConflictError();
+
+      // A verified email can reclaim a legacy or partially provisioned workspace
+      // after its Supabase auth subject has been recreated.
+      return prisma.user.update({
+        where: { id: userByEmail.id },
+        data: { authUserId: identity.id, email: normalizedEmail },
+        include: userWithWorkspace,
+      });
+    }, { maxAttempts: 3, delaysMs: [150, 500] });
+  });
 }
+
+export const getRequestUser = cache(resolveRequestUser);
 
 export async function provisionAuthenticatedUser(identity: SupabaseUser) {
   if (!identity.email) throw new Error('Authenticated user is missing an email address.');

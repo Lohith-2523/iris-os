@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatUserMessage, formatCurrency } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
+import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import {
   BarChart3,
@@ -155,14 +156,17 @@ function ExplorerContent() {
   const chartType = searchParams.get('chart');
 
   const [datasets, setDatasets] = React.useState<any>(EMPTY_DATASETS);
+  const [isLoadingData, setIsLoadingData] = React.useState(true);
 
   React.useEffect(() => {
     async function loadExplorerData() {
       try {
-        const financeRes = await fetch('/api/data?domain=finance');
-        const ledgerRes = await fetch('/api/transactions');
-        const teamRes = await fetch('/api/data?domain=team');
-        const marketingRes = await fetch('/api/data?domain=client-dashboard');
+        const [financeRes, ledgerRes, teamRes, marketingRes] = await Promise.all([
+          fetch('/api/data?domain=finance'),
+          fetch('/api/transactions'),
+          fetch('/api/data?domain=team'),
+          fetch('/api/data?domain=client-dashboard'),
+        ]);
 
         let ledgerTransactions: any[] = [];
         let expenses: any[] = [];
@@ -360,6 +364,8 @@ function ExplorerContent() {
         });
       } catch (err) {
         console.error('Error loading explorer data:', err);
+      } finally {
+        setIsLoadingData(false);
       }
     }
     loadExplorerData();
@@ -497,6 +503,8 @@ function ExplorerContent() {
     const min = Math.min(...vals);
     return { total, avg, max, min };
   }, [rawData, primaryY]);
+
+  if (isLoadingData) return <PageSkeleton variant="explorer" />;
 
   return (
     <div className="space-y-6">
@@ -875,7 +883,7 @@ function ExplorerContent() {
 
 export default function ExplorerPage() {
   return (
-    <React.Suspense fallback={<div className="text-zinc-500 p-8 text-xs uppercase font-mono">Loading Graph Explorer data...</div>}>
+    <React.Suspense fallback={<PageSkeleton variant="explorer" />}>
       <ExplorerContent />
     </React.Suspense>
   );

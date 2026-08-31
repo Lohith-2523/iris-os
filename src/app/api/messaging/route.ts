@@ -7,7 +7,8 @@ import {
   isAllowedDirectPair,
   messagingNoStoreHeaders,
 } from '@/lib/messaging/server';
-import { isTransientDatabaseConnectionError, withDatabaseConnectionRetry } from '@/lib/database-resilience';
+import { isTransientDatabaseConnectionError } from '@/lib/database-resilience';
+import { getMessagingInbox } from '@/server/domains/messaging-read-service';
 
 const createConversationSchema = z.object({
   participantUserId: z.string().uuid(),
@@ -20,50 +21,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: authorization.error }, { status: authorization.status });
   }
   const { user, entitlements } = authorization;
-  const eligibleRoles = user.role.toLowerCase() === 'admin' ? ['client', 'member'] : ['admin'];
-  const [directory, conversations] = await withDatabaseConnectionRetry(() => Promise.all([
-    prisma.user.findMany({
-      where: { orgId: user.orgId, id: { not: user.id }, role: { in: eligibleRoles } },
-      select: { id: true, name: true, email: true, role: true, avatarUrl: true, clientId: true },
-      orderBy: [{ role: 'asc' }, { name: 'asc' }],
-    }),
-    prisma.messagingConversation.findMany({
-      where: { orgId: user.orgId, members: { some: { userId: user.id } } },
-      select: {
-        id: true,
-        updatedAt: true,
-        members: {
-          where: { userId: { not: user.id } },
-          select: {
-            lastReadAt: true,
-            user: { select: { id: true, name: true, email: true, role: true, avatarUrl: true } },
-          },
-        },
-        messages: {
-          select: { id: true, senderUserId: true, createdAt: true, attachments: { select: { id: true } } },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    }),
-  ]), { maxAttempts: 3, delaysMs: [150, 500] });
+  const inbox = await getMessagingInbox({
+    userId: user.id,
+    orgId: user.orgId,
+    role: user.role,
+    limits: entitlements.messagingLimits,
+  });
 
   return NextResponse.json({
-    currentUserId: user.id,
-    currentUserRole: user.role,
+    ...inbox,
     plan: user.organization.plan,
     protocol: { name: 'OPENPGP_SIGNED_E2EE', version: 1, plaintextAccepted: false },
-    limits: entitlements.messagingLimits,
-    directory,
-    conversations: conversations.map((conversation) => ({
-      id: conversation.id,
-      updatedAt: conversation.updatedAt,
-      participant: conversation.members[0]?.user || null,
-      lastMessage: conversation.messages[0]
-        ? { ...conversation.messages[0], attachmentCount: conversation.messages[0].attachments.length }
-        : null,
-    })),
   }, { headers: messagingNoStoreHeaders() });
   } catch (error) {
     console.error('Unable to load messaging inbox:', error);

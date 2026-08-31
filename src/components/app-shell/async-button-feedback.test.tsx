@@ -8,13 +8,13 @@ describe('AsyncButtonFeedback', () => {
     vi.unstubAllGlobals();
   });
 
-  it('adds delayed feedback to an uncovered API-backed action button', async () => {
+  it('adds delayed feedback to an explicitly duplicate-sensitive action', async () => {
     vi.useFakeTimers();
     let finishRequest: ((response: Response) => void) | undefined;
     vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => { finishRequest = resolve; })));
 
     function Example() {
-      return <button onClick={() => { void window.fetch('/api/tasks', { method: 'POST' }); }}>Save task</button>;
+      return <button data-duplicate-sensitive onClick={() => { void window.fetch('/api/tasks', { method: 'POST' }); }}>Save task</button>;
     }
 
     render(<><AsyncButtonFeedback /><Example /></>);
@@ -31,14 +31,13 @@ describe('AsyncButtonFeedback', () => {
     expect(button).not.toHaveAttribute('aria-busy');
   });
 
-  it('does not add loading feedback to an opted-out API-backed button', () => {
+  it('does not add loading feedback to ordinary API-backed buttons', () => {
     vi.useFakeTimers();
     vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => undefined)));
 
     function Example() {
       return (
         <button
-          data-skip-async-feedback
           onClick={() => { void window.fetch('/api/workspace', { method: 'PATCH' }); }}
         >
           Toggle theme

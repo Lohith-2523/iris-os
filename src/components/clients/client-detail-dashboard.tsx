@@ -1070,7 +1070,7 @@ export default function ClientDetailDashboard({
                               }
                               className="rounded-none uppercase tracking-wider text-[9px]"
                             >
-                              {task.status}
+                              {task.status.replaceAll('_', ' ')}
                             </Badge>
                             
                             {!isEditing && (

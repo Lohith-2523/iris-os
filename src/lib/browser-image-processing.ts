@@ -1,7 +1,7 @@
 export const MAX_SOURCE_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_PROCESSED_IMAGE_BYTES = 512 * 1024;
 
-export type ImageProcessingKind = 'profile-avatar' | 'invoice-logo';
+export type ImageProcessingKind = 'profile-avatar' | 'invoice-logo' | 'welcome-background';
 
 export type ImageGeometry = {
   sourceX: number;
@@ -32,6 +32,22 @@ export function calculateImageGeometry(width: number, height: number, kind: Imag
       sourceHeight: height,
       outputWidth: width,
       outputHeight: height,
+    };
+  }
+
+  if (kind === 'welcome-background') {
+    const targetRatio = 2.5;
+    const sourceRatio = width / height;
+    const sourceWidth = sourceRatio > targetRatio ? height * targetRatio : width;
+    const sourceHeight = sourceRatio > targetRatio ? height : width / targetRatio;
+    const scale = Math.min(1, 1600 / sourceWidth, 640 / sourceHeight);
+    return {
+      sourceX: (width - sourceWidth) / 2,
+      sourceY: (height - sourceHeight) / 2,
+      sourceWidth,
+      sourceHeight,
+      outputWidth: Math.max(1, Math.round(sourceWidth * scale)),
+      outputHeight: Math.max(1, Math.round(sourceHeight * scale)),
     };
   }
 
@@ -141,7 +157,7 @@ export async function processBrowserImage(file: File, kind: ImageProcessingKind)
 
   try {
     const geometry = calculateImageGeometry(decoded.width, decoded.height, kind);
-    const mimeType = kind === 'profile-avatar'
+    const mimeType = kind === 'profile-avatar' || kind === 'welcome-background'
       ? 'image/webp'
       : file.type === 'image/png'
         ? 'image/png'
@@ -163,7 +179,7 @@ export async function processBrowserImage(file: File, kind: ImageProcessingKind)
       throw new Error('The image could not be compressed enough. Try a simpler or smaller image.');
     }
 
-    const canKeepOriginal = file.size <= MAX_PROCESSED_IMAGE_BYTES
+    const canKeepOriginal = kind !== 'welcome-background' && file.size <= MAX_PROCESSED_IMAGE_BYTES
       && (kind === 'profile-avatar'
         ? ['image/png', 'image/jpeg', 'image/webp'].includes(file.type)
         : ['image/png', 'image/jpeg'].includes(file.type));

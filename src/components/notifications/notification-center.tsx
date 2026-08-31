@@ -101,11 +101,11 @@ export function NotificationCenter() {
       <div className="flex gap-2 border-b border-zinc-800 p-3"><Button size="sm" variant="outline" onClick={() => setShowReminder((value) => !value)}><CalendarClock className="mr-2 h-4 w-4" /> Add reminder</Button><Button size="sm" variant="ghost" onClick={() => void post({ action: 'mark_all_read' })}><CheckCheck className="mr-2 h-4 w-4" /> Mark all read</Button></div>
       {showReminder && <form className="space-y-3 border-b border-zinc-800 bg-zinc-900/30 p-4" onSubmit={createReminder}>
         <input required value={reminder.title} onChange={(event) => setReminder({ ...reminder, title: event.target.value })} placeholder="Reminder title" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-white" />
-        <div className="grid grid-cols-2 gap-3">
-          <DateTimeInput required value={reminder.scheduledAt} onChange={(value) => setReminder({ ...reminder, scheduledAt: value })} className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2" dateInputClassName="min-w-0 rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-white" timeInputClassName="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-white" />
-          <select value={reminder.href} onChange={(event) => setReminder({ ...reminder, href: event.target.value })} className="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-white"><option value="/dashboard">Dashboard</option><option value="/agency-leads">Leads</option><option value="/tasks">Tasks</option><option value="/clients">Clients</option><option value="/calendar">Calendar</option></select>
+        <div className="grid gap-3">
+          <DateTimeInput required value={reminder.scheduledAt} onChange={(value) => setReminder({ ...reminder, scheduledAt: value })} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(11rem,1.5fr)_minmax(7.5rem,.75fr)]" dateInputClassName="h-12 min-w-0 rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white" timeInputClassName="h-12 rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-3 text-sm text-white" />
+          <select value={reminder.href} onChange={(event) => setReminder({ ...reminder, href: event.target.value })} className="h-12 rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-3 text-white"><option value="/dashboard">Dashboard</option><option value="/agency-leads">Leads</option><option value="/tasks">Tasks</option><option value="/clients">Clients</option><option value="/calendar">Calendar</option></select>
         </div>
-        <Button disabled={saving} type="submit">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Schedule reminder</Button>
+        <Button data-duplicate-sensitive disabled={saving} type="submit">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Schedule reminder</Button>
       </form>}
       <div className="max-h-[520px] overflow-y-auto">{items.length ? items.map(renderNotification) : <div className="p-10 text-center text-zinc-500">You’re all caught up.</div>}</div>
     </div>}

@@ -1,101 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
-import { ledgerRevenueEntries, sumLedgerRevenue } from '@/lib/finance/ledger-revenue';
-import { clientPortfolioValueForYear } from '@/lib/clients/portfolio-value';
-import { buildFinancialHistory, type FinancialTimeframe } from '@/lib/finance/financial-history';
-import { serializeClientOnboardingInvite } from '@/lib/clients/onboarding-invite';
-
-type RevenueTransaction = {
-  invoiceId: string | null;
-  amount: number;
-  category: string;
-  date: Date;
-  client: { id: string; name: string; domain: string | null } | null;
-};
-
-function getFinanceMetrics(
-  invoices: Array<{ id: string; invoiceNumber: string; amount: number; paidAmount: number; status: string; documentType: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } | null }>,
-  expenses: Array<{ amount: number; date: Date }>,
-  transactions: RevenueTransaction[] = [],
-  timeframe: FinancialTimeframe = 'Six Months',
-) {
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const transactionRevenue = ledgerRevenueEntries(transactions);
-  const revenueForMonth = (year: number, month: number) => {
-    return transactionRevenue
-      .filter((transaction) => transaction.date.getFullYear() === year && transaction.date.getMonth() === month)
-      .reduce((sum, transaction) => sum + transaction.amount, 0);
-  };
-  const previousDate = new Date(currentYear, currentMonth - 1, 1);
-  const currentMonthRevenue = revenueForMonth(currentYear, currentMonth);
-  const previousMonthRevenue = revenueForMonth(previousDate.getFullYear(), previousDate.getMonth());
-  const monthlyChangePercent = previousMonthRevenue > 0
-    ? ((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100
-    : null;
-
-  const byClient = new Map<string, { id: string; name: string; domain: string; revenue: number }>();
-  for (const transaction of transactionRevenue) {
-    if (!transaction.client) continue;
-    const current = byClient.get(transaction.client.id) || {
-      id: transaction.client.id,
-      name: transaction.client.name,
-      domain: transaction.client.domain || '',
-      revenue: 0,
-    };
-    current.revenue += transaction.amount;
-    byClient.set(transaction.client.id, current);
-  }
-  const totalClientRevenue = [...byClient.values()].reduce((sum, client) => sum + client.revenue, 0);
-  const revenueByClient = [...byClient.values()]
-    .sort((a, b) => b.revenue - a.revenue)
-    .map((client) => ({
-      ...client,
-      share: totalClientRevenue > 0
-        ? (client.revenue / totalClientRevenue) * 100
-        : 0,
-    }));
-
-  const invoiceBalance = (invoice: typeof invoices[number]) => Math.max(0, invoice.amount - invoice.paidAmount);
-  const isOutstandingInvoice = (invoice: typeof invoices[number]) =>
-    invoice.documentType === 'INVOICE' && invoiceBalance(invoice) > 0;
-  const isPartiallyPaidInvoice = (invoice: typeof invoices[number]) =>
-    isOutstandingInvoice(invoice) && invoice.paidAmount > 0;
-  const revenueHistory = buildFinancialHistory({ invoices, expenses, transactions, timeframe });
-  const outstandingInvoices = invoices
-    .filter(isOutstandingInvoice)
-    .map((invoice) => ({
-      id: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      clientName: invoice.client?.name || 'Manual customer',
-      amount: invoice.amount,
-      paidAmount: invoice.paidAmount,
-      pendingAmount: invoiceBalance(invoice),
-      issuedDate: invoice.issuedDate.toISOString(),
-    }))
-    .sort((left, right) => right.pendingAmount - left.pendingAmount);
-
-  return {
-    // Ledger entries are the sole source of recognized revenue. Invoices only
-    // represent receivables and therefore contribute to outstanding balances.
-    grossBillings: sumLedgerRevenue(transactionRevenue),
-    outstandingAmount: invoices
-      .filter(isOutstandingInvoice)
-      .reduce((sum, invoice) => sum + invoiceBalance(invoice), 0),
-    pendingReceivablesAmount: invoices
-      .filter(isPartiallyPaidInvoice)
-      .reduce((sum, invoice) => sum + invoiceBalance(invoice), 0),
-    outstandingInvoices,
-    totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
-    currentMonthRevenue,
-    previousMonthRevenue,
-    monthlyChangePercent,
-    revenueHistory,
-    revenueByClient,
-  };
-}
+import { getRequestSecurityContext } from '@/server/security/request-security-context';
+import type { FinancialTimeframe } from '@/lib/finance/financial-history';
+import { listWorkspaceClients, listWorkspaceTeam } from '@/server/domains/workspace-directory-service';
+import { getDashboardMetrics, getFinanceOverview } from '@/server/domains/finance-read-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -110,15 +18,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing domain parameter' }, { status: 400 });
     }
 
-    const user = await getRequestUser(request);
-    if (!user) {
+    const ctx = await getRequestSecurityContext();
+    if (!ctx) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const user = ctx.user;
 
     const orgId = user.orgId;
-    const clientScope = user.role.toLowerCase() === 'client' && user.clientId
-      ? { id: user.clientId }
-      : {};
     const projectScope = user.role.toLowerCase() === 'client' && user.clientId
       ? { clientId: user.clientId }
       : {};
@@ -129,211 +35,15 @@ export async function GET(request: NextRequest) {
 
     switch (domain) {
       case 'dashboard': {
-        // Compute dashboard executive metrics
-        const revenueClientScope = user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {};
-        const [allClients, projects, invoices, expenses, transactions] = await Promise.all([
-          prisma.client.findMany({ where: { orgId, ...clientScope } }),
-          prisma.project.findMany({
-            where: { orgId, ...projectScope },
-            include: { client: { select: { name: true } } },
-          }),
-          prisma.invoice.findMany({ where: { orgId, ...revenueClientScope }, include: { client: true } }),
-          user.role.toLowerCase() === 'client' ? Promise.resolve([]) : prisma.expense.findMany({ where: { orgId } }),
-          prisma.transaction.findMany({
-            where: { orgId, ...revenueClientScope },
-            include: { client: true },
-          }),
-        ]);
-
-        const clients = allClients.filter((client) => client.status === 'ACTIVE');
-        const activeClientsCount = clients.length;
-        const totalClientsCount = allClients.length;
-        const activeProjects = projects
-          .filter((project) => project.status === 'IN_PROGRESS' || project.status === 'OVERDUE')
-          .sort((left, right) => left.name.localeCompare(right.name))
-          .map((project) => ({
-            id: project.id,
-            name: project.name,
-            clientName: project.client.name,
-            status: project.status,
-            progress: project.progress,
-          }));
-        const activeProjectsCount = activeProjects.length;
-        
-        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions);
-
-        const projectRisks = projects
-          .filter(p => p.riskLevel === 'HIGH' || p.riskLevel === 'MEDIUM')
-          .map(p => ({
-            id: p.id,
-            name: p.name,
-            riskLevel: p.riskLevel,
-            riskDescription: p.riskDescription || '',
-          }));
-
-        return NextResponse.json({
-          activeClientsCount,
-          totalClientsCount,
-          activeProjectsCount,
-          activeProjects,
-          projectRisks,
-          ...financeMetrics,
-        });
+        return NextResponse.json(await getDashboardMetrics(ctx));
       }
 
       case 'finance': {
-        const revenueClientScope = user.role.toLowerCase() === 'client' && user.clientId ? { clientId: user.clientId } : {};
-        const [invoices, expenses, transactions] = await Promise.all([
-          prisma.invoice.findMany({
-            where: { orgId, ...revenueClientScope },
-            orderBy: { issuedDate: 'desc' },
-            include: { client: true }
-          }),
-          user.role.toLowerCase() === 'client'
-            ? Promise.resolve([])
-            : prisma.expense.findMany({
-              where: { orgId },
-              orderBy: { date: 'desc' }
-            }),
-          prisma.transaction.findMany({
-            where: { orgId, ...revenueClientScope },
-            include: { client: true },
-          }),
-        ]);
-
-        const financeMetrics = getFinanceMetrics(invoices, expenses, transactions, timeframe);
-
-        const recentInvoices = invoices.slice(0, 10).map((inv) => {
-          const buyer = inv.buyerSnapshot as { name?: string; legalEntityName?: string } | null;
-          return {
-            id: inv.id,
-            number: inv.invoiceNumber,
-            client: inv.client?.name || buyer?.legalEntityName || buyer?.name || 'Manual customer',
-            amount: inv.amount,
-            date: inv.issuedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            status: inv.status,
-          };
-        });
-
-        return NextResponse.json({
-          ...financeMetrics,
-          recentInvoices,
-          expenses: expenses.map(exp => ({
-            id: exp.id,
-            category: exp.category,
-            amount: exp.amount,
-            date: exp.date.toISOString(),
-            merchant: exp.merchant,
-          })),
-        });
+        return NextResponse.json(await getFinanceOverview(ctx, timeframe));
       }
 
       case 'clients': {
-        const clients = await prisma.client.findMany({
-          where: {
-            orgId,
-            ...clientScope,
-            ...(user.role.toLowerCase() === 'member'
-              ? { projects: { some: { members: { some: { userId: user.id } } } } }
-              : {})
-          },
-          include: {
-            contacts: {
-              select: { id: true, name: true, email: true, phone: true, role: true },
-              orderBy: { createdAt: 'asc' },
-            },
-            projects: {
-              select: {
-                id: true,
-                name: true,
-                serviceLine: true,
-                metaIntegrationEnabled: true,
-                status: true,
-                progress: true,
-                startDate: true,
-                endDate: true,
-                paymentType: true,
-                paymentAmount: true,
-                paymentFrequency: true,
-                paymentStartDate: true,
-                members: {
-                  select: {
-                    user: {
-                      select: { id: true, name: true, email: true, avatarUrl: true },
-                    },
-                  },
-                },
-              },
-            },
-            invoices: {
-              include: {
-                project: { select: { id: true, name: true } },
-              },
-              orderBy: { issuedDate: 'desc' },
-            },
-            invites: {
-              select: { token: true, email: true, used: true, expiresAt: true },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
-            },
-          },
-          orderBy: { name: 'asc' }
-        });
-
-        const portfolioYear = new Date().getUTCFullYear();
-        const formattedClients = clients.map(c => {
-          const contractValue = clientPortfolioValueForYear(c.projects, portfolioYear);
-          const onboardingInvite = serializeClientOnboardingInvite(c.invites[0], isOrganizationAdmin(user));
-
-          return {
-            id: c.id,
-            name: c.name,
-            domain: c.domain || '',
-            status: c.status,
-            churnRiskScore: c.churnRiskScore,
-            roiMetric: c.roiMetric,
-            renewalDate: c.renewalDate ? c.renewalDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null,
-            upsellOpportunityValue: c.upsellOpportunityValue,
-            agencyType: c.agencyType,
-            businessModel: c.businessModel,
-            legalEntityName: c.legalEntityName,
-            billingAddressLine1: c.billingAddressLine1,
-            billingAddressLine2: c.billingAddressLine2,
-            billingCity: c.billingCity,
-            billingState: c.billingState,
-            billingPostalCode: c.billingPostalCode,
-            billingCountry: c.billingCountry,
-            gstNumber: c.gstNumber,
-            adAccountId: c.adAccountId,
-            metadata: c.metadata || null,
-            contacts: c.contacts,
-            onboardingInvite,
-            projects: c.projects.map((project) => ({
-              ...project,
-              members: project.members.map(({ user: member }) => member),
-              startDate: project.startDate.toISOString(),
-              endDate: project.endDate?.toISOString() || null,
-              paymentStartDate: project.paymentStartDate?.toISOString() || null,
-            })),
-            invoices: c.invoices.map((invoice) => ({
-              id: invoice.id,
-              invoiceNumber: invoice.invoiceNumber,
-              amount: invoice.amount,
-              paidAmount: invoice.paidAmount,
-              balanceDue: Math.max(0, invoice.amount - invoice.paidAmount),
-              status: invoice.status,
-              dueDate: invoice.dueDate,
-              issuedDate: invoice.issuedDate,
-              deliveryStatus: invoice.deliveryStatus,
-              project: invoice.project,
-              downloadUrl: `/api/invoices/${invoice.id}/pdf`,
-            })),
-            contractValue,
-            portfolioYear,
-          };
-        });
-
-        return NextResponse.json(formattedClients);
+        return NextResponse.json(await listWorkspaceClients(ctx));
       }
 
       case 'projects': {
@@ -358,27 +68,7 @@ export async function GET(request: NextRequest) {
       }
 
       case 'team': {
-        const users = await prisma.user.findMany({
-          where: {
-            orgId,
-            role: { in: ['admin', 'member', 'sub_admin'] },
-            accessRevokedAt: null,
-          },
-          orderBy: { name: 'asc' }
-        });
-
-        const team = users.map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          phone: u.phone || null,
-          avatarUrl: u.avatarUrl || null,
-          projects: '',
-          status: '',
-        }));
-
-        return NextResponse.json(team);
+        return NextResponse.json(await listWorkspaceTeam(ctx));
       }
 
       case 'reporting': {

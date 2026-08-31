@@ -240,6 +240,7 @@ export async function POST(request: NextRequest) {
         amount,
         comments,
         invoiceId,
+        clientId,
       } = body;
 
       const parsedAmount = parseFloat(amount);
@@ -263,11 +264,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid transaction type' }, { status: 400 });
       }
       const targetAccount = String(yourAccount || '');
-      if (targetCategory === 'Revenue' && !targetAccount.trim()) {
-        return NextResponse.json({ error: 'Select the bank account that received this payment.' }, { status: 400 });
-      }
-      if (org.bankNames.length > 0 && !org.bankNames.includes(targetAccount)) {
+      if (targetAccount.trim() && org.bankNames.length > 0 && !org.bankNames.includes(targetAccount)) {
         return NextResponse.json({ error: 'Select a configured bank account' }, { status: 400 });
+      }
+      const selectedExpenseClient = targetCategory === 'Expense' && typeof clientId === 'string' && clientId
+        ? clientsById.get(clientId) || null
+        : null;
+      if (targetCategory === 'Expense' && clientId && !selectedExpenseClient) {
+        return NextResponse.json({ error: 'Select a valid client for this expense.' }, { status: 400 });
       }
       let finalAmount = parsedAmount;
       if (targetCategory === 'Expense') {
@@ -342,7 +346,7 @@ export async function POST(request: NextRequest) {
             comments: targetCategory === 'Revenue' ? null : comments || null,
             clientId: targetCategory === 'Revenue'
               ? selectedInvoice?.clientId || null
-              : null,
+              : selectedExpenseClient?.id || null,
             invoiceId: selectedInvoice?.id || null,
             orgId: org.id,
           },

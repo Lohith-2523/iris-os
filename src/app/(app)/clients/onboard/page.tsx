@@ -26,6 +26,7 @@ import {
   Wallet,
   AlertTriangle,
   Info,
+  ChevronDown,
   X,
   Loader2
 } from 'lucide-react';
@@ -827,6 +828,12 @@ export default function ClientOnboardPage() {
     }
   };
 
+  const progressFields = [formData.name, formData.clientName, formData.clientEmail, formData.clientPhone];
+  if (formData.createProject) {
+    progressFields.push(formData.projectName, formData.projectServiceLine, formData.projectPaymentAmount, formData.projectPaymentStartDate, formData.projectStartDate);
+  }
+  const completionProgress = Math.round((progressFields.filter((value) => String(value).trim()).length / progressFields.length) * 100);
+
   if (authLoading) {
     return <PageSkeleton variant="onboarding" />;
   }
@@ -872,7 +879,7 @@ export default function ClientOnboardPage() {
 
   // Admin Onboarding View
   return (
-    <div className="space-y-6 max-w-4xl mx-auto font-sans text-xs">
+    <div className="mx-auto max-w-5xl space-y-6 font-sans text-xs">
       {/* Top Breadcrumb and Profile Role Switcher (Hidden in prod but useful in demo) */}
       <div className="flex items-center justify-between border-b border-zinc-800/60 pb-4">
         <div className="flex items-center gap-3">
@@ -891,43 +898,26 @@ export default function ClientOnboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-        {/* Sidebar Steps tracker */}
-        <div className="md:col-span-1 space-y-1.5">
-          {[
-            { s: 1, name: 'Company Profile', desc: 'Business and primary contact details' },
-            { s: 2, name: 'Project Setup', desc: 'Commercials, service, and delivery' },
-            { s: reviewStep, name: 'Review & Verify', desc: 'Complete onboarding' },
-          ].map((item) => (
-            <div
-              key={item.s}
-              className={`p-3 rounded border text-left transition-all ${
-                step === item.s
-                  ? 'border-white bg-zinc-900/40 text-white'
-                  : step > item.s
-                  ? 'border-zinc-850 bg-zinc-950/20 text-zinc-400'
-                  : 'border-transparent text-zinc-600'
-              }`}
-            >
-              <div className="flex items-center gap-2 font-semibold">
-                <span className={`h-4.5 w-4.5 rounded-full flex items-center justify-center text-[9px] border font-mono ${
-                  step === item.s
-                    ? 'bg-white text-zinc-950 border-white'
-                    : step > item.s
-                    ? 'bg-zinc-900 text-zinc-300 border-zinc-800'
-                    : 'border-zinc-900 text-zinc-650'
-                }`}>
-                  {item.s}
-                </span>
-                <span>{item.name}</span>
-              </div>
-              <span className="block text-[9px] text-zinc-500 mt-1 leading-normal pl-6.5">{item.desc}</span>
-            </div>
-          ))}
+      <div className="space-y-5">
+        <div className="rounded-2xl border border-zinc-850 bg-zinc-950/30 px-4 py-5 sm:px-7" aria-label={`Client onboarding ${completionProgress}% complete`}>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Profile completion</span><p className="mt-1 text-xs text-zinc-300">Progress updates as required client and project details are entered.</p></div>
+            <span className="font-mono text-sm font-bold tabular-nums text-white">{completionProgress}%</span>
+          </div>
+          <div className="relative grid grid-cols-3">
+            <div className="absolute left-[16.66%] right-[16.66%] top-4 h-1 rounded-full bg-zinc-850" aria-hidden="true"><div className="h-full rounded-full bg-zinc-200" style={{ width: `${completionProgress}%` }} /></div>
+            {[
+              { s: 1, name: 'Company profile' },
+              { s: 2, name: 'Project setup' },
+              { s: reviewStep, name: 'Review' },
+            ].map((item) => <div key={item.s} className="relative z-10 grid justify-items-center gap-2 text-center">
+              <span className={`grid h-8 w-8 place-items-center rounded-full border font-mono text-[10px] font-bold ${step >= item.s ? 'border-zinc-100 bg-zinc-100 text-zinc-950' : 'border-zinc-750 bg-zinc-950 text-zinc-500'}`}>{item.s}</span>
+              <span className={`whitespace-nowrap text-[10px] font-semibold ${step === item.s ? 'text-white' : 'text-zinc-500'}`}>{item.name}</span>
+            </div>)}
+          </div>
         </div>
 
-        {/* Wizard Panel Content */}
-        <div className="md:col-span-3">
+        <div>
           <Card
             className="relative min-h-[400px] overflow-hidden border-zinc-850/80 flex flex-col justify-between"
             aria-busy={submitStatus === 'submitting'}
@@ -975,12 +965,13 @@ export default function ClientOnboardPage() {
                     </div>
                   </div>
 
-                  <details className="rounded border border-zinc-850 bg-zinc-950/30 p-4 space-y-4">
-                    <summary className="cursor-pointer list-none">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Client billing profile</span>
+                  <details className="group rounded border border-zinc-850 bg-zinc-950/30 p-4 space-y-4">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-300">
+                      <span><span className="block text-[10px] font-bold uppercase tracking-wider text-white">Client invoicing details</span>
                       <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
                         Expand to add the client address. Address fields are required before an invoice can be generated; GSTIN remains optional.
-                      </span>
+                      </span></span>
+                      <span className="flex shrink-0 items-center gap-2 rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-[10px] font-semibold text-zinc-300">Open details <ChevronDown className="h-3.5 w-3.5 group-open:rotate-180" aria-hidden="true" /></span>
                     </summary>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5 sm:col-span-2">

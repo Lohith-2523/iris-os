@@ -80,7 +80,7 @@ export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, ma
     }
   };
 
-  return <div className={cn('relative grid w-full min-w-0 max-w-full', containerClassName)}>
+  return <div className={cn('relative grid w-full min-w-[8.5rem] max-w-full', containerClassName)}>
     <input
       {...props}
       ref={inputRef}

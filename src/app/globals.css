@@ -4,6 +4,10 @@
 @import "shadcn/tailwind.css";
 @import "../../tokens.css";
 
+/* Hallmark · genre: modern-minimal · tone: executive · anchor: graphite
+ * macrostructure: client-scoped workbench actions · pre-emit critique: P5 H5 E4 S5 R5 V4
+ * contrast: pass (40–41) · responsive: pass (34, 49–57) · icons: pass (30) */
+
 html,
 body {
   overflow-x: clip;
@@ -2764,7 +2768,7 @@ button {
 .project-client-project-title {
   flex: 1 1 12rem;
   overflow-wrap: anywhere;
-  font-size: clamp(0.75rem, 1.35cqi, 0.875rem);
+  font-size: clamp(1rem, 1.8cqi, 1.25rem);
   line-height: 1.3;
 }
 
@@ -2813,7 +2817,7 @@ button {
 }
 
 .workspace-shell .project-client-project-action {
-  min-width: 0;
+  min-width: 8rem;
   height: clamp(2rem, 3.7cqi, 2.25rem);
   padding-inline: clamp(0.65rem, 1.2cqi, 0.85rem);
   font-size: clamp(0.75rem, 1cqi, 0.8125rem);
@@ -3021,6 +3025,10 @@ button {
     border-radius: 0.75rem;
     background: var(--workspace-inset);
   }
+}
+
+button:not([data-duplicate-sensitive]) :is(.animate-spin, [class*="loadingSpinner"]) {
+  animation: none !important;
 }
 
 .workspace-shell .agency-leads-kanban-column .border-dashed {
@@ -3714,7 +3722,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   [data-layout-mode='large-phone']
 ) .agency-leads-summary-grid {
   width: 100%;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 
 .workspace-shell:is(
@@ -3724,7 +3732,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   [data-layout-mode='large-tablet']
 ) .agency-leads-summary-grid {
   width: 100%;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
 }
 
 .workspace-shell:is(
@@ -3970,7 +3978,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   [data-layout-mode='standard-phone'],
   [data-layout-mode='large-phone']
 ) .project-breakdown-metrics {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
 
 .workspace-shell:is(
@@ -3979,7 +3987,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   [data-layout-mode='tablet-landscape'],
   [data-layout-mode='large-tablet']
 ) .project-breakdown-metrics {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
 }
 
 .workspace-shell:is(
@@ -4007,5 +4015,241 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 @media (prefers-reduced-motion: reduce) {
   .workspace-shell .workspace-page button.meta-integration-switch-hitbox:active .meta-integration-switch {
     transform: none;
+  }
+}
+
+/* Scroll recovery + Atlas topbar menu.
+ * One touch-capable scroller owns each full-screen layer; modal presence no
+ * longer disables the workspace scroller through a relational selector. */
+.workspace-shell {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+}
+
+.workspace-shell .workspace-main,
+.workspace-shell:has(.fixed.inset-0) .workspace-main {
+  min-height: 0;
+  overflow-x: clip !important;
+  overflow-y: auto !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.workspace-shell .fixed.inset-0 {
+  overflow-x: clip;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.workspace-shell .fixed.inset-0.items-center {
+  align-items: safe center;
+}
+
+.workspace-shell .fixed.inset-0.grid.place-items-center {
+  place-items: safe center;
+}
+
+@media (max-width: 1024px), (max-height: 800px) {
+  .workspace-shell .fixed.inset-0.items-center {
+    align-items: flex-start;
+  }
+
+  .workspace-shell .fixed.inset-0.grid.place-items-center {
+    place-items: start center;
+  }
+}
+
+.atlas-topbar-menu-trigger,
+.atlas-theme-icon {
+  color: var(--workspace-muted);
+}
+
+.atlas-topbar-menu-trigger:hover,
+.atlas-topbar-menu-trigger[aria-expanded='true'],
+.atlas-topbar-menu-card .atlas-theme-icon {
+  color: var(--workspace-text);
+}
+
+:root.light .workspace-shell .atlas-topbar-menu-card {
+  border-color: var(--workspace-edge) !important;
+  background: var(--workspace-material-solid) !important;
+  color: var(--workspace-text) !important;
+}
+
+.workspace-command-search-field {
+  border-inline: 0;
+  border-top: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.workspace-command-search-field:focus-within {
+  outline: 2px solid var(--workspace-focus);
+  outline-offset: -2px;
+}
+
+.atlas-chat-scroll {
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.atlas-voice-button {
+  border-color: var(--workspace-edge, #27272a);
+  background: var(--workspace-control, #18181b);
+  color: var(--workspace-copy, #e4e4e7);
+}
+
+.atlas-voice-button:hover:not(:disabled) {
+  border-color: var(--workspace-copy-muted, #71717a);
+  color: var(--workspace-copy-strong, #fff);
+}
+
+.atlas-voice-button.is-recording {
+  border-color: #e11d48;
+  background: color-mix(in srgb, #e11d48 18%, var(--workspace-control, #18181b));
+  color: #fb7185;
+}
+
+:root.light .workspace-shell .workspace-command-search-field {
+  border-color: var(--workspace-edge) !important;
+  background: transparent !important;
+}
+
+/* Hallmark · component: dashboard metric composition · genre: modern-minimal · theme: locked Iris OS
+ * layout: restored geometry-aware executive MRR anchor
+ * pre-emit critique: P5 H5 E5 S5 R5 V5 · contrast: pass (40-41)
+ * tokens: pass (48) · mobile: pass (34, 49-57) */
+.workspace-shell[data-layout-family='dashboard'] .workspace-page > .dashboard-canvas {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.dashboard-canvas .dashboard-metric-mrr {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.dashboard-mrr-summary {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.dashboard-mrr-header {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-mrr-content {
+  position: static;
+  min-height: 0;
+}
+
+.dashboard-mrr-caption {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1rem;
+  left: 1.5rem;
+  text-align: center;
+}
+
+.dashboard-mrr-value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 3rem 1rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.75rem, 11cqi, 4.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
+}
+
+@media (min-width: 100rem) {
+  .workspace-shell.workspace-shell[data-layout-family='dashboard'][data-layout-mode] .workspace-page .dashboard-metric-grid.grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-card {
+    min-height: 11.5rem;
+  }
+}
+
+@media (min-width: 40rem) and (max-width: 74.9375rem) {
+  .workspace-shell.workspace-shell[data-layout-family='dashboard'][data-layout-mode] .workspace-page .dashboard-metric-grid.grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-revenue {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-profit {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-mrr {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    width: min(100%, calc((100% - 1.5rem) * 0.55));
+    min-height: 13.75rem;
+    justify-self: center;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-expenses {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-receivables {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
+
+@media (min-width: 75rem) and (max-width: 99.9375rem) {
+  .workspace-shell.workspace-shell[data-layout-family='dashboard'][data-layout-mode] .workspace-page .dashboard-metric-grid.grid {
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.78fr) !important;
+    grid-template-rows: minmax(10.25rem, auto) minmax(10.25rem, auto) minmax(10.25rem, auto);
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-revenue {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-profit {
+    grid-column: 3 / 5;
+    grid-row: 1;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-mrr {
+    grid-column: 2 / 4;
+    grid-row: 2 / 4;
+    min-height: 21.5rem;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-expenses {
+    grid-column: 1;
+    grid-row: 2 / 4;
+  }
+
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-receivables {
+    grid-column: 4;
+    grid-row: 2 / 4;
+  }
+}
+
+@media (max-width: 39.9375rem) {
+  .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-mrr {
+    min-height: 12.5rem;
   }
 }

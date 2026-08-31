@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-02T09:18:20.117Z",
-  "baseURL": "http://127.0.0.1:3100",
+  "generatedAt": "2026-08-27T16:34:10.213Z",
+  "baseURL": "http://127.0.0.1:3102",
   "thresholdMs": 2000,
   "authStatus": {
     "attempted": false,
@@ -16,30 +16,37 @@
       "status": 200,
       "title": "Coming Soon - Iris OS",
       "heading": "Coming Soon",
-      "domContentReadyMs": 59,
-      "featureReadyMs": 848,
+      "domContentReadyMs": 116,
+      "featureReadyMs": 940,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 9.399999976158142,
-        "domContentLoadedMs": 54.39999997615814,
-        "loadEventMs": 84.69999992847443,
-        "fcpMs": 72,
-        "lcpMs": 72,
+        "ttfbMs": 66.20000004768372,
+        "domContentLoadedMs": 111.20000004768372,
+        "loadEventMs": 221.70000004768372,
+        "fcpMs": 184,
+        "lcpMs": 184,
         "cls": 0,
-        "transferBytes": 275871,
-        "encodedBytes": 271971,
-        "requestCount": 14,
+        "transferBytes": 363112,
+        "encodedBytes": 358012,
+        "requestCount": 18,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 25,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 40,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 16,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
@@ -49,81 +56,88 @@
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 23,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 17,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 37,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 10,
+            "durationMs": 15,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 8,
+            "durationMs": 10,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 23,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
+            "durationMs": 14,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 20,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 16,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 21,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 22,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
             "type": "link",
             "durationMs": 15,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
             "type": "link",
-            "durationMs": 12,
-            "transferBytes": 1725,
-            "encodedBytes": 1425
+            "durationMs": 14,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 13,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 37,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 35,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 34,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-2fq8l4lbqp2c0.js",
+            "type": "script",
+            "durationMs": 34,
+            "transferBytes": 4465,
+            "encodedBytes": 4165
+          },
+          {
+            "name": "/_next/static/chunks/2h5ytfdjhksof.js",
+            "type": "script",
+            "durationMs": 37,
+            "transferBytes": 3387,
+            "encodedBytes": 3087
           }
         ]
       },
@@ -135,34 +149,48 @@
       "route": "/home",
       "profile": "desktop",
       "accessExpected": "public",
-      "finalURL": "/home",
+      "finalURL": "/",
       "status": 200,
-      "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "See it all.Manage it all.",
-      "domContentReadyMs": 90,
-      "featureReadyMs": 971,
+      "title": "Iris OS — The AI Operating System for Modern Agencies",
+      "heading": "See it all. Manage it all.",
+      "domContentReadyMs": 186,
+      "featureReadyMs": 1224,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 12.200000047683716,
-        "domContentLoadedMs": 87.60000002384186,
-        "loadEventMs": 152.60000002384186,
-        "fcpMs": 188,
-        "lcpMs": 188,
+        "ttfbMs": 27,
+        "domContentLoadedMs": 183.5,
+        "loadEventMs": 223.39999985694885,
+        "fcpMs": 212,
+        "lcpMs": 212,
         "cls": 0,
-        "transferBytes": 324137,
-        "encodedBytes": 319037,
-        "requestCount": 18,
-        "longTaskCount": 0,
-        "longTaskTotalMs": 0,
-        "maxLongTaskMs": 0,
+        "transferBytes": 1144033,
+        "encodedBytes": 1127233,
+        "requestCount": 57,
+        "longTaskCount": 1,
+        "longTaskTotalMs": 118,
+        "maxLongTaskMs": 118,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/meta_logo.png",
+            "type": "img",
+            "durationMs": 25,
+            "transferBytes": 468853,
+            "encodedBytes": 468553
+          },
+          {
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 84,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 21,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 12,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
@@ -172,25 +200,46 @@
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 72,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
+            "durationMs": 20,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 65,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "name": "/whatsapp.png",
+            "type": "img",
+            "durationMs": 27,
+            "transferBytes": 30859,
+            "encodedBytes": 30559
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 24,
+            "durationMs": 12,
             "transferBytes": 29588,
             "encodedBytes": 29288
+          },
+          {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 10,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 9,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 4,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
           },
           {
             "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
@@ -202,65 +251,30 @@
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 2,
+            "durationMs": 3,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 83,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
-          },
-          {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 82,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 72,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 66,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "name": "/iris-logo-white-transparent.svg",
             "type": "link",
-            "durationMs": 84,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
+            "durationMs": 15,
+            "transferBytes": 19741,
+            "encodedBytes": 19441
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 73,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 81,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 77,
-            "transferBytes": 2660,
-            "encodedBytes": 2360
+            "durationMs": 7,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 12,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           }
         ]
       },
@@ -276,128 +290,128 @@
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
       "heading": "Set Up Your Account",
-      "domContentReadyMs": 32,
-      "featureReadyMs": 910,
+      "domContentReadyMs": 39,
+      "featureReadyMs": 924,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 13,
-        "domContentLoadedMs": 29.700000047683716,
-        "loadEventMs": 54.60000002384186,
-        "fcpMs": 60,
-        "lcpMs": 92,
+        "ttfbMs": 13.799999952316284,
+        "domContentLoadedMs": 37.59999990463257,
+        "loadEventMs": 67.39999985694885,
+        "fcpMs": 52,
+        "lcpMs": 104,
         "cls": 0,
-        "transferBytes": 298132,
-        "encodedBytes": 293332,
-        "requestCount": 17,
+        "transferBytes": 385605,
+        "encodedBytes": 379605,
+        "requestCount": 21,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 13,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 26,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 16,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 2,
+            "durationMs": 15,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 12,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 8,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 22,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 4,
+            "durationMs": 14,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 4,
+            "durationMs": 6,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
+            "durationMs": 12,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/0hag5mu44rda4.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 10396,
-            "encodedBytes": 10096
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 9,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 8,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
             "durationMs": 14,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 10,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
             "type": "link",
-            "durationMs": 4,
-            "transferBytes": 2660,
-            "encodedBytes": 2360
+            "durationMs": 12,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
           },
           {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
             "type": "link",
-            "durationMs": 7,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 12,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 23,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/26en953y8hmja.js",
+            "type": "script",
+            "durationMs": 24,
+            "transferBytes": 10621,
+            "encodedBytes": 10321
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 19,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
+          },
+          {
+            "name": "/_next/static/chunks/29ybmm_j40l_d.js",
+            "type": "script",
+            "durationMs": 24,
+            "transferBytes": 9212,
+            "encodedBytes": 8912
           }
         ]
       },
@@ -412,129 +426,129 @@
       "finalURL": "/login",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Sign In",
-      "domContentReadyMs": 31,
-      "featureReadyMs": 819,
+      "heading": "Sign in",
+      "domContentReadyMs": 51,
+      "featureReadyMs": 940,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 10.099999904632568,
-        "domContentLoadedMs": 28.5,
-        "loadEventMs": 71.79999995231628,
+        "ttfbMs": 5.700000047683716,
+        "domContentLoadedMs": 47.59999990463257,
+        "loadEventMs": 72.59999990463257,
         "fcpMs": 56,
         "lcpMs": 56,
         "cls": 0,
-        "transferBytes": 299593,
-        "encodedBytes": 294793,
-        "requestCount": 17,
+        "transferBytes": 2115567,
+        "encodedBytes": 2108667,
+        "requestCount": 24,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/media/iris-auth-workspace-v2.mp4",
+            "type": "video",
+            "durationMs": 10,
+            "transferBytes": 1704046,
+            "encodedBytes": 1703746
+          },
+          {
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 16,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 21,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
           },
           {
-            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
-            "type": "css",
-            "durationMs": 2,
-            "transferBytes": 40780,
-            "encodedBytes": 40480
-          },
-          {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
             "type": "link",
-            "durationMs": 9,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 13,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
+          },
+          {
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
+            "type": "script",
+            "durationMs": 18,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 5,
+            "durationMs": 12,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 3,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 4,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 2,
+            "durationMs": 4,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/3a9d92xoe61g-.js",
-            "type": "script",
-            "durationMs": 15,
-            "transferBytes": 11857,
-            "encodedBytes": 11557
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 8,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
-            "durationMs": 15,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 12,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
-            "type": "link",
-            "durationMs": 6,
-            "transferBytes": 2660,
-            "encodedBytes": 2360
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
             "durationMs": 8,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "transferBytes": 19174,
+            "encodedBytes": 18874
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 11,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 18,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/0b1wo6-l4dtje.js",
+            "type": "script",
+            "durationMs": 20,
+            "transferBytes": 11653,
+            "encodedBytes": 11353
           }
         ]
       },
@@ -549,122 +563,129 @@
       "finalURL": "/onboarding/member",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "This page couldn’t load",
-      "domContentReadyMs": 26,
-      "featureReadyMs": 802,
+      "heading": "Onboarding Link Invalid",
+      "domContentReadyMs": 32,
+      "featureReadyMs": 913,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 9.299999952316284,
-        "domContentLoadedMs": 23.899999976158142,
-        "loadEventMs": 52.60000002384186,
-        "fcpMs": 60,
-        "lcpMs": 88,
+        "ttfbMs": 11.200000047683716,
+        "domContentLoadedMs": 30.5,
+        "loadEventMs": 58.200000047683716,
+        "fcpMs": 64,
+        "lcpMs": 92,
         "cls": 0,
-        "transferBytes": 255419,
-        "encodedBytes": 251219,
-        "requestCount": 15,
+        "transferBytes": 383602,
+        "encodedBytes": 377902,
+        "requestCount": 20,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 15,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 19,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
             "type": "link",
-            "durationMs": 7,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 12,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 3,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 5,
+            "durationMs": 10,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 3,
+            "durationMs": 4,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 12,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/346ifj_obzdv2.js",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 17,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/11_eh45tcywr0.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 11278,
+            "encodedBytes": 10978
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
             "type": "script",
             "durationMs": 13,
-            "transferBytes": 11123,
-            "encodedBytes": 10823
+            "transferBytes": 9574,
+            "encodedBytes": 9274
           },
           {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
             "type": "script",
-            "durationMs": 9,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
+            "durationMs": 12,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
           },
           {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "name": "/_next/static/chunks/29ybmm_j40l_d.js",
             "type": "script",
-            "durationMs": 7,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 9,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
-            "type": "link",
-            "durationMs": 6,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
-          },
-          {
-            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
-            "type": "link",
-            "durationMs": 5,
-            "transferBytes": 1725,
-            "encodedBytes": 1425
+            "durationMs": 18,
+            "transferBytes": 9212,
+            "encodedBytes": 8912
           }
         ]
       },
@@ -678,65 +699,100 @@
       "accessExpected": "public",
       "finalURL": "/",
       "status": 200,
-      "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "See it all.Manage it all.",
-      "domContentReadyMs": 27,
-      "featureReadyMs": 896,
+      "title": "Iris OS — The AI Operating System for Modern Agencies",
+      "heading": "See it all. Manage it all.",
+      "domContentReadyMs": 36,
+      "featureReadyMs": 1144,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 9.100000023841858,
-        "domContentLoadedMs": 25.299999952316284,
-        "loadEventMs": 51.89999997615814,
-        "fcpMs": 132,
-        "lcpMs": 132,
+        "ttfbMs": 5.099999904632568,
+        "domContentLoadedMs": 33.59999990463257,
+        "loadEventMs": 169.29999995231628,
+        "fcpMs": 156,
+        "lcpMs": 156,
         "cls": 0,
-        "transferBytes": 324137,
-        "encodedBytes": 319037,
-        "requestCount": 18,
-        "longTaskCount": 0,
-        "longTaskTotalMs": 0,
-        "maxLongTaskMs": 0,
+        "transferBytes": 1144033,
+        "encodedBytes": 1127233,
+        "requestCount": 57,
+        "longTaskCount": 1,
+        "longTaskTotalMs": 75,
+        "maxLongTaskMs": 75,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/meta_logo.png",
+            "type": "img",
+            "durationMs": 7,
+            "transferBytes": 468853,
+            "encodedBytes": 468553
+          },
+          {
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 18,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 21,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 13,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 3,
+            "durationMs": 6,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 14,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
+            "durationMs": 17,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 9,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "name": "/whatsapp.png",
+            "type": "img",
+            "durationMs": 6,
+            "transferBytes": 30859,
+            "encodedBytes": 30559
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 5,
+            "durationMs": 10,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 7,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 24,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 3,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
             "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
             "type": "css",
-            "durationMs": 2,
+            "durationMs": 6,
             "transferBytes": 23408,
             "encodedBytes": 23108
           },
@@ -748,60 +804,25 @@
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 16,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
-          },
-          {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
+            "name": "/iris-logo-white-transparent.svg",
+            "type": "link",
             "durationMs": 14,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
+            "transferBytes": 19741,
+            "encodedBytes": 19441
           },
           {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
             "durationMs": 12,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 10,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
-            "type": "link",
-            "durationMs": 8,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
-            "type": "link",
-            "durationMs": 8,
-            "transferBytes": 2660,
-            "encodedBytes": 2360
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           }
         ]
       },
@@ -815,130 +836,130 @@
       "accessExpected": "public",
       "finalURL": "/pricing",
       "status": 200,
-      "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Iris OS Workspace Tiers",
-      "domContentReadyMs": 28,
-      "featureReadyMs": 911,
+      "title": "Pricing | Iris OS",
+      "heading": "Choose your operating capacity.",
+      "domContentReadyMs": 31,
+      "featureReadyMs": 921,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 9.5,
-        "domContentLoadedMs": 26.899999976158142,
-        "loadEventMs": 52.09999990463257,
-        "fcpMs": 76,
-        "lcpMs": null,
+        "ttfbMs": 4.6000001430511475,
+        "domContentLoadedMs": 27.40000009536743,
+        "loadEventMs": 78.90000009536743,
+        "fcpMs": 64,
+        "lcpMs": 64,
         "cls": 0,
-        "transferBytes": 312945,
-        "encodedBytes": 305745,
-        "requestCount": 25,
+        "transferBytes": 564645,
+        "encodedBytes": 553245,
+        "requestCount": 39,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 15,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 20,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 10,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 2,
+            "durationMs": 5,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 12,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 9,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 16,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 5,
+            "durationMs": 10,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 8,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 7,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 7,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 7,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 2,
+            "durationMs": 4,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 2,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
+            "name": "/iris-logo-white-transparent.svg",
+            "type": "link",
+            "durationMs": 13,
+            "transferBytes": 19741,
+            "encodedBytes": 19441
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 10,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 8,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/0cv8o3wna-o63.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 8231,
-            "encodedBytes": 7931
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/pricing?_rsc=cEZXiMQbAqkBuU8b",
-            "type": "fetch",
-            "durationMs": 8,
-            "transferBytes": 3480,
-            "encodedBytes": 3180
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 12,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
             "durationMs": 7,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "transferBytes": 19174,
+            "encodedBytes": 18874
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
           }
         ]
       },
@@ -953,129 +974,129 @@
       "finalURL": "/privacy",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Data Usage & Privacy Policy",
-      "domContentReadyMs": 31,
-      "featureReadyMs": 911,
+      "heading": "Global Privacy & AI Data Policy",
+      "domContentReadyMs": 34,
+      "featureReadyMs": 909,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 9.800000071525574,
-        "domContentLoadedMs": 29.200000047683716,
-        "loadEventMs": 54.800000071525574,
+        "ttfbMs": 11.199999809265137,
+        "domContentLoadedMs": 32.59999990463257,
+        "loadEventMs": 59.19999980926514,
         "fcpMs": 84,
         "lcpMs": 84,
         "cls": 0,
-        "transferBytes": 310912,
-        "encodedBytes": 306112,
-        "requestCount": 17,
+        "transferBytes": 374798,
+        "encodedBytes": 369098,
+        "requestCount": 20,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 18,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 17,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 11,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 4,
+            "durationMs": 3,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 15,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 8,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 16,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 5,
+            "durationMs": 8,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
-            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
-            "type": "css",
-            "durationMs": 4,
-            "transferBytes": 23408,
-            "encodedBytes": 23108
-          },
-          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 2,
+            "durationMs": 4,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
-            "type": "script",
-            "durationMs": 17,
-            "transferBytes": 9711,
-            "encodedBytes": 9411
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 9,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 9,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 7,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=96&q=75",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
             "type": "link",
             "durationMs": 8,
-            "transferBytes": 1922,
-            "encodedBytes": 1622
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/2lug3y8-avs1e.js",
+            "type": "script",
+            "durationMs": 18,
+            "transferBytes": 9764,
+            "encodedBytes": 9464
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 16,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 12,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-2fq8l4lbqp2c0.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 4465,
+            "encodedBytes": 4165
           }
         ]
       },
@@ -1090,129 +1111,129 @@
       "finalURL": "/signup",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Create Workspace",
-      "domContentReadyMs": 29,
-      "featureReadyMs": 914,
+      "heading": "Create your workspace",
+      "domContentReadyMs": 48,
+      "featureReadyMs": 953,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 11.100000023841858,
-        "domContentLoadedMs": 26.5,
-        "loadEventMs": 53.39999997615814,
-        "fcpMs": 72,
-        "lcpMs": 72,
+        "ttfbMs": 4.099999904632568,
+        "domContentLoadedMs": 44.39999985694885,
+        "loadEventMs": 79.20000004768372,
+        "fcpMs": 52,
+        "lcpMs": 52,
         "cls": 0,
-        "transferBytes": 300086,
-        "encodedBytes": 295286,
-        "requestCount": 17,
+        "transferBytes": 2149830,
+        "encodedBytes": 2142330,
+        "requestCount": 26,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/media/iris-auth-workspace-v2.mp4",
+            "type": "video",
+            "durationMs": 8,
+            "transferBytes": 1704046,
+            "encodedBytes": 1703746
+          },
+          {
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 15,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 21,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
           },
           {
-            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
-            "type": "css",
-            "durationMs": 2,
-            "transferBytes": 40780,
-            "encodedBytes": 40480
-          },
-          {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
             "type": "link",
-            "durationMs": 9,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 12,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
+          },
+          {
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
+            "type": "script",
+            "durationMs": 17,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 5,
+            "durationMs": 11,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 4,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 21,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 4,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 2,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 2,
+            "durationMs": 4,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 13,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0qrf19unb6smn.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 12350,
-            "encodedBytes": 12050
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
             "durationMs": 8,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
             "durationMs": 11,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 10,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
             "type": "script",
-            "durationMs": 12,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=128&q=75",
-            "type": "link",
-            "durationMs": 6,
-            "transferBytes": 2660,
-            "encodedBytes": 2360
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
-            "type": "link",
-            "durationMs": 6,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 17,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
           }
         ]
       },
@@ -1228,128 +1249,128 @@
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
       "heading": "Terms of Service",
-      "domContentReadyMs": 31,
-      "featureReadyMs": 911,
+      "domContentReadyMs": 65,
+      "featureReadyMs": 861,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 9.299999952316284,
-        "domContentLoadedMs": 27.200000047683716,
-        "loadEventMs": 52.39999997615814,
-        "fcpMs": 80,
-        "lcpMs": 80,
+        "ttfbMs": 14,
+        "domContentLoadedMs": 62.700000047683716,
+        "loadEventMs": 89.40000009536743,
+        "fcpMs": 72,
+        "lcpMs": 72,
         "cls": 0,
-        "transferBytes": 310912,
-        "encodedBytes": 306112,
-        "requestCount": 17,
+        "transferBytes": 374798,
+        "encodedBytes": 369098,
+        "requestCount": 20,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 16,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 19,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 12,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 3,
+            "durationMs": 2,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 13,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 10,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 16,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 6,
+            "durationMs": 9,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
-            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
-            "type": "css",
-            "durationMs": 3,
-            "transferBytes": 23408,
-            "encodedBytes": 23108
-          },
-          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 2,
+            "durationMs": 5,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
+            "durationMs": 8,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
-            "type": "script",
-            "durationMs": 14,
-            "transferBytes": 9711,
-            "encodedBytes": 9411
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 12,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
             "durationMs": 9,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 9,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
             "type": "script",
-            "durationMs": 12,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
+            "durationMs": 16,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
           },
           {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "name": "/_next/static/chunks/2lug3y8-avs1e.js",
+            "type": "script",
+            "durationMs": 18,
+            "transferBytes": 9764,
+            "encodedBytes": 9464
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
             "type": "script",
             "durationMs": 13,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
+            "transferBytes": 9239,
+            "encodedBytes": 8939
           },
           {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
-            "type": "link",
-            "durationMs": 9,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=96&q=75",
-            "type": "link",
-            "durationMs": 7,
-            "transferBytes": 1922,
-            "encodedBytes": 1622
+            "name": "/_next/static/chunks/turbopack-2fq8l4lbqp2c0.js",
+            "type": "script",
+            "durationMs": 15,
+            "transferBytes": 4465,
+            "encodedBytes": 4165
           }
         ]
       },
@@ -1365,128 +1386,128 @@
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
       "heading": "Join the Waitlist",
-      "domContentReadyMs": 41,
-      "featureReadyMs": 912,
+      "domContentReadyMs": 32,
+      "featureReadyMs": 925,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 8.299999952316284,
-        "domContentLoadedMs": 39.200000047683716,
-        "loadEventMs": 63.89999997615814,
-        "fcpMs": 48,
-        "lcpMs": 48,
+        "ttfbMs": 9,
+        "domContentLoadedMs": 29.200000047683716,
+        "loadEventMs": 69.89999985694885,
+        "fcpMs": 60,
+        "lcpMs": 60,
         "cls": 0,
-        "transferBytes": 309217,
-        "encodedBytes": 303217,
-        "requestCount": 21,
+        "transferBytes": 421221,
+        "encodedBytes": 413421,
+        "requestCount": 27,
         "longTaskCount": 0,
         "longTaskTotalMs": 0,
         "maxLongTaskMs": 0,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 14,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 16,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 10,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 2,
+            "durationMs": 3,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 11,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 8,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 14,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 6,
+            "durationMs": 8,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 3,
+            "durationMs": 4,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 3,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
-          },
-          {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 11,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/3ys49t055e46q.js",
-            "type": "script",
-            "durationMs": 12,
-            "transferBytes": 11171,
-            "encodedBytes": 10871
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 9,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
             "durationMs": 7,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 7,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
             "type": "script",
+            "durationMs": 14,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/3fnu0jxq8_bk4.css",
+            "type": "link",
             "durationMs": 9,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
+            "transferBytes": 12125,
+            "encodedBytes": 11825
           },
           {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
+            "name": "/_next/static/chunks/2z3so1w0h-qye.js",
             "type": "script",
-            "durationMs": 10,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
+            "durationMs": 15,
+            "transferBytes": 11486,
+            "encodedBytes": 11186
           },
           {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
-            "type": "link",
-            "durationMs": 6,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "name": "/?_rsc=VkLTIpRtzTWIFPBK",
+            "type": "fetch",
+            "durationMs": 8,
+            "transferBytes": 10570,
+            "encodedBytes": 10270
           },
           {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=96&q=75",
-            "type": "link",
-            "durationMs": 6,
-            "transferBytes": 1922,
-            "encodedBytes": 1622
+            "name": "/_next/static/chunks/3idhxfkau_e1b.js",
+            "type": "script",
+            "durationMs": 2,
+            "transferBytes": 10408,
+            "encodedBytes": 10108
           }
         ]
       },
@@ -1502,114 +1523,128 @@
       "status": 200,
       "title": "Coming Soon - Iris OS",
       "heading": "Coming Soon",
-      "domContentReadyMs": 1135,
-      "featureReadyMs": 2685,
+      "domContentReadyMs": 1886,
+      "featureReadyMs": 3103,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 3.5999999046325684,
-        "domContentLoadedMs": 1133.2999999523163,
-        "loadEventMs": 1899,
-        "fcpMs": 1244,
-        "lcpMs": 1244,
+        "ttfbMs": 3.799999952316284,
+        "domContentLoadedMs": 1884.7000000476837,
+        "loadEventMs": 2295.2999999523163,
+        "fcpMs": 1996,
+        "lcpMs": 1996,
         "cls": 0,
-        "transferBytes": 275871,
-        "encodedBytes": 271971,
-        "requestCount": 14,
+        "transferBytes": 363112,
+        "encodedBytes": 358012,
+        "requestCount": 18,
         "longTaskCount": 2,
-        "longTaskTotalMs": 192,
-        "maxLongTaskMs": 106,
+        "longTaskTotalMs": 220,
+        "maxLongTaskMs": 122,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1587,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 1893,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1662,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 658,
+            "durationMs": 402,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1229,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 919,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1692,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 905,
+            "durationMs": 806,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 750,
+            "durationMs": 779,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1289,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 839,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 405,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 1010,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1057,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 235,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 714,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
             "type": "link",
-            "durationMs": 220,
-            "transferBytes": 1725,
-            "encodedBytes": 1425
+            "durationMs": 729,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 714,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 669,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 1613,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 1256,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 1038,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
+          },
+          {
+            "name": "/_next/static/chunks/turbopack-2fq8l4lbqp2c0.js",
+            "type": "script",
+            "durationMs": 1193,
+            "transferBytes": 4465,
+            "encodedBytes": 4165
+          },
+          {
+            "name": "/_next/static/chunks/2h5ytfdjhksof.js",
+            "type": "script",
+            "durationMs": 1302,
+            "transferBytes": 3387,
+            "encodedBytes": 3087
           }
         ]
       },
@@ -1621,132 +1656,132 @@
       "route": "/home",
       "profile": "mobile-fast4g",
       "accessExpected": "public",
-      "finalURL": "/home",
+      "finalURL": "/",
       "status": 200,
-      "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "See it all.Manage it all.",
-      "domContentReadyMs": 1267,
-      "featureReadyMs": 2983,
+      "title": "Iris OS — The AI Operating System for Modern Agencies",
+      "heading": "See it all. Manage it all.",
+      "domContentReadyMs": 2359,
+      "featureReadyMs": 5502,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 3.6999999284744263,
-        "domContentLoadedMs": 1265.3999999761581,
-        "loadEventMs": 2211.399999976158,
-        "fcpMs": 1292,
-        "lcpMs": 1292,
+        "ttfbMs": 183.5,
+        "domContentLoadedMs": 2357.399999856949,
+        "loadEventMs": 3334.5999999046326,
+        "fcpMs": 2096,
+        "lcpMs": 2096,
         "cls": 0,
-        "transferBytes": 330899,
-        "encodedBytes": 325799,
-        "requestCount": 18,
-        "longTaskCount": 2,
-        "longTaskTotalMs": 272,
-        "maxLongTaskMs": 168,
+        "transferBytes": 614656,
+        "encodedBytes": 599656,
+        "requestCount": 51,
+        "longTaskCount": 10,
+        "longTaskTotalMs": 1513,
+        "maxLongTaskMs": 467,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1896,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2608,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1209,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 970,
+            "durationMs": 1218,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1445,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 871,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1846,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 826,
+            "durationMs": 1475,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 1046,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 532,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 1006,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
             "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
             "type": "css",
-            "durationMs": 798,
+            "durationMs": 970,
             "transferBytes": 23408,
             "encodedBytes": 23108
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 687,
+            "durationMs": 732,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 1615,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
-          },
-          {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1288,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1040,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=384&q=75",
+            "name": "/iris-logo-white-transparent.svg",
             "type": "link",
-            "durationMs": 436,
-            "transferBytes": 9422,
-            "encodedBytes": 9122
+            "durationMs": 1303,
+            "transferBytes": 19741,
+            "encodedBytes": 19441
           },
           {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 761,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 359,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
+            "durationMs": 667,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 1024,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 682,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1086,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 667,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 622,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
           }
         ]
       },
@@ -1762,30 +1797,37 @@
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
       "heading": "Set Up Your Account",
-      "domContentReadyMs": 1150,
-      "featureReadyMs": 3169,
+      "domContentReadyMs": 1311,
+      "featureReadyMs": 3677,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 7.700000047683716,
-        "domContentLoadedMs": 1146.1000000238419,
-        "loadEventMs": 1833,
-        "fcpMs": 1168,
-        "lcpMs": 1968,
+        "ttfbMs": 4.200000047683716,
+        "domContentLoadedMs": 1309.6000001430511,
+        "loadEventMs": 2308.2000000476837,
+        "fcpMs": 1420,
+        "lcpMs": 2488,
         "cls": 0,
-        "transferBytes": 301438,
-        "encodedBytes": 296638,
-        "requestCount": 17,
-        "longTaskCount": 2,
-        "longTaskTotalMs": 172,
-        "maxLongTaskMs": 120,
+        "transferBytes": 388911,
+        "encodedBytes": 382911,
+        "requestCount": 21,
+        "longTaskCount": 3,
+        "longTaskTotalMs": 266,
+        "maxLongTaskMs": 149,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1510,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 1955,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1101,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
@@ -1795,95 +1837,88 @@
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1276,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 936,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1737,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 889,
+            "durationMs": 1381,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 738,
+            "durationMs": 762,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1321,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0hag5mu44rda4.js",
-            "type": "script",
-            "durationMs": 1337,
-            "transferBytes": 10396,
-            "encodedBytes": 10096
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 856,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 405,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
-            "durationMs": 1367,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 226,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
+            "durationMs": 713,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 995,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1088,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
             "type": "link",
-            "durationMs": 251,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 822,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 698,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 636,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 1705,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/26en953y8hmja.js",
+            "type": "script",
+            "durationMs": 1782,
+            "transferBytes": 10621,
+            "encodedBytes": 10321
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 1286,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 1069,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
+          },
+          {
+            "name": "/_next/static/chunks/29ybmm_j40l_d.js",
+            "type": "script",
+            "durationMs": 1766,
+            "transferBytes": 9212,
+            "encodedBytes": 8912
           }
         ]
       },
@@ -1898,129 +1933,129 @@
       "finalURL": "/login",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Sign In",
-      "domContentReadyMs": 1136,
-      "featureReadyMs": 2858,
+      "heading": "Sign in",
+      "domContentReadyMs": 1852,
+      "featureReadyMs": 3469,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 6.399999976158142,
-        "domContentLoadedMs": 1134.1000000238419,
-        "loadEventMs": 2076.2000000476837,
-        "fcpMs": 1228,
-        "lcpMs": 1228,
+        "ttfbMs": 3.5999999046325684,
+        "domContentLoadedMs": 1850.1999998092651,
+        "loadEventMs": 2698.0999999046326,
+        "fcpMs": 1920,
+        "lcpMs": 1920,
         "cls": 0,
-        "transferBytes": 302899,
-        "encodedBytes": 298099,
-        "requestCount": 17,
-        "longTaskCount": 2,
-        "longTaskTotalMs": 194,
-        "maxLongTaskMs": 127,
+        "transferBytes": 415367,
+        "encodedBytes": 408767,
+        "requestCount": 23,
+        "longTaskCount": 1,
+        "longTaskTotalMs": 128,
+        "maxLongTaskMs": 128,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1741,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2358,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
           },
           {
-            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
-            "type": "css",
-            "durationMs": 801,
-            "transferBytes": 40780,
-            "encodedBytes": 40480
-          },
-          {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
-            "type": "script",
-            "durationMs": 1258,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
             "type": "link",
-            "durationMs": 918,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1628,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
+          },
+          {
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
+            "type": "script",
+            "durationMs": 1783,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 842,
+            "durationMs": 805,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 628,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 619,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 674,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 719,
+            "durationMs": 777,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1350,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/3a9d92xoe61g-.js",
-            "type": "script",
-            "durationMs": 1443,
-            "transferBytes": 11857,
-            "encodedBytes": 11557
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1010,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 637,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
-            "durationMs": 1458,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 328,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
+            "durationMs": 745,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 1009,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1055,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
             "type": "link",
-            "durationMs": 248,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 713,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 729,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 668,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 1765,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/0b1wo6-l4dtje.js",
+            "type": "script",
+            "durationMs": 1796,
+            "transferBytes": 11653,
+            "encodedBytes": 11353
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 1377,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
           }
         ]
       },
@@ -2035,122 +2070,129 @@
       "finalURL": "/onboarding/member",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "This page couldn’t load",
-      "domContentReadyMs": 1150,
-      "featureReadyMs": 2591,
+      "heading": "Onboarding Link Invalid",
+      "domContentReadyMs": 1352,
+      "featureReadyMs": 3594,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 4.399999976158142,
-        "domContentLoadedMs": 1148.3999999761581,
-        "loadEventMs": 1831.7000000476837,
-        "fcpMs": 1176,
-        "lcpMs": 2040,
+        "ttfbMs": 3.799999952316284,
+        "domContentLoadedMs": 1350.5,
+        "loadEventMs": 2273.7000000476837,
+        "fcpMs": 1468,
+        "lcpMs": 2396,
         "cls": 0,
-        "transferBytes": 255419,
-        "encodedBytes": 251219,
-        "requestCount": 15,
-        "longTaskCount": 2,
-        "longTaskTotalMs": 242,
-        "maxLongTaskMs": 122,
+        "transferBytes": 383602,
+        "encodedBytes": 377902,
+        "requestCount": 20,
+        "longTaskCount": 1,
+        "longTaskTotalMs": 132,
+        "maxLongTaskMs": 132,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1507,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 1940,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
-            "type": "script",
-            "durationMs": 1259,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
             "type": "link",
-            "durationMs": 933,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1148,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
+          },
+          {
+            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
+            "type": "css",
+            "durationMs": 376,
+            "transferBytes": 40780,
+            "encodedBytes": 40480
+          },
+          {
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
+            "type": "script",
+            "durationMs": 1707,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 903,
+            "durationMs": 1429,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 733,
+            "durationMs": 747,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1334,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/346ifj_obzdv2.js",
-            "type": "script",
-            "durationMs": 1334,
-            "transferBytes": 11123,
-            "encodedBytes": 10823
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 854,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 403,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
-            "durationMs": 1365,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 993,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1071,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 233,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 683,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/2smhkz0fmaj1a.css",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
             "type": "link",
-            "durationMs": 234,
-            "transferBytes": 1725,
-            "encodedBytes": 1425
+            "durationMs": 699,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 699,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 637,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 1675,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/11_eh45tcywr0.js",
+            "type": "script",
+            "durationMs": 1768,
+            "transferBytes": 11278,
+            "encodedBytes": 10978
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 1271,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 1100,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
+          },
+          {
+            "name": "/_next/static/chunks/29ybmm_j40l_d.js",
+            "type": "script",
+            "durationMs": 1783,
+            "transferBytes": 9212,
+            "encodedBytes": 8912
           }
         ]
       },
@@ -2164,130 +2206,130 @@
       "accessExpected": "public",
       "finalURL": "/",
       "status": 200,
-      "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "See it all.Manage it all.",
-      "domContentReadyMs": 1244,
-      "featureReadyMs": 2986,
+      "title": "Iris OS — The AI Operating System for Modern Agencies",
+      "heading": "See it all. Manage it all.",
+      "domContentReadyMs": 1443,
+      "featureReadyMs": 5237,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 4.399999976158142,
-        "domContentLoadedMs": 1241.6000000238419,
-        "loadEventMs": 2211.2000000476837,
-        "fcpMs": 1272,
-        "lcpMs": 1272,
+        "ttfbMs": 6.099999904632568,
+        "domContentLoadedMs": 1440.8999998569489,
+        "loadEventMs": 3175,
+        "fcpMs": 2284,
+        "lcpMs": 2284,
         "cls": 0,
-        "transferBytes": 330899,
-        "encodedBytes": 325799,
-        "requestCount": 18,
-        "longTaskCount": 2,
-        "longTaskTotalMs": 273,
-        "maxLongTaskMs": 159,
+        "transferBytes": 614656,
+        "encodedBytes": 599656,
+        "requestCount": 51,
+        "longTaskCount": 10,
+        "longTaskTotalMs": 1618,
+        "maxLongTaskMs": 681,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1896,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2637,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1208,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 972,
+            "durationMs": 1272,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1445,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 871,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1813,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 827,
+            "durationMs": 1490,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 1084,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 524,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 971,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
             "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
             "type": "css",
-            "durationMs": 816,
+            "durationMs": 960,
             "transferBytes": 23408,
             "encodedBytes": 23108
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 688,
+            "durationMs": 730,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 1615,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
-          },
-          {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1288,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1025,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=384&q=75",
+            "name": "/iris-logo-white-transparent.svg",
             "type": "link",
-            "durationMs": 436,
-            "transferBytes": 9422,
-            "encodedBytes": 9122
+            "durationMs": 1303,
+            "transferBytes": 19741,
+            "encodedBytes": 19441
           },
           {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 761,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 359,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
+            "durationMs": 667,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 1071,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 681,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1086,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 666,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 621,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
           }
         ]
       },
@@ -2301,130 +2343,130 @@
       "accessExpected": "public",
       "finalURL": "/pricing",
       "status": 200,
-      "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Iris OS Workspace Tiers",
-      "domContentReadyMs": 1260,
-      "featureReadyMs": 3552,
+      "title": "Pricing | Iris OS",
+      "heading": "Choose your operating capacity.",
+      "domContentReadyMs": 1947,
+      "featureReadyMs": 4811,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 4.199999928474426,
-        "domContentLoadedMs": 1258.1999999284744,
-        "loadEventMs": 2024.2999999523163,
-        "fcpMs": 1264,
-        "lcpMs": 1904,
+        "ttfbMs": 4.5,
+        "domContentLoadedMs": 1943.7000000476837,
+        "loadEventMs": 2915.2000000476837,
+        "fcpMs": 2064,
+        "lcpMs": 2064,
         "cls": 0,
-        "transferBytes": 309495,
-        "encodedBytes": 303495,
-        "requestCount": 21,
-        "longTaskCount": 2,
-        "longTaskTotalMs": 284,
-        "maxLongTaskMs": 168,
+        "transferBytes": 564645,
+        "encodedBytes": 553245,
+        "requestCount": 39,
+        "longTaskCount": 3,
+        "longTaskTotalMs": 270,
+        "maxLongTaskMs": 124,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1676,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2560,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1722,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 746,
+            "durationMs": 935,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1256,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 868,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1876,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 854,
+            "durationMs": 805,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 841,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 472,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 679,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 856,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 699,
+            "durationMs": 778,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 258,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
-          },
-          {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1301,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1022,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 650,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/0cv8o3wna-o63.js",
-            "type": "script",
-            "durationMs": 1364,
-            "transferBytes": 8231,
-            "encodedBytes": 7931
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-white-bg.png&w=256&q=75",
+            "name": "/iris-logo-white-transparent.svg",
             "type": "link",
-            "durationMs": 308,
-            "transferBytes": 5140,
-            "encodedBytes": 4840
+            "durationMs": 1349,
+            "transferBytes": 19741,
+            "encodedBytes": 19441
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 975,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1084,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 230,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 717,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 744,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 713,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 683,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
           }
         ]
       },
@@ -2439,129 +2481,129 @@
       "finalURL": "/privacy",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Data Usage & Privacy Policy",
-      "domContentReadyMs": 1117,
-      "featureReadyMs": 2814,
+      "heading": "Global Privacy & AI Data Policy",
+      "domContentReadyMs": 1359,
+      "featureReadyMs": 3237,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 4.199999928474426,
-        "domContentLoadedMs": 1114.1999999284744,
-        "loadEventMs": 2160.6999999284744,
-        "fcpMs": 1280,
-        "lcpMs": 1280,
+        "ttfbMs": 5,
+        "domContentLoadedMs": 1357,
+        "loadEventMs": 2476,
+        "fcpMs": 1592,
+        "lcpMs": 1592,
         "cls": 0,
-        "transferBytes": 314956,
-        "encodedBytes": 310156,
-        "requestCount": 17,
+        "transferBytes": 378842,
+        "encodedBytes": 373142,
+        "requestCount": 20,
         "longTaskCount": 2,
-        "longTaskTotalMs": 263,
-        "maxLongTaskMs": 145,
+        "longTaskTotalMs": 262,
+        "maxLongTaskMs": 133,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1816,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2123,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1145,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 876,
+            "durationMs": 908,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1334,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 884,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1720,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 854,
+            "durationMs": 1365,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
-            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
-            "type": "css",
-            "durationMs": 720,
-            "transferBytes": 23408,
-            "encodedBytes": 23108
-          },
-          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 715,
+            "durationMs": 746,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1334,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
+            "durationMs": 666,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
-            "type": "script",
-            "durationMs": 1488,
-            "transferBytes": 9711,
-            "encodedBytes": 9411
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 805,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1007,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 681,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
           },
           {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 620,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
             "type": "script",
-            "durationMs": 619,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
+            "durationMs": 1812,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/2lug3y8-avs1e.js",
+            "type": "script",
+            "durationMs": 1811,
+            "transferBytes": 9764,
+            "encodedBytes": 9464
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 1346,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 1113,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
           },
           {
             "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
             "type": "link",
-            "durationMs": 341,
+            "durationMs": 959,
             "transferBytes": 5966,
             "encodedBytes": 5666
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 975,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1084,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
-            "type": "link",
-            "durationMs": 293,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
           }
         ]
       },
@@ -2576,129 +2618,129 @@
       "finalURL": "/signup",
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
-      "heading": "Create Workspace",
-      "domContentReadyMs": 1192,
-      "featureReadyMs": 2864,
+      "heading": "Create your workspace",
+      "domContentReadyMs": 1871,
+      "featureReadyMs": 3706,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 4.700000047683716,
-        "domContentLoadedMs": 1190.6000000238419,
-        "loadEventMs": 2077.7000000476837,
-        "fcpMs": 1196,
-        "lcpMs": 1196,
+        "ttfbMs": 3.700000047683716,
+        "domContentLoadedMs": 1868.5999999046326,
+        "loadEventMs": 2941.2000000476837,
+        "fcpMs": 1948,
+        "lcpMs": 1948,
         "cls": 0,
-        "transferBytes": 303392,
-        "encodedBytes": 298592,
-        "requestCount": 17,
-        "longTaskCount": 2,
-        "longTaskTotalMs": 216,
-        "maxLongTaskMs": 126,
+        "transferBytes": 449630,
+        "encodedBytes": 442430,
+        "requestCount": 25,
+        "longTaskCount": 1,
+        "longTaskTotalMs": 183,
+        "maxLongTaskMs": 183,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1755,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2545,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
           },
           {
-            "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
-            "type": "css",
-            "durationMs": 841,
-            "transferBytes": 40780,
-            "encodedBytes": 40480
-          },
-          {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
-            "type": "script",
-            "durationMs": 1258,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
             "type": "link",
-            "durationMs": 886,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1644,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
+          },
+          {
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
+            "type": "script",
+            "durationMs": 1844,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 857,
+            "durationMs": 805,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
+            "name": "/fonts/Sansation-Bold.ttf",
+            "type": "css",
+            "durationMs": 799,
+            "transferBytes": 24708,
+            "encodedBytes": 24408
+          },
+          {
+            "name": "/_next/static/chunks/0b7xtfnffna2i.js",
+            "type": "script",
+            "durationMs": 2124,
+            "transferBytes": 24533,
+            "encodedBytes": 24233
+          },
+          {
+            "name": "/fonts/Sansation-Regular.ttf",
+            "type": "css",
+            "durationMs": 837,
+            "transferBytes": 24218,
+            "encodedBytes": 23918
+          },
+          {
+            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
+            "type": "css",
+            "durationMs": 814,
+            "transferBytes": 23408,
+            "encodedBytes": 23108
+          },
+          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 718,
+            "durationMs": 778,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1335,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/0qrf19unb6smn.js",
-            "type": "script",
-            "durationMs": 1505,
-            "transferBytes": 12350,
-            "encodedBytes": 12050
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1039,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 652,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/static/chunks/438f2zpwhrr_5.js",
-            "type": "script",
-            "durationMs": 1428,
-            "transferBytes": 9205,
-            "encodedBytes": 8905
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 342,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
+            "durationMs": 713,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 993,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1086,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
             "type": "link",
-            "durationMs": 248,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 744,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 729,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 667,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 1813,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/3anytfqfn5inr.js",
+            "type": "script",
+            "durationMs": 2061,
+            "transferBytes": 12171,
+            "encodedBytes": 11871
           }
         ]
       },
@@ -2714,128 +2756,128 @@
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
       "heading": "Terms of Service",
-      "domContentReadyMs": 1109,
-      "featureReadyMs": 2899,
+      "domContentReadyMs": 1392,
+      "featureReadyMs": 3256,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
-        "ttfbMs": 5.399999976158142,
-        "domContentLoadedMs": 1107.1999999284744,
-        "loadEventMs": 2132.600000023842,
-        "fcpMs": 1268,
-        "lcpMs": 1268,
+        "ttfbMs": 5.200000047683716,
+        "domContentLoadedMs": 1390.2999999523163,
+        "loadEventMs": 2482.5,
+        "fcpMs": 1616,
+        "lcpMs": 1616,
         "cls": 0,
-        "transferBytes": 314956,
-        "encodedBytes": 310156,
-        "requestCount": 17,
+        "transferBytes": 378842,
+        "encodedBytes": 373142,
+        "requestCount": 20,
         "longTaskCount": 2,
-        "longTaskTotalMs": 229,
-        "maxLongTaskMs": 119,
+        "longTaskTotalMs": 246,
+        "maxLongTaskMs": 125,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1817,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2139,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1178,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 880,
+            "durationMs": 895,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1290,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 886,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1690,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 856,
+            "durationMs": 1443,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
-            "name": "/_next/static/media/797e433ab948586e-s.0r6juujl39pe6.woff2",
-            "type": "css",
-            "durationMs": 724,
-            "transferBytes": 23408,
-            "encodedBytes": 23108
-          },
-          {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 717,
+            "durationMs": 746,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1335,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
+            "type": "link",
+            "durationMs": 682,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/3v9x71nvx7i2b.js",
-            "type": "script",
-            "durationMs": 1474,
-            "transferBytes": 9711,
-            "encodedBytes": 9411
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
+            "type": "link",
+            "durationMs": 684,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
           },
           {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1039,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 682,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
           },
           {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 636,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
             "type": "script",
-            "durationMs": 651,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
+            "durationMs": 1812,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/2lug3y8-avs1e.js",
+            "type": "script",
+            "durationMs": 1827,
+            "transferBytes": 9764,
+            "encodedBytes": 9464
+          },
+          {
+            "name": "/_next/static/chunks/3nc6x0_y5iwnk.js",
+            "type": "script",
+            "durationMs": 1378,
+            "transferBytes": 9574,
+            "encodedBytes": 9274
+          },
+          {
+            "name": "/_next/static/chunks/26-gb1fsixtgw.js",
+            "type": "script",
+            "durationMs": 1084,
+            "transferBytes": 9239,
+            "encodedBytes": 8939
           },
           {
             "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
             "type": "link",
-            "durationMs": 342,
+            "durationMs": 992,
             "transferBytes": 5966,
             "encodedBytes": 5666
-          },
-          {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 977,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1086,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
-            "type": "link",
-            "durationMs": 264,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
           }
         ]
       },
@@ -2851,128 +2893,128 @@
       "status": 200,
       "title": "Iris OS - Enterprise Agency Operating System",
       "heading": "Join the Waitlist",
-      "domContentReadyMs": 1122,
-      "featureReadyMs": 3569,
+      "domContentReadyMs": 1978,
+      "featureReadyMs": 3969,
       "navigationError": null,
       "redirectedToLogin": false,
       "metrics": {
         "ttfbMs": 4,
-        "domContentLoadedMs": 1119.5999999046326,
-        "loadEventMs": 1910.3999999761581,
-        "fcpMs": 1204,
-        "lcpMs": 1204,
+        "domContentLoadedMs": 1975.9000000953674,
+        "loadEventMs": 2387.800000190735,
+        "fcpMs": 2056,
+        "lcpMs": 2056,
         "cls": 0,
-        "transferBytes": 313261,
-        "encodedBytes": 307261,
-        "requestCount": 21,
+        "transferBytes": 425265,
+        "encodedBytes": 417465,
+        "requestCount": 27,
         "longTaskCount": 2,
-        "longTaskTotalMs": 187,
-        "maxLongTaskMs": 125,
+        "longTaskTotalMs": 182,
+        "maxLongTaskMs": 121,
         "topResources": [
           {
-            "name": "/_next/static/chunks/345zg5av98jyj.js",
+            "name": "/_next/static/chunks/329j824l1odqw.js",
             "type": "script",
-            "durationMs": 1709,
-            "transferBytes": 71027,
-            "encodedBytes": 70727
+            "durationMs": 2002,
+            "transferBytes": 71095,
+            "encodedBytes": 70795
+          },
+          {
+            "name": "/_next/static/chunks/2puga3ha2tnmr.css",
+            "type": "link",
+            "durationMs": 1754,
+            "transferBytes": 41455,
+            "encodedBytes": 41155
           },
           {
             "name": "/_next/static/media/70bc3e132a0a741e-s.3t6q91iet4nsy.woff2",
             "type": "css",
-            "durationMs": 771,
+            "durationMs": 395,
             "transferBytes": 40780,
             "encodedBytes": 40480
           },
           {
-            "name": "/_next/static/chunks/07q_0kxsfy9c-.js",
+            "name": "/_next/static/chunks/2nsq1ek51g625.js",
             "type": "script",
-            "durationMs": 1274,
-            "transferBytes": 37671,
-            "encodedBytes": 37371
-          },
-          {
-            "name": "/_next/static/chunks/294_9abt9n7n-.css",
-            "type": "link",
-            "durationMs": 903,
-            "transferBytes": 30036,
-            "encodedBytes": 29736
+            "durationMs": 1795,
+            "transferBytes": 37778,
+            "encodedBytes": 37478
           },
           {
             "name": "/_next/static/media/caa3a2e1cccd8315-s.p.0wgildi0cnwt9.woff2",
             "type": "link",
-            "durationMs": 857,
+            "durationMs": 806,
             "transferBytes": 29588,
             "encodedBytes": 29288
           },
           {
             "name": "/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2",
             "type": "link",
-            "durationMs": 718,
+            "durationMs": 778,
             "transferBytes": 22620,
             "encodedBytes": 22320
           },
           {
-            "name": "/_next/static/chunks/1x568oqg9saon.js",
-            "type": "script",
-            "durationMs": 257,
-            "transferBytes": 16232,
-            "encodedBytes": 15932
-          },
-          {
-            "name": "/_next/static/chunks/1-8s9_t85wwr4.js",
-            "type": "script",
-            "durationMs": 1320,
-            "transferBytes": 13172,
-            "encodedBytes": 12872
-          },
-          {
-            "name": "/_next/static/chunks/3ys49t055e46q.js",
-            "type": "script",
-            "durationMs": 1412,
-            "transferBytes": 11171,
-            "encodedBytes": 10871
-          },
-          {
-            "name": "/_next/static/chunks/0paxexg6-m0de.js",
-            "type": "script",
-            "durationMs": 1040,
-            "transferBytes": 9469,
-            "encodedBytes": 9169
-          },
-          {
-            "name": "/_next/static/chunks/2fq3uruun40r9.js",
-            "type": "script",
-            "durationMs": 653,
-            "transferBytes": 9310,
-            "encodedBytes": 9010
-          },
-          {
-            "name": "/_next/image?url=%2Firis-logo-black-bg.png&w=256&q=75",
+            "name": "/_next/static/media/ClashDisplay_Medium-s.p.153003xzia2wx.otf",
             "type": "link",
-            "durationMs": 343,
-            "transferBytes": 5966,
-            "encodedBytes": 5666
+            "durationMs": 715,
+            "transferBytes": 19174,
+            "encodedBytes": 18874
           },
           {
-            "name": "/_next/static/chunks/turbopack-27c1vtp_zaslq.js",
-            "type": "script",
-            "durationMs": 993,
-            "transferBytes": 4463,
-            "encodedBytes": 4163
-          },
-          {
-            "name": "/_next/static/chunks/1pqpfhcmcnkwf.js",
-            "type": "script",
-            "durationMs": 1086,
-            "transferBytes": 3374,
-            "encodedBytes": 3074
-          },
-          {
-            "name": "/_next/static/chunks/2iho8jepmwwua.js",
+            "name": "/_next/static/media/ClashDisplay_Semibold-s.p.0oaaj9chln_sc.otf",
             "type": "link",
-            "durationMs": 249,
-            "transferBytes": 2636,
-            "encodedBytes": 2336
+            "durationMs": 745,
+            "transferBytes": 19170,
+            "encodedBytes": 18870
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Regular-s.p.2_en6v9i13qq5.otf",
+            "type": "link",
+            "durationMs": 717,
+            "transferBytes": 19056,
+            "encodedBytes": 18756
+          },
+          {
+            "name": "/_next/static/media/ClashDisplay_Bold-s.p.1e5a3d47562fz.otf",
+            "type": "link",
+            "durationMs": 669,
+            "transferBytes": 17926,
+            "encodedBytes": 17626
+          },
+          {
+            "name": "/_next/static/chunks/1ntn7efqc-iiw.js",
+            "type": "script",
+            "durationMs": 1720,
+            "transferBytes": 13238,
+            "encodedBytes": 12938
+          },
+          {
+            "name": "/_next/static/chunks/3fnu0jxq8_bk4.css",
+            "type": "link",
+            "durationMs": 310,
+            "transferBytes": 12125,
+            "encodedBytes": 11825
+          },
+          {
+            "name": "/_next/static/chunks/2z3so1w0h-qye.js",
+            "type": "script",
+            "durationMs": 1782,
+            "transferBytes": 11486,
+            "encodedBytes": 11186
+          },
+          {
+            "name": "/?_rsc=VkLTIpRtzTWIFPBK",
+            "type": "fetch",
+            "durationMs": 295,
+            "transferBytes": 10570,
+            "encodedBytes": 10270
+          },
+          {
+            "name": "/_next/static/chunks/3idhxfkau_e1b.js",
+            "type": "script",
+            "durationMs": 273,
+            "transferBytes": 10408,
+            "encodedBytes": 10108
           }
         ]
       },

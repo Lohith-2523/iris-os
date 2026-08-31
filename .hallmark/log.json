@@ -1,5 +1,27 @@
 [
   {
+    "date": "2026-08-27",
+    "scope": "secure messages, client onboarding, settings billing, and dashboard welcome card",
+    "macrostructure": "Secure Collaboration Workbench",
+    "theme": "Iris OS graphite, porcelain, and metallic silver",
+    "axes": ["encrypted meeting cards", "field-driven onboarding rail", "live capacity ledger", "user-supplied welcome image"],
+    "nav": "existing Iris workspace rail",
+    "footer": "none",
+    "enrichment": "center-cropped user background",
+    "brief": "Meeting creation from messages, skeleton-aligned client onboarding, visible plan usage, and persistent welcome-card personalization"
+  },
+  {
+    "date": "2026-08-26",
+    "scope": "dashboard executive metrics",
+    "macrostructure": "Geometry-aware Workbench",
+    "theme": "Iris OS graphite, porcelain, and metallic silver",
+    "axes": ["centered full-width canvas", "MRR anchor", "responsive metric frame"],
+    "nav": "existing Iris workspace rail",
+    "footer": "none",
+    "enrichment": "real monthly retainer ranking",
+    "brief": "Centered large-screen dashboard with expanded MRR metric and project revenue ranking"
+  },
+  {
     "date": "2026-08-25",
     "scope": "all workspace phone and tablet surfaces",
     "macrostructure": "Touch-first Workbench",
@@ -79,5 +101,16 @@
     "footer": "Ft5 Statement",
     "enrichment": "code-native Iris workspace scenes with restrained scroll parallax",
     "brief": "Spec-driven Iris OS launch page that lets visitors experience connected agency workflows and governed Atlas execution"
+  },
+  {
+    "date": "2026-08-26",
+    "scope": "finance ledger, project portfolio, and secure messaging",
+    "macrostructure": "Client-scoped Workbench Actions",
+    "theme": "Iris OS graphite, porcelain, and restrained WhatsApp green",
+    "axes": ["sparse project summaries", "client-scoped action cards", "collapsible batch task editor"],
+    "nav": "existing Iris workspace rail",
+    "footer": "none",
+    "enrichment": "Iris SVG read receipts",
+    "brief": "Executive ledger clarity, focused project actions, and faster secure messaging feedback"
   }
 ]

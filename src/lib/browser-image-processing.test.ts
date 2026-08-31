@@ -27,4 +27,15 @@ describe('browser image processing geometry', () => {
       outputHeight: 400,
     });
   });
+
+  it('center-crops welcome backgrounds to the dashboard card ratio', () => {
+    expect(calculateImageGeometry(2400, 1600, 'welcome-background')).toEqual({
+      sourceX: 0,
+      sourceY: 320,
+      sourceWidth: 2400,
+      sourceHeight: 960,
+      outputWidth: 1600,
+      outputHeight: 640,
+    });
+  });
 });

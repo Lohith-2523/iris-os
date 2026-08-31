@@ -63,16 +63,20 @@ async function callGemini(body: Record<string, unknown>, tokenBudget: AtlasToken
   const generationConfig = typeof body.generationConfig === 'object' && body.generationConfig
     ? body.generationConfig as Record<string, unknown>
     : {};
+  const requestedOutputTokens = typeof generationConfig.maxOutputTokens === 'number'
+    ? generationConfig.maxOutputTokens
+    : 2048;
+  const maxOutputTokens = Math.max(256, Math.min(8192, Math.floor(requestedOutputTokens)));
   const budgetedBody = {
     ...body,
-    generationConfig: { ...generationConfig, maxOutputTokens: 2048 },
+    generationConfig: { ...generationConfig, maxOutputTokens },
   };
   const serializedBody = JSON.stringify(budgetedBody);
   const reservation = await reserveAtlasTokens({
     ...tokenBudget,
     provider: 'GEMINI',
     input: estimateInputTokens(serializedBody),
-    output: 2048,
+    output: maxOutputTokens,
   });
   let response: Response;
   try {
@@ -102,13 +106,24 @@ async function callGemini(body: Record<string, unknown>, tokenBudget: AtlasToken
       response.status >= 400 && response.status < 500 ? 400 : 502,
     );
   }
-  const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('');
   await settleAtlasTokenReservation(reservation, {
     input: payload.usageMetadata?.promptTokenCount ?? estimateInputTokens(serializedBody),
     output: payload.usageMetadata?.candidatesTokenCount ?? estimateInputTokens(text || ''),
   });
   if (!text) throw new GeminiAutomationError('Atlas AI returned an empty automation response.');
   return text;
+}
+
+export function parseGeminiAutomationResponse(text: string) {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const parsed = geminiAutomationResultSchema.safeParse(json);
+  return parsed.success ? parsed.data : null;
 }
 
 export async function extractAutomationDetailsWithGemini(input: {
@@ -161,10 +176,11 @@ CURRENT_STATE: ${JSON.stringify(input.currentState || {})}
 DIRECTORY: ${JSON.stringify(input.directory)}
 USER_MESSAGE: ${input.query}`;
 
-  const text = await callGemini({
+  const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.1,
+      maxOutputTokens: 4096,
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'OBJECT',
@@ -245,12 +261,27 @@ USER_MESSAGE: ${input.query}`;
         required: ['kind', 'action', 'draft', 'reply', 'decisionMode', 'decisionRationale', 'decisionEvidence'],
       },
     },
+  };
+  const text = await callGemini(requestBody, input.tokenBudget);
+  const parsed = parseGeminiAutomationResponse(text);
+  if (parsed) return parsed;
+
+  const retryText = await callGemini({
+    ...requestBody,
+    contents: [{ parts: [{
+      text: `${prompt}\n\nRETRY_INSTRUCTION: The previous response was incomplete or invalid. Return one complete, compact JSON object. Do not use markdown fences or omit required fields.`,
+    }] }],
+    generationConfig: {
+      ...requestBody.generationConfig,
+      temperature: 0,
+      maxOutputTokens: 6144,
+    },
   }, input.tokenBudget);
-  const parsed = geminiAutomationResultSchema.safeParse(JSON.parse(text));
-  if (!parsed.success) {
-    throw new GeminiAutomationError('Atlas AI returned invalid automation details. Please rephrase the request.');
+  const retried = parseGeminiAutomationResponse(retryText);
+  if (!retried) {
+    throw new GeminiAutomationError('Atlas AI returned incomplete automation details. Please retry the request.');
   }
-  return parsed.data;
+  return retried;
 }
 
 export async function generateReportWithGemini(input: {

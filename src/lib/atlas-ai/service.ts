@@ -2,6 +2,7 @@ import {
   invalidateWorkspaceDataTags,
   workspaceFetch,
 } from '@/lib/workspace-data-cache';
+import { consumeAtlasStream } from '@/lib/atlas-ai/stream-protocol';
 
 export interface AgencyHealthScore {
   score: number;
@@ -205,7 +206,12 @@ export const AtlasAIService = {
   /**
    * Delegates query execution.
    */
-  async askAtlas(query: string, context?: any, sessionId?: string): Promise<{
+  async askAtlas(
+    query: string,
+    context?: any,
+    sessionId?: string,
+    options?: { onDelta?: (delta: string) => void; signal?: AbortSignal },
+  ): Promise<{
     result: string;
     model: string;
     sessionId: string;
@@ -223,7 +229,47 @@ export const AtlasAIService = {
       locale: navigator.language,
       clientDateTime: new Date().toISOString(),
     };
-    const data = await fetchAtlasAI('ask-atlas', { query, context: meetingContext, sessionId });
+    let response: Response;
+    try {
+      response = await globalThis.fetch('/api/atlas-ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/x-ndjson',
+        },
+        body: JSON.stringify({ action: 'ask-atlas', query, context: meetingContext, sessionId }),
+        signal: options?.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      throw new AtlasAIRequestError(AI_UNAVAILABLE);
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new AtlasAIRequestError(
+        typeof errorData.error === 'string' ? errorData.error : 'Atlas AI could not complete this request.',
+        response.status,
+      );
+    }
+
+    let streamedResult = '';
+    let completedData: Record<string, any> | null = null;
+    await consumeAtlasStream(response, (event) => {
+      if (event.type === 'delta') {
+        streamedResult += event.delta;
+        options?.onDelta?.(event.delta);
+      } else if (event.type === 'done') {
+        completedData = event.data;
+      } else {
+        throw new AtlasAIRequestError(event.error, event.status);
+      }
+    });
+    const data = completedData as Record<string, any> | null;
+    if (!data) {
+      throw new AtlasAIRequestError('Atlas response ended before it could be saved. Please retry.');
+    }
+    data.result = typeof data.result === 'string' && data.result ? data.result : streamedResult;
     if (!data.persisted || typeof data.sessionId !== 'string' || !data.result) {
       throw new AtlasAIRequestError('Atlas replied, but the chat could not be saved. Please retry.');
     }
@@ -286,6 +332,22 @@ export const AtlasAIService = {
   async deleteSession(id: string) {
     if (typeof window === 'undefined') return;
     await workspaceFetch(`/api/atlas-ai/sessions/${id}`, { method: 'DELETE' });
+  },
+
+  async renameSession(id: string, title: string): Promise<{ id: string; title: string }> {
+    const res = await workspaceFetch(`/api/atlas-ai/sessions/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new AtlasAIRequestError(
+        typeof data.error === 'string' ? data.error : 'Atlas could not rename this chat.',
+        res.status,
+      );
+    }
+    return data;
   }
 };
 

@@ -42,7 +42,7 @@ export function AsyncButtonFeedback() {
       }
       recentButton = target instanceof HTMLButtonElement
         && !target.disabled
-        && !target.hasAttribute('data-skip-async-feedback')
+        && target.hasAttribute('data-duplicate-sensitive')
         ? target
         : null;
       recentClickAt = performance.now();

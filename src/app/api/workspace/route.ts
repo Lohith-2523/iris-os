@@ -3,8 +3,22 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
-import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
-import { isTransientDatabaseConnectionError, withDatabaseConnectionRetry } from '@/lib/database-resilience';
+import { isTransientDatabaseConnectionError } from '@/lib/database-resilience';
+import { getRequestSecurityContext } from '@/server/security/request-security-context';
+import { getWorkspaceReadModel } from '@/server/workspace/workspace-service';
+
+function validateWelcomeBackground(value: unknown) {
+  if (value === null || value === undefined || value === '') return true;
+  if (typeof value !== 'string') return false;
+  const match = value.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+  if (!match) return false;
+  const bytes = Buffer.from(match[2], 'base64');
+  if (bytes.length === 0 || bytes.length > 512 * 1024) return false;
+  const isPng = bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9;
+  const isWebp = bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+  return (match[1] === 'image/png' && isPng) || (match[1] === 'image/jpeg' && isJpeg) || (match[1] === 'image/webp' && isWebp);
+}
 
 const patchSchema = z.object({
   organization: z.object({
@@ -31,86 +45,9 @@ const patchSchema = z.object({
 
 export async function GET() {
   try {
-    const user = await getRequestUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const [organizationIntegrations, googleCalendarConnection] = await withDatabaseConnectionRetry(() => Promise.all([
-      prisma.integrationConnection.findMany({
-        where: { orgId: user.orgId, provider: { not: 'GOOGLE' } },
-        select: { provider: true, status: true, lastSync: true },
-        orderBy: { provider: 'asc' },
-      }),
-      prisma.googleCalendarConnection.findUnique({
-        where: { userId: user.id },
-        select: { status: true, lastSync: true },
-      }),
-    ]), { maxAttempts: 3, delaysMs: [150, 500] });
-    const integrations = [
-      ...organizationIntegrations,
-      {
-        provider: 'GOOGLE',
-        status: googleCalendarConnection?.status || 'DISCONNECTED',
-        lastSync: googleCalendarConnection?.lastSync || null,
-      },
-    ];
-
-    const plan = normalizePlan(user.organization.plan);
-    const entitlements = entitlementsFor(plan);
-    const response = NextResponse.json({
-      organization: {
-        id: user.organization.id,
-        name: user.organization.name,
-        plan,
-        agencyTypes: user.organization.agencyTypes,
-        billingEmail: user.organization.billingEmail,
-        currency: user.organization.currency,
-        preferences: user.organization.preferences ?? {},
-        legalEntityName: user.organization.legalEntityName,
-        billingAddressLine1: user.organization.billingAddressLine1,
-        billingAddressLine2: user.organization.billingAddressLine2,
-        billingCity: user.organization.billingCity,
-        billingState: user.organization.billingState,
-        billingPostalCode: user.organization.billingPostalCode,
-        billingCountry: user.organization.billingCountry,
-        gstNumber: user.organization.gstNumber,
-        bankNames: user.organization.bankNames,
-        invoiceLogoDataUrl: user.organization.invoiceLogoDataUrl,
-        invoiceBrandColor: user.organization.invoiceBrandColor,
-      },
-      user: {
-        id: user.id,
-        orgId: user.orgId,
-        clientId: user.clientId,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-        accessPermissions: user.accessPermissions,
-        hasMetaAccount: Boolean(user.client?.adAccountId),
-        preferences: user.preferences ?? { theme: 'dark', settings: {} },
-      },
-      onboarding: user.organization.onboardingState ?? {
-        needsOnboarding: true,
-        currentStep: 0,
-        checklist: {},
-        draft: {},
-        completedAt: null,
-      },
-      integrations,
-      entitlements: {
-        specializationLimit: entitlements.specializationLimit,
-        teamMemberLimit: entitlements.teamMemberLimit,
-        clientLimit: entitlements.clientLimit,
-        dailyBriefing: entitlements.dailyBriefing,
-        strategyGeneration: entitlements.strategyGeneration,
-        aiFeatures: entitlements.aiFeatures,
-        messaging: entitlements.messaging,
-        atlasCapabilities: entitlements.atlasCapabilities,
-        messagingLimits: entitlements.messagingLimits,
-      },
-    });
-    return response;
+    const ctx = await getRequestSecurityContext();
+    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json(await getWorkspaceReadModel(ctx));
   } catch (error) {
     console.error('Failed to load workspace state:', error);
     if (isTransientDatabaseConnectionError(error)) {
@@ -131,6 +68,9 @@ export async function PATCH(request: Request) {
     }
 
     const update = parsed.data;
+    if (update.organization?.preferences && 'welcomeCardBackgroundDataUrl' in update.organization.preferences && !validateWelcomeBackground(update.organization.preferences.welcomeCardBackgroundDataUrl)) {
+      return NextResponse.json({ error: 'Welcome-card backgrounds must be PNG, JPEG, or WebP images no larger than 512 KB after processing.' }, { status: 400 });
+    }
     if ((update.organization || update.onboarding) && !isOrganizationAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

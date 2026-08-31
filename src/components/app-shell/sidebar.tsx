@@ -171,11 +171,11 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         { name: 'Projects', href: '/projects', icon: FolderKanban },
       ],
     },
-    {
-      label: 'Documents',
+     {
+      label: 'Finance',
       items: [
-        { name: 'Proposals', href: '/proposals', icon: FilePenLine },
-        { name: 'Contracts', href: '/documents', icon: FileText },
+        { name: 'Finance', href: '/finance', icon: Wallet },
+        { name: 'Invoices', href: '/invoices', icon: ReceiptText },
       ],
     },
     {
@@ -187,11 +187,12 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
       ],
     },
+   
     {
-      label: 'Finance',
+      label: 'Documents',
       items: [
-        { name: 'Finance', href: '/finance', icon: Wallet },
-        { name: 'Invoices', href: '/invoices', icon: ReceiptText },
+        { name: 'Proposals', href: '/proposals', icon: FilePenLine },
+        { name: 'Contracts', href: '/documents', icon: FileText },
       ],
     },
     {

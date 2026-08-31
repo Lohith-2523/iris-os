@@ -47,6 +47,17 @@ export async function GET(request: NextRequest) {
   const conversationId = request.nextUrl.searchParams.get('conversationId') || '';
   const conversation = await conversationMembership(conversationId, authorization.user.orgId, authorization.user.id);
   if (!conversation) return NextResponse.json({ error: 'Conversation not found.' }, { status: 404 });
+  const attachmentId = request.nextUrl.searchParams.get('attachmentId');
+  if (attachmentId) {
+    const parsedAttachmentId = z.string().uuid().safeParse(attachmentId);
+    if (!parsedAttachmentId.success) return NextResponse.json({ error: 'Invalid attachment.' }, { status: 400 });
+    const attachment = await prisma.encryptedAttachment.findFirst({
+      where: { id: parsedAttachmentId.data, message: { conversationId } },
+      select: { id: true, ciphertext: true },
+    });
+    if (!attachment) return NextResponse.json({ error: 'Attachment not found.' }, { status: 404 });
+    return NextResponse.json({ attachment }, { headers: messagingNoStoreHeaders() });
+  }
   const after = request.nextUrl.searchParams.get('after');
   const afterId = request.nextUrl.searchParams.get('afterId') || '';
   const afterDate = after && !Number.isNaN(new Date(after).getTime()) ? new Date(after) : undefined;
@@ -72,7 +83,7 @@ export async function GET(request: NextRequest) {
       createdAt: true,
       expiresAt: true,
       attachments: {
-          select: { id: true, storageObjectId: true, category: true, byteSize: true, ciphertextSha256: true, encryptedMetadata: true, ciphertext: true },
+          select: { id: true, storageObjectId: true, category: true, byteSize: true, ciphertextSha256: true, encryptedMetadata: true },
       },
       receipts: { select: { userId: true, deliveredAt: true, readAt: true } },
     },
