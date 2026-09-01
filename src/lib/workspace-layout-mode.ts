@@ -34,6 +34,16 @@ export function resolveWorkspaceLayoutFamily(pathname: string): WorkspaceLayoutF
   return 'records';
 }
 
+export function resolveWorkspaceViewportHeight(viewport: {
+  innerHeight: number;
+  visualViewport?: { height: number } | null;
+}): number {
+  const visualHeight = viewport.visualViewport?.height;
+  return Number.isFinite(visualHeight) && visualHeight && visualHeight > 0
+    ? Math.round(visualHeight)
+    : Math.round(viewport.innerHeight);
+}
+
 export function resolveWorkspaceLayoutMode(
   width: number,
   height: number,
@@ -70,14 +80,25 @@ export function useWorkspaceLayoutMode(): WorkspaceLayoutMode {
     let frame = 0;
     const update = () => {
       window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => setMode(readViewportMode()));
+      frame = window.requestAnimationFrame(() => {
+        document.documentElement.style.setProperty(
+          '--workspace-viewport-height',
+          `${resolveWorkspaceViewportHeight(window)}px`,
+        );
+        setMode(readViewportMode());
+      });
     };
 
     update();
     window.addEventListener('resize', update, { passive: true });
+    window.addEventListener('orientationchange', update, { passive: true });
+    window.visualViewport?.addEventListener('resize', update, { passive: true });
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+      window.visualViewport?.removeEventListener('resize', update);
+      document.documentElement.style.removeProperty('--workspace-viewport-height');
     };
   }, []);
 

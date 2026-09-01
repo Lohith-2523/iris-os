@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { resolveWorkspaceLayoutFamily, resolveWorkspaceLayoutMode } from './workspace-layout-mode';
+import {
+  resolveWorkspaceLayoutFamily,
+  resolveWorkspaceLayoutMode,
+  resolveWorkspaceViewportHeight,
+} from './workspace-layout-mode';
+
+describe('resolveWorkspaceViewportHeight', () => {
+  it('uses the visible viewport when browser chrome reduces the usable height', () => {
+    expect(resolveWorkspaceViewportHeight({
+      innerHeight: 844,
+      visualViewport: { height: 713.6 },
+    })).toBe(714);
+  });
+
+  it('falls back to the layout viewport on older browsers', () => {
+    expect(resolveWorkspaceViewportHeight({ innerHeight: 568 })).toBe(568);
+  });
+});
 
 describe('resolveWorkspaceLayoutMode', () => {
   it.each([

@@ -10,6 +10,7 @@
 
 html,
 body {
+  overflow-x: hidden;
   overflow-x: clip;
 }
 
@@ -4025,11 +4026,12 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   height: 100vh;
   height: 100svh;
   height: 100dvh;
+  height: var(--workspace-viewport-height, 100dvh);
 }
 
-.workspace-shell .workspace-main,
-.workspace-shell:has(.fixed.inset-0) .workspace-main {
+.workspace-shell .workspace-main {
   min-height: 0;
+  overflow-x: hidden !important;
   overflow-x: clip !important;
   overflow-y: auto !important;
   touch-action: pan-y;
@@ -4037,6 +4039,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 }
 
 .workspace-shell .fixed.inset-0 {
+  overflow-x: hidden;
   overflow-x: clip;
   overflow-y: auto;
   touch-action: pan-y;
