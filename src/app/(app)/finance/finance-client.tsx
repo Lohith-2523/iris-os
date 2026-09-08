@@ -1230,10 +1230,10 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     ['Revenue', 'Expenses', 'AI Subscriptions', 'Net Cash Flow'].forEach((label, index) => {
       summary.getCell(`A${5 + index}`).value = label;
     });
-    summary.getCell('B5').value = { formula: `SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"Revenue",'Ledger'!$H$2:$H$${ledgerLastRow})` };
-    summary.getCell('B6').value = { formula: `-SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"Expense",'Ledger'!$H$2:$H$${ledgerLastRow})` };
-    summary.getCell('B7').value = { formula: `-SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"AI Subscription",'Ledger'!$H$2:$H$${ledgerLastRow})` };
-    summary.getCell('B8').value = { formula: 'B5-B6-B7' };
+    summary.getCell('B5').value = { formula: `SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"Revenue",'Ledger'!$H$2:$H$${ledgerLastRow})`, date1904: false };
+    summary.getCell('B6').value = { formula: `-SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"Expense",'Ledger'!$H$2:$H$${ledgerLastRow})`, date1904: false };
+    summary.getCell('B7').value = { formula: `-SUMIF('Ledger'!$E$2:$E$${ledgerLastRow},"AI Subscription",'Ledger'!$H$2:$H$${ledgerLastRow})`, date1904: false };
+    summary.getCell('B8').value = { formula: 'B5-B6-B7', date1904: false };
     for (let row = 5; row <= 8; row += 1) summary.getCell(`B${row}`).numFmt = '#,##0.00;[Red](#,##0.00);-';
 
     const monthly = new Map<string, { revenue: number; expenses: number; ai: number }>();
