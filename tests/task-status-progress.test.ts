@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isTaskStatus, normalizeTaskStatusProgress } from '@/lib/tasks/status-progress';
+import { isTaskStatus, normalizeTaskStatusProgress, taskStatusLabel } from '@/lib/tasks/status-progress';
 
 describe('task status and progress normalization', () => {
   it('completes a task when progress reaches 100%', () => {
@@ -33,5 +33,9 @@ describe('task status and progress normalization', () => {
   it('accepts only supported task statuses', () => {
     expect(isTaskStatus('BLOCKED')).toBe(true);
     expect(isTaskStatus('ARCHIVED')).toBe(false);
+  });
+
+  it('renders the internal TODO status as TO-DO', () => {
+    expect(taskStatusLabel('TODO')).toBe('TO-DO');
   });
 });

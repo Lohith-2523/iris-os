@@ -31,11 +31,11 @@ describe('browser image processing geometry', () => {
   it('center-crops welcome backgrounds to the dashboard card ratio', () => {
     expect(calculateImageGeometry(2400, 1600, 'welcome-background')).toEqual({
       sourceX: 0,
-      sourceY: 320,
+      sourceY: 651.6483516483516,
       sourceWidth: 2400,
-      sourceHeight: 960,
-      outputWidth: 1600,
-      outputHeight: 640,
+      sourceHeight: 296.7032967032967,
+      outputWidth: 1456,
+      outputHeight: 180,
     });
   });
 });

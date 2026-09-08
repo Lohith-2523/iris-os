@@ -1,5 +1,5 @@
 export const TASK_STATUS_OPTIONS = [
-  { value: 'TODO', label: 'Yet to start' },
+  { value: 'TODO', label: 'TO-DO' },
   { value: 'IN_PROGRESS', label: 'In progress' },
   { value: 'NEEDS_CLIENT_APPROVAL', label: 'Need approval from client' },
   { value: 'BLOCKED', label: 'Blocked' },
@@ -10,6 +10,12 @@ export type TaskStatus = (typeof TASK_STATUS_OPTIONS)[number]['value'];
 
 export function isTaskStatus(value: unknown): value is TaskStatus {
   return TASK_STATUS_OPTIONS.some((option) => option.value === value);
+}
+
+export function taskStatusLabel(value: unknown) {
+  const status = String(value || 'TODO');
+  return TASK_STATUS_OPTIONS.find((option) => option.value === status)?.label
+    ?? status.replaceAll('_', ' ');
 }
 
 export function normalizeTaskStatusProgress(

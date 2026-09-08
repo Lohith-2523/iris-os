@@ -255,12 +255,16 @@ export default function SettingsPage() {
 
   // Wipe Data Modal States
   const [showWipeModal, setShowWipeModal] = React.useState(false);
+  const [destructiveAction, setDestructiveAction] = React.useState<'wipe' | 'delete'>('wipe');
   const [wipeStep, setWipeStep] = React.useState<1 | 2 | 3>(1);
   const [sliderValue, setSliderValue] = React.useState(100);
   const [puzzle, setPuzzle] = React.useState({ q: '', a: 0 });
   const [userAnswer, setUserAnswer] = React.useState('');
   const [wipeStatus, setWipeStatus] = React.useState<'idle' | 'wiping' | 'success' | 'error'>('idle');
   const [wipeError, setWipeError] = React.useState('');
+  const destructiveConfirmationValid = destructiveAction === 'delete'
+    ? userAnswer.trim() === `DELETE ${orgName}`
+    : parseInt(userAnswer.trim()) === puzzle.a;
 
   // AI Consent State
   const [aiSharingConsent, setAiSharingConsent] = React.useState(false);
@@ -531,6 +535,19 @@ export default function SettingsPage() {
     }
     router.replace('/login');
     router.refresh();
+  };
+
+  const openDestructiveConfirmation = (action: 'wipe' | 'delete') => {
+    setDestructiveAction(action);
+    setShowWipeModal(true);
+    setWipeStep(1);
+    setSliderValue(100);
+    setUserAnswer('');
+    setWipeStatus('idle');
+    setWipeError('');
+    const num1 = Math.floor(Math.random() * 12) + 5;
+    const num2 = Math.floor(Math.random() * 15) + 5;
+    setPuzzle({ q: `What is ${num1} + ${num2}?`, a: num1 + num2 });
   };
 
   const updateProfileAvatar = async (avatarDataUrl: string | null, successMessage?: string) => {
@@ -1357,29 +1374,34 @@ export default function SettingsPage() {
               <Card className="border-rose-950 bg-rose-950/5">
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-rose-400">Danger Zone</CardTitle>
-                  <CardDescription className="text-rose-550/80">Irreversible operations on workspace repository data.</CardDescription>
+                  <CardDescription className="text-rose-550/80">Irreversible operations on account and workspace data. Organization administrators only.</CardDescription>
                 </CardHeader>
-                <CardContent className="pt-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setShowWipeModal(true);
-                      setWipeStep(1);
-                      setSliderValue(100);
-                      setUserAnswer('');
-                      setWipeStatus('idle');
-                      setWipeError('');
-                      // Generate random math puzzle
-                      const num1 = Math.floor(Math.random() * 12) + 5;
-                      const num2 = Math.floor(Math.random() * 15) + 5;
-                      setPuzzle({ q: `What is ${num1} + ${num2}?`, a: num1 + num2 });
-                    }}
-                    className="w-full text-xs font-semibold h-9 flex items-center justify-center gap-1.5 border border-rose-900/40 text-rose-450 hover:bg-rose-950/20 hover:text-rose-350 cursor-pointer transition-all"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>Wipe Agency Data</span>
-                  </Button>
+                <CardContent className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <div><p className="font-semibold text-white">Wipe Account Data</p><p className="mt-1 text-[10px] leading-relaxed text-zinc-500">Deletes workspace records while preserving the organization and user login.</p></div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={currentUser?.role.toLowerCase() !== 'admin'}
+                      onClick={() => openDestructiveConfirmation('wipe')}
+                      className="w-full text-xs font-semibold h-9 flex items-center justify-center gap-1.5 border border-rose-900/40 text-rose-450 hover:bg-rose-950/20 hover:text-rose-350 cursor-pointer transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Wipe Account Data</span>
+                    </Button>
+                  </div>
+                  <div className="space-y-2 border-t border-rose-950/60 pt-4">
+                    <div><p className="font-semibold text-rose-300">Delete Entire Account</p><p className="mt-1 text-[10px] leading-relaxed text-zinc-500">Permanently deletes this organization, every workspace user, authentication identity, and all associated application data.</p></div>
+                    <Button
+                      type="button"
+                      disabled={currentUser?.role.toLowerCase() !== 'admin'}
+                      onClick={() => openDestructiveConfirmation('delete')}
+                      className="w-full text-xs font-semibold h-9 flex items-center justify-center gap-1.5 bg-rose-700 text-white hover:bg-rose-800 cursor-pointer transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Delete Entire Account</span>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -1936,7 +1958,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* 3-Step Wipe Data Confirmation Modal */}
+      {/* 3-Step destructive-action confirmation modal */}
       {showWipeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
           <div className="relative w-full max-w-md rounded-xl border border-zinc-800 bg-[#0d0e12] p-6 shadow-2xl font-sans text-xs text-zinc-300">
@@ -1944,7 +1966,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between border-b border-zinc-850 pb-4 mb-4">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-rose-500 animate-pulse" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Wipe Agency Database</h3>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">{destructiveAction === 'delete' ? 'Delete Entire Account' : 'Wipe Account Data'}</h3>
               </div>
               <button
                 type="button"
@@ -1986,8 +2008,11 @@ export default function SettingsPage() {
             {wipeStep === 1 && (
               <div className="space-y-5">
                 <p className="leading-relaxed text-zinc-450">
-                  Are you absolutely certain you want to initiate a full database purge? 
-                  This will <span className="text-white font-semibold">permanently wipe</span> all campaign logs, invoices, metrics, reports, pipelines, and transactions associated with <span className="text-rose-450 font-bold uppercase">{orgName}</span>.
+                  {destructiveAction === 'delete' ? (
+                    <>Are you absolutely certain you want to delete the entire account? This will permanently remove <span className="text-white font-semibold">all users, authentication identities, organization settings, and workspace records</span> associated with <span className="text-rose-450 font-bold uppercase">{orgName}</span>. Nobody in this organization will be able to sign in again.</>
+                  ) : (
+                    <>Are you absolutely certain you want to wipe the account data? This will <span className="text-white font-semibold">permanently wipe</span> all campaign logs, invoices, metrics, reports, pipelines, and transactions associated with <span className="text-rose-450 font-bold uppercase">{orgName}</span>, while preserving users and the account itself.</>
+                  )}
                 </p>
                 <div className="flex gap-3 justify-end pt-2">
                   <Button
@@ -2066,25 +2091,25 @@ export default function SettingsPage() {
             {wipeStep === 3 && (
               <div className="space-y-5">
                 <p className="leading-relaxed text-zinc-455">
-                  Solve the final security arithmetic puzzle to authorize the deletion sequence.
+                  Solve the final security arithmetic puzzle to authorize this irreversible {destructiveAction === 'delete' ? 'account deletion' : 'data wipe'}.
                 </p>
 
                 <div className="bg-zinc-950/40 border border-zinc-850 p-4 rounded space-y-3">
                   <span className="block text-center text-sm font-mono font-bold text-white tracking-wider">
-                    {puzzle.q}
+                    {destructiveAction === 'delete' ? `Type DELETE ${orgName}` : puzzle.q}
                   </span>
                   <input
                     type="text"
                     value={userAnswer}
                     onChange={(e) => setUserAnswer(e.target.value)}
-                    placeholder="Enter answer..."
+                    placeholder={destructiveAction === 'delete' ? `DELETE ${orgName}` : 'Enter answer...'}
                     className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-center text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all font-mono"
                   />
                 </div>
 
                 {wipeStatus === 'error' && (
                   <div className="rounded border border-rose-900/30 bg-rose-950/10 p-3 text-rose-450 font-semibold text-[10px]">
-                    Error Purging Database: {wipeError}
+                    {destructiveAction === 'delete' ? 'Account deletion error' : 'Data wipe error'}: {wipeError}
                   </div>
                 )}
 
@@ -2100,24 +2125,34 @@ export default function SettingsPage() {
                   </Button>
                   <Button
                     type="button"
-                    disabled={parseInt(userAnswer.trim()) !== puzzle.a || wipeStatus === 'wiping'}
+                    disabled={!destructiveConfirmationValid || wipeStatus === 'wiping'}
                     onClick={async () => {
                       setWipeStatus('wiping');
                       setWipeError('');
                       try {
-                        const res = await fetch('/api/organization', {
+                        const res = await fetch(destructiveAction === 'delete' ? '/api/account' : '/api/organization', {
                           method: 'DELETE',
+                          headers: destructiveAction === 'delete' ? { 'Content-Type': 'application/json' } : undefined,
+                          body: destructiveAction === 'delete'
+                            ? JSON.stringify({ confirmation: userAnswer.trim() })
+                            : undefined,
                         });
                         const data = await res.json();
                         if (res.ok && data.success) {
                           setWipeStatus('success');
+                          if (destructiveAction === 'delete') {
+                            clearWorkspaceUiPreferences(currentUser ? { userId: currentUser.id, orgId: currentUser.orgId } : null);
+                            await supabase.auth.signOut({ scope: 'local' });
+                            window.location.replace('/login');
+                            return;
+                          }
                           setTimeout(() => {
                             setShowWipeModal(false);
                             window.location.reload();
                           }, 2000);
                         } else {
                           setWipeStatus('error');
-                          setWipeError(data.error || 'Failed to wipe data.');
+                          setWipeError(data.error || (destructiveAction === 'delete' ? 'Failed to delete the account.' : 'Failed to wipe data.'));
                         }
                       } catch (err) {
                         setWipeStatus('error');
@@ -2126,7 +2161,11 @@ export default function SettingsPage() {
                     }}
                     className="text-xs h-9 bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-30"
                   >
-                    {wipeStatus === 'wiping' ? 'Purging Database...' : wipeStatus === 'success' ? 'Database Purged!' : 'Permanently Wipe All Data'}
+                    {wipeStatus === 'wiping'
+                      ? destructiveAction === 'delete' ? 'Deleting Account...' : 'Wiping Account Data...'
+                      : wipeStatus === 'success'
+                        ? destructiveAction === 'delete' ? 'Account Deleted' : 'Account Data Wiped'
+                        : destructiveAction === 'delete' ? 'Permanently Delete Account' : 'Permanently Wipe Account Data'}
                   </Button>
                 </div>
               </div>

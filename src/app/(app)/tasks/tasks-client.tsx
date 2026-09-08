@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
-import { normalizeTaskStatusProgress, TASK_STATUS_OPTIONS } from '@/lib/tasks/status-progress';
+import { normalizeTaskStatusProgress, TASK_STATUS_OPTIONS, taskStatusLabel } from '@/lib/tasks/status-progress';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import type { TasksReadModel } from '@/server/read-models/workspace-pages';
@@ -625,7 +625,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
             {kanbanGrouping === 'status' ? (
               <>
                 <KanbanColumn
-                  title="Yet to Start"
+                  title="TO-DO"
                   count={classifiedTasks.yetToStart.length}
                   tasks={classifiedTasks.yetToStart}
                   onSelect={setSelectedTask}
@@ -858,7 +858,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                     onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-md focus:border-zinc-750 cursor-pointer"
                   >
-                    <option value="TODO">To-Do</option>
+                    <option value="TODO">TO-DO</option>
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option>
                     <option value="COMPLETED">Completed</option>
@@ -966,7 +966,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                   <div className="flex items-center gap-1.5 font-mono text-white font-bold">
                     <span>{selectedTask.progress}%</span>
                     <Badge variant={selectedTask.status === 'COMPLETED' ? 'risk-low' : selectedTask.status === 'BLOCKED' ? 'risk-high' : 'outline'} className="rounded-md text-[8px] uppercase">
-                      {selectedTask.status.replaceAll('_', ' ')}
+                      {taskStatusLabel(selectedTask.status)}
                     </Badge>
                   </div>
                 </div>
@@ -1017,7 +1017,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                         }}
                         className="w-full bg-zinc-900 border border-zinc-800 px-2 py-2 text-white outline-none text-[11px] rounded-md focus:border-zinc-700"
                       >
-                        <option value="TODO">To-Do</option>
+                        <option value="TODO">TO-DO</option>
                         <option value="IN_PROGRESS">In Progress</option>
                         <option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option>
                         <option value="COMPLETED">Completed</option>
@@ -1200,7 +1200,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                       <div key={nt.id} className="flex items-center gap-1.5 text-zinc-500">
                         <span>Next Stage:</span>
                         <span className="underline cursor-pointer text-zinc-400 hover:text-white" onClick={() => setSelectedTask(nt)}>{nt.title}</span>
-                        <Badge className="text-[8px] p-0 px-1 border-zinc-700 bg-transparent text-zinc-450 rounded-md uppercase">{nt.status.replaceAll('_', ' ')}</Badge>
+                        <Badge className="text-[8px] p-0 px-1 border-zinc-700 bg-transparent text-zinc-450 rounded-md uppercase">{taskStatusLabel(nt.status)}</Badge>
                       </div>
                     ))}
                   </div>

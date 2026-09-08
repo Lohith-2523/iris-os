@@ -25,6 +25,7 @@ import {
   UserMinus
 } from 'lucide-react';
 import { validateBrowserFile } from '@/lib/file-security';
+import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import type { TeamReadModel } from '@/server/read-models/workspace-pages';
 
@@ -1208,7 +1209,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                               }
                               className="rounded-md uppercase tracking-wider text-[8px]"
                             >
-                              {task.status.replaceAll('_', ' ')}
+                              {taskStatusLabel(task.status)}
                             </Badge>
                             {!isEditing && (
                               <button
@@ -1260,7 +1261,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                                   onChange={(e) => setTaskEditForm(prev => ({ ...prev, status: e.target.value }))}
                                   className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-md"
                                 >
-                                  <option value="TODO">To-Do</option>
+                                  <option value="TODO">TO-DO</option>
                                   <option value="IN_PROGRESS">In Progress</option>
                                   <option value="COMPLETED">Completed</option>
                                   <option value="BLOCKED">Blocked</option>

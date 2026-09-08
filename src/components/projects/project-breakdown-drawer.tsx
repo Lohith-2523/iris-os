@@ -38,7 +38,7 @@ interface ProjectBreakdownDrawerProps {
   onChangeRequestUpdated?: (changeRequest: any) => void | Promise<void>;
 }
 
-const statusLabel = (value?: string) => (value || 'NOT_STARTED').replaceAll('_', ' ');
+const statusLabel = (value?: string) => value === 'TODO' ? 'TO-DO' : (value || 'NOT_STARTED').replaceAll('_', ' ');
 
 const dateLabel = (value?: string | Date | null) => {
   if (!value) return 'Not set';

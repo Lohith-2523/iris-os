@@ -18,8 +18,9 @@ function financeMetrics(
   expenses: Array<{ amount: number; date: Date }>,
   transactions: RevenueTransaction[] = [],
   timeframe: FinancialTimeframe = 'Six Months',
+  range?: { start: Date; end: Date },
 ) {
-  const now = new Date();
+  const now = range?.end || new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
   const transactionRevenue = ledgerRevenueEntries(transactions);
@@ -53,7 +54,14 @@ function financeMetrics(
   const invoiceBalance = (invoice: typeof invoices[number]) => Math.max(0, invoice.amount - invoice.paidAmount);
   const isOutstandingInvoice = (invoice: typeof invoices[number]) => invoice.documentType === 'INVOICE' && invoiceBalance(invoice) > 0;
   const isPartiallyPaidInvoice = (invoice: typeof invoices[number]) => isOutstandingInvoice(invoice) && invoice.paidAmount > 0;
-  const revenueHistory = buildFinancialHistory({ invoices, expenses, transactions, timeframe });
+  const revenueHistory = buildFinancialHistory({
+    invoices,
+    expenses,
+    transactions,
+    timeframe: range ? 'All Time' : timeframe,
+    now,
+    startDate: range?.start,
+  });
   const outstandingInvoices = invoices
     .filter(isOutstandingInvoice)
     .map((invoice) => ({
@@ -81,8 +89,13 @@ function financeMetrics(
   };
 }
 
-export async function getDashboardMetrics(ctx: RequestSecurityContext) {
+export async function getDashboardMetrics(ctx: RequestSecurityContext, requestedRange?: { start: string; end: string }) {
   const role = ctx.role.toLowerCase();
+  const range = requestedRange ? {
+    start: new Date(`${requestedRange.start}T00:00:00.000Z`),
+    end: new Date(`${requestedRange.end}T23:59:59.999Z`),
+  } : undefined;
+  const dateFilter = range ? { gte: range.start, lte: range.end } : undefined;
   const clientScope = role === 'client' && ctx.clientId ? { id: ctx.clientId } : {};
   const projectScope = role === 'client' && ctx.clientId ? { clientId: ctx.clientId } : {};
   const revenueClientScope = role === 'client' && ctx.clientId ? { clientId: ctx.clientId } : {};
@@ -91,28 +104,30 @@ export async function getDashboardMetrics(ctx: RequestSecurityContext) {
     prisma.project.findMany({ where: { orgId: ctx.orgId, ...projectScope }, include: { client: { select: { name: true } } } }),
   ]);
   const [invoices, expenses] = await Promise.all([
-    prisma.invoice.findMany({ where: { orgId: ctx.orgId, ...revenueClientScope }, include: { client: true } }),
-    role === 'client' ? Promise.resolve([]) : prisma.expense.findMany({ where: { orgId: ctx.orgId } }),
+    prisma.invoice.findMany({ where: { orgId: ctx.orgId, ...revenueClientScope, ...(dateFilter ? { issuedDate: dateFilter } : {}) }, include: { client: true } }),
+    role === 'client' ? Promise.resolve([]) : prisma.expense.findMany({ where: { orgId: ctx.orgId, ...(dateFilter ? { date: dateFilter } : {}) } }),
   ]);
   const transactions = await prisma.transaction.findMany({
-    where: { orgId: ctx.orgId, ...revenueClientScope },
+    where: { orgId: ctx.orgId, ...revenueClientScope, ...(dateFilter ? { date: dateFilter } : {}) },
     include: { client: true },
   });
 
-  const activeProjects = projects
-    .filter((project) => project.status === 'IN_PROGRESS' || project.status === 'OVERDUE')
+  const allProjects = projects
     .sort((left, right) => left.name.localeCompare(right.name))
     .map((project) => ({ id: project.id, name: project.name, clientName: project.client.name, status: project.status, progress: project.progress }));
+  const activeProjects = allProjects
+    .filter((project) => project.status === 'IN_PROGRESS' || project.status === 'OVERDUE')
 
   return {
     activeClientsCount: allClients.filter((client) => client.status === 'ACTIVE').length,
     totalClientsCount: allClients.length,
     activeProjectsCount: activeProjects.length,
     activeProjects,
+    allProjects,
     projectRisks: projects
       .filter((project) => project.riskLevel === 'HIGH' || project.riskLevel === 'MEDIUM')
       .map((project) => ({ id: project.id, name: project.name, riskLevel: project.riskLevel, riskDescription: project.riskDescription || '' })),
-    ...financeMetrics(invoices, expenses, transactions),
+    ...financeMetrics(invoices, expenses, transactions, 'Six Months', range),
   };
 }
 

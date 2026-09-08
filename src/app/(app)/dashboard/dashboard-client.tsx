@@ -9,17 +9,22 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { Button } from '@/components/ui/button';
+import { DateInput } from '@/components/ui/date-input';
+import { Popover } from 'radix-ui';
 
 const RevenueLineChart = dynamic(
   () => import('@/components/ui/revenue-line-chart').then((module) => module.RevenueLineChart),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded bg-zinc-900/40" /> },
+);
+const SalesPipelinePieChart = dynamic(
+  () => import('@/components/ui/sales-pipeline-pie-chart').then((module) => module.SalesPipelinePieChart),
+  { ssr: false, loading: () => <div className="h-52 animate-pulse rounded bg-zinc-900/40" /> },
 );
 const ClientRevenueChart = dynamic(
   () => import('@/components/clients/client-revenue-chart').then((module) => module.ClientRevenueChart),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded bg-zinc-900/40" /> },
 );
 import {
-  Sparkles,
   TrendingUp,
   Users,
   ReceiptText,
@@ -34,13 +39,65 @@ import {
   Calendar,
   Repeat2,
   ImageUp,
+  MoreHorizontal,
+  BriefcaseBusiness,
+  Target,
+  Gauge,
+  DollarSign,
+  TrendingDown,
 } from 'lucide-react';
 import { formatCurrencyFor } from '@/lib/utils';
 import { validateBrowserFile } from '@/lib/file-security';
 import { MAX_SOURCE_IMAGE_BYTES, processBrowserImage } from '@/lib/browser-image-processing';
+import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import type { DashboardReadModel } from '@/server/read-models/workspace-pages';
 
-export default function DashboardPage({ initialData }: { initialData: DashboardReadModel }) {
+type FinanceMetricKey = 'revenue' | 'profit' | 'mrr' | 'expenses' | 'receivables';
+type OverviewTab = 'leads' | 'clients' | 'actions' | 'tasks' | 'meetings';
+type LeadStage = { id: string; label: string; color: string };
+
+const DEFAULT_LEAD_STAGES: LeadStage[] = [
+  { id: 'procured', label: 'Procured', color: '#A1A1AA' },
+  { id: 'warm', label: 'Warm', color: '#F59E0B' },
+  { id: 'cold', label: 'Cold', color: '#64748B' },
+  { id: 'lost', label: 'Lost', color: '#E11D48' },
+  { id: 'closed', label: 'Closed', color: '#10B981' },
+];
+
+function leadStageStatusAliases(stageId: string) {
+  if (stageId === 'procured') return ['procured', 'new'];
+  if (stageId === 'warm') return ['warm', 'cold-call in progress'];
+  if (stageId === 'cold') return ['cold', 'call back required'];
+  if (stageId === 'lost') return ['lost', 'unqualified'];
+  return [stageId];
+}
+
+function resolveLeadStages(value: unknown): LeadStage[] {
+  if (!Array.isArray(value)) return DEFAULT_LEAD_STAGES;
+  const stages = value.slice(0, 8).flatMap((stage) => {
+    if (!stage || typeof stage !== 'object') return [];
+    const candidate = stage as Record<string, unknown>;
+    if (typeof candidate.id !== 'string' || typeof candidate.label !== 'string' || typeof candidate.color !== 'string') return [];
+    if (!/^#[0-9a-f]{6}$/i.test(candidate.color)) return [];
+    return [{ id: candidate.id, label: candidate.label, color: candidate.color }];
+  });
+  return stages.length ? stages : DEFAULT_LEAD_STAGES;
+}
+
+function dashboardRangeLabel(startValue: string, endValue: string) {
+  const start = new Date(`${startValue}T00:00:00.000Z`);
+  const end = new Date(`${endValue}T00:00:00.000Z`);
+  const months = Math.max(1, (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + end.getUTCMonth() - start.getUTCMonth() + 1);
+  const fiscalYear = start.getUTCMonth() >= 3 ? start.getUTCFullYear() : start.getUTCFullYear() - 1;
+  if (months === 1) return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(start);
+  if (months <= 3) {
+    const quarter = Math.floor(((start.getUTCMonth() + 9) % 12) / 3) + 1;
+    return `Q${quarter} FY ${fiscalYear}`;
+  }
+  return `${start.getUTCMonth() >= 3 && start.getUTCMonth() <= 8 ? 'Start' : 'End'} of FY ${fiscalYear}`;
+}
+
+export default function DashboardPage({ initialData, range }: { initialData: DashboardReadModel; range: { start: string; end: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const formatCurrency = React.useCallback(
@@ -58,15 +115,21 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
     ? initialData.workspace.onboarding.checklist
     : {}) as Record<string, any>;
   const connectedProviders = new Set(initialData.workspace.integrations.filter((item) => item.status === 'CONNECTED').map((item) => item.provider));
-  const [isSkippedAll, setIsSkippedAll] = React.useState(Boolean(initialChecklist.skippedAll));
   const [isRevenueModalOpen, setIsRevenueModalOpen] = React.useState(false);
+  const [selectedFinanceMetric, setSelectedFinanceMetric] = React.useState<FinanceMetricKey>('mrr');
+  const [overviewTab, setOverviewTab] = React.useState<OverviewTab>('leads');
+  const [progressView, setProgressView] = React.useState<'projects' | 'tasks'>('projects');
+  const [selectedProjectId, setSelectedProjectId] = React.useState('all');
+  const [draftRange, setDraftRange] = React.useState(range);
+  const [rangeError, setRangeError] = React.useState('');
+  const [isRangePending, startRangeTransition] = React.useTransition();
   // Keep dashboard metrics tied to the latest server read model. These values
   // update whenever the route is refreshed after a workspace mutation.
   const financeData = initialData.dashboard;
   const clientsList = initialData.clients;
-  const [metaData, setMetaData] = React.useState<any>(null);
   const [tasksList] = React.useState<any[]>(initialData.tasks);
   const [calendarEvents, setCalendarEvents] = React.useState<any[]>([]);
+  const notifications: any[] = [];
   const [agencyLeadsData, setAgencyLeadsData] = React.useState<any>(null);
   const [currentUserName] = React.useState(initialData.workspace.user.name.split(' ')[0] || 'there');
   const [canManageWelcomeBackground] = React.useState(initialData.workspace.user.role.toLowerCase() === 'admin');
@@ -74,7 +137,6 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
   const [organizationPreferences, setOrganizationPreferences] = React.useState<Record<string, unknown>>(initialPreferences);
   const [welcomeBackgroundStatus, setWelcomeBackgroundStatus] = React.useState<'idle' | 'saving' | 'error'>('idle');
   const welcomeBackgroundInputRef = React.useRef<HTMLInputElement>(null);
-  const [notifications, setNotifications] = React.useState<any[]>([]);
   const addReceivableAsRevenue = (invoice: any) => {
     const amount = Number(invoice.balanceDue ?? invoice.pendingAmount ?? 0);
     router.push(`/finance?tab=manual&invoiceId=${encodeURIComponent(invoice.id)}&amount=${encodeURIComponent(String(amount))}`);
@@ -152,30 +214,40 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
   React.useEffect(() => {
     async function load() {
       try {
-        const [metaRes, calendarRes, agencyLeadsRes, notificationRes] = await Promise.all([
-          fetch('/api/meta-portal'),
+        const [calendarRes, agencyLeadsRes] = await Promise.all([
           fetch('/api/calendar'),
-          fetch('/api/agency-leads'),
-          fetch('/api/notifications'),
+          fetch(`/api/agency-leads?start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}`),
         ]);
 
-        const [meta, calendar, agencyLeads, notificationData] = await Promise.all([
-          metaRes.ok ? metaRes.json() : null,
+        const [calendar, agencyLeads] = await Promise.all([
           calendarRes.ok ? calendarRes.json() : null,
           agencyLeadsRes.ok ? agencyLeadsRes.json() : null,
-          notificationRes.ok ? notificationRes.json() : null,
         ]);
 
-        if (meta) setMetaData(meta);
         if (calendar) setCalendarEvents(calendar.events || []);
         if (agencyLeads) setAgencyLeadsData(agencyLeads);
-        if (notificationData) setNotifications(notificationData.notifications || []);
       } catch (e) {
         console.error(e);
       }
     }
     load();
-  }, []);
+  }, [range.end, range.start]);
+
+  React.useEffect(() => {
+    setDraftRange(range);
+  }, [range]);
+
+  const applyDashboardRange = () => {
+    if (!draftRange.start || !draftRange.end || draftRange.start > draftRange.end) {
+      setRangeError('Choose a start date that is on or before the end date.');
+      return;
+    }
+    setRangeError('');
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('start', draftRange.start);
+    params.set('end', draftRange.end);
+    startRangeTransition(() => router.push(`/dashboard?${params.toString()}`));
+  };
 
   
   const handleConnect = (id: string) => {
@@ -370,7 +442,6 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
       });
 
       if (res.ok) {
-        setIsSkippedAll(skippedAll);
         setNeedsOnboarding(false);
         window.location.reload();
       } else {
@@ -382,61 +453,6 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
       alert('Error completing onboarding.');
     }
   };
-
-  // Computations for Meta Ads Reports
-  const ads = React.useMemo(() => {
-    if (!metaData) return [];
-    const list: any[] = [];
-    (metaData.campaigns || []).forEach((c: any) => {
-      if (c.ads) list.push(...c.ads);
-    });
-    return list;
-  }, [metaData]);
-
-  const adReports = React.useMemo(() => {
-    const leads = metaData?.leads || [];
-    const totalSpend = ads.reduce((sum, ad) => sum + ad.spend, 0);
-    const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressions, 0);
-    const totalLeads = leads.length;
-
-    const closedLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'closed').length;
-    const procuredLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'procured' || l.status?.toLowerCase() === 'new').length;
-    const warmLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'warm' || l.status?.toLowerCase() === 'cold-call in progress').length;
-    const coldLeads = leads.filter((l: any) => l.status?.toLowerCase() === 'cold' || l.status?.toLowerCase() === 'call back required').length;
-
-    // Report metrics calculations
-    const cpl = totalLeads > 0 ? totalSpend / totalLeads : 0;
-    
-    // 1. Conversion rate uses closed leads: (Closed Leads / Total Leads) * 100
-    const conversionRate = totalLeads > 0 ? (closedLeads / totalLeads) * 100 : 0;
-    
-    // 2. CAC uses closed leads: Total Spend / Closed Leads
-    const cac = closedLeads > 0 ? totalSpend / closedLeads : 0;
-    
-    // Revenue is not available from the Meta provider payload, so do not invent a ROAS.
-    const roas = null;
-    const impressionsPerCurrency = totalSpend > 0 ? totalImpressions / totalSpend : 0;
-
-    return {
-      totalSpend,
-      totalImpressions,
-      totalLeads,
-      closedLeads,
-      procuredLeads,
-      warmLeads,
-      coldLeads,
-      cpl,
-      conversionRate,
-      cac,
-      roas,
-      impressionsPerCurrency
-    };
-  }, [ads, metaData]);
-
-  const warmLeads = React.useMemo(() => {
-    const leads = metaData?.leads || [];
-    return leads.filter((l: any) => l.status?.toLowerCase() === 'warm');
-  }, [metaData]);
 
   const agencyLeadsList = React.useMemo(() => {
     if (agencyLeadsData?.leads && agencyLeadsData.leads.length > 0) {
@@ -518,25 +534,107 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [calendarEvents]);
 
+  const financialMetrics = React.useMemo(() => [
+    { key: 'revenue' as const, label: 'Revenue', value: formatCurrency(financeData?.grossBillings || 0), note: 'Recognized in range', Icon: TrendingUp },
+    { key: 'profit' as const, label: 'Net profit', value: formatCurrency((financeData?.grossBillings || 0) - (financeData?.totalExpenses || 0)), note: 'Revenue less expenses', Icon: DollarSign },
+    { key: 'mrr' as const, label: 'Monthly recurring revenue', value: formattedMonthlyRecurringRevenue, note: `${monthlyRetainerProjects.length} active ${monthlyRetainerProjects.length === 1 ? 'retainer' : 'retainers'}`, Icon: Repeat2 },
+    { key: 'expenses' as const, label: 'Expenses', value: formatCurrency(financeData?.totalExpenses || 0), note: 'Recorded in range', Icon: TrendingDown },
+    { key: 'receivables' as const, label: 'Receivables', value: formatCurrency(financeData?.outstandingAmount || 0), note: 'Open invoice balance', Icon: ArrowDownRight },
+  ], [financeData, formatCurrency, formattedMonthlyRecurringRevenue, monthlyRetainerProjects.length]);
+
+  const selectedProjectTasks = React.useMemo(
+    () => selectedProjectId === 'all' ? tasksList : tasksList.filter((task: any) => task.projectId === selectedProjectId),
+    [selectedProjectId, tasksList],
+  );
+
+  const leadEconomics = agencyLeadsData?.metrics || {};
+  const configuredLeadStages = resolveLeadStages(initialPreferences.leadStages);
+  const leadStageCounts = new Map<string, number>(
+    Array.isArray(agencyLeadsData?.stageCounts)
+      ? agencyLeadsData.stageCounts.map((stage: any) => [String(stage.status || '').toLowerCase(), Number(stage.count || 0)])
+      : agencyLeadsList.map((lead: any) => String(lead.status || '').toLowerCase()).reduce((entries: Array<[string, number]>, status: string) => {
+        const entry = entries.find(([key]) => key === status);
+        if (entry) entry[1] += 1;
+        else entries.push([status, 1]);
+        return entries;
+      }, []),
+  );
+  const pipelineStages = configuredLeadStages.map((stage) => ({
+    ...stage,
+    count: leadStageStatusAliases(stage.id).reduce((sum, status) => sum + (leadStageCounts.get(status) || 0), 0),
+  }));
+  const pipelineLeadTotal = pipelineStages.reduce((sum, stage) => sum + stage.count, 0);
+  const closedAgencyLeads = Number(leadEconomics.closedLeadCount || leadStageCounts.get('closed') || 0);
+  const winRate = pipelineLeadTotal > 0 ? (closedAgencyLeads / pipelineLeadTotal) * 100 : 0;
+  const hasMonthlyChange = financeData?.monthlyChangePercent !== null && financeData?.monthlyChangePercent !== undefined;
+  const monthlyChangePercent = Number(financeData?.monthlyChangePercent ?? 0);
+
+  const financialDetail = selectedFinanceMetric === 'revenue' ? (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-between gap-4"><div><h3 className="text-base font-semibold text-white">Revenue by client</h3><p className="mt-1 text-xs text-zinc-500">Recognized revenue within the selected range.</p></div><Button type="button" size="sm" onClick={() => setIsRevenueModalOpen(true)}>Client chart</Button></div>
+      <div className="mt-5 min-h-0 flex-1 divide-y divide-zinc-800 overflow-y-auto">
+        {(financeData?.revenueByClient || []).map((client: any) => <div key={client.id} className="flex items-center justify-between gap-4 py-3 text-xs"><span className="truncate font-semibold text-zinc-300">{client.name}</span><span className="shrink-0 font-mono font-bold text-white">{formatCurrency(client.revenue)}</span></div>)}
+        {!financeData?.revenueByClient?.length && <p className="py-8 text-center text-xs text-zinc-500">No recognized revenue in this range.</p>}
+      </div>
+    </div>
+  ) : selectedFinanceMetric === 'profit' ? (
+    <div><h3 className="text-base font-semibold text-white">Operating profit</h3><p className="mt-1 text-xs text-zinc-500">Revenue less recorded operating expenses.</p><dl className="mt-6 divide-y divide-zinc-800 text-sm"><div className="flex justify-between py-4"><dt className="text-zinc-400">Revenue</dt><dd className="font-mono font-bold text-white">{formatCurrency(financeData?.grossBillings || 0)}</dd></div><div className="flex justify-between py-4"><dt className="text-zinc-400">Expenses</dt><dd className="font-mono font-bold text-zinc-300">{formatCurrency(financeData?.totalExpenses || 0)}</dd></div><div className="flex justify-between py-4"><dt className="font-semibold text-white">Net profit</dt><dd className="font-mono font-bold text-white">{formatCurrency((financeData?.grossBillings || 0) - (financeData?.totalExpenses || 0))}</dd></div></dl></div>
+  ) : selectedFinanceMetric === 'mrr' ? (
+    <div className="flex h-full min-h-0 flex-col"><div><h3 className="text-base font-semibold text-white">Monthly recurring projects</h3><p className="mt-1 text-xs text-zinc-500">Active monthly retainers ranked by recurring revenue.</p></div><div className="mt-5 min-h-0 flex-1 divide-y divide-zinc-800 overflow-y-auto">{monthlyRetainerProjects.map((project: any, index: number) => <div key={project.id} className="flex items-center justify-between gap-4 py-3 text-xs"><div className="min-w-0"><p className="truncate font-semibold text-zinc-200">{index + 1}. {project.name}</p><p className="mt-0.5 truncate text-zinc-500">{project.clientName}</p></div><span className="shrink-0 font-mono font-bold text-white">{formatCurrency(project.amount)}</span></div>)}{!monthlyRetainerProjects.length && <p className="py-8 text-center text-xs text-zinc-500">No active monthly retainer projects.</p>}</div></div>
+  ) : selectedFinanceMetric === 'expenses' ? (
+    <div><h3 className="text-base font-semibold text-white">Expense overview</h3><p className="mt-1 text-xs text-zinc-500">Recorded expenses within the selected range.</p><dl className="mt-6 divide-y divide-zinc-800 text-sm"><div className="flex justify-between py-4"><dt className="text-zinc-400">Total expenses</dt><dd className="font-mono font-bold text-white">{formatCurrency(financeData?.totalExpenses || 0)}</dd></div><div className="flex justify-between py-4"><dt className="text-zinc-400">Expense ratio</dt><dd className="font-mono font-bold text-white">{financeData?.grossBillings ? `${((financeData.totalExpenses / financeData.grossBillings) * 100).toFixed(1)}%` : '0.0%'}</dd></div></dl><Button type="button" className="mt-6 w-full" onClick={() => router.push('/finance?tab=manual&transactionType=Expense')}><Plus className="h-4 w-4" />Add expense</Button></div>
+  ) : (
+    <div className="flex h-full min-h-0 flex-col"><div><h3 className="text-base font-semibold text-white">Pending receivables</h3><p className="mt-1 text-xs text-zinc-500">Invoices with a remaining balance in this range.</p></div><div className="mt-5 min-h-0 flex-1 divide-y divide-zinc-800 overflow-y-auto">{(financeData?.outstandingInvoices || []).map((invoice: any) => <div key={invoice.id} className="flex items-center justify-between gap-3 py-3 text-xs"><div className="min-w-0"><p className="truncate font-semibold text-zinc-200">{invoice.invoiceNumber}</p><p className="truncate text-zinc-500">{invoice.clientName}</p></div><div className="flex shrink-0 items-center gap-2"><span className="font-mono font-bold text-white">{formatCurrency(invoice.pendingAmount)}</span><Button size="sm" onClick={() => addReceivableAsRevenue(invoice)}>Add revenue</Button></div></div>)}{!financeData?.outstandingInvoices?.length && <p className="py-8 text-center text-xs text-zinc-500">No outstanding invoices in this range.</p>}</div></div>
+  );
+
   return (
     <div className="dashboard-canvas space-y-6">
       {/* Page Header */}
-      <div className="dashboard-header dashboard-command-center relative isolate flex flex-col gap-2 overflow-hidden md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
+      <div className="dashboard-header dashboard-command-center relative isolate flex flex-col items-center justify-center gap-5 overflow-hidden border-b border-zinc-800/60 p-4 sm:p-5 md:flex-row md:justify-between">
         <div aria-hidden="true" className="dashboard-command-center-banner absolute inset-0 pointer-events-none" style={welcomeBackground ? { backgroundImage: `url(${welcomeBackground})`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined} />
         <div className="relative z-10">
           <div className="dashboard-welcome-card inline-flex items-center gap-3 rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
             <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Welcome, {currentUserName}</h1>
           </div>
-          <p className="mt-3 text-zinc-500">Real-time financial, operational, and paid creative performance intelligence.</p>
         </div>
-        <div className="relative z-10 flex flex-wrap items-center gap-3">
-          <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300 py-1 px-3">
-            Q2 Financial Year 2026
-          </Badge>
+        <div className="z-10 flex flex-wrap items-center gap-3">
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button type="button" className="dashboard-range-trigger min-h-11 whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${dashboardRangeLabel(range.start, range.end)}`}>
+                <Calendar className="h-4 w-4" aria-hidden="true" />{dashboardRangeLabel(range.start, range.end)}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-white shadow-2xl">
+                <h2 className="text-sm font-semibold">Dashboard range</h2>
+                <p className="mt-1 text-xs text-zinc-500">Choose the period used for finance and pipeline reporting.</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Start date<DateInput value={draftRange.start} max={draftRange.end} onChange={(start) => setDraftRange((current) => ({ ...current, start }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                  <label className="space-y-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">End date<DateInput value={draftRange.end} min={draftRange.start} onChange={(end) => setDraftRange((current) => ({ ...current, end }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                </div>
+                <p className="mt-2 min-h-4 text-[10px] text-rose-400" role="status">{rangeError}</p>
+                <Button type="button" disabled={isRangePending} onClick={applyDashboardRange} className="mt-2 w-full">{isRangePending ? 'Updating range' : 'Apply range'}</Button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
           {canManageWelcomeBackground && <>
+            <Popover.Root>
+              <Popover.Trigger asChild>
+                <button type="button" className="dashboard-banner-menu absolute right-2.5 top-2.5 z-20 grid h-7 w-7 place-items-center rounded-full border border-zinc-700 bg-zinc-950/80 text-zinc-300 backdrop-blur-md" aria-label="Banner options"><MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" /></button>
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 text-white shadow-2xl">
+                  <button type="button" disabled={welcomeBackgroundStatus === 'saving'} onClick={() => welcomeBackgroundInputRef.current?.click()} className="dashboard-menu-item"><ImageUp className="h-4 w-4" aria-hidden="true" />{welcomeBackground ? 'Replace wallpaper' : 'Upload wallpaper'}</button>
+                  <a href="https://www.canva.com/design/play?category=tACFapY0WQc&referrer=banners-landing-page" target="_blank" rel="noreferrer" className="dashboard-menu-item"><span className="canva-mark" aria-hidden="true">C</span>Create with Canva</a>
+                  <button type="button" disabled={!welcomeBackground || welcomeBackgroundStatus === 'saving'} onClick={() => void saveWelcomeBackground('').catch((reason) => { setWelcomeBackgroundStatus('error'); window.alert(reason instanceof Error ? reason.message : 'The background could not be removed.'); })} className="dashboard-menu-item"><X className="h-4 w-4" aria-hidden="true" />Remove wallpaper</button>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+            <div className="hidden">
             <input ref={welcomeBackgroundInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => void handleWelcomeBackground(event)} />
             <Button type="button" variant="outline" disabled={welcomeBackgroundStatus === 'saving'} onClick={() => welcomeBackgroundInputRef.current?.click()} className="min-h-11 whitespace-nowrap border-zinc-700 bg-zinc-950/75 text-xs text-zinc-200 backdrop-blur-md hover:bg-zinc-900"><ImageUp className="h-4 w-4" />{welcomeBackgroundStatus === 'saving' ? 'Saving image…' : welcomeBackground ? 'Replace background' : 'Upload background'}</Button>
             {welcomeBackground && <Button type="button" variant="ghost" disabled={welcomeBackgroundStatus === 'saving'} onClick={() => void saveWelcomeBackground('').catch((reason) => { setWelcomeBackgroundStatus('error'); window.alert(reason instanceof Error ? reason.message : 'The background could not be removed.'); })} className="min-h-11 whitespace-nowrap text-xs text-zinc-300 hover:text-white"><X className="h-4 w-4" />Remove</Button>}
+            </div>
           </>}
         </div>
       </div>
@@ -724,9 +822,90 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
         </div>
       ) : (
         <>
+          <div className="dashboard-executive-layout space-y-6">
+            <ExpandableCard
+              expandedSize="wide"
+              className="dashboard-finance-card min-h-[190px] overflow-hidden"
+              expandedContent={
+                <div className="dashboard-finance-expanded grid h-full min-h-0 md:grid-cols-[minmax(190px,0.34fr)_minmax(0,0.66fr)]">
+                  <div className="dashboard-finance-list border-b border-zinc-800 pb-4 md:border-b-0 md:border-r md:pb-0 md:pr-5">
+                    <p className="px-3 pb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Financial overview</p>
+                    <div className="grid gap-1" role="tablist" aria-label="Financial metrics">
+                      {financialMetrics.map((metric) => <button key={metric.key} type="button" role="tab" aria-selected={selectedFinanceMetric === metric.key} onClick={() => setSelectedFinanceMetric(metric.key)} data-active={selectedFinanceMetric === metric.key} data-tone={metric.key} className="dashboard-finance-list-item min-h-11 rounded-md px-3 py-2 text-left"><span className="dashboard-finance-accent block truncate text-xs font-semibold">{metric.label}</span><span className="mt-0.5 block whitespace-nowrap ps-0.5 font-mono text-[10px] leading-normal text-zinc-500">{metric.value}</span></button>)}
+                    </div>
+                  </div>
+                  <div className="min-h-0 pt-5 md:pl-7 md:pt-0" role="tabpanel">{financialDetail}</div>
+                </div>
+              }
+            >
+              <div className="dashboard-finance-metrics grid h-full min-h-[190px] grid-cols-1 lg:grid-cols-[1fr_1fr_1.28fr_1fr_1fr]">
+                {financialMetrics.map((metric) => {
+                  const MetricIcon = metric.Icon;
+                  return <button key={metric.key} type="button" onClick={() => setSelectedFinanceMetric(metric.key)} data-tone={metric.key} className={`dashboard-finance-metric relative min-h-[132px] min-w-0 px-5 py-5 text-left ${metric.key === 'mrr' ? 'dashboard-finance-metric-primary' : ''}`} aria-haspopup="dialog">
+                    <span className="dashboard-finance-accent flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.14em]"><span className="truncate">{metric.label}</span><MetricIcon className="h-4 w-4 shrink-0" aria-hidden="true" /></span>
+                    <span className={`dashboard-finance-accent mt-7 block whitespace-nowrap ps-0.5 pt-1 font-mono font-bold leading-[1.25] tabular-nums ${metric.key === 'mrr' ? 'text-3xl' : 'text-xl'}`}>{metric.value}</span>
+                    <span className="mt-2 block truncate text-[10px] text-zinc-500">{metric.note}</span>
+                  </button>;
+                })}
+              </div>
+            </ExpandableCard>
+
+            <div className="dashboard-primary-row grid gap-6 xl:grid-cols-[minmax(0,65fr)_minmax(280px,35fr)]">
+              <RevenueLineChart
+                title="Financial performance"
+                description="Toggle legend items to compare one or several metrics across the chosen range."
+                className="h-[540px] w-full"
+                contentClassName="h-[404px] md:h-[424px]"
+                data={financeData?.revenueHistory ?? []}
+                currencyRate={1}
+                selectableSeries
+              />
+              <Card className="flex h-[540px] min-w-0 flex-col overflow-hidden">
+                <CardHeader className="border-b border-zinc-800 pb-4">
+                  <div className="flex items-start justify-between gap-4"><div><CardTitle className="text-sm font-semibold text-white">Delivery progress</CardTitle><CardDescription className="mt-1">Projects or tasks within one project.</CardDescription></div><BriefcaseBusiness className="h-4 w-4 text-zinc-500" aria-hidden="true" /></div>
+                  <div className="mt-3 grid grid-cols-2 rounded-md border border-zinc-800 p-1" role="tablist" aria-label="Progress view">
+                    {(['projects', 'tasks'] as const).map((view) => <button key={view} type="button" role="tab" aria-selected={progressView === view} data-active={progressView === view} onClick={() => setProgressView(view)} className="dashboard-segmented-tab min-h-11 whitespace-nowrap rounded px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500">{view}</button>)}
+                  </div>
+                  {progressView === 'tasks' && <label className="mt-3 block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Project<select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className="mt-1.5 h-11 w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs font-semibold text-white outline-2 outline-transparent focus-visible:outline-zinc-300"><option value="all">All projects</option>{financeData.allProjects.map((project: any) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>}
+                </CardHeader>
+                <CardContent className="dashboard-progress-scroll min-h-0 flex-1 overflow-y-auto p-0">
+                  {progressView === 'projects' ? financeData.allProjects.map((project: any) => <Link key={project.id} href={`/projects?project=${encodeURIComponent(project.id)}`} className="dashboard-progress-row block border-b border-zinc-800 px-5 py-4"><span className="flex items-center justify-between gap-3 text-xs"><span className="truncate font-semibold text-zinc-200">{project.name}</span><span className="shrink-0 font-mono text-zinc-400">{project.progress}%</span></span><span className="mt-1 flex items-center justify-between gap-3 text-[10px] text-zinc-500"><span className="truncate">{project.clientName}</span><span className="shrink-0">{String(project.status).replaceAll('_', ' ')}</span></span><span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-zinc-800"><span className="block h-full bg-zinc-200" style={{ width: `${Math.max(0, Math.min(100, project.progress || 0))}%` }} /></span></Link>) : selectedProjectTasks.map((task: any) => <Link key={task.id} href={`/tasks?task=${encodeURIComponent(task.id)}`} className="dashboard-progress-row block border-b border-zinc-800 px-5 py-4"><span className="flex items-center justify-between gap-3 text-xs"><span className="truncate font-semibold text-zinc-200">{task.title}</span><span className="shrink-0 font-mono text-zinc-400">{task.progress || 0}%</span></span><span className="mt-1 block truncate text-[10px] text-zinc-500">{task.project?.name || 'Unassigned project'}</span><span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-zinc-800"><span className="block h-full bg-zinc-200" style={{ width: `${Math.max(0, Math.min(100, task.progress || 0))}%` }} /></span></Link>)}
+                  {progressView === 'projects' && !financeData.allProjects.length && <div className="p-8 text-center text-xs text-zinc-500">No projects in this workspace.</div>}
+                  {progressView === 'tasks' && !selectedProjectTasks.length && <div className="p-8 text-center text-xs text-zinc-500">No tasks are linked to this project.</div>}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="dashboard-secondary-row grid gap-6 xl:grid-cols-[minmax(250px,25fr)_minmax(0,75fr)]">
+              <Card className="flex h-[470px] min-w-0 flex-col overflow-hidden">
+                <CardHeader className="border-b border-zinc-800 pb-3"><CardTitle className="text-sm font-semibold text-white">Workspace overview</CardTitle><div className="dashboard-overview-tabs mt-3 flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Workspace overview">{([['leads','Leads'],['clients','Clients'],['actions','Actions'],['tasks','Tasks'],['meetings','Meetings']] as const).map(([key,label]) => <button key={key} type="button" role="tab" aria-selected={overviewTab === key} data-active={overviewTab === key} onClick={() => setOverviewTab(key)} className="dashboard-overview-tab min-h-11 shrink-0 whitespace-nowrap rounded px-2.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500">{label}</button>)}</div></CardHeader>
+                <CardContent className="dashboard-overview-scroll min-h-0 flex-1 overflow-y-auto p-0" role="tabpanel">
+                  {overviewTab === 'leads' && <div className="divide-y divide-zinc-800">{agencyLeadsList.map((lead: any) => <Link key={lead.id || lead.leadId} href={`/agency-leads?lead=${encodeURIComponent(lead.id || lead.leadId)}`} className="flex items-center justify-between gap-3 px-5 py-4 text-xs"><span className="min-w-0"><span className="block truncate font-semibold text-zinc-200">{lead.fullName}</span><span className="mt-0.5 block truncate text-zinc-500">{lead.email}</span></span><Badge variant={String(lead.status).toLowerCase() === 'closed' ? 'risk-low' : 'outline'} className="shrink-0">{lead.status}</Badge></Link>)}{!agencyLeadsList.length && <p className="p-8 text-center text-xs text-zinc-500">No leads in this range.</p>}</div>}
+                  {overviewTab === 'clients' && <div className="divide-y divide-zinc-800">{sortedClients.map((client: any) => <Link key={client.id} href={`/clients?client=${encodeURIComponent(client.id)}`} className="flex items-center justify-between gap-3 px-5 py-4 text-xs"><span className="truncate font-semibold text-zinc-200">{client.name}</span><span className="shrink-0 font-mono text-zinc-400">{formatCurrency(Number(client.contractValue || 0))}</span></Link>)}{!sortedClients.length && <p className="p-8 text-center text-xs text-zinc-500">No onboarded clients.</p>}</div>}
+                  {overviewTab === 'actions' && <div className="flex h-full items-center justify-center p-6"><div className="grid w-full max-w-sm gap-4"><Button type="button" onClick={() => router.push('/clients/onboard')} className="min-h-14 w-full text-sm">Add client</Button><Button type="button" variant="outline" onClick={() => router.push('/atlas')} className="min-h-14 w-full text-sm">Ask Atlas</Button></div></div>}
+                  {overviewTab === 'tasks' && <div className="divide-y divide-zinc-800">{priorityTasks.map((task: any) => <Link key={task.id} href={`/tasks?task=${encodeURIComponent(task.id)}`} className="flex items-center justify-between gap-3 px-5 py-4 text-xs"><span className="truncate font-semibold text-zinc-200">{task.title}</span><Badge variant={task.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'} className="shrink-0">{taskStatusLabel(task.status)}</Badge></Link>)}{!priorityTasks.length && <p className="p-8 text-center text-xs text-zinc-500">No priority tasks.</p>}</div>}
+                  {overviewTab === 'meetings' && <div className="divide-y divide-zinc-800">{todayEvents.map((event: any) => <Link key={event.id} href="/calendar" className="flex items-center justify-between gap-3 px-5 py-4 text-xs"><span className="truncate font-semibold text-zinc-200">{event.title}</span><span className="shrink-0 font-mono text-zinc-400">{event.startTime ? new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span></Link>)}{!todayEvents.length && <p className="p-8 text-center text-xs text-zinc-500">No meetings today.</p>}</div>}
+                </CardContent>
+              </Card>
+
+              <Card className="flex h-[470px] min-w-0 flex-col overflow-hidden">
+                <CardHeader className="border-b border-zinc-800"><div className="flex items-start justify-between gap-4"><div><CardTitle className="text-sm font-semibold text-white">Sales pipeline</CardTitle><CardDescription className="mt-1">Lead conversion and acquisition economics for the selected range.</CardDescription></div><Target className="h-4 w-4 text-zinc-500" aria-hidden="true" /></div></CardHeader>
+                <CardContent className="dashboard-pipeline-scroll min-h-0 flex-1 overflow-y-auto p-5">
+                  <div className="grid grid-cols-1 border border-zinc-800 lg:grid-cols-4">{[
+                    { label: 'Leads', value: String(pipelineLeadTotal), note: `${closedAgencyLeads} won` },
+                    { label: 'Win rate', value: `${winRate.toFixed(1)}%`, note: 'Closed / total' },
+                    { label: 'CAC', value: leadEconomics.averageCac == null ? '—' : formatCurrency(leadEconomics.averageCac), note: leadEconomics.averageCac == null ? 'No acquisition spend' : 'Spend per win' },
+                    { label: 'ROAS', value: leadEconomics.averageRoas == null ? '—' : `${Number(leadEconomics.averageRoas).toFixed(2)}×`, note: leadEconomics.averageRoas == null ? 'Revenue or spend missing' : 'Sourced revenue / spend' },
+                  ].map((metric) => <div key={metric.label} className="dashboard-sales-metric min-w-0 p-4"><p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{metric.label}</p><p className="mt-5 truncate font-mono text-xl font-bold tabular-nums text-white">{metric.value}</p><p className="mt-1 truncate text-[10px] text-zinc-500">{metric.note}</p></div>)}</div>
+                  <div className="mt-5 min-h-0"><div className="flex items-center justify-between"><h3 className="text-xs font-semibold text-white">Stage distribution</h3><Gauge className="h-4 w-4 text-zinc-500" aria-hidden="true" /></div><SalesPipelinePieChart stages={pipelineStages} /></div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
           {/* Grid of Executive Metric Cards */}
            {/* Executive metric composition */}
-          <div className="space-y-6">
+          {false && <div className="hidden">
             {/* MRR anchors four supporting finance metrics. */}
             <div className="dashboard-metric-grid grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <ExpandableCard 
@@ -765,7 +944,7 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
                   {financeData ? formatCurrency(financeData.currentMonthRevenue) : formatCurrency(0)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
-                  {financeData?.monthlyChangePercent !== null && financeData?.monthlyChangePercent !== undefined ? <><ArrowUpRight className="h-3.5 w-3.5" /><span>{financeData.monthlyChangePercent >= 0 ? '+' : ''}{financeData.monthlyChangePercent.toFixed(1)}% vs last month</span></> : <span>No prior-month comparison</span>}
+                  {hasMonthlyChange ? <><ArrowUpRight className="h-3.5 w-3.5" /><span>{monthlyChangePercent >= 0 ? '+' : ''}{monthlyChangePercent.toFixed(1)}% vs last month</span></> : <span>No prior-month comparison</span>}
                 </div>
               </CardContent>
             </ExpandableCard>
@@ -1182,7 +1361,7 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
                             {t.deadline && <span className="text-[10px] text-zinc-500 mt-0.5 block">Due: {t.deadline}</span>}
                           </div>
                           <Badge variant={t.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'}>
-                            {t.status.replaceAll('_', ' ')}
+                            {taskStatusLabel(t.status)}
                           </Badge>
                         </div>
                       ))}
@@ -1208,7 +1387,7 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
                         <div key={t.id} className="flex items-center justify-between text-[11px] py-1 border-b border-zinc-900/40">
                           <span className="text-zinc-300 truncate pr-2 font-medium">{t.title}</span>
                           <Badge className="scale-90 text-[9px] uppercase font-mono font-bold shrink-0" variant={t.status === 'IN_PROGRESS' ? 'risk-medium' : 'outline'}>
-                            {t.status === 'IN_PROGRESS' ? 'Active' : 'To-Do'}
+                            {t.status === 'IN_PROGRESS' ? 'Active' : 'TO-DO'}
                           </Badge>
                         </div>
                       ))
@@ -1274,7 +1453,7 @@ export default function DashboardPage({ initialData }: { initialData: DashboardR
               </ExpandableCard>
             </div>
             </div>
-          </div>
+          </div>}
         </>
       )}
       {isRevenueModalOpen && (

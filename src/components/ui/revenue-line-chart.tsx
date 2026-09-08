@@ -11,7 +11,22 @@ interface RevenueLineChartProps {
   currencyRate?: number;
   className?: string;
   contentClassName?: string;
+  selectableSeries?: boolean;
 }
+
+type FinanceSeries = 'revenue' | 'expenses' | 'receivables';
+
+const seriesOptions: Array<{ key: FinanceSeries; label: string }> = [
+  { key: 'revenue', label: 'Revenue' },
+  { key: 'expenses', label: 'Expenses' },
+  { key: 'receivables', label: 'Receivables' },
+];
+
+const seriesColors: Record<FinanceSeries, string> = {
+  revenue: '#10b981',
+  expenses: '#ef4444',
+  receivables: '#eab308',
+};
 
 export function RevenueLineChart({ 
   data, 
@@ -20,7 +35,15 @@ export function RevenueLineChart({
   currencyRate = 1,
   className,
   contentClassName,
+  selectableSeries = false,
 }: RevenueLineChartProps) {
+  const [activeSeries, setActiveSeries] = React.useState<FinanceSeries[]>(() => seriesOptions.map((series) => series.key));
+  const toggleSeries = React.useCallback((series: FinanceSeries) => {
+    setActiveSeries((current) => {
+      if (!current.includes(series)) return [...current, series];
+      return current.length === 1 ? current : current.filter((item) => item !== series);
+    });
+  }, []);
   const chartData = React.useMemo(() => {
     const normalized = data.map((point) => ({
       label: point.label,
@@ -83,8 +106,28 @@ export function RevenueLineChart({
                 name === 'revenue' ? 'Revenue' : name === 'expenses' ? 'Expenses' : 'Pending receivables',
               ]}
             />
-            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} formatter={(value) => value === 'revenue' ? 'Revenue' : value === 'expenses' ? 'Expenses' : 'Pending receivables'} />
-            <Area
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+              formatter={(value) => value === 'revenue' ? 'Revenue' : value === 'expenses' ? 'Expenses' : 'Pending receivables'}
+              content={selectableSeries ? () => (
+                <div className="revenue-series-legend" role="group" aria-label="Financial graph metrics">
+                  {seriesOptions.map((series) => (
+                    <button
+                      key={series.key}
+                      type="button"
+                      aria-pressed={activeSeries.includes(series.key)}
+                      onClick={() => toggleSeries(series.key)}
+                      className="revenue-series-legend-item"
+                      data-active={activeSeries.includes(series.key)}
+                    >
+                      <span className="revenue-series-legend-line" style={{ backgroundColor: seriesColors[series.key] }} aria-hidden="true" />
+                      {series.label}
+                    </button>
+                  ))}
+                </div>
+              ) : undefined}
+            />
+            {(!selectableSeries || activeSeries.includes('revenue')) && <Area
               type="monotone"
               dataKey="revenue"
               stroke="#10b981" 
@@ -92,8 +135,8 @@ export function RevenueLineChart({
               fill="url(#revenue-area)"
               dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, strokeWidth: 0 }}
-            />
-            <Area
+            />}
+            {(!selectableSeries || activeSeries.includes('expenses')) && <Area
               type="monotone"
               dataKey="expenses"
               stroke="#ef4444"
@@ -101,8 +144,8 @@ export function RevenueLineChart({
               fill="url(#expenses-area)"
               dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, strokeWidth: 0 }}
-            />
-            <Area
+            />}
+            {(!selectableSeries || activeSeries.includes('receivables')) && <Area
               type="monotone"
               dataKey="receivables"
               stroke="#eab308"
@@ -110,7 +153,7 @@ export function RevenueLineChart({
               fill="url(#receivables-area)"
               dot={{ fill: '#eab308', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, strokeWidth: 0 }}
-            />
+            />}
           </AreaChart>
       </CardContent>
     </Card>

@@ -76,10 +76,12 @@ function getClientIdentity(clientId: string) {
   };
 }
 
-const projectStatusLabel = (status?: string) => String(status || 'NOT_STARTED')
-  .replaceAll('_', ' ')
-  .toLowerCase()
-  .replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+const projectStatusLabel = (status?: string) => status === 'TODO'
+  ? 'TO-DO'
+  : String(status || 'NOT_STARTED')
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 
 type QuickTaskDraft = { id: string; title: string; description: string; deadline: string; expanded: boolean };
 const newQuickTaskDraft = (): QuickTaskDraft => ({ id: crypto.randomUUID(), title: '', description: '', deadline: '', expanded: true });

@@ -36,11 +36,13 @@ export function calculateImageGeometry(width: number, height: number, kind: Imag
   }
 
   if (kind === 'welcome-background') {
-    const targetRatio = 2.5;
+    // Canva's standard web leaderboard banner is 728 x 90. Keep the same
+    // aspect ratio and retain up to a 2x export for sharper dashboard display.
+    const targetRatio = 728 / 90;
     const sourceRatio = width / height;
     const sourceWidth = sourceRatio > targetRatio ? height * targetRatio : width;
     const sourceHeight = sourceRatio > targetRatio ? height : width / targetRatio;
-    const scale = Math.min(1, 1600 / sourceWidth, 640 / sourceHeight);
+    const scale = Math.min(1, 1456 / sourceWidth, 180 / sourceHeight);
     return {
       sourceX: (width - sourceWidth) / 2,
       sourceY: (height - sourceHeight) / 2,

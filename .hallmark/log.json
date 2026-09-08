@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-09-07",
+    "scope": "admin dashboard executive workspace",
+    "macrostructure": "Geometry-aware Workbench",
+    "theme": "Iris OS graphite, porcelain, and metallic silver",
+    "axes": ["unified financial ledger", "65/35 performance and delivery split", "40/60 operations and sales split", "range-driven reporting"],
+    "nav": "existing Iris workspace rail",
+    "footer": "none",
+    "enrichment": "user wallpaper with Canva handoff",
+    "brief": "Consolidated executive dashboard with selectable finance series, project progress, tabbed operations, sales economics, and fiscal date ranges"
+  },
+  {
     "date": "2026-08-27",
     "scope": "secure messages, client onboarding, settings billing, and dashboard welcome card",
     "macrostructure": "Secure Collaboration Workbench",

@@ -6,6 +6,7 @@ import {
   validateInvoiceLogoDataUrl,
 } from '@/lib/invoices/branding';
 import { normalizePlan } from '@/lib/plan-entitlements';
+import { purgeOrganizationData } from '@/server/domains/account-deletion-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -161,58 +162,7 @@ export async function DELETE(request: NextRequest) {
     // onboarding state. Everything else owned by the organization is purged
     // atomically so a failed request never leaves a partially wiped workspace.
     await prisma.$transaction(async (tx) => {
-      wipeStage = 'deleting generated documents';
-      await tx.generatedDocument.deleteMany({ where: { orgId } });
-
-      wipeStage = 'deleting secure messages';
-      await tx.encryptedAttachment.deleteMany({ where: { orgId } });
-      await tx.encryptedMessage.deleteMany({ where: { orgId } });
-      await tx.messagingConversation.deleteMany({ where: { orgId } });
-      await tx.messagingDevice.deleteMany({ where: { orgId } });
-
-      wipeStage = 'deleting workspace activity';
-      await tx.notification.deleteMany({ where: { orgId } });
-      await tx.calendarEvent.deleteMany({ where: { orgId } });
-      await tx.googleCalendarConnection.deleteMany({ where: { orgId } });
-      await tx.memberInvite.deleteMany({ where: { orgId } });
-
-      wipeStage = 'deleting financial data';
-      await tx.transaction.deleteMany({ where: { orgId } });
-      await tx.invoice.deleteMany({ where: { orgId } });
-      await tx.expense.deleteMany({ where: { orgId } });
-      await tx.recurringSubscription.deleteMany({ where: { orgId } });
-      await tx.recurringRetainer.deleteMany({ where: { orgId } });
-      await tx.financialForecast.deleteMany({ where: { orgId } });
-
-      wipeStage = 'deleting project and client data';
-      await tx.deliverable.deleteMany({ where: { orgId } });
-      await tx.changeRequest.deleteMany({ where: { orgId } });
-      await tx.clientTask.deleteMany({ where: { client: { orgId } } });
-      await tx.project.deleteMany({ where: { orgId } });
-      await tx.metaLead.deleteMany({ where: { orgId } });
-      await tx.client.deleteMany({ where: { orgId } });
-      await tx.agencyLead.deleteMany({ where: { orgId } });
-
-      wipeStage = 'deleting reports and intelligence data';
-      await tx.report.deleteMany({ where: { orgId } });
-      await tx.strategy.deleteMany({ where: { orgId } });
-      await tx.askAtlasMessage.deleteMany({ where: { orgId } });
-      await tx.atlasChatSession.deleteMany({ where: { orgId } });
-      await tx.atlasInsight.deleteMany({ where: { orgId } });
-
-      wipeStage = 'deleting automations and integrations';
-      await tx.automationRun.deleteMany({ where: { automation: { orgId } } });
-      await tx.automation.deleteMany({ where: { orgId } });
-      await tx.metaPageConnection.deleteMany({ where: { orgId } });
-      await tx.integrationConnection.deleteMany({ where: { orgId } });
-
-      wipeStage = 'deleting campaigns and creative data';
-      await tx.metaAd.deleteMany({ where: { orgId } });
-      await tx.metaCampaign.deleteMany({ where: { orgId } });
-      await tx.agencyMetaAdAccount.deleteMany({ where: { orgId } });
-      await tx.designAsset.deleteMany({ where: { brand: { orgId } } });
-      await tx.campaign.deleteMany({ where: { brand: { orgId } } });
-      await tx.brand.deleteMany({ where: { orgId } });
+      await purgeOrganizationData(tx, orgId, (stage) => { wipeStage = stage; });
 
       wipeStage = 'resetting workspace selections';
       await tx.organization.update({

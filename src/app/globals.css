@@ -10,7 +10,6 @@
 
 html,
 body {
-  overflow-x: hidden;
   overflow-x: clip;
 }
 
@@ -931,6 +930,11 @@ h6,
   opacity: .7;
 }
 
+.dashboard-command-center {
+  min-height: 9.375rem;
+  aspect-ratio: 728 / 90;
+}
+
 .dashboard-canvas .workspace-card {
   background: rgba(17,17,18,.78) !important;
   box-shadow: 0 14px 34px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.045) !important;
@@ -1831,12 +1835,9 @@ input[data-date-picker-proxy] {
   max-width: none;
   max-height: none;
   margin: 0;
-  overflow: clip;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
-}
-
-.workspace-shell:has(.fixed.inset-0) .workspace-main {
-  overflow: hidden;
 }
 
 .workspace-shell .fixed.inset-0 > .h-full,
@@ -3469,7 +3470,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
  * Phone and tablet composition layer. This block is additive and independently revertible. */
 .workspace-shell .workspace-main {
   min-height: 0;
-  overflow-x: clip;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-x: none;
   overscroll-behavior-y: auto;
@@ -4032,7 +4033,6 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 .workspace-shell .workspace-main {
   min-height: 0;
   overflow-x: hidden !important;
-  overflow-x: clip !important;
   overflow-y: auto !important;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
@@ -4040,7 +4040,6 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 
 .workspace-shell .fixed.inset-0 {
   overflow-x: hidden;
-  overflow-x: clip;
   overflow-y: auto;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
@@ -4129,6 +4128,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   width: 100%;
   max-width: 100%;
   margin-inline: auto;
+  padding-bottom: clamp(3.5rem, 8vh, 6rem);
 }
 
 .dashboard-canvas .dashboard-metric-mrr {
@@ -4254,5 +4254,265 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 @media (max-width: 39.9375rem) {
   .workspace-shell[data-layout-family='dashboard'] .dashboard-metric-mrr {
     min-height: 12.5rem;
+  }
+}
+
+/* Hallmark Â· genre: modern-minimal Â· macrostructure: Geometry-aware Workbench
+ * design-system: design.md Â· designed-as-app
+ * pre-emit critique: P5 H5 E5 S5 R5 V5 */
+.dashboard-executive-layout :is(button, a, input, select):focus-visible,
+.dashboard-popover :is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--workspace-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-range-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dashboard-header h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-header .silver-text-gradient,
+.dashboard-executive-layout .silver-text-gradient {
+  background: none;
+  color: var(--workspace-text);
+  -webkit-text-fill-color: currentColor;
+}
+
+.dashboard-banner-menu,
+.dashboard-range-trigger,
+.dashboard-menu-item,
+.dashboard-finance-metric,
+.dashboard-finance-list-item,
+.dashboard-segmented-tab,
+.dashboard-overview-tab,
+.dashboard-progress-row {
+  transition: background-color var(--dur-briefing-base) var(--ease-briefing-out), color var(--dur-briefing-base) var(--ease-briefing-out), transform var(--dur-briefing-fast) var(--ease-briefing-out);
+}
+
+.dashboard-banner-menu::before {
+  position: absolute;
+  inset: -0.5rem;
+  content: '';
+}
+
+.dashboard-menu-item {
+  display: flex;
+  min-height: 2.75rem;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.375rem;
+  padding-inline: 0.75rem;
+  color: var(--workspace-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard-menu-item:hover:not(:disabled),
+.dashboard-menu-item:focus-visible,
+.dashboard-banner-menu:hover,
+.dashboard-range-trigger:hover {
+  background-color: var(--workspace-material-solid);
+  color: var(--workspace-text);
+}
+
+.dashboard-menu-item:active,
+.dashboard-banner-menu:active,
+.dashboard-range-trigger:active,
+.dashboard-finance-metric:active,
+.dashboard-progress-row:active {
+  transform: translateY(1px);
+}
+
+.dashboard-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.canva-mark {
+  display: grid;
+  height: 1rem;
+  width: 1rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+}
+
+.dashboard-finance-metric::before,
+.dashboard-sales-metric::before {
+  position: absolute;
+  top: 0;
+  right: 1.25rem;
+  left: 1.25rem;
+  height: 1px;
+  background: var(--workspace-edge);
+  content: '';
+}
+
+.dashboard-finance-metric:first-child::before,
+.dashboard-sales-metric:first-child::before {
+  content: none;
+}
+
+.dashboard-finance-metric:hover,
+.dashboard-finance-metric:focus-visible,
+.dashboard-progress-row:hover,
+.dashboard-progress-row:focus-visible {
+  background-color: var(--workspace-material-solid);
+}
+
+.dashboard-finance-metric-primary {
+  background: color-mix(in oklch, var(--workspace-material-solid), transparent 42%);
+}
+
+.dashboard-executive-layout {
+  --dashboard-finance-revenue: oklch(78% 0.14 158);
+  --dashboard-finance-profit: oklch(78% 0.14 158);
+  --dashboard-finance-mrr: oklch(78% 0.14 158);
+  --dashboard-finance-expenses: oklch(70% 0.17 24);
+  --dashboard-finance-receivables: oklch(82% 0.12 88);
+}
+
+:root.light .dashboard-executive-layout {
+  --dashboard-finance-revenue: oklch(43% 0.13 158);
+  --dashboard-finance-profit: oklch(43% 0.13 158);
+  --dashboard-finance-mrr: oklch(43% 0.13 158);
+  --dashboard-finance-expenses: oklch(48% 0.18 24);
+  --dashboard-finance-receivables: oklch(48% 0.12 78);
+}
+
+.dashboard-finance-metric[data-tone='revenue'] .dashboard-finance-accent,
+.dashboard-finance-list-item[data-tone='revenue'] .dashboard-finance-accent {
+  color: var(--dashboard-finance-revenue);
+}
+
+.dashboard-finance-metric[data-tone='profit'] .dashboard-finance-accent,
+.dashboard-finance-list-item[data-tone='profit'] .dashboard-finance-accent {
+  color: var(--dashboard-finance-profit);
+}
+
+.dashboard-finance-metric[data-tone='mrr'] .dashboard-finance-accent,
+.dashboard-finance-list-item[data-tone='mrr'] .dashboard-finance-accent {
+  color: var(--dashboard-finance-mrr);
+}
+
+.dashboard-finance-metric[data-tone='expenses'] .dashboard-finance-accent,
+.dashboard-finance-list-item[data-tone='expenses'] .dashboard-finance-accent {
+  color: var(--dashboard-finance-expenses);
+}
+
+.dashboard-finance-metric[data-tone='receivables'] .dashboard-finance-accent,
+.dashboard-finance-list-item[data-tone='receivables'] .dashboard-finance-accent {
+  color: var(--dashboard-finance-receivables);
+}
+
+.dashboard-finance-list-item[data-active='true'],
+.dashboard-segmented-tab[data-active='true'],
+.dashboard-overview-tab[data-active='true'] {
+  background-color: var(--workspace-material-solid);
+  color: var(--workspace-text);
+}
+
+.dashboard-finance-list-item:hover,
+.dashboard-segmented-tab:hover,
+.dashboard-overview-tab:hover {
+  color: var(--workspace-text);
+}
+
+.dashboard-progress-scroll,
+.dashboard-overview-scroll,
+.dashboard-pipeline-scroll,
+.dashboard-pipeline-legend {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.revenue-series-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding-top: 0.5rem;
+}
+
+.revenue-series-legend-item {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 0;
+  background: transparent;
+  color: var(--workspace-muted);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: color var(--dur-briefing-base) var(--ease-briefing-out), opacity var(--dur-briefing-base) var(--ease-briefing-out);
+}
+
+.revenue-series-legend-item:hover,
+.revenue-series-legend-item:focus-visible,
+.revenue-series-legend-item[data-active='true'] {
+  color: var(--workspace-text);
+  opacity: 1;
+}
+
+.revenue-series-legend-item:focus-visible {
+  outline: 2px solid var(--workspace-focus);
+  outline-offset: 2px;
+}
+
+.revenue-series-legend-line {
+  width: 0.875rem;
+  height: 0.125rem;
+  border-radius: 999px;
+}
+
+.dashboard-sales-metric {
+  position: relative;
+}
+
+@media (min-width: 64rem) {
+  .dashboard-finance-metric::before,
+  .dashboard-sales-metric::before {
+    top: 1.25rem;
+    right: auto;
+    bottom: 1.25rem;
+    left: 0;
+    width: 1px;
+    height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-banner-menu,
+  .dashboard-range-trigger,
+  .dashboard-menu-item,
+  .dashboard-finance-metric,
+  .dashboard-finance-list-item,
+  .dashboard-segmented-tab,
+  .dashboard-overview-tab,
+  .dashboard-progress-row {
+    transition-duration: var(--dur-briefing-fast);
+  }
+
+  .revenue-series-legend-item {
+    transition-duration: var(--dur-briefing-fast);
+  }
+
+  .dashboard-menu-item:active,
+  .dashboard-banner-menu:active,
+  .dashboard-range-trigger:active,
+  .dashboard-finance-metric:active,
+  .dashboard-progress-row:active {
+    transform: none;
   }
 }

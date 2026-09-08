@@ -201,7 +201,7 @@ export function WorkspaceShell({
         
         {/* Page Content area */}
         <main
-          className="workspace-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-clip overscroll-contain bg-[#0c0c0e]"
+          className="workspace-main relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain bg-[#0c0c0e]"
         >
            {isSubAdminGated ? (
             <div className="flex h-[70vh] flex-col items-center justify-center">

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
@@ -1139,7 +1140,7 @@ export default function ClientDashboardPage() {
                           }
                           className="rounded-none uppercase tracking-wider text-[9px]"
                         >
-                          {task.status.replaceAll('_', ' ')}
+                          {taskStatusLabel(task.status)}
                         </Badge>
                       </div>
 

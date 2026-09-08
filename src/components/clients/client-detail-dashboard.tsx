@@ -11,6 +11,7 @@ import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-s
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { clientHasMetaEnabledProject } from '@/lib/agency-specializations';
+import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { ProjectBreakdownDrawer } from '@/components/projects/project-breakdown-drawer';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
 import {
@@ -1070,7 +1071,7 @@ export default function ClientDetailDashboard({
                               }
                               className="rounded-none uppercase tracking-wider text-[9px]"
                             >
-                              {task.status.replaceAll('_', ' ')}
+                              {taskStatusLabel(task.status)}
                             </Badge>
                             
                             {!isEditing && (
@@ -1129,7 +1130,7 @@ export default function ClientDetailDashboard({
                                   onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
                                   className="w-full text-[10px] bg-zinc-900 border border-zinc-800 p-1 text-white outline-none rounded-none"
                                 >
-                                  <option value="TODO">To-Do</option>
+                                  <option value="TODO">TO-DO</option>
                                   <option value="IN_PROGRESS">In Progress</option>
                                   <option value="COMPLETED">Completed</option>
                                   <option value="BLOCKED">Blocked</option>
@@ -1935,7 +1936,7 @@ export default function ClientDetailDashboard({
                     onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 focus:border-zinc-700 px-3 py-2 text-white outline-none rounded-md"
                   >
-                    <option value="TODO">To-Do</option>
+                    <option value="TODO">TO-DO</option>
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="COMPLETED">Completed</option>
                     <option value="BLOCKED">Blocked</option>

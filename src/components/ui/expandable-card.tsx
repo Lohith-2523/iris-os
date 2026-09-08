@@ -2,15 +2,17 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { X } from 'lucide-react';
 
 interface ExpandableCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   expandedContent?: React.ReactNode;
   expandedFooter?: React.ReactNode;
   disableExpand?: boolean;
+  expandedSize?: 'default' | 'wide';
 }
 
-export function ExpandableCard({ children, className, expandedContent, expandedFooter, disableExpand = false, ...props }: ExpandableCardProps) {
+export function ExpandableCard({ children, className, expandedContent, expandedFooter, disableExpand = false, expandedSize = 'default', ...props }: ExpandableCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isAnimating, setIsAnimating] = React.useState(false);
   const [isClosing, setIsClosing] = React.useState(false);
@@ -21,8 +23,8 @@ export function ExpandableCard({ children, className, expandedContent, expandedF
   const animationTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getExpandedCoords = React.useCallback(() => {
-    const width = Math.min(window.innerWidth - 32, 760);
-    const height = Math.min(window.innerHeight - 48, 540);
+    const width = Math.min(window.innerWidth - 32, expandedSize === 'wide' ? 1080 : 760);
+    const height = Math.min(window.innerHeight - 48, expandedSize === 'wide' ? 660 : 540);
 
     return {
       top: Math.max(24, window.innerHeight / 2 - height / 2),
@@ -30,7 +32,7 @@ export function ExpandableCard({ children, className, expandedContent, expandedF
       width,
       height,
     };
-  }, []);
+  }, [expandedSize]);
 
   const finishAnimation = React.useCallback((callback?: () => void) => {
     if (animationTimerRef.current) {
@@ -133,6 +135,8 @@ export function ExpandableCard({ children, className, expandedContent, expandedF
       <div
         ref={cardRef}
         {...props}
+        role={isPoppedOut ? 'dialog' : props.role}
+        aria-modal={isPoppedOut || undefined}
         onClick={handleExpand}
         style={
           isPoppedOut && coords
@@ -154,13 +158,23 @@ export function ExpandableCard({ children, className, expandedContent, expandedF
           !isPoppedOut && className
         )}
       >
+        {showExpandedContent && (
+          <button
+            type="button"
+            onClick={(event) => handleCollapse(event)}
+            className="absolute right-3 top-3 z-20 grid h-11 w-11 place-items-center rounded-md text-zinc-400 hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-300 active:translate-y-px"
+            aria-label="Close expanded card"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
         <div
           className={cn(
             "h-full w-full",
             showExpandedContent && hasExpandedFooter && "grid min-h-0 grid-rows-[minmax(0,9fr)_minmax(48px,1fr)] opacity-100"
           )}
         >
-          <div className={cn("h-full min-h-0", showExpandedContent && "overflow-y-auto p-6 md:p-8")}>
+          <div className={cn("h-full min-h-0", showExpandedContent && "overflow-y-auto p-6 pr-16 md:p-8 md:pr-20")}>
             {showExpandedContent && expandedContent ? expandedContent : children}
           </div>
 

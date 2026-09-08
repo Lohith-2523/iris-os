@@ -41,6 +41,7 @@ export function buildFinancialHistory(input: {
   expenses: HistoryExpense[];
   timeframe: FinancialTimeframe;
   now?: Date;
+  startDate?: Date;
 }) {
   const now = input.now || new Date();
   const invoices = input.invoices.filter((invoice) => invoice.documentType === 'INVOICE');
@@ -49,7 +50,7 @@ export function buildFinancialHistory(input: {
     ...input.transactions.map((transaction) => transaction.date),
     ...input.expenses.map((expense) => expense.date),
   ].filter((date) => date <= now);
-  const start = rangeStart(now, input.timeframe, relevantDates);
+  const start = input.startDate || rangeStart(now, input.timeframe, relevantDates);
   const pointDates = new Map<string, Date>();
   pointDates.set(dayKey(start), start);
   pointDates.set(dayKey(now), now);

@@ -24,13 +24,24 @@ export async function GET(request: NextRequest) {
     const canManageAgencyMeta = isOrganizationAdmin(user);
     const kanbanOnly = request.nextUrl.searchParams.get('view') === 'kanban';
     const kanbanCutoff = getKanbanLeadCutoff();
+    const requestedStart = request.nextUrl.searchParams.get('start');
+    const requestedEnd = request.nextUrl.searchParams.get('end');
+    const rangeStart = new Date(`${requestedStart || ''}T00:00:00.000Z`);
+    const rangeEnd = new Date(`${requestedEnd || ''}T23:59:59.999Z`);
+    const hasRange = /^\d{4}-\d{2}-\d{2}$/.test(requestedStart || '')
+      && /^\d{4}-\d{2}-\d{2}$/.test(requestedEnd || '')
+      && !Number.isNaN(rangeStart.getTime())
+      && !Number.isNaN(rangeEnd.getTime())
+      && rangeStart.toISOString().slice(0, 10) === requestedStart
+      && rangeEnd.toISOString().slice(0, 10) === requestedEnd;
+    const range = hasRange ? { gte: rangeStart, lte: rangeEnd } : null;
     const pageRequest = readCursorPage(request);
-    const [leads, archivedLeadCount, expenseTransactions, closedLeadCount, sourcedProjectPayments, agencyMetaAccounts] = await Promise.all([
+    const [leads, archivedLeadCount, expenseTransactions, closedLeadCount, sourcedProjectPayments, agencyMetaAccounts, leadStageCounts] = await Promise.all([
       prisma.agencyLead.findMany({
         where: {
           orgId: user.orgId,
           ...descendingCursorWhere(pageRequest.cursor, 'createdTime'),
-          ...(kanbanOnly ? { createdTime: { gte: kanbanCutoff } } : {}),
+          ...(range ? { createdTime: range } : kanbanOnly ? { createdTime: { gte: kanbanCutoff } } : {}),
         },
         orderBy: [{ createdTime: 'desc' }, { id: 'desc' }],
         take: pageRequest.take,
@@ -46,6 +57,7 @@ export async function GET(request: NextRequest) {
       prisma.transaction.findMany({
         where: {
           orgId: user.orgId,
+          ...(range ? { date: range } : {}),
           category: { equals: 'Expense', mode: 'insensitive' },
         },
         select: { details: true, amount: true },
@@ -54,6 +66,7 @@ export async function GET(request: NextRequest) {
         where: {
           orgId: user.orgId,
           status: { equals: 'closed', mode: 'insensitive' },
+          ...(range ? { createdTime: range } : {}),
         },
       }),
       prisma.project.findMany({
@@ -64,6 +77,7 @@ export async function GET(request: NextRequest) {
             sourceLead: {
               is: {
                 status: { equals: 'closed', mode: 'insensitive' },
+                ...(range ? { createdTime: range } : {}),
               },
             },
           },
@@ -76,6 +90,14 @@ export async function GET(request: NextRequest) {
             orderBy: { createdAt: 'asc' },
           })
         : Promise.resolve([]),
+      prisma.agencyLead.groupBy({
+        by: ['status'],
+        where: {
+          orgId: user.orgId,
+          ...(range ? { createdTime: range } : kanbanOnly ? { createdTime: { gte: kanbanCutoff } } : {}),
+        },
+        _count: { _all: true },
+      }),
     ]);
 
     const agencyMetaAccountIds = agencyMetaAccounts.map((account) => account.adAccountId);
@@ -124,6 +146,7 @@ export async function GET(request: NextRequest) {
         cutoff: kanbanCutoff,
       } : null,
       metrics,
+      stageCounts: leadStageCounts.map((stage) => ({ status: stage.status, count: stage._count._all })),
       role: user.role || 'admin',
       meta: canManageAgencyMeta ? {
         metaAccessConsent: user.organization.metaAccessConsent,
