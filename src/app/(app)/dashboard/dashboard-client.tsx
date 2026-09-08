@@ -537,7 +537,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   const financialMetrics = React.useMemo(() => [
     { key: 'revenue' as const, label: 'Revenue', value: formatCurrency(financeData?.grossBillings || 0), note: 'Recognized in range', Icon: TrendingUp },
     { key: 'profit' as const, label: 'Net profit', value: formatCurrency((financeData?.grossBillings || 0) - (financeData?.totalExpenses || 0)), note: 'Revenue less expenses', Icon: DollarSign },
-    { key: 'mrr' as const, label: 'Monthly recurring revenue', value: formattedMonthlyRecurringRevenue, note: `${monthlyRetainerProjects.length} active ${monthlyRetainerProjects.length === 1 ? 'retainer' : 'retainers'}`, Icon: Repeat2 },
+    { key: 'mrr' as const, label: 'MRR', value: formattedMonthlyRecurringRevenue, note: `${monthlyRetainerProjects.length} active ${monthlyRetainerProjects.length === 1 ? 'retainer' : 'retainers'}`, Icon: Repeat2 },
     { key: 'expenses' as const, label: 'Expenses', value: formatCurrency(financeData?.totalExpenses || 0), note: 'Recorded in range', Icon: TrendingDown },
     { key: 'receivables' as const, label: 'Receivables', value: formatCurrency(financeData?.outstandingAmount || 0), note: 'Open invoice balance', Icon: ArrowDownRight },
   ], [financeData, formatCurrency, formattedMonthlyRecurringRevenue, monthlyRetainerProjects.length]);
@@ -590,17 +590,17 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   return (
     <div className="dashboard-canvas space-y-6">
       {/* Page Header */}
-      <div className="dashboard-header dashboard-command-center relative isolate flex flex-col items-center justify-center gap-5 overflow-hidden border-b border-zinc-800/60 p-4 sm:p-5 md:flex-row md:justify-between">
-        <div aria-hidden="true" className="dashboard-command-center-banner absolute inset-0 pointer-events-none" style={welcomeBackground ? { backgroundImage: `url(${welcomeBackground})`, backgroundPosition: 'center', backgroundSize: 'cover' } : undefined} />
-        <div className="relative z-10">
-          <div className="dashboard-welcome-card inline-flex items-center gap-3 rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
-            <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Welcome, {currentUserName}</h1>
+      <div className="dashboard-header dashboard-command-center relative isolate grid min-w-0 max-w-full grid-cols-1 items-center justify-items-start gap-4 overflow-hidden border-b border-zinc-800/60 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_auto]">
+        <div aria-hidden="true" className="dashboard-command-center-banner pointer-events-none absolute inset-0" style={welcomeBackground ? { backgroundImage: `url(${welcomeBackground})` } : undefined} />
+        <div className="relative z-10 min-w-0 max-w-full justify-self-start md:col-start-1 md:row-start-1">
+          <div className="dashboard-welcome-card inline-flex max-w-full items-center gap-3 rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
+            <h1 className="truncate text-center text-xl font-bold tracking-tight text-white silver-text-gradient sm:text-2xl">Welcome, {currentUserName}</h1>
           </div>
         </div>
-        <div className="z-10 flex flex-wrap items-center gap-3">
+        <div className="z-10 flex min-w-0 max-w-full flex-wrap items-center justify-start gap-3 md:col-start-2 md:row-start-1 md:justify-self-end">
           <Popover.Root>
             <Popover.Trigger asChild>
-              <button type="button" className="dashboard-range-trigger min-h-11 whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${dashboardRangeLabel(range.start, range.end)}`}>
+              <button type="button" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${dashboardRangeLabel(range.start, range.end)}`}>
                 <Calendar className="h-4 w-4" aria-hidden="true" />{dashboardRangeLabel(range.start, range.end)}
               </button>
             </Popover.Trigger>
@@ -620,7 +620,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
           {canManageWelcomeBackground && <>
             <Popover.Root>
               <Popover.Trigger asChild>
-                <button type="button" className="dashboard-banner-menu absolute right-2.5 top-2.5 z-20 grid h-7 w-7 place-items-center rounded-full border border-zinc-700 bg-zinc-950/80 text-zinc-300 backdrop-blur-md" aria-label="Banner options"><MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" /></button>
+                <button type="button" className="dashboard-banner-menu absolute right-2 top-2 z-20 grid place-items-center border border-zinc-700/70 bg-zinc-950/65 p-0 text-zinc-300 backdrop-blur-md" aria-label="Banner options"><MoreHorizontal className="h-2.5 w-2.5" aria-hidden="true" /></button>
               </Popover.Trigger>
               <Popover.Portal>
                 <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 text-white shadow-2xl">
@@ -1018,7 +1018,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
             >
               <div className="dashboard-mrr-summary h-full min-h-0">
                 <CardHeader className="dashboard-mrr-header flex flex-row items-center justify-between pb-1">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-emerald-400">Monthly Recurring Revenue</CardTitle>
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-emerald-400">MRR</CardTitle>
                   <Repeat2 className="h-4 w-4 text-zinc-400" aria-hidden="true" />
                 </CardHeader>
                 <CardContent className="dashboard-mrr-content text-center">

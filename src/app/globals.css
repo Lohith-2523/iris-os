@@ -926,13 +926,20 @@ h6,
 
 .dashboard-command-center-banner {
   z-index: 0;
-  background: center / cover no-repeat url('/workspace_banner_dark.png');
+  background-image: url('/workspace_banner_dark.png');
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  background-size: cover;
   opacity: .7;
 }
 
 .dashboard-command-center {
-  min-height: 9.375rem;
-  aspect-ratio: 728 / 90;
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  min-height: clamp(10rem, 32vw, 11rem);
+  aspect-ratio: auto;
 }
 
 .dashboard-canvas .workspace-card {
@@ -4297,8 +4304,19 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 
 .dashboard-banner-menu::before {
   position: absolute;
-  inset: -0.5rem;
+  inset: -0.75rem;
   content: '';
+}
+
+.dashboard-banner-menu {
+  box-sizing: border-box;
+  inline-size: 1.125rem !important;
+  min-inline-size: 1.125rem !important;
+  block-size: 1.125rem !important;
+  min-block-size: 1.125rem !important;
+  aspect-ratio: 1;
+  border-radius: 50% !important;
+  padding: 0 !important;
 }
 
 .dashboard-menu-item {
