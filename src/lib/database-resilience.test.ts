@@ -15,6 +15,25 @@ describe('resolveDatabasePoolMax', () => {
     expect(resolveDatabasePoolMax('20')).toBe(5);
     expect(resolveDatabasePoolMax('invalid')).toBe(5);
   });
+
+  it('limits production Supabase session-mode pools to one connection', () => {
+    const options = {
+      environment: 'production',
+      connectionString: 'postgresql://user:secret@aws-0-region.pooler.supabase.com:5432/postgres',
+    };
+
+    expect(resolveDatabasePoolMax(undefined, options)).toBe(1);
+    expect(resolveDatabasePoolMax('5', options)).toBe(1);
+  });
+
+  it('retains the bounded pool for Supabase transaction mode', () => {
+    const options = {
+      environment: 'production',
+      connectionString: 'postgresql://user:secret@aws-0-region.pooler.supabase.com:6543/postgres?pgbouncer=true',
+    };
+
+    expect(resolveDatabasePoolMax('3', options)).toBe(3);
+  });
 });
 
 describe('isTransientDatabaseConnectionError', () => {

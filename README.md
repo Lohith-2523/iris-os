@@ -57,6 +57,7 @@ npm install
 Create a `.env` file in the root directory and define the following keys (see `.env` for references):
 ```env
 DATABASE_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public"
+DIRECT_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public"
 DATABASE_POOL_MAX="5"
 AUTH_SECRET="your-auth-secret"
 META_WEBHOOK_VERIFY_TOKEN="irisos_meta_verify_token"
@@ -78,6 +79,10 @@ SMTP_USER="noreply@irisos.app"
 SMTP_PASSWORD="your-google-app-password"
 APP_URL="https://irisos.app"
 ```
+
+For a serverless Supabase deployment, use the transaction-pooler URL (port
+`6543`, with `?pgbouncer=true`) for runtime `DATABASE_URL`. Keep `DIRECT_URL` on
+the direct or session-mode connection for Prisma migrations and introspection.
 
 Transactional onboarding and meeting email is delivered over Gmail SMTP or
 Google Workspace SMTP Relay as `Iris OS <noreply@irisos.app>`. For Gmail SMTP,

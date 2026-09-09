@@ -9,7 +9,10 @@ type PrismaGlobal = typeof globalThis & {
 
 const globalForPrisma = globalThis as PrismaGlobal;
 const MAX_FIND_MANY_ROWS = 250;
-const databasePoolMax = resolveDatabasePoolMax(process.env.DATABASE_POOL_MAX);
+const databasePoolMax = resolveDatabasePoolMax(process.env.DATABASE_POOL_MAX, {
+  connectionString: process.env.DATABASE_URL,
+  environment: process.env.NODE_ENV,
+});
 const prismaModelSignature = JSON.stringify(
   {
     connectionPolicyVersion: 3,
@@ -52,6 +55,7 @@ function createPrismaClient() {
     connectionTimeoutMillis: 10_000,
     idleTimeoutMillis: 10_000,
     maxLifetimeSeconds: 300,
+    allowExitOnIdle: true,
   });
 
   const client = new PrismaClient({ adapter });
@@ -69,26 +73,22 @@ function createPrismaClient() {
   }) as unknown as PrismaClient;
 }
 
-let prisma: PrismaClient;
-
-if (process.env.NODE_ENV === 'production') {
-  prisma = createPrismaClient();
-} else {
-  // Turbopack retains global values through hot reloads. Replace the cached
-  // client whenever generated models, scalar fields, or relations change.
-  if (
-    !globalForPrisma.prisma ||
-    globalForPrisma.prismaModelSignature !== prismaModelSignature ||
-    !hasRequiredModelDelegates(globalForPrisma.prisma)
-  ) {
-    if (globalForPrisma.prisma) {
-      void globalForPrisma.prisma.$disconnect();
-    }
-    globalForPrisma.prisma = createPrismaClient();
-    globalForPrisma.prismaModelSignature = prismaModelSignature;
+// Use one client/pool per runtime isolate in every environment. Production
+// bundles may load this module through more than one server chunk; bypassing
+// globalThis there can create multiple pools in the same Node process.
+if (
+  !globalForPrisma.prisma ||
+  globalForPrisma.prismaModelSignature !== prismaModelSignature ||
+  !hasRequiredModelDelegates(globalForPrisma.prisma)
+) {
+  if (globalForPrisma.prisma && process.env.NODE_ENV !== 'production') {
+    void globalForPrisma.prisma.$disconnect();
   }
-  prisma = globalForPrisma.prisma;
+  globalForPrisma.prisma = createPrismaClient();
+  globalForPrisma.prismaModelSignature = prismaModelSignature;
 }
+
+const prisma = globalForPrisma.prisma;
 
 export { prisma };
 export default prisma;

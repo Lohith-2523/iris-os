@@ -18,15 +18,30 @@ type ErrorLike = {
 
 export function resolveDatabasePoolMax(
   configuredValue: string | undefined,
+  options: {
+    connectionString?: string;
+    environment?: string;
+  } = {},
 ) {
   const defaultMax = 5;
-  if (!configuredValue) return defaultMax;
+  const connectionString = options.connectionString ?? '';
+  const environment = options.environment ?? process.env.NODE_ENV;
+  const isSupabaseSessionPooler = environment === 'production'
+    && /\.pooler\.supabase\.com(?::5432)?(?:\/|\?|$)/i.test(connectionString)
+    && !/:6543(?:\/|\?|$)/.test(connectionString);
+
+  // Session-mode Supavisor dedicates one database connection to every client.
+  // Keep a production instance to one client while a deployment migrates its
+  // runtime URL to transaction mode; otherwise a handful of warm instances can
+  // exhaust a small session pool.
+  const safeCap = isSupabaseSessionPooler ? 1 : 5;
+  if (!configuredValue) return Math.min(defaultMax, safeCap);
 
   const parsed = Number(configuredValue);
-  if (!Number.isInteger(parsed) || parsed < 1) return defaultMax;
+  if (!Number.isInteger(parsed) || parsed < 1) return Math.min(defaultMax, safeCap);
 
   // Keep one process from consuming the majority of a small Supavisor pool.
-  return Math.min(parsed, 5);
+  return Math.min(parsed, safeCap);
 }
 
 export function isTransientDatabaseConnectionError(error: unknown) {
