@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       : '/calendar';
     const redirectUri = googleOAuthRedirectUri(request.url);
     const authorization = createGoogleAuthorization({
+      accountEmail: user.email,
       orgId: user.orgId,
       redirectUri,
       returnTo,

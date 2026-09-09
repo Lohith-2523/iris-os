@@ -31,6 +31,7 @@ export type WorkspaceReadModel = {
     role: string;
     avatarUrl: string | null;
     accessPermissions: string[] | null;
+    deliveryWorkspace: boolean;
     hasMetaAccount: boolean;
     preferences: unknown;
   };
@@ -48,7 +49,7 @@ export type WorkspaceReadModel = {
   }>;
   entitlements: {
     specializationLimit: number;
-    teamMemberLimit: number;
+    teamMemberLimit: number | null;
     clientLimit: number;
     dailyBriefing: boolean;
     strategyGeneration: boolean;

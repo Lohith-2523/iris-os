@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateRecurringOccurrences } from './recurrence';
+import { generateRecurringOccurrences, recurringOccurrenceId } from './recurrence';
 
 describe('generateRecurringOccurrences', () => {
   it('recognizes the start date and every monthly recurrence through the reporting date', () => {
@@ -37,5 +37,21 @@ describe('generateRecurringOccurrences', () => {
 
   it('does not recognize revenue before the retainer starts', () => {
     expect(generateRecurringOccurrences('2027-01-01', 1000, 'monthly', '2026-12-31')).toEqual([]);
+  });
+});
+
+describe('recurringOccurrenceId', () => {
+  it('keeps recurring rows unique across dates for one subscription', () => {
+    const subscriptionId = 'ae57ca04-dbe0-4000-8000-000000000000';
+    const ids = [
+      recurringOccurrenceId(subscriptionId, new Date('2026-08-01T12:00:00Z')),
+      recurringOccurrenceId(subscriptionId, new Date('2026-09-01T12:00:00Z')),
+    ];
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual([
+      `${subscriptionId}-2026-08-01`,
+      `${subscriptionId}-2026-09-01`,
+    ]);
   });
 });

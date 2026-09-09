@@ -16,14 +16,14 @@ const plans = [
     name: 'Pro',
     price: '$299',
     copy: 'Add intelligence and secure collaboration.',
-    items: ['15 clients', '4 team members', 'Atlas AI and meeting workflows', 'Secure messaging'],
+    items: ['15 clients', 'Unlimited team members', 'Atlas AI and meeting workflows', 'Secure messaging'],
     cta: 'Choose Pro',
   },
   {
     name: 'Advanced',
     price: '$599',
     copy: 'Let Atlas operate across more of the agency.',
-    items: ['30 clients', '15 team members', 'Full Atlas actions', 'Strategy Studio and Daily Briefing'],
+    items: ['30 clients', 'Unlimited team members', 'Full Atlas actions', 'Strategy Studio and Daily Briefing'],
     cta: 'Choose Advanced',
   },
 ] as const;

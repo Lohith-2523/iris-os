@@ -14,6 +14,7 @@ export const getSecurityUsersReadModel = cache(async (ctx: RequestSecurityContex
       email: true,
       role: true,
       accessPermissions: true,
+      handlesDeliverables: true,
       accessRevokedAt: true,
     },
     orderBy: [{ accessRevokedAt: 'asc' }, { role: 'asc' }, { name: 'asc' }],
@@ -25,7 +26,6 @@ export const getSecurityUsersReadModel = cache(async (ctx: RequestSecurityContex
       accessPermissions: user.accessPermissions as string[] | null,
     })),
     plan: ctx.organization.plan,
-    hasAddon: ctx.organization.hasAddon,
     allowedPages: [...SECURITY_ALLOWED_PAGES],
   };
 });

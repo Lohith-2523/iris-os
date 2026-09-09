@@ -81,7 +81,7 @@ function ConsentContent() {
                 <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <span className="block font-semibold text-white">Read User Profile</span>
-                  <span className="block text-[10px] text-zinc-500">Access email address, organization name, and profile initials.</span>
+                  <span className="block text-[10px] text-zinc-500">Access email address, organization name, and profile image.</span>
                 </div>
               </div>
             )}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { getRequestUser, isOrganizationAdmin, userHasDeliveryWorkspace } from '@/lib/org';
 import { isTaskStatus, normalizeTaskStatusProgress } from '@/lib/tasks/status-progress';
 import { createNotification, notifyOrganizationAdmins } from '@/lib/notifications';
 import { cursorHeaders, readCursorPage } from '@/lib/cursor-pagination';
@@ -14,8 +14,12 @@ function isTaskWriteConflict(error: unknown) {
     || message.toLowerCase().includes('lock timeout');
 }
 
-function canEditTask(user: { id: string; role: string }, task: { assignedToId: string | null }) {
-  return isOrganizationAdmin(user) || user.role.toLowerCase() === 'sub_admin' || (user.role.toLowerCase() === 'member' && task.assignedToId === user.id);
+function canEditTask(user: Parameters<typeof userHasDeliveryWorkspace>[0] & { id: string; role: string }, task: { assignedToId: string | null }) {
+  const role = user.role.toLowerCase();
+  const ownsTask = task.assignedToId === user.id;
+  return isOrganizationAdmin(user)
+    || (role === 'sub_admin' && (!userHasDeliveryWorkspace(user) || ownsTask))
+    || (role === 'member' && ownsTask);
 }
 
 const taskApprovalStatuses = new Set(['NOT_REQUIRED', 'NEEDS_CLIENT_APPROVAL', 'APPROVED', 'CHANGES_REQUESTED']);

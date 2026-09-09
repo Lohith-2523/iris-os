@@ -318,14 +318,19 @@ export default function TeamsDashboardPage() {
     return <PageSkeleton variant="team-dashboard" />;
   }
 
-  if (currentUser && currentUser.role?.toLowerCase() !== 'member') {
+  const hasTeamWorkspace = currentUser && (
+    currentUser.role?.toLowerCase() === 'member'
+    || (currentUser.role?.toLowerCase() === 'sub_admin' && currentUser.deliveryWorkspace)
+  );
+
+  if (currentUser && !hasTeamWorkspace) {
     return (
       <div className="flex h-[60vh] items-center justify-center p-6 text-center">
         <div className="max-w-md border border-zinc-900 bg-zinc-950/20 p-6 space-y-4">
           <Lock className="h-8 w-8 text-rose-500 mx-auto" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Access Restricted</h2>
           <p className="text-xs text-zinc-500 font-sans leading-relaxed">
-            The teams workspace is exclusively configured for internal specialists (&apos;member&apos; role). Your current role is &apos;{currentUser.role}&apos;.
+            This team member account does not currently handle deliverables or belong to an ongoing project.
           </p>
         </div>
       </div>
@@ -337,9 +342,9 @@ export default function TeamsDashboardPage() {
       {/* Page Header */}
       <div className="dashboard-header flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
-          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest font-mono">Teams Workspace</span>
+          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest font-mono">Team Workspace</span>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
-            Specialist Command Center
+            Delivery Command Center
           </h1>
           <p className="text-xs text-zinc-500">
             Welcome back, {currentUser?.name}. Access your assigned project deliverables and schedule broadcast logs.

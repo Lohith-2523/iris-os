@@ -29,6 +29,7 @@ import {
 import { workspaceDataUrlsForRoute } from '@/lib/workspace-route-data';
 import type { WorkspaceReadModel } from '@/lib/workspace-read-model';
 import { workspaceRouteRestriction } from '@/lib/workspace-route-authorization';
+import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
 prepareWorkspaceDataCacheForNavigation();
 
@@ -55,6 +56,7 @@ type WorkspaceShellUser = {
   organizationName?: string;
   organizationLogoDataUrl?: string | null;
   accessPermissions?: string[] | null;
+  deliveryWorkspace: boolean;
 };
 
 function workspaceShellUser(workspace: WorkspaceReadModel): WorkspaceShellUser {
@@ -147,6 +149,7 @@ export function WorkspaceShell({
   const isMemberGated = routeRestriction === 'member';
   const isAdminGated = routeRestriction === 'admin';
   const isSubAdminGated = routeRestriction === 'sub_admin';
+  const workspaceHome = teamMemberWorkspaceHome(user);
 
   const planGate: { feature: string; requiredPlan: PlanId } | null = pathname === '/messages'
     ? { feature: 'Messages', requiredPlan: 'PRO' }
@@ -165,7 +168,7 @@ export function WorkspaceShell({
     >
       <WorkspaceRuntime />
       {/* Desktop Sidebar */}
-      <Sidebar className="workspace-desktop-sidebar hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
+      <Sidebar className="workspace-desktop-sidebar hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} workspaceDeliveryWorkspace={user?.deliveryWorkspace} workspaceAccessPermissions={user?.accessPermissions} />
 
       {/* Mobile Sidebar overlay drawer */}
       {isMobileOpen && (
@@ -178,7 +181,7 @@ export function WorkspaceShell({
 
           {/* Sidebar Drawer */}
           <div className="workspace-drawer relative z-50 flex h-full w-[282px] max-w-[calc(100%-3.5rem)] transform transition-transform duration-300 ease-in-out">
-            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} />
+            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} workspaceDeliveryWorkspace={user?.deliveryWorkspace} workspaceAccessPermissions={user?.accessPermissions} />
             <button
               onClick={() => setIsMobileOpen(false)}
               className="workspace-icon-control absolute top-4 -right-12 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
@@ -207,8 +210,8 @@ export function WorkspaceShell({
             <div className="flex h-[70vh] flex-col items-center justify-center">
               <div className="workspace-access-card w-full max-w-lg space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-7 text-center">
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl border border-zinc-800 bg-zinc-900"><Lock className="h-6 w-6" /></div>
-                <div><h2 className="font-bold text-white">Access not assigned</h2><p className="mt-2 text-zinc-400">The agency admin has not granted your sub-admin account access to this page.</p></div>
-                <Button onClick={() => router.push('/dashboard')}>Return to dashboard</Button>
+                <div><h2 className="font-bold text-white">Access not assigned</h2><p className="mt-2 text-zinc-400">The agency admin has not granted your team member account access to this page.</p></div>
+                <Button onClick={() => router.push(workspaceHome)}>Return to workspace</Button>
               </div>
             </div>
           ) : isAdminGated ? (
@@ -284,13 +287,13 @@ export function WorkspaceShell({
               </div>
             </div>
           ) : (
-            <div key={pathname} className="workspace-page">
+            <div key={pathname} className={`workspace-page ${pathname === '/atlas' ? 'workspace-page-contained' : ''}`}>
               {children}
             </div>
           )}
         </main>
       </div>
-      {user && <MobileBottomNavigation role={user.role} plan={user.plan} accessPermissions={user.accessPermissions} onMore={() => setIsMobileOpen(true)} />}
+      {user && <MobileBottomNavigation role={user.role} plan={user.plan} accessPermissions={user.accessPermissions} deliveryWorkspace={user.deliveryWorkspace} onMore={() => setIsMobileOpen(true)} />}
       <SubscriptionPlanDialog open={isPlanGated} currentPlan={user?.plan} feature={planGate?.feature || 'this feature'} requiredPlan={planGate?.requiredPlan || 'PRO'} canManage={user?.role.toLowerCase() === 'admin'} onClose={() => router.push('/dashboard')} onPlanChanged={(nextPlan) => setUser(current => current ? { ...current, plan: nextPlan } : current)} />
     </div>
   );

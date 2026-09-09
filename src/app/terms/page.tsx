@@ -16,7 +16,7 @@ const sections: LegalSection[] = [
     id: 'accounts', title: 'Accounts, roles, and customer administration',
     bullets: [
       'You must provide accurate account information, protect credentials, use multi-factor authentication when available, and promptly report suspected compromise.',
-      'The agency administrator controls workspace membership, roles, sub-admin permissions, client access, integrations, AI settings, and customer data. Actions by authorized users are treated as Customer actions.',
+      'The agency administrator controls workspace membership, team member page permissions, client access, integrations, AI settings, and customer data. Actions by authorized users are treated as Customer actions.',
       'You are responsible for obtaining appropriate authority, notices, consent, and lawful bases before entering, importing, connecting, or instructing Iris OS to process information about leads, clients, personnel, document recipients, or other individuals.',
       'You must promptly revoke access for people who no longer require it and are responsible for reviewing access logs, permissions, generated documents, and automation settings.',
     ],

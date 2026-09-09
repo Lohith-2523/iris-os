@@ -6,9 +6,10 @@ import { sendIrisEmail } from '@/lib/email/iris-email';
 import { SECURITY_ALLOWED_PAGES } from '@/lib/security-pages';
 
 const schema = z.object({
-  action: z.enum(['make_sub_admin', 'update_permissions', 'offboard']),
+  action: z.enum(['make_sub_admin', 'update_permissions', 'update_access', 'offboard']),
   userId: z.string().uuid(),
   permissions: z.array(z.enum(SECURITY_ALLOWED_PAGES)).optional(),
+  handlesDeliverables: z.boolean().optional(),
   feedback: z.string().trim().min(5).max(3000).optional(),
 });
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const users = await prisma.user.findMany({
     where: { orgId: user.orgId },
-    select: { id: true, name: true, email: true, phone: true, role: true, accessPermissions: true, offboardedAt: true, accessRevokedAt: true, createdAt: true },
+    select: { id: true, name: true, email: true, phone: true, role: true, accessPermissions: true, handlesDeliverables: true, offboardedAt: true, accessRevokedAt: true, createdAt: true },
     orderBy: [{ accessRevokedAt: 'asc' }, { role: 'asc' }, { name: 'asc' }],
   });
   return NextResponse.json({ users, plan: user.organization.plan, hasAddon: user.organization.hasAddon, allowedPages: SECURITY_ALLOWED_PAGES });
@@ -37,17 +38,34 @@ export async function POST(request: NextRequest) {
     if (target.id === admin.id && body.action === 'offboard') return NextResponse.json({ error: 'The primary admin cannot offboard their own account' }, { status: 400 });
 
     if (body.action === 'make_sub_admin') {
-      if (admin.organization.plan !== 'ADVANCED') return NextResponse.json({ error: 'Sub-admin access is available on the Advanced plan.' }, { status: 403 });
-      if (target.role.toLowerCase() !== 'member') return NextResponse.json({ error: 'Only active team members can become sub-admins.' }, { status: 400 });
-      const existingCount = await prisma.user.count({ where: { orgId: admin.orgId, role: 'sub_admin', accessRevokedAt: null } });
-      if (existingCount >= 1 && !admin.organization.hasAddon) return NextResponse.json({ error: 'One sub-admin is included. Enable the additional sub-admin add-on before assigning another.' }, { status: 409 });
-      const updated = await prisma.user.update({ where: { id: target.id }, data: { role: 'sub_admin', accessPermissions: body.permissions || ['dashboard', 'clients', 'projects', 'tasks', 'team'] } });
+      if (!['PRO', 'ADVANCED'].includes(admin.organization.plan)) return NextResponse.json({ error: 'Individual team member page access is available on the Pro and Advanced plans.' }, { status: 403 });
+      if (target.role.toLowerCase() !== 'member') return NextResponse.json({ error: 'Individual access can only be enabled for active team members.' }, { status: 400 });
+      const updated = await prisma.user.update({ where: { id: target.id }, data: { role: 'sub_admin', accessPermissions: body.permissions || [], handlesDeliverables: body.handlesDeliverables ?? true } });
       return NextResponse.json({ success: true, user: updated });
     }
 
-    if (body.action === 'update_permissions') {
-      if (target.role.toLowerCase() !== 'sub_admin') return NextResponse.json({ error: 'Permissions are configurable only for sub-admins.' }, { status: 400 });
-      const updated = await prisma.user.update({ where: { id: target.id }, data: { accessPermissions: body.permissions || [] } });
+    if (body.action === 'update_permissions' || body.action === 'update_access') {
+      if (!['PRO', 'ADVANCED'].includes(admin.organization.plan)) return NextResponse.json({ error: 'Individual team member page access is available on the Pro and Advanced plans.' }, { status: 403 });
+      if (!['member', 'sub_admin'].includes(target.role.toLowerCase())) return NextResponse.json({ error: 'Access is configurable only for team members.' }, { status: 400 });
+      const permissions = body.permissions || [];
+      if (body.action === 'update_access' && permissions.length === 0 && !body.handlesDeliverables) {
+        const [ongoingProjects, activeTasks, activeDeliverables] = await Promise.all([
+          prisma.projectMember.count({ where: { userId: target.id, project: { status: { not: 'COMPLETED' } } } }),
+          prisma.clientTask.count({ where: { assignedToId: target.id, status: { not: 'COMPLETED' } } }),
+          prisma.deliverable.count({ where: { orgId: admin.orgId, submittedById: target.id, status: { not: 'APPROVED' } } }),
+        ]);
+        if (ongoingProjects === 0 && activeTasks === 0 && activeDeliverables === 0) {
+          return NextResponse.json({ error: 'Choose any page or enable the deliverables checkbox to create a workspace for this user.' }, { status: 400 });
+        }
+      }
+      const updated = await prisma.user.update({
+        where: { id: target.id },
+        data: {
+          role: 'sub_admin',
+          accessPermissions: permissions,
+          ...(body.action === 'update_access' ? { handlesDeliverables: body.handlesDeliverables ?? false } : {}),
+        },
+      });
       return NextResponse.json({ success: true, user: updated });
     }
 

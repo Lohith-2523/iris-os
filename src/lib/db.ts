@@ -12,7 +12,7 @@ const MAX_FIND_MANY_ROWS = 250;
 const databasePoolMax = resolveDatabasePoolMax(process.env.DATABASE_POOL_MAX);
 const prismaModelSignature = JSON.stringify(
   {
-    connectionPolicyVersion: 2,
+    connectionPolicyVersion: 3,
     databasePoolMax,
     models: Prisma.dmmf.datamodel.models
       .map((model) => ({

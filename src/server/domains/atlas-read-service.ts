@@ -54,6 +54,8 @@ export const getAtlasInitialReadModel = cache(async (ctx: RequestSecurityContext
     currentSessionId: latestSessionId,
     messages: latestSessionId ? sessionMessages[latestSessionId] : [],
     sessionMessages,
+    userId: ctx.userId,
+    userName: ctx.user.name,
     userAvatarUrl: ctx.user.avatarUrl || null,
   };
 });

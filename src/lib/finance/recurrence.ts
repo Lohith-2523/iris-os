@@ -5,6 +5,10 @@ export interface RecurringOccurrence {
   amount: number;
 }
 
+export function recurringOccurrenceId(subscriptionId: string, date: Date) {
+  return `${subscriptionId}-${date.toISOString().slice(0, 10)}`;
+}
+
 function daysInUtcMonth(year: number, month: number) {
   return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 }

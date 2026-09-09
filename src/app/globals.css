@@ -930,7 +930,28 @@ h6,
   background-position: 50% 50%;
   background-repeat: no-repeat;
   background-size: cover;
-  opacity: .7;
+  image-rendering: auto;
+  opacity: .82;
+}
+
+.dashboard-command-center-banner-backdrop {
+  z-index: 0;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(22px) brightness(.38) saturate(.82);
+  opacity: .95;
+  transform: scale(1.12);
+}
+
+.dashboard-command-center-banner-artwork {
+  z-index: 1;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: auto;
+  transform-origin: 50% 50%;
+  will-change: transform;
 }
 
 .dashboard-command-center {
@@ -938,8 +959,8 @@ h6,
   inline-size: 100%;
   min-inline-size: 0;
   max-inline-size: 100%;
-  min-height: clamp(10rem, 32vw, 11rem);
-  aspect-ratio: auto;
+  min-height: 10rem;
+  aspect-ratio: 728 / 90;
 }
 
 .dashboard-canvas .workspace-card {
@@ -1079,10 +1100,10 @@ input[data-date-picker-proxy] {
   pointer-events: none !important;
 }
 
-.workspace-shell input:focus,
+.workspace-shell input:not([type='checkbox']):not([type='radio']):focus,
 .workspace-shell select:focus,
 .workspace-shell textarea:focus,
-.workspace-auth input:focus,
+.workspace-auth input:not([type='checkbox']):not([type='radio']):focus,
 .workspace-auth select:focus,
 .workspace-auth textarea:focus {
   border-color: rgba(255,255,255,.16) !important;
@@ -1384,17 +1405,28 @@ input[data-date-picker-proxy] {
 .workspace-page {
   position: relative;
   z-index: auto;
-  flex: 1 1 0%;
+  /* Preserve the page's intrinsic block size so older Chromium builds include
+     overflowing descendants in .workspace-main's vertical scroll range. */
+  flex: 1 0 auto;
   width: min(100%, 100rem);
   max-width: 100%;
   min-width: 0;
-  min-height: 0;
+  min-height: 100%;
   margin-inline: auto;
 }
 
 .workspace-page > * {
   max-width: 100%;
   min-width: 0;
+}
+
+/* Chat workspaces own their internal scrolling. Keep their route frame inside
+   the main viewport instead of allowing message content to grow the page. */
+.workspace-page.workspace-page-contained {
+  flex: 1 1 0%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .workspace-page h1,
@@ -3176,7 +3208,7 @@ input[type='checkbox']:not(.sr-only):focus-visible {
 
 input[type='checkbox']:not(.sr-only):disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 label:has(> input[type='checkbox']:not(.sr-only):checked) {
@@ -3453,6 +3485,28 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 @media (prefers-reduced-motion: reduce) {
   .workspace-shell .workspace-page { scroll-behavior: auto; }
 }
+
+input[type='checkbox']:not(.sr-only):active:not(:disabled) {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+  transition-duration: 0ms;
+}
+
+/* Help centre: translucent at rest, solid Iris metal under interaction. */
+.iris-help-root { position: fixed; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 90; font-family: var(--font-geist-sans), sans-serif; }
+.iris-help-bubble { display: flex; height: 3rem; align-items: center; gap: .55rem; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; padding: 0 1rem; color: #fff; background: rgba(24,24,27,.5); box-shadow: inset 0 1px rgba(255,255,255,.2), 0 14px 38px rgba(0,0,0,.35); backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%); transition: transform 160ms cubic-bezier(.2,.8,.2,1), background-color 160ms, box-shadow 160ms; }
+.iris-help-bubble:hover,.iris-help-bubble:focus-visible,.iris-help-bubble[aria-expanded='true'] { background: linear-gradient(145deg,#323238,#111114); box-shadow: inset 1px 1px rgba(255,255,255,.28), inset -2px -2px 4px rgba(0,0,0,.55), 0 16px 40px rgba(0,0,0,.45); }
+.iris-help-bubble:active { transform: scale(.96); }
+.iris-help-bubble svg { width: 1.1rem; height: 1.1rem; }
+.iris-help-bubble span { font-size: .72rem; font-weight: 700; }
+.iris-help-panel { position: absolute; right: 0; bottom: 3.7rem; width: min(23rem, calc(100vw - 2rem)); max-height: min(38rem, calc(100dvh - 7rem)); overflow: hidden; border: 1px solid rgba(255,255,255,.18); border-radius: 1.25rem; color: #f4f4f5; background: rgba(15,15,18,.82); box-shadow: inset 0 1px rgba(255,255,255,.12), 0 26px 70px rgba(0,0,0,.55); backdrop-filter: blur(28px) saturate(170%); -webkit-backdrop-filter: blur(28px) saturate(170%); }
+.iris-help-panel header { display: grid; grid-template-columns: 2rem 1fr 2rem; align-items: center; gap: .5rem; padding: .9rem; border-bottom: 1px solid rgba(255,255,255,.1); }
+.iris-help-panel header div { display: flex; flex-direction: column; text-align: center; }.iris-help-panel header strong{font-size:.82rem}.iris-help-panel header small{font-size:.62rem;color:#a1a1aa}.iris-help-panel header button{display:grid;width:2rem;height:2rem;place-items:center;border-radius:50%;}.iris-help-panel header button:hover{background:#27272a}.iris-help-panel header svg{width:1rem;height:1rem}
+.iris-help-menu { display:grid; gap:.6rem; padding:1rem; }.iris-help-menu button{display:flex;align-items:center;gap:.8rem;min-height:3.4rem;padding:.75rem 1rem;border:1px solid #3f3f46;border-radius:.8rem;background:linear-gradient(145deg,#27272a,#111113);font-size:.78rem;font-weight:650;box-shadow:inset 1px 1px rgba(255,255,255,.12),inset -2px -2px 4px #050506;transition:transform 140ms,border-color 140ms}.iris-help-menu button:hover{border-color:#71717a;transform:translateY(-1px)}.iris-help-menu svg{width:1rem;height:1rem;color:#d4d4d8}
+.iris-help-form { display:grid;gap:.7rem;padding:1rem;overflow:auto; }.iris-help-form input,.iris-help-form textarea,.iris-help-chat input{width:100%;border:1px solid #3f3f46;border-radius:.65rem;background:rgba(9,9,11,.72);padding:.72rem .8rem;color:#fff;font-size:.75rem;outline:none}.iris-help-form input:focus,.iris-help-form textarea:focus,.iris-help-chat input:focus{border-color:#a1a1aa}.iris-help-form textarea{resize:vertical}.iris-help-form>button{min-height:2.6rem;border-radius:.65rem;background:#fff;color:#09090b;font-size:.75rem;font-weight:750}.iris-help-form>button:disabled{opacity:.5}.iris-help-form p{font-size:.68rem;color:#d4d4d8}
+.iris-help-chat{display:flex;min-height:24rem;max-height:32rem;flex-direction:column}.iris-help-messages{flex:1;overflow:auto;padding:1rem}.iris-help-messages p{display:flex;width:fit-content;max-width:88%;gap:.45rem;margin-bottom:.65rem;border:1px solid #3f3f46;border-radius:.8rem;padding:.65rem .75rem;font-size:.72rem;line-height:1.5;white-space:pre-wrap}.iris-help-messages p[data-role='user']{margin-left:auto;background:#fff;color:#09090b}.iris-help-messages p[data-role='assistant']{background:#18181b}.iris-help-messages svg{width:.85rem;height:.85rem;flex:none;margin-top:.1rem}.iris-help-chat form{display:flex;gap:.5rem;padding:.8rem;border-top:1px solid #27272a}.iris-help-chat form button{display:grid;width:2.5rem;place-items:center;border-radius:.65rem;background:#fff;color:#09090b}.iris-help-chat form button:disabled{opacity:.4}.iris-help-chat form svg{width:1rem;height:1rem}
+@media (prefers-reduced-transparency: reduce) {.iris-help-bubble,.iris-help-panel{backdrop-filter:none;-webkit-backdrop-filter:none;background:#18181b}}
 
 /* Regression guards for geometry-aware workspaces. */
 .workspace-shell .revenue-line-chart-frame {
@@ -4122,6 +4176,19 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   color: #fb7185;
 }
 
+.atlas-live-voice {
+  border-color: #3f3f46;
+  background: radial-gradient(circle at 35% 25%, #3f3f46, #111113 62%);
+  color: #f4f4f5;
+  box-shadow: inset 0 1px rgba(255,255,255,.15);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.atlas-live-voice:hover { border-color:#a1a1aa; transform:scale(1.03); }
+.atlas-live-voice.is-active { border-color:#fff; box-shadow:0 0 0 4px rgba(255,255,255,.1),0 0 28px rgba(255,255,255,.12); }
+.atlas-transcription-wave { width:3px; height:22px; border-radius:999px; background:#fff; transform:scaleY(var(--wave-scale)); animation:atlas-wave 720ms ease-in-out var(--wave-delay) infinite alternate; }
+@keyframes atlas-wave { from{transform:scaleY(.2);opacity:.45} to{transform:scaleY(var(--wave-scale));opacity:1} }
+@media (prefers-reduced-motion: reduce) { .atlas-transcription-wave { animation:none; } }
+
 :root.light .workspace-shell .workspace-command-search-field {
   border-color: var(--workspace-edge) !important;
   background: transparent !important;
@@ -4354,15 +4421,11 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   opacity: 0.45;
 }
 
-.canva-mark {
-  display: grid;
+.canva-logo {
+  display: block;
   height: 1rem;
   width: 1rem;
-  place-items: center;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  font-size: 0.625rem;
-  font-weight: 700;
+  flex: none;
 }
 
 .dashboard-finance-metric::before,

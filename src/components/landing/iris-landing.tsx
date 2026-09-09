@@ -75,7 +75,7 @@ function AtlasSection() {
 
 function TrustPanel() {
   const groups = [
-    [KeyRound, 'Identity', 'Admin, sub-admin, member, client and organization-scoped records.'],
+    [KeyRound, 'Identity', 'Agency admin, team member, client and organization-scoped records.'],
     [Layers3, 'Permissions', 'Page-level delegation, assigned-work access and client-specific scope.'],
     [BadgeCheck, 'Consent', 'Independent Atlas and Meta permissions, revocation and disconnect.'],
     [LockKeyhole, 'Security', 'Encrypted secrets, validated uploads, audit history and encrypted messages.'],

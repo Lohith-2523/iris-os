@@ -74,7 +74,7 @@ export const PLAN_ENTITLEMENTS = {
   },
   PRO: {
     specializationLimit: 10,
-    teamMemberLimit: 4,
+    teamMemberLimit: null,
     clientLimit: 15,
     atlasCapabilities: ['MEETING', 'INVOICE'] as AtlasCapability[],
     dailyBriefing: false,
@@ -87,7 +87,7 @@ export const PLAN_ENTITLEMENTS = {
   },
   ADVANCED: {
     specializationLimit: 10,
-    teamMemberLimit: 15,
+    teamMemberLimit: null,
     clientLimit: 30,
     atlasCapabilities: ['ALL'] as AtlasCapability[],
     dailyBriefing: true,

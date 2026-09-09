@@ -128,6 +128,7 @@ export default function ClientOnboardPage() {
   const [currencyState, setCurrencyState] = React.useState('USD');
   const [agencyBillingMissingFields, setAgencyBillingMissingFields] = React.useState<string[]>([]);
   const [availableServiceLines, setAvailableServiceLines] = React.useState<string[]>([]);
+  const [serviceLineLoadError, setServiceLineLoadError] = React.useState('');
   const [draftStorageKey, setDraftStorageKey] = React.useState<string | null>(null);
   const [hydratedDraftKey, setHydratedDraftKey] = React.useState<string | null>(null);
 
@@ -178,10 +179,12 @@ export default function ClientOnboardPage() {
 
   React.useEffect(() => {
     checkRole();
-    fetch('/api/organization').then((res) => res.ok ? res.json() : null).then((organization) => {
+    fetch('/api/workspace', { cache: 'no-store' }).then((res) => res.ok ? res.json() : null).then((workspace) => {
+      const organization = workspace?.organization;
       if (organization?.currency) setCurrencyState(organization.currency);
       if (organization) {
         const serviceLines = agencyServiceLines(organization.agencyTypes);
+        setServiceLineLoadError('');
         setAvailableServiceLines(serviceLines);
         setFormData((current) => ({
           ...current,
@@ -193,8 +196,10 @@ export default function ClientOnboardPage() {
           requireLegalName: true,
           label: 'agency',
         }));
+      } else {
+        setServiceLineLoadError('Specializations could not be loaded. Refresh and try again.');
       }
-    }).catch(() => undefined);
+    }).catch(() => setServiceLineLoadError('Specializations could not be loaded. Refresh and try again.'));
 
     async function fetchTeam() {
       try {
@@ -1128,7 +1133,8 @@ export default function ClientOnboardPage() {
                             {availableServiceLines.length === 0 && <option value="">Select specializations in Agency Settings</option>}
                             {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{serviceLine}</option>)}
                           </select>
-                          {availableServiceLines.length === 0 && <p className="mt-1 text-[10px] text-amber-400">Choose at least one agency specialization in Settings before creating an initial project.</p>}
+                          {availableServiceLines.length === 0 && !serviceLineLoadError && <p className="mt-1 text-[10px] text-amber-400">Choose at least one agency specialization in Settings before creating an initial project.</p>}
+                          {serviceLineLoadError && <p role="alert" className="mt-1 text-[10px] text-rose-400">{serviceLineLoadError}</p>}
                         </div>
                       </div>
 

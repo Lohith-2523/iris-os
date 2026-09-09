@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { formatUserMessage } from '@/lib/utils';
 import { validateBrowserFile } from '@/lib/file-security';
 import { MAX_SOURCE_IMAGE_BYTES, processBrowserImage } from '@/lib/browser-image-processing';
@@ -17,7 +18,9 @@ import { createClient } from '@/lib/client';
 import { clearWorkspaceUiPreferences } from '@/lib/workspace-ui-storage';
 import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
 import { mergeAgencySpecializations } from '@/lib/agency-specializations';
+import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
 import { entitlementsFor, type PlanId } from '@/lib/plan-entitlements';
+import { PROFILE_AVATAR_TEMPLATES, type ProfileAvatarTemplateId } from '@/lib/profile-avatar-templates';
 import {
   getMetaSdkStatus,
   META_SDK_ERROR_EVENT,
@@ -61,14 +64,13 @@ import {
 
 const SETTINGS_PLANS: Array<{ id: PlanId; name: string; price: string; description: string; features: string[] }> = [
   { id: 'BASIC', name: 'Basic', price: '$99', description: 'Core agency operations', features: ['5 clients', '2 team members', 'Core finance and delivery'] },
-  { id: 'PRO', name: 'Pro', price: '$299', description: 'AI-enabled collaboration', features: ['15 clients', '4 team members', 'Atlas AI and secure messages'] },
-  { id: 'ADVANCED', name: 'Advanced', price: '$599', description: 'Complete enterprise workspace', features: ['30 clients', '15 team members', 'Full Atlas, Strategy and Briefing'] },
+  { id: 'PRO', name: 'Pro', price: '$299', description: 'AI-enabled collaboration', features: ['15 clients', 'Unlimited team members', 'Atlas AI and secure messages'] },
+  { id: 'ADVANCED', name: 'Advanced', price: '$599', description: 'Complete enterprise workspace', features: ['30 clients', 'Unlimited team members', 'Full Atlas, Strategy and Briefing'] },
 ];
 
 type WorkspaceUsage = {
   clients: number;
   teamMembers: number;
-  subAdmins: number;
   atlasTokensUsed: number;
   atlasTokenLimit: number | null;
 };
@@ -152,6 +154,7 @@ function ProfileIdentity({
   avatarStatus,
   avatarFeedback,
   onAvatarFile,
+  onSelectTemplate,
   onRemoveAvatar,
 }: {
   user: ProfileIdentityUser | null;
@@ -159,19 +162,13 @@ function ProfileIdentity({
   avatarStatus: 'idle' | 'saving' | 'success' | 'error';
   avatarFeedback: string;
   onAvatarFile: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSelectTemplate: (template: ProfileAvatarTemplateId) => void;
   onRemoveAvatar: () => void;
 }) {
-  const initials = (user?.name || 'User')
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
   return (
-    <div className="flex min-w-0 items-center gap-4">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-700 bg-zinc-800 text-base font-bold text-white">
-        {user?.avatarUrl ? <img src={user.avatarUrl} alt={`${user.name} profile`} className="h-full w-full object-contain" /> : initials}
+    <div className="flex min-w-0 items-start gap-4">
+      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-800">
+        <ProfileAvatar src={user?.avatarUrl} name={user?.name || 'Iris OS user'} seed={user?.email} />
       </div>
       <div className="min-w-0">
         <p className="truncate font-semibold text-white">{user?.name || 'Iris OS user'}</p>
@@ -195,6 +192,26 @@ function ProfileIdentity({
                 Remove
               </Button>
             )}
+          </div>
+        )}
+        {canEditAvatar && (
+          <div className="mt-3">
+            <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Illustrated profiles</p>
+            <div className="flex flex-wrap gap-2" aria-label="Profile illustration templates">
+              {PROFILE_AVATAR_TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  disabled={avatarStatus === 'saving'}
+                  aria-label={`Use ${template.label} profile illustration`}
+                  aria-pressed={user?.avatarUrl === template.id}
+                  onClick={() => onSelectTemplate(template.id)}
+                  className="h-9 w-9 overflow-hidden rounded-lg border border-zinc-700 opacity-80 outline-none transition hover:-translate-y-0.5 hover:opacity-100 focus-visible:ring-2 focus-visible:ring-zinc-400 aria-pressed:border-white aria-pressed:opacity-100"
+                >
+                  <ProfileAvatar src={template.id} name={template.label} />
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {canEditAvatar && avatarFeedback && (
@@ -233,7 +250,7 @@ export default function SettingsPage() {
   const [hasFinancialData, setHasFinancialData] = React.useState(false);
   const [plan, setPlan] = React.useState<'BASIC' | 'PRO' | 'ADVANCED'>('PRO');
   const [hasAddon, setHasAddon] = React.useState(false);
-  const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, teamMembers: 0, subAdmins: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
+  const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, teamMembers: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
   const [specializationInput, setSpecializationInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
@@ -508,8 +525,7 @@ export default function SettingsPage() {
         const activeTeam = Array.isArray(team) ? team : [];
         setWorkspaceUsage({
           clients: Array.isArray(clients) ? clients.length : 0,
-          teamMembers: activeTeam.filter((member: { role?: string }) => member.role?.toLowerCase() === 'member').length,
-          subAdmins: activeTeam.filter((member: { role?: string }) => member.role?.toLowerCase() === 'sub_admin').length,
+          teamMembers: activeTeam.filter((member: { role?: string }) => ['member', 'sub_admin'].includes(member.role?.toLowerCase() || '')).length,
           atlasTokensUsed: Number(atlasUsage?.usage?.total || 0),
           atlasTokenLimit: typeof atlasUsage?.limits?.total === 'number' ? atlasUsage.limits.total : null,
         });
@@ -744,7 +760,7 @@ export default function SettingsPage() {
 
   const canManageWorkspaceSettings = currentUser?.role?.toLowerCase() === 'admin'
     || (currentUser?.role?.toLowerCase() === 'sub_admin' && (currentUser.accessPermissions || []).includes('settings'));
-  const canEditProfileAvatar = ['admin', 'sub_admin', 'member'].includes(currentUser?.role?.toLowerCase() || '');
+  const canEditProfileAvatar = Boolean(currentUser);
 
   if (!canManageWorkspaceSettings) {
     return (
@@ -757,7 +773,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader><CardTitle className="text-sm font-semibold text-white">Account Profile</CardTitle><CardDescription>Your signed-in workspace identity.</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <ProfileIdentity user={currentUser} canEditAvatar={canEditProfileAvatar} avatarStatus={avatarStatus} avatarFeedback={avatarFeedback} onAvatarFile={handleProfileAvatarFile} onRemoveAvatar={() => void updateProfileAvatar(null)} />
+            <ProfileIdentity user={currentUser} canEditAvatar={canEditProfileAvatar} avatarStatus={avatarStatus} avatarFeedback={avatarFeedback} onAvatarFile={handleProfileAvatarFile} onSelectTemplate={(template) => void updateProfileAvatar(template, 'Profile illustration updated.')} onRemoveAvatar={() => void updateProfileAvatar(null)} />
             <Button type="button" variant="outline" disabled={signingOut} onClick={handleSignOut} className="gap-2 text-rose-400 hover:text-rose-300">{signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}{signingOut ? 'Signing out…' : 'Log out'}</Button>
           </CardContent>
         </Card>
@@ -826,7 +842,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm font-semibold text-white">Account Profile</CardTitle><CardDescription>Your signed-in account and session controls.</CardDescription></CardHeader>
             <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <ProfileIdentity user={currentUser} canEditAvatar={canEditProfileAvatar} avatarStatus={avatarStatus} avatarFeedback={avatarFeedback} onAvatarFile={handleProfileAvatarFile} onRemoveAvatar={() => void updateProfileAvatar(null)} />
+              <ProfileIdentity user={currentUser} canEditAvatar={canEditProfileAvatar} avatarStatus={avatarStatus} avatarFeedback={avatarFeedback} onAvatarFile={handleProfileAvatarFile} onSelectTemplate={(template) => void updateProfileAvatar(template, 'Profile illustration updated.')} onRemoveAvatar={() => void updateProfileAvatar(null)} />
               <Button type="button" variant="outline" disabled={signingOut} onClick={handleSignOut} className="gap-2 text-rose-400 hover:text-rose-300">{signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}{signingOut ? 'Signing out…' : 'Log out'}</Button>
             </CardContent>
           </Card>
@@ -1011,11 +1027,9 @@ export default function SettingsPage() {
                           hasFinancialData ? 'opacity-50 cursor-not-allowed border-zinc-900 text-zinc-500' : 'cursor-pointer'
                         }`}
                       >
-                        <option value="USD">USD ($) United States Dollar</option>
-                        <option value="EUR">EUR (€) Euro</option>
-                        <option value="GBP">GBP (£) British Pound</option>
-                        <option value="INR">INR (₹) Indian Rupee</option>
-                        <option value="CAD">CAD (CA$) Canadian Dollar</option>
+                        {MAJOR_CURRENCIES.map(({ code, name }) => (
+                          <option key={code} value={code}>{code} ({currencySymbol(code)}) {name}</option>
+                        ))}
                       </select>
                       {hasFinancialData && (
                         <div className="text-[10px] text-amber-500/80 font-medium mt-1 leading-normal flex items-center gap-1">
@@ -1283,7 +1297,7 @@ export default function SettingsPage() {
                   <CardDescription>Configure user access credentials and workspace authorization levels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 font-sans text-xs">
-                  <p className="text-zinc-400">View all users and configure client, team member, sub-admin, and admin access. Sub-admin permissions are set per user.</p>
+                  <p className="text-zinc-400">View all users and configure client, team member, and agency admin access. Team member page permissions are set per user.</p>
                   <Link href="/settings/security" prefetch={false} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 font-semibold text-white hover:border-zinc-600"><span>Open Security & Roles</span><span aria-hidden="true">→</span></Link>
                 </CardContent>
               </Card>
@@ -1419,17 +1433,16 @@ export default function SettingsPage() {
             <CardContent className="space-y-5">
               <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
                 {usageRows.map(({ label, value, limit, icon: Icon }) => {
-                  const percent = Math.min(100, limit > 0 ? (value / limit) * 100 : 0);
+                  const percent = limit === null ? 0 : Math.min(100, limit > 0 ? (value / limit) * 100 : 0);
                   return <div key={label} className="min-w-0">
-                    <div className="mb-2 flex items-center justify-between gap-3 text-xs"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Icon className="h-4 w-4 shrink-0 text-zinc-500" />{label}</span><span className="shrink-0 font-mono font-bold tabular-nums text-white">{value} / {limit}</span></div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={value}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${percent}%` }} /></div>
+                    <div className="mb-2 flex items-center justify-between gap-3 text-xs"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Icon className="h-4 w-4 shrink-0 text-zinc-500" />{label}</span><span className="shrink-0 font-mono font-bold tabular-nums text-white">{value} / {limit === null ? 'Unlimited' : limit}</span></div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={limit ?? Math.max(value, 1)} aria-valuenow={value}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${percent}%` }} /></div>
                   </div>;
                 })}
                 <div className="min-w-0">
                   <div className="mb-2 flex flex-col items-start gap-2 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Bot className="h-4 w-4 shrink-0 text-zinc-500" />Atlas credits used</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.atlasTokensUsed.toLocaleString()} / {workspaceUsage.atlasTokenLimit?.toLocaleString() || 'Not included'}</span></div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label="Atlas credits used" aria-valuemin={0} aria-valuemax={workspaceUsage.atlasTokenLimit || 1} aria-valuenow={workspaceUsage.atlasTokensUsed}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${workspaceUsage.atlasTokenLimit ? Math.min(100, (workspaceUsage.atlasTokensUsed / workspaceUsage.atlasTokenLimit) * 100) : 0}%` }} /></div>
                 </div>
-                <div className="flex min-h-11 flex-wrap items-center justify-between gap-3 border-t border-zinc-850 pt-4 text-xs md:col-span-2"><span className="flex items-center gap-2 font-semibold text-zinc-300"><UserRoundCog className="h-4 w-4 text-zinc-500" />Sub-admins</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.subAdmins} active <span className="font-sans font-normal text-zinc-500">· managed separately</span></span></div>
               </div>
             </CardContent>
           </Card>

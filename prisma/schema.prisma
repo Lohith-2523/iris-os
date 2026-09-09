@@ -133,8 +133,29 @@ model WaitlistEntry {
   specialization String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  sheetSyncedAt  DateTime?
+  sheetSyncError String?
 
   @@index([createdAt])
+}
+
+model HelpRequest {
+  id             String   @id
+  type           String
+  name           String
+  email          String
+  subject        String
+  details        String
+  page           String?
+  sheetSyncedAt  DateTime?
+  sheetSyncError String?
+  emailSentAt    DateTime?
+  emailError     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([type, createdAt])
 }
 
 model WaitlistDailyReport {
@@ -197,6 +218,7 @@ model User {
   agencyTypes         String[]     @default([])
   avatarUrl           String?
   accessPermissions   Json?
+  handlesDeliverables Boolean      @default(false)
   offboardedAt        DateTime?
   accessRevokedAt     DateTime?
   offboardingFeedback String?
@@ -1055,18 +1077,20 @@ model CalendarEvent {
 }
 
 model MemberInvite {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  name         String
-  phone        String?
-  agencyTypes  String[]     @default([])
-  projects     String[]     @default([])
-  token        String       @unique
-  orgId        String
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  used         Boolean      @default(false)
-  expiresAt    DateTime
-  createdAt    DateTime     @default(now())
+  id                  String       @id @default(uuid())
+  email               String       @unique
+  name                String
+  phone               String?
+  agencyTypes         String[]     @default([])
+  projects            String[]     @default([])
+  accessPermissions   Json?
+  handlesDeliverables Boolean      @default(false)
+  token               String       @unique
+  orgId               String
+  organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  used                Boolean      @default(false)
+  expiresAt           DateTime
+  createdAt           DateTime     @default(now())
 
   @@index([orgId])
 }

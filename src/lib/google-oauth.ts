@@ -16,6 +16,11 @@ export const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/calendar.events',
 ] as const;
+export const GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+
+function googleSheetsOwnerEmail() {
+  return (process.env.GOOGLE_SHEETS_OAUTH_USER_EMAIL || 'cto.admin@irisos.app').trim().toLowerCase();
+}
 
 type GoogleTokenResponse = {
   access_token?: string;
@@ -86,6 +91,7 @@ export function googleOAuthRedirectUri(requestUrl: string) {
 }
 
 export function createGoogleAuthorization(input: {
+  accountEmail: string;
   orgId: string;
   redirectUri: string;
   returnTo: string;
@@ -110,7 +116,9 @@ export function createGoogleAuthorization(input: {
   authorizationUrl.searchParams.set('prompt', 'consent select_account');
   authorizationUrl.searchParams.set('redirect_uri', input.redirectUri);
   authorizationUrl.searchParams.set('response_type', 'code');
-  authorizationUrl.searchParams.set('scope', GOOGLE_CALENDAR_SCOPES.join(' '));
+  const scopes: string[] = [...GOOGLE_CALENDAR_SCOPES];
+  if (input.accountEmail.trim().toLowerCase() === googleSheetsOwnerEmail()) scopes.push(GOOGLE_SHEETS_SCOPE);
+  authorizationUrl.searchParams.set('scope', scopes.join(' '));
   authorizationUrl.searchParams.set('state', state);
 
   return { authorizationUrl, nonce };
@@ -169,7 +177,7 @@ async function fetchGoogleProfile(
   return profile as GoogleProfileResponse & { email: string };
 }
 
-function validateCalendarScopes(scopeValue: string | undefined) {
+function validateCalendarScopes(scopeValue: string | undefined, requireSheetsWrite = false) {
   const grantedScopes = new Set((scopeValue || '').split(/\s+/).filter(Boolean));
   const hasFullCalendar = grantedScopes.has('https://www.googleapis.com/auth/calendar');
   const hasCalendarRead =
@@ -178,10 +186,13 @@ function validateCalendarScopes(scopeValue: string | undefined) {
   const hasEventWrite =
     hasFullCalendar ||
     grantedScopes.has('https://www.googleapis.com/auth/calendar.events');
+  const hasSheetsWrite = grantedScopes.has(GOOGLE_SHEETS_SCOPE);
 
-  if (!hasCalendarRead || !hasEventWrite) {
+  if (!hasCalendarRead || !hasEventWrite || (requireSheetsWrite && !hasSheetsWrite)) {
     throw new GoogleOAuthError(
-      'Approve both Calendar reading and event management permissions to connect Google Calendar.',
+      requireSheetsWrite
+        ? 'Approve Calendar and Google Sheets permissions to connect the Iris Google workspace integration.'
+        : 'Approve both Calendar reading and event management permissions to connect Google Calendar.',
       'permissions_missing',
       400,
     );
@@ -197,8 +208,8 @@ export async function connectGoogleCalendar(input: {
   userId: string;
 }) {
   const tokens = await exchangeAuthorizationCode(input.code, input.redirectUri);
-  const scopes = validateCalendarScopes(tokens.scope);
   const profile = await fetchGoogleProfile(tokens.access_token!);
+  const scopes = validateCalendarScopes(tokens.scope, profile.email.toLowerCase() === googleSheetsOwnerEmail());
   const existingConnection = await prisma.googleCalendarConnection.findUnique({
     where: { userId: input.userId },
   });

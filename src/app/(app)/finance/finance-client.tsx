@@ -36,7 +36,7 @@ import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { DateInput } from '@/components/ui/date-input';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
-import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
+import { generateRecurringOccurrences, recurringOccurrenceId } from '@/lib/finance/recurrence';
 import { validateBrowserFile } from '@/lib/file-security';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { FinanceReadModel } from '@/server/read-models/workspace-pages';
@@ -211,9 +211,8 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
 
   const generateOccurrences = React.useCallback((sub: any) => {
     return generateRecurringOccurrences(sub.startDate, Number(sub.amount), sub.frequency).map(({ date: occDate }) => {
-      const idStr = `${sub.id}-${occDate.toISOString().slice(0, 10)}`;
       return {
-        id: idStr.slice(0, 12),
+        id: recurringOccurrenceId(sub.id, occDate),
         transactionId: null,
         source: 'Recurring Ledger',
         customer: `${sub.name} (${sub.category})`,

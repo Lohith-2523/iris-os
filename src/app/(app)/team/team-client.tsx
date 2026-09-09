@@ -28,10 +28,12 @@ import { validateBrowserFile } from '@/lib/file-security';
 import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import type { TeamReadModel } from '@/server/read-models/workspace-pages';
+import { SECURITY_PAGE_OPTIONS } from '@/lib/security-pages';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
 const isInternalTeamUser = (user: { role?: string }) => ['admin', 'member', 'sub_admin'].includes(user.role?.toLowerCase() || '');
+const teamRoleLabel = (role?: string) => role?.toLowerCase() === 'admin' ? 'Agency Admin' : 'Team Member';
 
 export default function TeamClient({ initialData }: { initialData: TeamReadModel }) {
   const [canManageTeam] = React.useState(initialData.workspace.user.role.toLowerCase() === 'admin');
@@ -48,6 +50,10 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
   const [isOffboardingMember, setIsOffboardingMember] = React.useState(false);
   const [offboardingError, setOffboardingError] = React.useState('');
   const [teamNotice, setTeamNotice] = React.useState('');
+  const [accessPermissions, setAccessPermissions] = React.useState<string[]>([]);
+  const [memberHandlesDeliverables, setMemberHandlesDeliverables] = React.useState(false);
+  const [savingAccess, setSavingAccess] = React.useState(false);
+  const [accessError, setAccessError] = React.useState('');
   const [editingTaskId, setEditingTaskId] = React.useState<string | null>(null);
   const [taskEditForm, setTaskEditForm] = React.useState({
     status: 'TODO',
@@ -74,8 +80,45 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
   React.useEffect(() => {
     if (selectedMember) {
       fetchMemberTasks(selectedMember.id);
+      setAccessPermissions(Array.isArray(selectedMember.accessPermissions) ? selectedMember.accessPermissions : []);
+      setMemberHandlesDeliverables(Boolean(selectedMember.handlesDeliverables));
+      setAccessError('');
     }
   }, [selectedMember, fetchMemberTasks]);
+
+  const saveMemberAccess = async () => {
+    if (!selectedMember || savingAccess) return;
+    setSavingAccess(true);
+    setAccessError('');
+    try {
+      const response = await fetch('/api/security/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_access',
+          userId: selectedMember.id,
+          permissions: accessPermissions,
+          handlesDeliverables: memberHandlesDeliverables,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'Unable to update team member access.');
+      const updated = {
+        ...selectedMember,
+        role: 'sub_admin',
+        accessPermissions,
+        handlesDeliverables: memberHandlesDeliverables,
+        deliveryWorkspace: memberHandlesDeliverables || Boolean(selectedMember.projects),
+      };
+      setSelectedMember(updated);
+      setTeamList((current) => current.map((member) => member.id === updated.id ? updated : member));
+      setTeamNotice(`${updated.name}'s workspace access was updated.`);
+    } catch (error) {
+      setAccessError(error instanceof Error ? error.message : 'Unable to update team member access.');
+    } finally {
+      setSavingAccess(false);
+    }
+  };
 
   // Modal Dialog Open/Close States
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
@@ -89,22 +132,11 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
     role: 'Member Specialist',
     projects: ''
   });
-  const [selectedAgencyTypes, setSelectedAgencyTypes] = React.useState<string[]>([]);
+  const [selectedPageAccess, setSelectedPageAccess] = React.useState<string[]>([]);
+  const [handlesDeliverables, setHandlesDeliverables] = React.useState(false);
   const [selectedProjects, setSelectedProjects] = React.useState<string[]>([]);
   const [onboardSuccessData, setOnboardSuccessData] = React.useState<any>(null);
-  const [orgAgencyTypes] = React.useState<string[]>([
-    'Digital Marketing Agency',
-    'Social Media Management Agency',
-    'SEO Agency',
-    'Paid Advertising Agency (PPC)',
-    'Brand Strategy & Positioning Agency',
-    'Graphic Design Agency',
-    'Brand Identity & Logo Design Agency',
-    'Content Marketing Agency',
-    'Video Production & Photography Agency',
-    'Web Design & Development Agency'
-  ]);
-  const [availableProjects] = React.useState<any[]>(initialData.projects);
+  const [availableProjects] = React.useState<any[]>(initialData.projects.filter((project) => project.status !== 'COMPLETED'));
   const [singleFormError, setSingleFormError] = React.useState('');
 
   // --- TAB 2: EXISTING SPECIALIST ---
@@ -127,7 +159,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
   const [roleFilter, setRoleFilter] = React.useState<string>('ALL');
 
   const roles = React.useMemo(() => {
-    const allRoles = teamList.map(t => t.role);
+    const allRoles = teamList.map(t => teamRoleLabel(t.role));
     return Array.from(new Set(allRoles));
   }, [teamList]);
 
@@ -136,7 +168,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
       if (!isInternalTeamUser(t)) {
         return false;
       }
-      if (roleFilter !== 'ALL' && t.role !== roleFilter) {
+      if (roleFilter !== 'ALL' && teamRoleLabel(t.role) !== roleFilter) {
         return false;
       }
       return true;
@@ -148,7 +180,8 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
     setIsAddModalOpen(false);
     setActiveTab('single');
     setSingleForm({ name: '', email: '', phone: '', role: 'Member Specialist', projects: '' });
-    setSelectedAgencyTypes([]);
+    setSelectedPageAccess([]);
+    setHandlesDeliverables(false);
     setSelectedProjects([]);
     setOnboardSuccessData(null);
     setSelectedExistingId('');
@@ -177,8 +210,8 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
       return;
     }
 
-    if (selectedAgencyTypes.length === 0) {
-      setSingleFormError('Please select at least one Agency Type for this member.');
+    if (selectedPageAccess.length === 0 && !handlesDeliverables && selectedProjects.length === 0) {
+      setSingleFormError('Choose any page or enable the deliverables checkbox to create a workspace for this user.');
       return;
     }
 
@@ -191,7 +224,8 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
           name: singleForm.name,
           email: singleForm.email,
           phone: singleForm.phone,
-          agencyTypes: selectedAgencyTypes,
+          accessPermissions: selectedPageAccess,
+          handlesDeliverables,
           projects: selectedProjects
         })
       });
@@ -635,7 +669,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-[10px] text-zinc-400">{t.email}</TableCell>
-                      <TableCell>{t.role}</TableCell>
+                      <TableCell>{teamRoleLabel(t.role)}</TableCell>
                       <TableCell className="text-zinc-400 max-w-[160px] truncate">{t.projects}</TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -670,8 +704,8 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
               <div>
-                <h2 className="text-lg font-bold text-white uppercase tracking-wider font-heading">Add Agency Specialist</h2>
-                <p className="text-[11px] text-zinc-500">Allocate single profiles, import system templates, or extract custom sheets using AI.</p>
+                <h2 className="text-lg font-bold text-white uppercase tracking-wider font-heading">Add Team Member</h2>
+                <p className="text-[11px] text-zinc-500">Choose their workspace, page access, and initial project assignments.</p>
               </div>
               <button 
                 onClick={closeModal}
@@ -796,17 +830,18 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                       </div>
                     </div>
 
-                    {/* Work-Related details: Agency Types selection */}
+                    {/* Individual page access */}
                     <div className="space-y-2 border-t border-zinc-900 pt-3">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
-                        Assign Agency Types (Select at least one) *
+                        Page access
                       </label>
+                      <p className="text-[10px] text-zinc-600">Selected pages appear alongside the standard team workspace when this person handles delivery work.</p>
                       <div className="grid gap-2.5 sm:grid-cols-2">
-                        {orgAgencyTypes.map((type) => {
-                          const isChecked = selectedAgencyTypes.includes(type);
+                        {SECURITY_PAGE_OPTIONS.map((page) => {
+                          const isChecked = selectedPageAccess.includes(page.id);
                           return (
                             <label
-                              key={type}
+                              key={page.id}
                               className={`flex items-center gap-2.5 p-2.5 border transition-all cursor-pointer rounded-md select-none text-[11px] ${
                                 isChecked 
                                   ? 'bg-zinc-900 border-zinc-700 text-white' 
@@ -818,24 +853,31 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                                 checked={isChecked}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedAgencyTypes([...selectedAgencyTypes, type]);
+                                    setSelectedPageAccess([...selectedPageAccess, page.id]);
                                   } else {
-                                    setSelectedAgencyTypes(selectedAgencyTypes.filter(t => t !== type));
+                                    setSelectedPageAccess(selectedPageAccess.filter((id) => id !== page.id));
                                   }
                                 }}
                                 className="h-3.5 w-3.5 accent-white cursor-pointer"
                               />
-                              <span>{type}</span>
+                              <span>{page.label}</span>
                             </label>
                           );
                         })}
                       </div>
                     </div>
 
+                    <div className="space-y-2 border-t border-zinc-900 pt-3">
+                      <label className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${handlesDeliverables ? 'border-zinc-700 bg-zinc-900 text-white' : 'border-zinc-900 text-zinc-400'}`}>
+                        <input type="checkbox" checked={handlesDeliverables} onChange={(event) => setHandlesDeliverables(event.target.checked)} className="mt-0.5 h-4 w-4 accent-white" />
+                        <span><span className="block text-xs font-semibold">Handles Deliverables</span><span className="mt-1 block text-[10px] text-zinc-500">Creates a standard team workspace for tasks, updates, calendar, and delivery management.</span></span>
+                      </label>
+                    </div>
+
                     {/* Project Allocation checkboxes */}
                     <div className="space-y-2 border-t border-zinc-900 pt-3">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
-                        Assign Member to active projects
+                        Assign team member to active projects
                       </label>
                       <div className="grid gap-2 sm:grid-cols-3 max-h-[120px] overflow-y-auto pr-1">
                         {availableProjects.map((proj) => {
@@ -1158,9 +1200,9 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
           <div className="w-full max-w-md bg-[#09090b] border-l border-zinc-800 p-6 flex flex-col h-full overflow-y-auto animate-slideIn">
             <div className="flex items-center justify-between border-b border-zinc-900 pb-4 mb-4">
               <div>
-                <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Specialist Desk</span>
+                <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Team Member Workspace</span>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider mt-0.5">{selectedMember.name} Tasks</h3>
-                <span className="text-[10px] text-zinc-550 block font-mono">{selectedMember.role} | {selectedMember.email}</span>
+                <span className="text-[10px] text-zinc-550 block font-mono">{teamRoleLabel(selectedMember.role)} | {selectedMember.email}</span>
               </div>
               <button
                 onClick={() => setSelectedMember(null)}
@@ -1366,7 +1408,24 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
               )}
             </div>
             {canManageTeam && selectedMember.role?.toLowerCase() !== 'admin' && (
-              <div className="mt-5 border-t border-zinc-900 pt-4">
+              <div className="mt-5 space-y-4 border-t border-zinc-900 pt-4">
+                {['PRO', 'ADVANCED'].includes(initialData.workspace.organization.plan) && (
+                  <div className="space-y-3 rounded-md border border-zinc-850 bg-zinc-950/40 p-4">
+                    <div><h4 className="text-xs font-semibold text-white">Workspace access</h4><p className="mt-1 text-[10px] text-zinc-500">Delivery work opens the team workspace. Otherwise, this member sees an agency workspace containing only selected pages.</p></div>
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-zinc-200"><input type="checkbox" checked={memberHandlesDeliverables} onChange={(event) => setMemberHandlesDeliverables(event.target.checked)} className="h-4 w-4 accent-white" />Handles Deliverables</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {SECURITY_PAGE_OPTIONS.map((page) => (
+                        <label key={page.id} className="flex cursor-pointer items-center gap-2 rounded border border-zinc-850 px-2.5 py-2 text-[10px] text-zinc-400">
+                          <input type="checkbox" checked={accessPermissions.includes(page.id)} onChange={(event) => setAccessPermissions((current) => event.target.checked ? [...current, page.id] : current.filter((id) => id !== page.id))} className="h-3.5 w-3.5 accent-white" />
+                          {page.label}
+                        </label>
+                      ))}
+                    </div>
+                    {selectedMember.projects && !memberHandlesDeliverables && <p className="text-[10px] text-amber-400">This member remains in the team workspace while assigned to an ongoing project.</p>}
+                    {accessError && <div role="alert" className="text-[10px] text-rose-400">{accessError}</div>}
+                    <Button type="button" disabled={savingAccess} onClick={() => void saveMemberAccess()} className="w-full text-xs">{savingAccess ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save workspace access</Button>
+                  </div>
+                )}
                 <Button type="button" variant="ghost" className="w-full text-rose-300 hover:bg-rose-950/20 hover:text-rose-200" onClick={() => { setOffboardingFeedback(''); setOffboardingError(''); setMemberPendingOffboarding(selectedMember); }}>
                   <UserMinus className="mr-2 h-4 w-4" /> Offboard & revoke access
                 </Button>

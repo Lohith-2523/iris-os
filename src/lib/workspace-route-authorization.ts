@@ -1,9 +1,12 @@
+import { isDeliveryTeamMember } from './team-member-access';
+
 export type WorkspaceRouteRestriction = 'admin' | 'sub_admin' | 'member' | 'client' | null;
 
 type WorkspacePrincipal = {
   role: string;
   plan: string;
   accessPermissions?: string[] | null;
+  deliveryWorkspace?: boolean;
 };
 
 export function workspaceRouteRestriction(
@@ -32,15 +35,20 @@ export function workspaceRouteRestriction(
     return allowed ? null : 'member';
   }
 
-  if (role === 'admin' && ['/client-dashboard', '/client-leads', '/teams-dashboard'].includes(pathname)) {
-    return 'admin';
+  if (role === 'sub_admin') {
+    const routePermission = pathname.split('/').filter(Boolean)[0] || 'dashboard';
+    const teamWorkspacePage = isDeliveryTeamMember(principal) && (
+      pathname === '/teams-dashboard'
+      || pathname === '/tasks'
+      || pathname === '/calendar'
+      || (messagingAllowed && pathname === '/messages')
+    );
+    const assignedPage = (principal.accessPermissions || []).includes(routePermission);
+    return pathname === '/settings' || teamWorkspacePage || assignedPage ? null : 'sub_admin';
   }
 
-  const routePermission = pathname.split('/').filter(Boolean)[0] || 'dashboard';
-  if (role === 'sub_admin'
-    && pathname !== '/settings'
-    && !(principal.accessPermissions || []).includes(routePermission)) {
-    return 'sub_admin';
+  if (role === 'admin' && ['/client-dashboard', '/client-leads', '/teams-dashboard'].includes(pathname)) {
+    return 'admin';
   }
 
   return null;

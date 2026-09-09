@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Check, ArrowRight, ShieldCheck, Building, User, CreditCard, Calendar, Key, Loader2 } from 'lucide-react';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
+import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
 
 const PLANS = [
   {
@@ -34,7 +35,7 @@ const PLANS = [
       'Automated Executive Reports & SLAs',
       'Full Canva & Meta Ad Portal Sync',
       'Atlas AI Meeting & Invoice Creation',
-      'Secure Messaging · 4 Team · 15 Clients'
+      'Secure Messaging · Unlimited Team · 15 Clients'
     ]
   },
   {
@@ -48,7 +49,7 @@ const PLANS = [
       'Custom Multi-Currency Financial Ledgers',
       '24/7 Dedicated Support & Audit Gating',
       'Full Atlas AI, Briefing & Strategies',
-      'Secure Messaging · 15 Team · 30 Clients'
+      'Secure Messaging · Unlimited Team · 30 Clients'
     ]
   }
 ];
@@ -372,11 +373,9 @@ export default function OnboardingPage() {
                       onChange={(e) => setCurrency(e.target.value)}
                       className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 px-3 text-white focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
                     >
-                      <option value="USD">USD ($)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                      <option value="INR">INR (₹)</option>
-                      <option value="CAD">CAD (CA$)</option>
+                      {MAJOR_CURRENCIES.map(({ code, name }) => (
+                        <option key={code} value={code}>{code} ({currencySymbol(code)}) {name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

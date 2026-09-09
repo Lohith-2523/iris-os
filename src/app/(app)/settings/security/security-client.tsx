@@ -9,10 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import type { SecurityUsersReadModel } from '@/server/domains/security-read-service';
 
-type WorkspaceUser = { id: string; name: string; email: string; role: string; accessPermissions: string[] | null; accessRevokedAt: string | null };
+type WorkspaceUser = { id: string; name: string; email: string; role: string; accessPermissions: string[] | null; handlesDeliverables: boolean; accessRevokedAt: string | null };
 
 export default function SecurityUsersClient({ initialData }: { initialData: SecurityUsersReadModel }) {
-  const [data, setData] = React.useState<{ users: WorkspaceUser[]; plan: string; hasAddon: boolean; allowedPages: string[] } | null>(initialData);
+  const [data, setData] = React.useState<{ users: WorkspaceUser[]; plan: string; allowedPages: string[] } | null>(initialData);
   const [busyId, setBusyId] = React.useState('');
   const [error, setError] = React.useState('');
   const [offboardUser, setOffboardUser] = React.useState<WorkspaceUser | null>(null);
@@ -41,26 +41,26 @@ export default function SecurityUsersClient({ initialData }: { initialData: Secu
 
   if (!data) return <PageSkeleton variant="security" />;
   const activeUsers = data.users.filter((user) => !user.accessRevokedAt);
-  const subAdminCount = activeUsers.filter((user) => user.role === 'sub_admin').length;
+  const teamMemberCount = activeUsers.filter((user) => ['member', 'sub_admin'].includes(user.role)).length;
 
   return <div className="space-y-6">
     <div className="flex items-center gap-4 border-b border-zinc-800 pb-5">
       <Link href="/settings" prefetch={false} className="rounded-xl border border-zinc-800 p-2 text-zinc-400 hover:text-white"><ArrowLeft className="h-5 w-5" /></Link>
-      <div><h1 className="text-2xl font-bold text-white">Security & Roles</h1><p className="text-zinc-500">Manage roles, sub-admin page access, and team offboarding.</p></div>
+      <div><h1 className="text-2xl font-bold text-white">Security & Roles</h1><p className="text-zinc-500">Manage team member page access, delivery responsibilities, and offboarding.</p></div>
     </div>
     {error && <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-4 text-rose-300" role="alert">{error}</div>}
     <div className="grid gap-4 md:grid-cols-3">
       <Card><CardHeader><CardDescription>Total active users</CardDescription><CardTitle className="text-3xl">{activeUsers.length}</CardTitle></CardHeader></Card>
-      <Card><CardHeader><CardDescription>Sub-admins</CardDescription><CardTitle className="text-3xl">{subAdminCount}</CardTitle></CardHeader></Card>
+      <Card><CardHeader><CardDescription>Team members</CardDescription><CardTitle className="text-3xl">{teamMemberCount}</CardTitle></CardHeader></Card>
       <Card><CardHeader><CardDescription>Plan access</CardDescription><CardTitle className="text-xl">{data.plan}</CardTitle></CardHeader></Card>
     </div>
-    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Workspace users</CardTitle><CardDescription>The first sub-admin is included on Advanced. Additional sub-admins require the paid add-on.</CardDescription></CardHeader>
+    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Workspace users</CardTitle><CardDescription>Pro and Advanced include unlimited team members with individual page access.</CardDescription></CardHeader>
       <CardContent className="space-y-3">{data.users.map((user, index) => {
         const permissions = Array.isArray(user.accessPermissions) ? user.accessPermissions : [];
         return <div key={user.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/30 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3"><div><div className="font-semibold text-white">{index + 1}. {user.name}</div><div className="text-zinc-500">{user.email}</div></div><div className="flex items-center gap-2"><Badge>{user.accessRevokedAt ? 'OFFBOARDED' : user.role.replace('_', ' ').toUpperCase()}</Badge>{busyId === user.id && <Loader2 className="h-4 w-4 animate-spin" />}</div></div>
-          {!user.accessRevokedAt && user.role === 'member' && <Button className="mt-4" disabled={data.plan !== 'ADVANCED' || busyId === user.id} onClick={() => void mutate({ action: 'make_sub_admin', userId: user.id, permissions: ['dashboard', 'clients', 'projects', 'tasks', 'team'] })}><ShieldCheck className="mr-2 h-4 w-4" /> Make sub-admin</Button>}
-          {!user.accessRevokedAt && user.role === 'sub_admin' && <div className="mt-4"><div className="mb-2 flex items-center gap-2 font-semibold text-white"><KeyRound className="h-4 w-4" /> Page access</div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{data.allowedPages.map((page) => <label key={page} className="flex items-center gap-2 rounded-xl border border-zinc-800 p-3 capitalize"><input type="checkbox" checked={permissions.includes(page)} onChange={(event) => { const next = event.target.checked ? [...permissions, page] : permissions.filter((item) => item !== page); setData((current) => current ? { ...current, users: current.users.map((item) => item.id === user.id ? { ...item, accessPermissions: next } : item) } : current); void mutate({ action: 'update_permissions', userId: user.id, permissions: next }); }} />{page}</label>)}</div></div>}
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><div className="font-semibold text-white">{index + 1}. {user.name}</div><div className="text-zinc-500">{user.email}</div></div><div className="flex items-center gap-2"><Badge>{user.accessRevokedAt ? 'OFFBOARDED' : user.role === 'admin' ? 'AGENCY ADMIN' : user.role === 'client' ? 'CLIENT' : 'TEAM MEMBER'}</Badge>{busyId === user.id && <Loader2 className="h-4 w-4 animate-spin" />}</div></div>
+          {!user.accessRevokedAt && user.role === 'member' && ['PRO', 'ADVANCED'].includes(data.plan) && <Button className="mt-4" disabled={busyId === user.id} onClick={() => void mutate({ action: 'make_sub_admin', userId: user.id, permissions: [], handlesDeliverables: true })}><ShieldCheck className="mr-2 h-4 w-4" /> Enable individual access</Button>}
+          {!user.accessRevokedAt && user.role === 'sub_admin' && <div className="mt-4 space-y-3"><label className="flex items-center gap-2 rounded-xl border border-zinc-800 p-3 font-semibold text-white"><input type="checkbox" checked={user.handlesDeliverables} onChange={(event) => { const handlesDeliverables = event.target.checked; setData((current) => current ? { ...current, users: current.users.map((item) => item.id === user.id ? { ...item, handlesDeliverables } : item) } : current); void mutate({ action: 'update_access', userId: user.id, permissions, handlesDeliverables }); }} />Handles Deliverables</label><div><div className="mb-2 flex items-center gap-2 font-semibold text-white"><KeyRound className="h-4 w-4" /> Page access</div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{data.allowedPages.map((page) => <label key={page} className="flex items-center gap-2 rounded-xl border border-zinc-800 p-3 capitalize"><input type="checkbox" checked={permissions.includes(page)} onChange={(event) => { const next = event.target.checked ? [...permissions, page] : permissions.filter((item) => item !== page); setData((current) => current ? { ...current, users: current.users.map((item) => item.id === user.id ? { ...item, accessPermissions: next } : item) } : current); void mutate({ action: 'update_access', userId: user.id, permissions: next, handlesDeliverables: user.handlesDeliverables }); }} />{page}</label>)}</div></div></div>}
           {!user.accessRevokedAt && ['member', 'sub_admin'].includes(user.role) && <Button variant="ghost" className="mt-4 text-rose-300" onClick={() => { setOffboardUser(user); setFeedback(''); }}><UserMinus className="mr-2 h-4 w-4" /> Offboard & revoke access</Button>}
         </div>;
       })}</CardContent>

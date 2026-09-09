@@ -1,13 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
-import { CalendarPlus, Check, ChevronDown, Clock3, Download, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
+import { CalendarPlus, Check, ChevronDown, Clock3, Download, Eye, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
 import { getMessagingProtocol } from '@/lib/messaging/protocol';
 import { safeDownloadName, validateBrowserFile, type SafeAttachmentCategory } from '@/lib/file-security';
 import type { MessagingLimits } from '@/lib/plan-entitlements';
 import styles from './messages.module.css';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 
 type Person = { id: string; name: string; email: string; role: string; avatarUrl?: string | null };
 type Conversation = {
@@ -63,7 +63,6 @@ type InboxPayload = {
   limits: MessagingLimits | null;
 };
 
-const initials = (name: string) => name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 const shortTime = (value: string) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const MEETING_MESSAGE_PREFIX = 'IRIS_MEETING_V1:';
 const serializeMeetingMessage = (meeting: MeetingMessage) => `${MEETING_MESSAGE_PREFIX}${JSON.stringify(meeting)}`;
@@ -103,9 +102,7 @@ function DeliveryReceipt({ state }: { state: DeliveryState }) {
   if (state === 'failed') return <span className={styles.failedState}>Failed</span>;
   if (state === 'sending') return <span className={styles.sendingState}>Sending</span>;
   if (state === 'read') return <span className={styles.readReceipt} aria-label="Seen" title="Seen">
-    {/* Both theme assets remain SVG; CSS selects the legible one. */}
-    <Image className={styles.readLogoDark} src="/iris-logo-white-transparent.svg" alt="" width={17} height={17} />
-    <Image className={styles.readLogoLight} src="/iris-logo-black-transparent.svg" alt="" width={17} height={17} />
+    <Eye aria-hidden="true" size={15} strokeWidth={2.2} />
   </span>;
   return <span className={styles.sentReceipt} aria-label="Sent" title="Sent"><Check size={15} strokeWidth={2.4} /></span>;
 }
@@ -696,7 +693,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
             <div className={styles.contactStrip}>
               {visibleDirectory.map((person) => (
                 <button key={person.id} className={styles.contactButton} onClick={() => void startConversation(person)} title={person.email}>
-                  <span className={styles.avatar}>{initials(person.name)}</span>
+                  <ProfileAvatar src={person.avatarUrl} name={person.name} seed={person.id} className={styles.avatar} />
                   <span className={styles.contactName}>{person.name.split(' ')[0]}</span>
                 </button>
               ))}
@@ -712,7 +709,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                 style={{ '--chat-accent': chatAccent(conversation.id) } as React.CSSProperties}
                 onClick={() => setSelected(conversation)}
               >
-                <span className={styles.avatar}>{initials(conversation.participant.name)}</span>
+                <ProfileAvatar src={conversation.participant.avatarUrl} name={conversation.participant.name} seed={conversation.participant.id} className={styles.avatar} />
                 <span>
                   <span className={styles.threadName}>{conversation.participant.name}</span>
                   <span className={styles.threadMeta}>{conversation.lastMessage ? 'Encrypted message' : conversation.participant.role}</span>
@@ -738,7 +735,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
             <>
               <header className={styles.chatHeader}>
                 <div className={styles.identity}>
-                  <span className={styles.avatar}>{initials(selected.participant.name)}</span>
+                  <ProfileAvatar src={selected.participant.avatarUrl} name={selected.participant.name} seed={selected.participant.id} className={styles.avatar} />
                   <div><div className={styles.threadName}>{selected.participant.name}</div><div className={styles.threadMeta}>{selected.participant.role} · {selected.participant.email}</div></div>
                 </div>
                 <span className={`${styles.securePill} ${protocolReady ? styles.secureReady : ''}`}>

@@ -1,3 +1,5 @@
+import { isProfileAvatarTemplate } from '@/lib/profile-avatar-templates';
+
 export const MAX_PROFILE_AVATAR_BYTES = 512 * 1024;
 
 const PROFILE_AVATAR_ERROR = 'Profile pictures must be PNG, JPEG, or WebP images.';
@@ -7,6 +9,7 @@ export function validateProfileAvatarDataUrl(value: unknown) {
     return { value: null as string | null };
   }
   if (typeof value !== 'string') return { error: PROFILE_AVATAR_ERROR };
+  if (isProfileAvatarTemplate(value)) return { value };
 
   const match = value.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
   if (!match) return { error: PROFILE_AVATAR_ERROR };

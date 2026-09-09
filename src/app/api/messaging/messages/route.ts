@@ -182,9 +182,9 @@ export async function POST(request: NextRequest) {
           userId,
           type: 'MESSAGE',
           title: `New message from ${user.name}`,
-          body: 'Open the encrypted conversation to read and respond.',
+          body: 'New message received.',
           href: `/messages?conversationId=${input.conversationId}`,
-          actionLabel: 'Open conversation',
+          actionLabel: null,
         })),
       });
     }

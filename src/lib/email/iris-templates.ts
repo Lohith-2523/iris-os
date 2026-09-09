@@ -185,11 +185,14 @@ export function clientOnboardingEmail(input: {
 export function memberOnboardingEmail(input: {
   recipientName: string;
   organizationName: string;
-  agencyTypes: string[];
+  pageAccess: string[];
+  handlesDeliverables: boolean;
   inviteUrl: string;
   expiresAt: Date;
 }) {
   const expiry = input.expiresAt.toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' });
+  const workspace = input.handlesDeliverables ? 'Team workspace' : 'Agency workspace';
+  const access = input.pageAccess.length > 0 ? input.pageAccess.join(', ') : 'Standard delivery pages';
   return {
     subject: `Join ${input.organizationName} on Iris OS`,
     html: irisInviteLayout({
@@ -198,14 +201,15 @@ export function memberOnboardingEmail(input: {
       title: `Your workspace is ready, ${input.recipientName}`,
       intro: `${input.organizationName} has invited you to join its Iris OS operating workspace.`,
       details: [
-        { label: 'Disciplines', value: input.agencyTypes.join(', ') },
+        { label: 'Workspace', value: workspace },
+        { label: 'Page access', value: access },
         { label: 'Invitation expires', value: expiry },
       ],
       ctaLabel: 'Complete team onboarding',
       ctaUrl: input.inviteUrl,
       securityNote: 'This secure onboarding link is bound to the invited email address.',
     }),
-    text: `Hello ${input.recipientName},\n\nJoin ${input.organizationName} on Iris OS.\nDisciplines: ${input.agencyTypes.join(', ')}\n\nComplete onboarding: ${input.inviteUrl}\n\nThis invitation expires ${expiry}.`,
+    text: `Hello ${input.recipientName},\n\nJoin ${input.organizationName} on Iris OS.\nWorkspace: ${workspace}\nPage access: ${access}\n\nComplete onboarding: ${input.inviteUrl}\n\nThis invitation expires ${expiry}.`,
   };
 }
 

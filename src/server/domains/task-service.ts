@@ -30,7 +30,7 @@ export async function listTasks(
     where: {
       client: { orgId: ctx.orgId },
       ...(role === 'client' && ctx.clientId ? { clientId: ctx.clientId } : {}),
-      ...(role === 'member' ? { assignedToId: ctx.userId } : {}),
+      ...(role === 'member' || (role === 'sub_admin' && ctx.deliveryWorkspace) ? { assignedToId: ctx.userId } : {}),
       ...(filters.projectId ? { projectId: filters.projectId } : {}),
       ...(filters.clientId ? { clientId: filters.clientId } : {}),
       ...(filters.assignedToId ? { assignedToId: filters.assignedToId } : {}),

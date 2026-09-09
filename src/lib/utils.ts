@@ -1,6 +1,7 @@
 import * as React from "react"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { currencySymbol, MAJOR_CURRENCY_CODES } from "@/lib/currencies"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -24,29 +25,10 @@ export function formatCurrencyFor(
   currency: string,
   decimals: number = 0,
 ): string {
-  let symbol = 'USD';
-  let locale = 'en-US';
-
-  if (currency === 'EUR') {
-    symbol = 'EUR';
-    locale = 'de-DE';
-  } else if (currency === 'GBP') {
-    symbol = 'GBP';
-    locale = 'en-GB';
-  } else if (currency === 'INR') {
-    symbol = 'INR';
-    locale = 'en-IN';
-  } else if (currency === 'CAD') {
-    symbol = 'CAD';
-    locale = 'en-CA';
-  } else {
-    symbol = 'USD';
-    locale = 'en-US';
-  }
-
-  return new Intl.NumberFormat(locale, {
+  const normalizedCurrency = MAJOR_CURRENCY_CODES.includes(currency) ? currency : 'USD';
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: symbol,
+    currency: normalizedCurrency,
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
   }).format(amount);
@@ -85,11 +67,5 @@ export function renderFormattedText(text: string): React.ReactNode {
 }
 
 export function getCurrencySymbol(currency: string): string {
-  switch (currency) {
-    case 'EUR': return '€';
-    case 'GBP': return '£';
-    case 'INR': return '₹';
-    case 'CAD': return 'C$';
-    default: return '$';
-  }
+  return currencySymbol(currency);
 }

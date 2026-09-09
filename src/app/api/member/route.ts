@@ -8,8 +8,10 @@ import {
   sendIrisEmail,
 } from '@/lib/email/iris-email';
 import { memberOnboardingEmail } from '@/lib/email/iris-templates';
-import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+import { entitlementsFor, normalizePlan, planLimitMessage } from '@/lib/plan-entitlements';
 import { normalizeRequiredPhone } from '@/lib/phone';
+import { normalizeSecurityPages, securityPageLabel } from '@/lib/security-pages';
+import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
 class TeamPlanLimitError extends Error {}
 
@@ -55,12 +57,22 @@ export async function POST(request: NextRequest) {
       const requestingUser = await getRequestUser(request);
       if (!requestingUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       if (!isOrganizationAdmin(requestingUser)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      const { name, email, phone, agencyTypes, projects } = body;
+      const { name, email, phone, projects } = body;
       const normalizedEmail = String(email || '').trim().toLowerCase();
+      const accessPermissions = normalizeSecurityPages(body.accessPermissions);
+      const requestedProjects = Array.isArray(projects) ? projects.filter((projectId): projectId is string => typeof projectId === 'string') : [];
+      const handlesDeliverables = body.handlesDeliverables === true || requestedProjects.length > 0;
 
       const normalizedPhone = normalizeRequiredPhone(phone);
-      if (!name || !email || !normalizedPhone || !agencyTypes || !Array.isArray(agencyTypes) || agencyTypes.length === 0) {
-        return NextResponse.json({ error: 'Name, email, phone with country code, and at least one specialization are mandatory.' }, { status: 400 });
+      if (!name || !email || !normalizedPhone) {
+        return NextResponse.json({ error: 'Name, email, and phone with country code are mandatory.' }, { status: 400 });
+      }
+      if (accessPermissions.length === 0 && !handlesDeliverables) {
+        return NextResponse.json({ error: 'Choose any page or enable the deliverables checkbox to create a workspace for this user.' }, { status: 400 });
+      }
+      const plan = normalizePlan(requestingUser.organization.plan);
+      if (plan === 'BASIC' && accessPermissions.length > 0) {
+        return NextResponse.json({ error: 'Individual page access is available on the Pro and Advanced plans.' }, { status: 403 });
       }
       assertIrisEmailConfigured();
 
@@ -85,26 +97,29 @@ export async function POST(request: NextRequest) {
 
       const { invite, member } = await prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`team-capacity:${requestingUser.orgId}`}))`;
-        const memberCount = await tx.user.count({
-          where: { orgId: requestingUser.orgId, role: 'member' },
-        });
-        const memberLimit = entitlementsFor(requestingUser.organization.plan).teamMemberLimit;
-        if (memberCount >= memberLimit) {
-          throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, requestingUser.organization.plan));
+        const memberLimit = entitlementsFor(plan).teamMemberLimit;
+        if (memberLimit !== null) {
+          const memberCount = await tx.user.count({
+            where: { orgId: requestingUser.orgId, role: { in: ['member', 'sub_admin'] }, accessRevokedAt: null },
+          });
+          if (memberCount >= memberLimit) {
+            throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, plan));
+          }
         }
         const member = await tx.user.create({
           data: {
             email: normalizedEmail,
             name,
-            role: 'member',
+            role: plan === 'BASIC' ? 'member' : 'sub_admin',
             phone: normalizedPhone,
-            agencyTypes,
+            accessPermissions,
+            handlesDeliverables,
             orgId: requestingUser.orgId,
             preferences: { create: {} },
           },
         });
 
-        const assignedProjectIds = Array.isArray(projects) ? projects.filter((projectId) => typeof projectId === 'string') : [];
+        const assignedProjectIds = requestedProjects;
         if (assignedProjectIds.length > 0) {
           const validProjects = await tx.project.findMany({
             where: { id: { in: assignedProjectIds }, orgId: requestingUser.orgId },
@@ -120,8 +135,9 @@ export async function POST(request: NextRequest) {
             name,
             email: normalizedEmail,
             phone: normalizedPhone,
-            agencyTypes,
             projects: assignedProjectIds,
+            accessPermissions,
+            handlesDeliverables,
             token,
             expiresAt,
             orgId: requestingUser.orgId,
@@ -136,7 +152,8 @@ export async function POST(request: NextRequest) {
       const emailMessage = memberOnboardingEmail({
         recipientName: name,
         organizationName: requestingUser.organization.name,
-        agencyTypes,
+        pageAccess: accessPermissions.map(securityPageLabel),
+        handlesDeliverables,
         inviteUrl: inviteUrl.toString(),
         expiresAt,
       });
@@ -193,7 +210,7 @@ export async function POST(request: NextRequest) {
       // Members created with the invitation are activated here. The create fallback
       // keeps invitations issued before this workflow compatible.
       let newUser = await prisma.user.findFirst({
-        where: { email: invite.email, orgId: invite.orgId, role: 'member' },
+        where: { email: invite.email, orgId: invite.orgId, role: { in: ['member', 'sub_admin'] } },
       });
       if (newUser) {
         newUser = await prisma.user.update({
@@ -202,28 +219,31 @@ export async function POST(request: NextRequest) {
             authUserId: identity.id,
             name: invite.name,
             phone: invite.phone,
-            agencyTypes: invite.agencyTypes,
+            accessPermissions: invite.accessPermissions ?? undefined,
+            handlesDeliverables: invite.handlesDeliverables || invite.projects.length > 0,
           },
         });
       } else {
         newUser = await prisma.$transaction(async (tx) => {
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`team-capacity:${invite.orgId}`}))`;
-          const [organization, memberCount] = await Promise.all([
-            tx.organization.findUniqueOrThrow({ where: { id: invite.orgId }, select: { plan: true } }),
-            tx.user.count({ where: { orgId: invite.orgId, role: 'member' } }),
-          ]);
-          const memberLimit = entitlementsFor(organization.plan).teamMemberLimit;
-          if (memberCount >= memberLimit) {
-            throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, organization.plan));
+          const organization = await tx.organization.findUniqueOrThrow({ where: { id: invite.orgId }, select: { plan: true } });
+          const plan = normalizePlan(organization.plan);
+          const memberLimit = entitlementsFor(plan).teamMemberLimit;
+          if (memberLimit !== null) {
+            const memberCount = await tx.user.count({ where: { orgId: invite.orgId, role: { in: ['member', 'sub_admin'] }, accessRevokedAt: null } });
+            if (memberCount >= memberLimit) {
+              throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, plan));
+            }
           }
           return tx.user.create({
             data: {
               email: invite.email,
               authUserId: identity.id,
               name: invite.name,
-              role: 'member',
+              role: plan === 'BASIC' ? 'member' : 'sub_admin',
               phone: invite.phone,
-              agencyTypes: invite.agencyTypes,
+              accessPermissions: invite.accessPermissions ?? undefined,
+              handlesDeliverables: invite.handlesDeliverables || invite.projects.length > 0,
               orgId: invite.orgId,
               preferences: { create: {} },
             },
@@ -261,7 +281,13 @@ export async function POST(request: NextRequest) {
           email: newUser.email,
           name: newUser.name,
           role: newUser.role
-        }
+        },
+        destination: teamMemberWorkspaceHome({
+          role: newUser.role,
+          plan: newUser.role === 'member' ? 'BASIC' : 'PRO',
+          accessPermissions: newUser.accessPermissions as string[] | null,
+          deliveryWorkspace: newUser.handlesDeliverables || invite.projects.length > 0,
+        }),
       });
     }
 

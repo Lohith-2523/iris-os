@@ -60,9 +60,9 @@ export const getClientsReadModel = cache(async (ctx: RequestSecurityContext) => 
 });
 
 export const getDashboardReadModel = cache(async (ctx: RequestSecurityContext, range?: { start: string; end: string }) => {
-  const workspace = await getWorkspaceReadModel(ctx);
-  const dashboard = await getDashboardMetrics(ctx, range);
-  const [clients, tasks] = await Promise.all([
+  const [workspace, dashboard, clients, tasks] = await Promise.all([
+    getWorkspaceReadModel(ctx),
+    getDashboardMetrics(ctx, range),
     listWorkspaceClients(ctx),
     listTasks(ctx, firstPage),
   ]);

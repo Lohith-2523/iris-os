@@ -56,6 +56,7 @@ Starting a request while this guide is open automatically creates a normal conve
 - **Suggested query buttons** - appear at the beginning of a new chat. Selecting one sends that request immediately, so use it as a fast workflow starter.
 - **Microphone button** - begins voice capture. Your words appear in the message field, where you can review and edit them before sending.
 - **Square stop button** - replaces the microphone while recording. Select it to stop and finish the transcription.
+- **Voice conversation button** - opens a live, hands-free conversation. Atlas detects when you finish speaking, adds your question to the conversation, replies aloud, and keeps listening. Speak while Atlas is replying to interrupt naturally.
 - **Send button (arrow)** - sends the text currently in the message field. It is unavailable when the field is empty or Atlas is already responding.
 
 Button styles communicate purpose: labeled outline buttons start broad actions, compact icon buttons manage one nearby item, suggestion chips submit a ready-made prompt, and the solid send button is the primary action. Always check a button's label or tooltip before selecting a destructive icon such as **Delete**.`,

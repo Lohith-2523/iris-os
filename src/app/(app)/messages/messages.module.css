@@ -92,7 +92,7 @@
 .emptyIcon { display: grid; width: 56px; height: 56px; margin: 0 auto 14px; place-items: center; border: 1px solid var(--msg-border); border-radius: var(--msg-radius-item); background: var(--msg-panel-soft); color: var(--msg-accent); }
 .empty h2 { font-size: 20px; font-weight: 750; }
 .empty p { max-width: 360px; margin-top: 7px; color: var(--msg-muted); font-size: 14px; line-height: 1.6; }
-.bubble { max-width: min(74%, 640px); padding: 12px 14px; border: 1px solid #2f3b42; border-radius: var(--msg-radius-bubble) var(--msg-radius-bubble) var(--msg-radius-bubble) 6px; background: #202c33; font-size: 14px; line-height: 1.55; }
+.bubble { width: fit-content; max-width: min(74%, 640px); padding: 12px 14px; overflow-wrap: anywhere; border: 1px solid #2f3b42; border-radius: var(--msg-radius-bubble) var(--msg-radius-bubble) var(--msg-radius-bubble) 6px; background: #202c33; font-size: 14px; line-height: 1.55; }
 .mine { align-self: flex-end; border-color: #0b6657; border-radius: var(--msg-radius-bubble) var(--msg-radius-bubble) 6px var(--msg-radius-bubble); background: #005c4b; color: #f4f4f5; }
 :global(:root.light) .bubble { border-color: #e0e4e8; background: #fff; }
 :global(:root.light) .mine { border-color: #c9edc3; background: #d9fdd3; color: #152033; }
@@ -101,11 +101,7 @@
 .failedState { color: #ef8d8d; }
 .sendingState { color: var(--msg-muted); font-weight: 650; }
 .sentReceipt { display: inline-flex; color: #aebac1; }
-.readReceipt { display: inline-flex; height: 15px; align-items: center; }
-.readReceipt img { width: 17px; height: 17px; object-fit: contain; }
-.readLogoLight { display: none; }
-:global(:root.light) .readLogoDark { display: none; }
-:global(:root.light) .readLogoLight { display: block; }
+.readReceipt { display: inline-flex; height: 15px; align-items: center; color: #8bd5ff; }
 .receivedAttachments { display: flex; flex-direction: column; gap: 6px; margin-top: 9px; }
 .downloadAttachment { display: flex; max-width: 100%; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid var(--msg-border); border-radius: var(--msg-radius-control); background: var(--msg-panel); color: var(--msg-text); cursor: pointer; font-size: 12px; text-align: left; }
 .downloadAttachment span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

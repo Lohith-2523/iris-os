@@ -1,8 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
+import {
+  configureWorkspaceDataCache,
+  primeWorkspaceJson,
+  workspaceFetch as fetch,
+} from '@/lib/workspace-data-cache';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -45,6 +50,8 @@ import {
   Gauge,
   DollarSign,
   TrendingDown,
+  Move,
+  RotateCcw,
 } from 'lucide-react';
 import { formatCurrencyFor } from '@/lib/utils';
 import { validateBrowserFile } from '@/lib/file-security';
@@ -55,6 +62,7 @@ import type { DashboardReadModel } from '@/server/read-models/workspace-pages';
 type FinanceMetricKey = 'revenue' | 'profit' | 'mrr' | 'expenses' | 'receivables';
 type OverviewTab = 'leads' | 'clients' | 'actions' | 'tasks' | 'meetings';
 type LeadStage = { id: string; label: string; color: string };
+type BannerPosition = { x: number; y: number };
 
 const DEFAULT_LEAD_STAGES: LeadStage[] = [
   { id: 'procured', label: 'Procured', color: '#A1A1AA' },
@@ -63,6 +71,24 @@ const DEFAULT_LEAD_STAGES: LeadStage[] = [
   { id: 'lost', label: 'Lost', color: '#E11D48' },
   { id: 'closed', label: 'Closed', color: '#10B981' },
 ];
+
+const CANVA_BANNER_DESIGN_URL = '/api/canva/designs/banner';
+
+function resolveBannerPosition(value: unknown): BannerPosition {
+  if (!value || typeof value !== 'object') return { x: 50, y: 50 };
+  const candidate = value as Record<string, unknown>;
+  const x = Number(candidate.x);
+  const y = Number(candidate.y);
+  return {
+    x: Number.isFinite(x) ? Math.min(100, Math.max(0, x)) : 50,
+    y: Number.isFinite(y) ? Math.min(100, Math.max(0, y)) : 50,
+  };
+}
+
+function resolveBannerZoom(value: unknown) {
+  const zoom = Number(value);
+  return Number.isFinite(zoom) ? Math.min(4, Math.max(0.5, zoom)) : 1;
+}
 
 function leadStageStatusAliases(stageId: string) {
   if (stageId === 'procured') return ['procured', 'new'];
@@ -134,13 +160,37 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   const [currentUserName] = React.useState(initialData.workspace.user.name.split(' ')[0] || 'there');
   const [canManageWelcomeBackground] = React.useState(initialData.workspace.user.role.toLowerCase() === 'admin');
   const [welcomeBackground, setWelcomeBackground] = React.useState(typeof initialPreferences.welcomeCardBackgroundDataUrl === 'string' ? initialPreferences.welcomeCardBackgroundDataUrl : '');
+  const initialBannerPosition = resolveBannerPosition(initialPreferences.welcomeCardBackgroundPosition);
+  const initialBannerZoom = resolveBannerZoom(initialPreferences.welcomeCardBackgroundZoom);
+  const [bannerPosition, setBannerPosition] = React.useState<BannerPosition>(initialBannerPosition);
+  const [savedBannerPosition, setSavedBannerPosition] = React.useState<BannerPosition>(initialBannerPosition);
+  const [bannerZoom, setBannerZoom] = React.useState(initialBannerZoom);
+  const [savedBannerZoom, setSavedBannerZoom] = React.useState(initialBannerZoom);
+  const [isRepositioningBanner, setIsRepositioningBanner] = React.useState(false);
   const [organizationPreferences, setOrganizationPreferences] = React.useState<Record<string, unknown>>(initialPreferences);
   const [welcomeBackgroundStatus, setWelcomeBackgroundStatus] = React.useState<'idle' | 'saving' | 'error'>('idle');
   const welcomeBackgroundInputRef = React.useRef<HTMLInputElement>(null);
+  const bannerPointerRef = React.useRef<{ pointerId: number; x: number; y: number; start: BannerPosition } | null>(null);
   const addReceivableAsRevenue = (invoice: any) => {
     const amount = Number(invoice.balanceDue ?? invoice.pendingAmount ?? 0);
     router.push(`/finance?tab=manual&invoiceId=${encodeURIComponent(invoice.id)}&amount=${encodeURIComponent(String(amount))}`);
   };
+
+  React.useEffect(() => {
+    const { user, organization } = initialData.workspace;
+    configureWorkspaceDataCache({
+      userId: user.id,
+      orgId: user.orgId || organization.id,
+    });
+    primeWorkspaceJson('/api/workspace', initialData.workspace);
+    primeWorkspaceJson('/api/data?domain=clients', initialData.clients);
+    primeWorkspaceJson('/api/data?domain=clients&include=contacts', initialData.clients);
+    primeWorkspaceJson('/api/tasks', initialData.tasks);
+    primeWorkspaceJson(
+      `/api/data?domain=dashboard&start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}`,
+      initialData.dashboard,
+    );
+  }, [initialData, range.end, range.start]);
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(initialData.workspace.onboarding.needsOnboarding);
@@ -164,6 +214,9 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       if (googleConnectedParam === 'true') {
         router.replace('/dashboard');
       }
+      if (searchParams.get('canva') === 'banner_exported') {
+        router.replace('/dashboard');
+      }
     }
     if (searchParams.get('google_connected') === 'true') {
       setOnboardingState((current) => ({ ...current, google: 'connected' }));
@@ -172,7 +225,14 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
 
   const saveWelcomeBackground = React.useCallback(async (dataUrl: string) => {
     setWelcomeBackgroundStatus('saving');
-    const preferences = { ...organizationPreferences, welcomeCardBackgroundDataUrl: dataUrl || null };
+    const nextPosition = { x: 50, y: 50 };
+    const nextZoom = 1;
+    const preferences = {
+      ...organizationPreferences,
+      welcomeCardBackgroundDataUrl: dataUrl || null,
+      welcomeCardBackgroundPosition: nextPosition,
+      welcomeCardBackgroundZoom: nextZoom,
+    };
     const response = await fetch('/api/workspace', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -185,13 +245,39 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
     }
     setOrganizationPreferences(preferences);
     setWelcomeBackground(dataUrl);
+    setBannerPosition(nextPosition);
+    setSavedBannerPosition(nextPosition);
+    setBannerZoom(nextZoom);
+    setSavedBannerZoom(nextZoom);
+    setIsRepositioningBanner(false);
     setWelcomeBackgroundStatus('idle');
   }, [organizationPreferences]);
 
-  const handleWelcomeBackground = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
+  const saveBannerTransform = React.useCallback(async (position: BannerPosition, zoom: number) => {
+    setWelcomeBackgroundStatus('saving');
+    const preferences = {
+      ...organizationPreferences,
+      welcomeCardBackgroundPosition: position,
+      welcomeCardBackgroundZoom: zoom,
+    };
+    const response = await fetch('/api/workspace', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organization: { preferences } }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setWelcomeBackgroundStatus('error');
+      throw new Error(payload.error || 'The wallpaper position could not be saved.');
+    }
+    setOrganizationPreferences(preferences);
+    setSavedBannerPosition(position);
+    setSavedBannerZoom(zoom);
+    setIsRepositioningBanner(false);
+    setWelcomeBackgroundStatus('idle');
+  }, [organizationPreferences]);
+
+  const processWelcomeBackgroundFile = async (file: File) => {
     try {
       const validation = await validateBrowserFile(file, 'profile-avatar', { maxBytes: MAX_SOURCE_IMAGE_BYTES });
       if (!validation.ok) throw new Error(validation.error);
@@ -201,6 +287,23 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       setWelcomeBackgroundStatus('error');
       window.alert(reason instanceof Error ? reason.message : 'The selected background could not be saved.');
     }
+  };
+
+  const handleWelcomeBackground = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await processWelcomeBackgroundFile(file);
+  };
+
+  const moveBannerFromPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = bannerPointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    setBannerPosition({
+      x: Math.min(100, Math.max(0, drag.start.x + ((event.clientX - drag.x) / bounds.width) * 100)),
+      y: Math.min(100, Math.max(0, drag.start.y + ((event.clientY - drag.y) / bounds.height) * 100)),
+    });
   };
 
   const persistChecklist = React.useCallback((next: typeof onboardingState) => {
@@ -590,8 +693,53 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   return (
     <div className="dashboard-canvas space-y-6">
       {/* Page Header */}
-      <div className="dashboard-header dashboard-command-center relative isolate grid min-w-0 max-w-full grid-cols-1 items-center justify-items-start gap-4 overflow-hidden border-b border-zinc-800/60 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_auto]">
-        <div aria-hidden="true" className="dashboard-command-center-banner pointer-events-none absolute inset-0" style={welcomeBackground ? { backgroundImage: `url(${welcomeBackground})` } : undefined} />
+      <div
+        className="dashboard-header dashboard-command-center relative isolate grid min-w-0 max-w-full grid-cols-1 items-center justify-items-start gap-4 overflow-hidden border-b border-zinc-800/60 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_auto]"
+        onDragOver={(event) => {
+          if (canManageWelcomeBackground) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          if (!canManageWelcomeBackground) return;
+          event.preventDefault();
+          const file = event.dataTransfer.files[0];
+          if (file) void processWelcomeBackgroundFile(file);
+        }}
+      >
+        {welcomeBackground ? (
+          <>
+            <div aria-hidden="true" className="dashboard-command-center-banner-backdrop pointer-events-none absolute inset-0" style={{ backgroundImage: `url(${welcomeBackground})` }} />
+            <div
+              aria-hidden="true"
+              className="dashboard-command-center-banner-artwork pointer-events-none absolute inset-0"
+              style={{
+                backgroundImage: `url(${welcomeBackground})`,
+                transform: `translate3d(${bannerPosition.x - 50}%, ${bannerPosition.y - 50}%, 0) scale(${bannerZoom})`,
+              }}
+            />
+          </>
+        ) : (
+          <div aria-hidden="true" className="dashboard-command-center-banner pointer-events-none absolute inset-0" />
+        )}
+        {isRepositioningBanner && welcomeBackground && <div
+          aria-label="Drag to reposition wallpaper"
+          className="absolute inset-0 z-[15] cursor-grab touch-none"
+          role="application"
+          onPointerDown={(event) => {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            bannerPointerRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, start: bannerPosition };
+            event.currentTarget.classList.replace('cursor-grab', 'cursor-grabbing');
+          }}
+          onPointerMove={moveBannerFromPointer}
+          onPointerUp={(event) => {
+            bannerPointerRef.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+            event.currentTarget.classList.replace('cursor-grabbing', 'cursor-grab');
+          }}
+          onPointerCancel={(event) => {
+            bannerPointerRef.current = null;
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+        />}
         <div className="relative z-10 min-w-0 max-w-full justify-self-start md:col-start-1 md:row-start-1">
           <div className="dashboard-welcome-card inline-flex max-w-full items-center gap-3 rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
             <h1 className="truncate text-center text-xl font-bold tracking-tight text-white silver-text-gradient sm:text-2xl">Welcome, {currentUserName}</h1>
@@ -625,7 +773,8 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
               <Popover.Portal>
                 <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 text-white shadow-2xl">
                   <button type="button" disabled={welcomeBackgroundStatus === 'saving'} onClick={() => welcomeBackgroundInputRef.current?.click()} className="dashboard-menu-item"><ImageUp className="h-4 w-4" aria-hidden="true" />{welcomeBackground ? 'Replace wallpaper' : 'Upload wallpaper'}</button>
-                  <a href="https://www.canva.com/design/play?category=tACFapY0WQc&referrer=banners-landing-page" target="_blank" rel="noreferrer" className="dashboard-menu-item"><span className="canva-mark" aria-hidden="true">C</span>Create with Canva</a>
+                  <button type="button" disabled={!welcomeBackground || welcomeBackgroundStatus === 'saving'} onClick={() => setIsRepositioningBanner(true)} className="dashboard-menu-item"><Move className="h-4 w-4" aria-hidden="true" />Resize and reposition</button>
+                  <a href={CANVA_BANNER_DESIGN_URL} target="_blank" rel="noreferrer" className="dashboard-menu-item"><Image src="/canva-icon.svg" alt="" width={16} height={16} className="canva-logo" aria-hidden="true" />Create with Canva</a>
                   <button type="button" disabled={!welcomeBackground || welcomeBackgroundStatus === 'saving'} onClick={() => void saveWelcomeBackground('').catch((reason) => { setWelcomeBackgroundStatus('error'); window.alert(reason instanceof Error ? reason.message : 'The background could not be removed.'); })} className="dashboard-menu-item"><X className="h-4 w-4" aria-hidden="true" />Remove wallpaper</button>
                 </Popover.Content>
               </Popover.Portal>
@@ -637,6 +786,17 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
             </div>
           </>}
         </div>
+        {isRepositioningBanner && welcomeBackground && (
+          <div className="absolute bottom-2 left-1/2 z-30 flex w-[min(42rem,calc(100%-1rem))] -translate-x-1/2 flex-wrap items-center justify-center gap-2 rounded-xl border border-zinc-700/80 bg-zinc-950/90 px-3 py-2 shadow-2xl backdrop-blur-md" role="group" aria-label="Wallpaper position and zoom controls">
+            <span className="hidden text-[10px] font-semibold text-zinc-400 sm:inline">Drag or adjust</span>
+            <label className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Horizontal<input type="range" min="0" max="100" value={Math.round(bannerPosition.x)} onChange={(event) => setBannerPosition((current) => ({ ...current, x: Number(event.target.value) }))} className="w-16 accent-zinc-200" /></label>
+            <label className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Vertical<input type="range" min="0" max="100" value={Math.round(bannerPosition.y)} onChange={(event) => setBannerPosition((current) => ({ ...current, y: Number(event.target.value) }))} className="w-16 accent-zinc-200" /></label>
+            <label className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Zoom<input type="range" min="0.5" max="4" step="0.05" value={bannerZoom} onChange={(event) => setBannerZoom(Number(event.target.value))} className="w-20 accent-zinc-200" /><span className="w-8 text-right font-mono text-zinc-400">{Math.round(bannerZoom * 100)}%</span></label>
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => { setBannerPosition({ x: 50, y: 50 }); setBannerZoom(1); }}><RotateCcw className="h-3 w-3" />Reset</Button>
+            <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => { setBannerPosition(savedBannerPosition); setBannerZoom(savedBannerZoom); setIsRepositioningBanner(false); }}>Cancel</Button>
+            <Button type="button" size="sm" disabled={welcomeBackgroundStatus === 'saving'} className="h-7 px-2 text-[10px]" onClick={() => void saveBannerTransform(bannerPosition, bannerZoom).catch((reason) => window.alert(reason instanceof Error ? reason.message : 'The wallpaper layout could not be saved.'))}>{welcomeBackgroundStatus === 'saving' ? 'Saving…' : 'Save layout'}</Button>
+          </div>
+        )}
       </div>
 
       {needsOnboarding ? (

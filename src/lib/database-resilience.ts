@@ -18,9 +18,8 @@ type ErrorLike = {
 
 export function resolveDatabasePoolMax(
   configuredValue: string | undefined,
-  environment = process.env.NODE_ENV,
 ) {
-  const defaultMax = environment === 'production' ? 1 : 2;
+  const defaultMax = 5;
   if (!configuredValue) return defaultMax;
 
   const parsed = Number(configuredValue);

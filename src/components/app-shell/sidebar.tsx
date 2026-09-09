@@ -8,9 +8,11 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { prepareWorkspaceDataCacheForRouteChange, stageWorkspaceDataCache } from '@/lib/workspace-data-cache';
 import { workspaceDataUrlsForRoute } from '@/lib/workspace-route-data';
+import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 import { normalizePlan, planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import {
   LayoutDashboard,
@@ -38,6 +40,8 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   workspaceRole?: string;
   workspaceOrganizationName?: string;
   workspaceOrganizationLogoDataUrl?: string | null;
+  workspaceDeliveryWorkspace?: boolean;
+  workspaceAccessPermissions?: string[] | null;
 }
 
 type NavigationItem = {
@@ -54,7 +58,7 @@ type NavigationGroup = {
   items: NavigationItem[];
 };
 
-export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole, workspaceOrganizationName, workspaceOrganizationLogoDataUrl, ...props }: SidebarProps) {
+export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole, workspaceOrganizationName, workspaceOrganizationLogoDataUrl, workspaceDeliveryWorkspace, workspaceAccessPermissions, ...props }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = React.useMemo(() => createClient(), []);
@@ -69,6 +73,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     role: string;
     avatarUrl?: string | null;
     accessPermissions?: string[] | null;
+    deliveryWorkspace?: boolean;
   } | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({});
@@ -76,6 +81,11 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   const [upgradePrompt, setUpgradePrompt] = React.useState<{ feature: string; href: string; requiredPlan: PlanId } | null>(null);
   const resolvedPlan = normalizePlan(workspacePlan || plan);
   const resolvedRole = (workspaceRole || user?.role || '').toLowerCase();
+  const deliveryWorkspace = workspaceDeliveryWorkspace ?? user?.deliveryWorkspace ?? false;
+  const resolvedPermissions = React.useMemo(
+    () => workspaceAccessPermissions ?? user?.accessPermissions ?? [],
+    [user?.accessPermissions, workspaceAccessPermissions],
+  );
   const intentRoutes = React.useRef(new Set<string>());
 
   const prepareRouteIntent = React.useCallback((href: string) => {
@@ -226,24 +236,36 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       }];
     }
     if (resolvedRole === 'sub_admin') {
-      const permissions = user?.accessPermissions || [];
+      const permissions = resolvedPermissions;
+      const standardTeamPages = deliveryWorkspace ? new Set(['tasks', 'calendar', 'messages']) : new Set<string>();
       return navigationGroups
-        .map((group) => ({ ...group, items: group.items.filter((item) => permissions.includes(item.href.split('/').filter(Boolean)[0])) }))
+        .map((group) => ({ ...group, items: group.items.filter((item) => {
+          const page = item.href.split('/').filter(Boolean)[0];
+          return permissions.includes(page) || standardTeamPages.has(page);
+        }) }))
         .filter((group) => group.items.length > 0);
     }
     return navigationGroups;
-  }, [navigationGroups, resolvedRole, user?.accessPermissions]);
+  }, [deliveryWorkspace, navigationGroups, resolvedPermissions, resolvedRole]);
 
   const dashboardItem = React.useMemo<NavigationItem | null>(() => {
     if (resolvedRole === 'client') return { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard };
     if (resolvedRole === 'member') return { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard };
     if (resolvedRole === 'sub_admin') {
-      return user?.accessPermissions?.includes('dashboard')
+      if (deliveryWorkspace) return { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard };
+      return resolvedPermissions.includes('dashboard')
         ? { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }
         : null;
     }
     return { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard };
-  }, [resolvedRole, user?.accessPermissions]);
+  }, [deliveryWorkspace, resolvedPermissions, resolvedRole]);
+
+  const homeHref = teamMemberWorkspaceHome({
+    role: resolvedRole,
+    plan: resolvedPlan,
+    accessPermissions: resolvedPermissions,
+    deliveryWorkspace,
+  });
 
   React.useEffect(() => {
     const activeGroup = visibleGroups.find((group) => group.items.some((item) => pathname === item.href || pathname?.startsWith(item.href + '/')));
@@ -259,16 +281,6 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       .slice(0, 2)
       .toUpperCase();
   }, [orgName]);
-
-  const userInitials = React.useMemo(() => {
-    if (!user?.name) return 'LK';
-    return user.name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-  }, [user]);
 
   const renderNavigationItem = (item: NavigationItem) => {
     const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
@@ -350,13 +362,13 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
 
       <div className="flex h-16 items-center justify-center border-b border-zinc-800 px-2">
         <Link
-          href={resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard'}
+          href={homeHref}
           prefetch={false}
           className="flex items-center justify-center"
-          onMouseEnter={() => prepareRouteIntent(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
-          onFocus={() => prepareRouteIntent(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
-          onPointerDown={() => prepareRouteIntent(resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
-          onClick={(event) => void navigateToRoute(event, resolvedRole === 'client' ? '/client-dashboard' : resolvedRole === 'member' ? '/teams-dashboard' : '/dashboard')}
+          onMouseEnter={() => prepareRouteIntent(homeHref)}
+          onFocus={() => prepareRouteIntent(homeHref)}
+          onPointerDown={() => prepareRouteIntent(homeHref)}
+          onClick={(event) => void navigateToRoute(event, homeHref)}
         >
           {isCollapsed ? (
             <img 
@@ -393,7 +405,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
                 />
               ) : (initials || 'AP')}
             </div>
-            {!isCollapsed && <span className="text-xs font-semibold text-zinc-200 truncate">{orgName}</span>}
+            {!isCollapsed && <span className="min-w-0"><span className="block truncate text-xs font-semibold text-zinc-200">{orgName}</span>{['member', 'sub_admin'].includes(resolvedRole) && <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-600">{resolvedRole === 'member' || deliveryWorkspace ? 'Team Workspace' : 'Agency Workspace'}</span>}</span>}
           </div>
         </div>
       </div>
@@ -450,8 +462,8 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
             aria-label="Open profile settings"
             className={cn("workspace-profile-settings group flex items-center rounded-xl border border-transparent outline-none transition-colors hover:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-500", isCollapsed ? "justify-center p-1.5" : "gap-2.5 p-2")}
           >
-              <div className="h-7 w-7 overflow-hidden rounded-md bg-zinc-800 flex items-center justify-center border border-zinc-700 text-white font-bold text-[10px] shrink-0">
-                {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-contain" /> : userInitials}
+              <div className="h-7 w-7 shrink-0 overflow-hidden rounded-md border border-zinc-700 bg-zinc-800">
+                <ProfileAvatar src={user.avatarUrl} name={user.name} seed={user.id} />
               </div>
               {!isCollapsed && (
                 <div className="truncate">

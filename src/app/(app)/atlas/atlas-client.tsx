@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AudioLines, Mic, PencilLine, Pin, Plus, Send, Square, Trash2, User } from 'lucide-react';
+import { AudioLines, Maximize2, Mic, Minimize2, PencilLine, Pin, Plus, Radio, Send, Square, Trash2 } from 'lucide-react';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { AtlasAIService } from '@/lib/atlas-ai/service';
 import { formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -16,6 +16,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   model?: string;
+  voiceItemId?: string;
 }
 
 interface BrowserSpeechRecognitionResult {
@@ -71,7 +72,13 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   const [editingTitle, setEditingTitle] = React.useState('');
   const [voiceState, setVoiceState] = React.useState<'idle' | 'requesting' | 'recording' | 'transcribing'>('idle');
   const [voiceError, setVoiceError] = React.useState<string | null>(null);
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [composerExpanded, setComposerExpanded] = React.useState(false);
+  const [chatExpanded, setChatExpanded] = React.useState(false);
+  const [voiceChatActive, setVoiceChatActive] = React.useState(false);
+  const [liveVoiceText, setLiveVoiceText] = React.useState('');
+  const [liveAtlasText, setLiveAtlasText] = React.useState('');
+  const [realtimeState, setRealtimeState] = React.useState<'idle' | 'connecting' | 'listening' | 'speaking'>('idle');
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
   const audioChunksRef = React.useRef<Blob[]>([]);
@@ -82,7 +89,14 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   const speechFinalRef = React.useRef('');
   const speechInterimRef = React.useRef('');
   const chatAbortControllerRef = React.useRef<AbortController | null>(null);
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesScrollRef = React.useRef<HTMLDivElement>(null);
+  const voiceChatActiveRef = React.useRef(false);
+  const realtimePeerRef = React.useRef<RTCPeerConnection | null>(null);
+  const realtimeChannelRef = React.useRef<RTCDataChannel | null>(null);
+  const realtimeStreamRef = React.useRef<MediaStream | null>(null);
+  const realtimeAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const realtimeAttemptRef = React.useRef<AbortController | null>(null);
+  const [audioBlocked, setAudioBlocked] = React.useState(false);
 
   const updateVoiceState = React.useCallback((state: typeof voiceState) => {
     voiceStateRef.current = state;
@@ -108,6 +122,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   }, []);
 
   React.useEffect(() => () => {
+    realtimeAttemptRef.current?.abort();
+    voiceChatActiveRef.current = false;
     chatAbortControllerRef.current?.abort();
     speechRecognitionRef.current?.abort();
     voiceStateRef.current = 'idle';
@@ -117,10 +133,21 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       recorder.stop();
     }
     mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    realtimeChannelRef.current?.close();
+    realtimePeerRef.current?.close();
+    realtimeStreamRef.current?.getTracks().forEach((track) => track.stop());
+    if (realtimeAudioRef.current) realtimeAudioRef.current.srcObject = null;
+    realtimeAttemptRef.current?.abort();
   }, []);
 
   React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: isLoading ? 'auto' : 'smooth', block: 'end' });
+    const scroller = messagesScrollRef.current;
+    if (!scroller) return;
+    if (typeof scroller.scrollTo === 'function') {
+      scroller.scrollTo({ top: scroller.scrollHeight, behavior: isLoading ? 'auto' : 'smooth' });
+    } else {
+      scroller.scrollTop = scroller.scrollHeight;
+    }
   }, [messages, isLoading]);
 
   const loadSessions = React.useCallback(async () => {
@@ -130,7 +157,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   }, []);
 
   const handleSendMessage = async (textToSend: string) => {
-    if (!textToSend.trim() || isLoading) return;
+    if (!textToSend.trim() || isLoading || voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || voiceChatActiveRef.current) return;
 
     const startingFromGuide = isGuideSelected;
     const userMsg: Message = { role: 'user', content: textToSend };
@@ -271,7 +298,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   }, [updateVoiceState]);
 
   const startRecording = React.useCallback(async () => {
-    if (voiceState !== 'idle') return;
+    if (voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || realtimePeerRef.current || voiceChatActiveRef.current) return;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setVoiceError('Voice recording is not supported in this browser.');
       return;
@@ -286,6 +313,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
       voicePrefixRef.current = query.trim();
+      setLiveVoiceText('');
       speechFinalRef.current = '';
       speechInterimRef.current = '';
       recorder.ondataavailable = (event) => {
@@ -317,11 +345,14 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           const response = await fetch('/api/atlas-ai/transcribe', { method: 'POST', body: form });
           const data = await response.json().catch(() => ({}));
           if (!response.ok || typeof data.text !== 'string') throw new Error(data.error || 'Atlas could not transcribe this recording.');
-          setQuery(joinTranscript(voicePrefixRef.current, data.text || liveTranscript));
+          const finalText = joinTranscript(voicePrefixRef.current, data.text || liveTranscript);
+          setQuery(finalText);
+          setLiveVoiceText('');
           requestAnimationFrame(() => inputRef.current?.focus());
         } catch (error) {
           if (liveTranscript) {
             setQuery(joinTranscript(voicePrefixRef.current, liveTranscript));
+            setLiveVoiceText('');
             setVoiceError('Live transcript kept; final transcription could not be verified.');
           } else {
             setVoiceError(error instanceof Error ? error.message : 'Atlas could not transcribe this recording.');
@@ -350,7 +381,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           }
           if (finalAddition) speechFinalRef.current = joinTranscript(speechFinalRef.current, finalAddition);
           speechInterimRef.current = interim;
-          setQuery(joinTranscript(voicePrefixRef.current, speechFinalRef.current, interim));
+          setLiveVoiceText(joinTranscript(speechFinalRef.current, interim));
         };
         recognition.onerror = (event) => {
           if (!speechFinalRef.current && !speechInterimRef.current && event.error === 'not-allowed') {
@@ -380,6 +411,167 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         : 'Atlas could not access the microphone.');
     }
   }, [query, updateVoiceState, voiceState]);
+
+  const stopRealtimeVoice = React.useCallback(() => {
+    voiceChatActiveRef.current = false;
+    realtimeAttemptRef.current?.abort();
+    realtimeChannelRef.current?.close();
+    realtimePeerRef.current?.close();
+    realtimeStreamRef.current?.getTracks().forEach((track) => track.stop());
+    if (realtimeAudioRef.current) realtimeAudioRef.current.srcObject = null;
+    speechRecognitionRef.current?.abort();
+    speechRecognitionRef.current = null;
+    realtimeAttemptRef.current?.abort();
+    realtimeAttemptRef.current = null;
+    realtimeChannelRef.current = null;
+    realtimePeerRef.current = null;
+    realtimeStreamRef.current = null;
+    realtimeAudioRef.current = null;
+    setAudioBlocked(false);
+    setVoiceChatActive(false);
+    setRealtimeState('idle');
+    setLiveVoiceText('');
+    setLiveAtlasText('');
+  }, []);
+
+  const startRealtimeVoice = React.useCallback(async () => {
+    if (voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || voiceChatActiveRef.current || realtimeState === 'connecting') return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') {
+      setVoiceError('Realtime voice is not supported in this browser.');
+      return;
+    }
+    setVoiceError(null);
+    setRealtimeState('connecting');
+    const attempt = new AbortController();
+    realtimeAttemptRef.current = attempt;
+    const timeout = window.setTimeout(() => {
+      if (realtimeAttemptRef.current !== attempt || voiceChatActiveRef.current) return;
+      stopRealtimeVoice();
+      setVoiceError('Voice connection timed out. Check microphone permission and your network, then retry.');
+    }, 30_000);
+    attempt.signal.addEventListener('abort', () => window.clearTimeout(timeout), { once: true });
+    try {
+      // A cancelled startup must never reconnect after permission or network waits.
+      const sessionResponse = await fetch('/api/atlas-ai/realtime/session', { method: 'POST', cache: 'no-store', signal: attempt.signal });
+      const session = await sessionResponse.json().catch(() => ({})) as { value?: string; client_secret?: { value?: string }; error?: string };
+      const ephemeralKey = session.value || session.client_secret?.value;
+      if (!sessionResponse.ok || !ephemeralKey) throw new Error(session.error || 'Atlas could not create a realtime voice session.');
+
+      if (attempt.signal.aborted) return;
+      const peer = new RTCPeerConnection();
+      const audio = new Audio();
+      audio.autoplay = true;
+      audio.volume = 1;
+      realtimePeerRef.current = peer;
+      realtimeAudioRef.current = audio;
+      peer.ontrack = (event) => {
+        audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+        void audio.play().catch(() => setAudioBlocked(true));
+      };
+      peer.onconnectionstatechange = () => {
+        if (!attempt.signal.aborted && ['failed', 'disconnected', 'closed'].includes(peer.connectionState)) {
+          stopRealtimeVoice();
+          setVoiceError('Voice connection lost. Please start the conversation again.');
+        }
+      };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      if (attempt.signal.aborted) { stream.getTracks().forEach((track) => track.stop()); return; }
+      stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+      realtimeStreamRef.current = stream;
+
+      const channel = peer.createDataChannel('oai-events');
+      realtimeChannelRef.current = channel;
+      channel.onopen = () => {
+        if (attempt.signal.aborted) return;
+        window.clearTimeout(timeout);
+        voiceChatActiveRef.current = true;
+        setVoiceChatActive(true);
+        setRealtimeState('listening');
+        // WebRTC exclusively owns the microphone in live mode.
+      };
+      channel.onmessage = (message) => {
+        let event: Record<string, unknown>;
+        try { event = JSON.parse(String(message.data)) as Record<string, unknown>; } catch { return; }
+        if (attempt.signal.aborted) return;
+        const type = String(event.type || '');
+        const itemId = String(event.item_id || '');
+        const updateItem = (role: Message['role'], text: string, append = false) => {
+          if (!itemId) return;
+          setMessages((current) => {
+            const index = current.findIndex((item) => item.voiceItemId === itemId);
+            if (index < 0) return [...current, { role, content: text, voiceItemId: itemId, model: 'Atlas Voice' }];
+            return current.map((item, position) => position === index
+              ? { ...item, content: append && item.content !== 'Listening…' ? item.content + text : text } : item);
+          });
+        };
+        if (type === 'input_audio_buffer.speech_started') {
+          setRealtimeState('listening');
+          setLiveVoiceText('');
+          updateItem('user', 'Listening…');
+        } else if (type === 'conversation.item.input_audio_transcription.delta') {
+          const delta = String(event.delta || '');
+          setLiveVoiceText((current) => current + delta);
+          updateItem('user', delta, true);
+        } else if (type === 'conversation.item.input_audio_transcription.completed') {
+          const transcript = String(event.transcript || '').trim();
+          updateItem('user', transcript || '[No speech recognised]');
+          setLiveVoiceText(transcript);
+        } else if (type === 'conversation.item.input_audio_transcription.failed') {
+          updateItem('user', '[Transcription failed]');
+          setVoiceError('Your audio could not be transcribed. Please try again.');
+        } else if (type === 'response.created') {
+          setLiveAtlasText('');
+        } else if (type === 'response.output_audio_transcript.delta' || type === 'response.audio_transcript.delta' || type === 'response.output_text.delta') {
+          const delta = String(event.delta || '');
+          setLiveAtlasText((current) => current + delta);
+          updateItem('assistant', delta, true);
+        } else if (type === 'response.output_audio_transcript.done' || type === 'response.audio_transcript.done' || type === 'response.output_text.done') {
+          updateItem('assistant', String(event.transcript || event.text || ''));
+        } else if (type === 'output_audio_buffer.started') {
+          setRealtimeState('speaking');
+        } else if (type === 'output_audio_buffer.stopped' || type === 'output_audio_buffer.cleared') {
+          setRealtimeState('listening');
+        } else if (type === 'response.done') {
+          const response = event.response as { status?: string; status_details?: { error?: { message?: string } } } | undefined;
+          if (response?.status === 'failed') {
+            setVoiceError(response.status_details?.error?.message || 'Atlas could not reply. Please retry.');
+            setRealtimeState('listening');
+          }
+        } else if (type === 'error') {
+          const details = event.error as { message?: string } | undefined;
+          setVoiceError(details?.message || 'Atlas realtime voice encountered an error.');
+        }
+      };
+      channel.onclose = () => {
+        if (voiceChatActiveRef.current) stopRealtimeVoice();
+      };
+
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      const answerResponse = await fetch('https://api.openai.com/v1/realtime/calls', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${ephemeralKey}`, 'content-type': 'application/sdp' },
+        body: offer.sdp,
+        signal: attempt.signal,
+      });
+      if (!answerResponse.ok) throw new Error((await answerResponse.text()) || 'Atlas could not establish the realtime audio connection.');
+      const answer = await answerResponse.text();
+      if (attempt.signal.aborted) return;
+      await peer.setRemoteDescription({ type: 'answer', sdp: answer });
+    } catch (error) {
+      if (attempt.signal.aborted) return;
+      window.clearTimeout(timeout);
+      stopRealtimeVoice();
+      setVoiceError(error instanceof DOMException && error.name === 'NotAllowedError'
+        ? 'Microphone access was denied. Allow it in browser settings and try again.'
+        : error instanceof Error ? error.message : 'Atlas could not start realtime voice.');
+    }
+  }, [realtimeState, stopRealtimeVoice]);
+
+  const toggleVoiceChat = React.useCallback(() => {
+    if (voiceChatActiveRef.current || realtimeState === 'connecting') stopRealtimeVoice();
+    else void startRealtimeVoice();
+  }, [realtimeState, startRealtimeVoice, stopRealtimeVoice]);
 
   React.useEffect(() => {
     if (voiceLaunchHandledRef.current || typeof window === 'undefined') return;
@@ -415,9 +607,9 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   const showSuggestions = messages.length <= 1;
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col gap-6">
+    <div className={`atlas-workspace flex h-full min-h-0 min-w-0 overflow-hidden flex-col ${chatExpanded ? 'gap-0' : 'gap-6'}`}>
       {/* Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5 shrink-0">
+      <div className={`${chatExpanded ? 'hidden' : 'flex'} flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5 shrink-0`}>
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Atlas Command Center</h1>
@@ -426,7 +618,6 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
               <span>Proprietary AI Engine</span>
             </Badge>
           </div>
-          <p className="text-xs text-zinc-500">Ask, analyze, or create projects, tasks, invoices, reports, and meetings through one secure conversation.</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleNewChat} className="h-8 border-zinc-800 text-zinc-300 gap-1.5 self-start md:self-auto rounded-none bg-zinc-900 hover:bg-zinc-800">
           <Plus className="h-3.5 w-3.5" />
@@ -438,7 +629,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       <div className="flex flex-1 gap-6 overflow-hidden min-h-0">
         
         {/* Chat History Sidebar (Left) */}
-        <div className="w-68 hidden lg:flex flex-col shrink-0 border border-zinc-850 bg-[#0c0d12]/50 p-4 rounded-lg shadow-xl backdrop-blur-md overflow-hidden h-full">
+        <div className={`${chatExpanded ? 'hidden' : 'hidden lg:flex'} h-full min-h-0 w-68 flex-col shrink-0 overflow-hidden border border-zinc-850 bg-[#0c0d12]/50 p-4 rounded-lg shadow-xl backdrop-blur-md`}>
           <div className="flex items-center justify-between pb-3 border-b border-zinc-850/60 mb-4 shrink-0">
             <div className="flex items-center gap-2 text-zinc-400">
               <AudioLines className="h-4 w-4 text-zinc-400" />
@@ -449,7 +640,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             </span>
           </div>
 
-          <div className="atlas-chat-scroll flex-1 overflow-y-auto pr-1 space-y-2">
+          <div className="atlas-chat-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 space-y-2">
             <button
               type="button"
               data-session-id={ATLAS_GUIDE_SESSION_ID}
@@ -548,7 +739,10 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         </div>
 
         {/* Chat Stream Panel */}
-        <div className="flex flex-1 flex-col rounded-none border border-zinc-800 bg-[#0d0e12] overflow-hidden brushed-border">
+        <div onDoubleClick={(event) => { if ((event.target as HTMLElement).closest('button,input,textarea,a')) return; setChatExpanded(true); }} className={`${chatExpanded ? 'fixed inset-0 z-[80]' : 'relative'} flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-zinc-800 bg-[#0d0e12] brushed-border`}>
+          <button type="button" onClick={() => setChatExpanded((value) => !value)} className="absolute left-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full border border-zinc-700 bg-zinc-950/80 text-zinc-400 backdrop-blur hover:text-white" aria-label={chatExpanded ? 'Restore chat interface' : 'Expand chat interface'} title="Expand chat interface">
+            {chatExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
           <div className="border-b border-zinc-800 p-2 lg:hidden">
             <button
               type="button"
@@ -560,7 +754,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             </button>
           </div>
           {/* Messages stream */}
-          <div className="atlas-chat-scroll flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          <div ref={messagesScrollRef} className="atlas-chat-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
             {chatError && (
               <div role="alert" className="border border-amber-900/70 bg-amber-950/30 px-4 py-3 text-xs text-amber-200">
                 {chatError}
@@ -580,9 +774,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                     : 'bg-[#121215] border-zinc-800 text-white font-bold'
                 }`}>
                   {msg.role === 'user'
-                    ? userAvatarUrl
-                      ? <Image src={userAvatarUrl} alt="Your profile" width={32} height={32} unoptimized className="h-full w-full rounded-full object-cover" />
-                      : <User className="h-4 w-4" />
+                    ? <ProfileAvatar src={userAvatarUrl} name={initialData.userName} seed={initialData.userId} className="rounded-full" />
                     : <AtlasIcon className="atlas-chat-avatar-icon h-4 w-4" />}
                 </div>
 
@@ -625,38 +817,58 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
+          {(voiceChatActive || realtimeState === 'connecting') && (
+            <div className="shrink-0 border-t border-zinc-800 bg-zinc-950/80 px-5 py-4 text-center" role="status">
+              <div className="mx-auto mb-2 flex w-fit items-center gap-1">{[.5,.9,.65,1,.7].map((scale,index) => <i key={index} className="atlas-transcription-wave" style={{ '--wave-scale': scale, '--wave-delay': `${index * 80}ms` } as React.CSSProperties} />)}</div>
+              <p className="text-sm text-white">{realtimeState === 'connecting' ? 'Connecting securely…' : realtimeState === 'speaking' ? liveAtlasText || 'Atlas is responding…' : liveVoiceText || 'Listening…'}</p>
+            </div>
+          )}
+          {audioBlocked && <button type="button" className="px-5 py-2 text-sm text-white underline" onClick={() => {
+            void realtimeAudioRef.current?.play().then(() => setAudioBlocked(false)).catch(() => setVoiceError('Audio is blocked. Allow sound for this site and retry.'));
+          }}>Enable audio</button>}
           {/* Form Input area */}
-          <div className="border-t border-zinc-800 p-4 bg-zinc-950/40">
-            <form onSubmit={handleFormSubmit} className="flex items-center gap-2 sm:gap-3">
-              <input
+          <div className="shrink-0 border-t border-zinc-800 p-4 bg-zinc-950/40">
+            <form onSubmit={handleFormSubmit} className="flex items-end gap-2 sm:gap-3">
+              <div className="relative min-w-0 flex-1" onDoubleClick={() => setComposerExpanded(true)}>
+              {voiceState !== 'idle' ? (
+                <div role="status" aria-label={voiceState === 'recording' ? 'Recording audio' : voiceState === 'requesting' ? 'Waiting for microphone' : 'Polishing transcript'} className={`${composerExpanded ? 'h-40' : 'h-11'} flex w-full items-center justify-between gap-1 overflow-hidden border border-zinc-800 bg-zinc-900/40 px-3`}>
+                  {Array.from({ length: 64 }, (_, index) => <i aria-hidden="true" key={index} className="atlas-transcription-wave min-w-px flex-1" style={{ '--wave-scale': .3 + ((index * 7) % 11) / 14, '--wave-delay': `${index * 45}ms` } as React.CSSProperties} />)}
+                </div>
+              ) : (<>
+              <button type="button" onClick={() => setComposerExpanded((value) => !value)} className="absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-zinc-500 hover:bg-zinc-800 hover:text-white" aria-label={composerExpanded ? 'Collapse message editor' : 'Expand message editor'}>
+                {composerExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+              </button>
+              <textarea
                 ref={inputRef}
-                type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Ask Atlas anything, or say “Create a project…”"
-                className="h-11 min-w-0 flex-1 rounded-none border border-zinc-800 bg-zinc-900/40 px-4 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-colors font-sans"
+                onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !composerExpanded) { event.preventDefault(); void handleSendMessage(query); } }}
+                className={`${composerExpanded ? 'h-40' : 'h-11'} block w-full resize-none rounded-none border border-zinc-800 bg-zinc-900/40 pb-2 pl-10 pr-4 pt-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-[height,background-color,border-color] font-sans`}
               />
+              </>)}
+              </div>
               <button
                 type="button"
                 onClick={voiceState === 'recording' ? stopRecording : () => void startRecording()}
-                disabled={voiceState === 'requesting' || voiceState === 'transcribing'}
+                disabled={voiceChatActive || realtimeState === 'connecting' || voiceState === 'requesting' || voiceState === 'transcribing'}
                 className={`atlas-voice-button grid h-11 w-11 shrink-0 place-items-center rounded-full border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 active:bg-zinc-800 disabled:cursor-wait disabled:opacity-60 ${voiceState === 'recording' ? 'is-recording' : ''}`}
-                aria-label={voiceState === 'recording' ? 'Stop recording' : voiceState === 'transcribing' ? 'Transcribing recording' : 'Talk to Atlas'}
+                aria-label={voiceState === 'recording' ? 'Stop recording' : voiceState === 'transcribing' ? 'Transcribing recording' : 'Transcribe'}
                 aria-pressed={voiceState === 'recording'}
               >
                 {voiceState === 'recording' ? <Square className="h-3.5 w-3.5 fill-current" /> : voiceState === 'transcribing' ? <AudioLines className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </button>
-              <Button type="submit" disabled={isLoading || !query.trim()} className="h-11 w-11 px-0 bg-white hover:bg-zinc-200 text-zinc-950 shrink-0 rounded-none">
+              <button type="button" onClick={toggleVoiceChat} disabled={voiceState !== 'idle' || isLoading} className={`atlas-live-voice grid h-11 w-11 shrink-0 place-items-center rounded-full border ${voiceChatActive || realtimeState === 'connecting' ? 'is-active' : ''}`} aria-label={voiceChatActive || realtimeState === 'connecting' ? 'End voice conversation' : 'Start voice conversation'} aria-pressed={voiceChatActive} title="Realtime voice conversation">{realtimeState === 'connecting' ? <AudioLines className="h-4 w-4 animate-pulse" /> : <Radio className="h-4 w-4" />}</button>
+              <Button type="submit" disabled={isLoading || voiceState !== 'idle' || realtimeState !== 'idle' || !query.trim()} className="h-11 w-11 px-0 bg-white hover:bg-zinc-200 text-zinc-950 shrink-0 rounded-none">
                 <Send className="h-4 w-4" />
               </Button>
             </form>
             {(voiceState === 'recording' || voiceState === 'transcribing' || voiceError) && (
               <p role={voiceError ? 'alert' : 'status'} className={`mt-2 text-[10px] ${voiceError ? 'text-rose-400' : 'text-zinc-500'}`}>
                 {voiceError || (voiceState === 'recording'
-                  ? 'Listening... your words appear in the question field live.'
+                  ? 'Recording... stop to polish and insert your transcript.'
                   : 'Polishing the live transcript...')}
               </p>
             )}

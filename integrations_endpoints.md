@@ -15,7 +15,21 @@ Used for single sign-on (SSO) login, new organization signup, and Google Calenda
 
 ---
 
-## 2. Meta Ads & Leads Manager
+## 2. Canva Dashboard Banner
+
+Used to create a 2912 x 360 banner in Canva and export the completed design directly into the Iris OS dashboard.
+
+*   **OAuth Callback / Redirect URI**:
+    *   `http://127.0.0.1:3000/api/canva/callback`
+    *   `https://irisos.app/api/canva/callback`
+*   **Return Navigation URL** (configure this in the Canva Developer Portal):
+    *   `http://127.0.0.1:3000/api/canva/return`
+    *   `https://irisos.app/api/canva/return`
+*   **Scopes Required**: `design:content:read`, `design:content:write`
+
+---
+
+## 3. Meta Ads & Leads Manager
 Used to sync campaigns, track ad performance metrics, automate lead capture workflows, and support Canva asset synchronization.
 
 *   **OAuth Callback / Redirect URI**: 
@@ -42,7 +56,7 @@ Used to sync campaigns, track ad performance metrics, automate lead capture work
 
 ---
 
-## 3. Financial & ERP Integrations (Sandbox & Live Templates)
+## 4. Financial & ERP Integrations (Sandbox & Live Templates)
 
 ### QuickBooks Online
 Used for tracking agency invoices, ledger assets, and payment receipts.
@@ -68,11 +82,10 @@ Used for lead contacts synchronizations and client pipeline indexing.
 
 ---
 
-## 4. Payment Gateways (Live API Verification & Webhooks)
+## 5. Payment Gateways (Live API Verification & Webhooks)
 
 ### Razorpay
 *   **Razorpay Webhook Listener URL**: 
     *   `http://localhost:3000/api/razorpay/webhook`
     *   `http://127.0.0.1:3000/api/razorpay/webhook`
     *   `https://irisos.app/api/razorpay/webhook`
-

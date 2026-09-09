@@ -8,8 +8,8 @@ import { formatUserMessage } from '@/lib/utils';
 
 const plans: Array<{ id: PlanId; name: string; price: string; description: string; features: string[] }> = [
   { id: 'BASIC', name: 'Basic', price: '$99', description: 'Core agency operations', features: ['Up to 5 clients', '2 team members', 'Core finance and delivery'] },
-  { id: 'PRO', name: 'Pro', price: '$299', description: 'AI-enabled collaboration', features: ['Up to 15 clients', '4 team members', 'Atlas AI and Messages'] },
-  { id: 'ADVANCED', name: 'Advanced', price: '$599', description: 'Complete enterprise workspace', features: ['Up to 30 clients', '15 team members', 'Strategy and Daily Briefing'] },
+  { id: 'PRO', name: 'Pro', price: '$299', description: 'AI-enabled collaboration', features: ['Up to 15 clients', 'Unlimited team members', 'Atlas AI and Messages'] },
+  { id: 'ADVANCED', name: 'Advanced', price: '$599', description: 'Complete enterprise workspace', features: ['Up to 30 clients', 'Unlimited team members', 'Strategy and Daily Briefing'] },
 ];
 
 export function SubscriptionPlanDialog({ open, currentPlan, feature, requiredPlan, canManage = true, onClose, onPlanChanged }: {

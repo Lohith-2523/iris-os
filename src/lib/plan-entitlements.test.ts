@@ -8,10 +8,10 @@ describe('plan entitlements', () => {
     expect(entitlementsFor('ADVANCED').specializationLimit).toBe(10);
   });
 
-  it('enforces client and member capacity by plan', () => {
+  it('keeps Basic capacity while making Pro and Advanced team membership unlimited', () => {
     expect(entitlementsFor('BASIC')).toMatchObject({ teamMemberLimit: 2, clientLimit: 5 });
-    expect(entitlementsFor('PRO')).toMatchObject({ teamMemberLimit: 4, clientLimit: 15 });
-    expect(entitlementsFor('ADVANCED')).toMatchObject({ teamMemberLimit: 15, clientLimit: 30 });
+    expect(entitlementsFor('PRO')).toMatchObject({ teamMemberLimit: null, clientLimit: 15 });
+    expect(entitlementsFor('ADVANCED')).toMatchObject({ teamMemberLimit: null, clientLimit: 30 });
   });
 
   it('keeps Basic free of AI and messaging features', () => {

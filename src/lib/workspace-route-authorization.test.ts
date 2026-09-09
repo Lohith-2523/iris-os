@@ -14,9 +14,24 @@ describe('workspace route authorization', () => {
     expect(canRenderWorkspaceRoute({ role: 'member', plan: 'PRO' }, '/messages')).toBe(true);
   });
 
-  it('enforces sub-admin permission lists and admin portal separation', () => {
+  it('enforces delegated team member permission lists and admin portal separation', () => {
     expect(canRenderWorkspaceRoute({ role: 'sub_admin', plan: 'PRO', accessPermissions: ['tasks'] }, '/tasks')).toBe(true);
     expect(workspaceRouteRestriction({ role: 'sub_admin', plan: 'PRO', accessPermissions: ['tasks'] }, '/finance')).toBe('sub_admin');
     expect(workspaceRouteRestriction({ role: 'admin', plan: 'ADVANCED' }, '/client-dashboard')).toBe('admin');
+  });
+
+  it('adds assigned agency pages to a delivery team workspace', () => {
+    const principal = { role: 'sub_admin', plan: 'PRO', deliveryWorkspace: true, accessPermissions: ['agency-leads'] };
+    expect(canRenderWorkspaceRoute(principal, '/teams-dashboard')).toBe(true);
+    expect(canRenderWorkspaceRoute(principal, '/tasks')).toBe(true);
+    expect(canRenderWorkspaceRoute(principal, '/agency-leads')).toBe(true);
+    expect(canRenderWorkspaceRoute(principal, '/finance')).toBe(false);
+  });
+
+  it('keeps non-delivery team members in an agency workspace containing assigned pages only', () => {
+    const principal = { role: 'sub_admin', plan: 'ADVANCED', deliveryWorkspace: false, accessPermissions: ['finance', 'reporting'] };
+    expect(canRenderWorkspaceRoute(principal, '/finance')).toBe(true);
+    expect(canRenderWorkspaceRoute(principal, '/reporting')).toBe(true);
+    expect(canRenderWorkspaceRoute(principal, '/teams-dashboard')).toBe(false);
   });
 });

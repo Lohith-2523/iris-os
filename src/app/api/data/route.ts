@@ -5,6 +5,12 @@ import type { FinancialTimeframe } from '@/lib/finance/financial-history';
 import { listWorkspaceClients, listWorkspaceTeam } from '@/server/domains/workspace-directory-service';
 import { getDashboardMetrics, getFinanceOverview } from '@/server/domains/finance-read-service';
 
+function validDate(value: string | null) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -35,7 +41,12 @@ export async function GET(request: NextRequest) {
 
     switch (domain) {
       case 'dashboard': {
-        return NextResponse.json(await getDashboardMetrics(ctx));
+        const start = validDate(searchParams.get('start'));
+        const end = validDate(searchParams.get('end'));
+        const range = start && end
+          ? (start <= end ? { start, end } : { start: end, end: start })
+          : undefined;
+        return NextResponse.json(await getDashboardMetrics(ctx, range));
       }
 
       case 'finance': {

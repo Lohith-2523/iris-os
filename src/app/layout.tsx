@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { workspaceThemePaths } from "@/lib/theme-routes";
 import Script from "next/script";
+import { HelpCenter } from "@/components/help/help-center";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -86,6 +87,7 @@ export default function RootLayout({
           {`(function(){var root=document.documentElement;root.classList.remove('light');root.classList.add('dark');var path=window.location.pathname;var workspacePaths=${serializedWorkspaceThemePaths};var isWorkspace=workspacePaths.some(function(workspacePath){return path===workspacePath||path.indexOf(workspacePath+'/')===0;});if(!isWorkspace)return;var theme=document.cookie.match(/(?:^|; )crystal_theme=(light|dark)(?:;|$)/);if(theme&&theme[1]==='light'){root.classList.add('light');root.classList.remove('dark')}})();`}
         </Script>
         {children}
+        <HelpCenter />
       </body>
     </html>
   );

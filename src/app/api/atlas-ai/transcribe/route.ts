@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Voice transcription is not configured.' }, { status: 503 });
   }
 
-  const model = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-transcribe';
+  const model = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-mini-transcribe';
   const providerForm = new FormData();
   providerForm.append('file', file, file.name || 'atlas-recording.webm');
   providerForm.append('model', model);

@@ -20,6 +20,11 @@ describe('profile avatar validation', () => {
     expect(validateProfileAvatarDataUrl(null)).toEqual({ value: null });
   });
 
+  it('accepts only known built-in profile illustrations', () => {
+    expect(validateProfileAvatarDataUrl('iris-avatar:waves')).toEqual({ value: 'iris-avatar:waves' });
+    expect(validateProfileAvatarDataUrl('iris-avatar:unknown')).toHaveProperty('error');
+  });
+
   it('rejects active, mismatched, and oversized content', () => {
     expect(validateProfileAvatarDataUrl(dataUrl('image/svg+xml', [1, 2, 3]))).toHaveProperty('error');
     expect(validateProfileAvatarDataUrl(dataUrl('image/png', [0xff, 0xd8, 0xff, 0xd9]))).toHaveProperty('error');

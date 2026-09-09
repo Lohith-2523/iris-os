@@ -81,7 +81,9 @@ export async function updateSession(request: NextRequest) {
       pathname === '/api/webhooks/meta' ||
       pathname === '/api/meta-ads/deauthorize' ||
       pathname === '/api/meta-ads/delete-data' ||
-      pathname === '/api/canva/auth'
+      pathname === '/api/canva/auth' ||
+      pathname === '/api/canva/callback' ||
+      pathname === '/api/canva/return'
 
     if (!user && !isPublicRoute) {
       // no user, potentially respond by redirecting the user to the login page

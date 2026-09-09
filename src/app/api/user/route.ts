@@ -8,8 +8,6 @@ const updateProfileSchema = z.object({
   avatarDataUrl: z.string().nullable(),
 }).strict();
 
-const PROFILE_AVATAR_ROLES = new Set(['admin', 'sub_admin', 'member']);
-
 export async function GET() {
   try {
     const user = await getRequestUser();
@@ -45,10 +43,6 @@ export async function PATCH(request: Request) {
   try {
     const user = await getRequestUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!PROFILE_AVATAR_ROLES.has(user.role.toLowerCase())) {
-      return NextResponse.json({ error: 'Profile picture uploads are not available for this account.' }, { status: 403 });
-    }
-
     const parsed = updateProfileSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid profile update.' }, { status: 400 });

@@ -3,7 +3,7 @@ import 'server-only';
 import { prisma } from '@/lib/db';
 import { clientPortfolioValueForYear } from '@/lib/clients/portfolio-value';
 import { serializeClientOnboardingInvite } from '@/lib/clients/onboarding-invite';
-import { isOrganizationAdmin } from '@/lib/org';
+import { isOrganizationAdmin, userHasDeliveryWorkspace } from '@/lib/org';
 import type { RequestSecurityContext } from '@/server/security/request-security-context';
 
 export async function listWorkspaceClients(ctx: RequestSecurityContext) {
@@ -111,17 +111,36 @@ export async function listWorkspaceTeam(ctx: RequestSecurityContext) {
       role: { in: ['admin', 'member', 'sub_admin'] },
       accessRevokedAt: null,
     },
+    include: {
+      projectMembers: {
+        where: { project: { status: { not: 'COMPLETED' } } },
+        select: { id: true, project: { select: { name: true } } },
+      },
+      clientTasks: {
+        where: { status: { not: 'COMPLETED' } },
+        select: { id: true },
+        take: 1,
+      },
+    },
     orderBy: { name: 'asc' },
   });
+  const activeDeliverables = await prisma.deliverable.findMany({
+    where: { orgId: ctx.orgId, submittedById: { in: users.map((user) => user.id) }, status: { not: 'APPROVED' } },
+    select: { submittedById: true },
+  });
+  const activeDeliverableAuthors = new Set(activeDeliverables.map((deliverable) => deliverable.submittedById).filter(Boolean));
 
   return users.map((user) => ({
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
+    accessPermissions: user.accessPermissions as string[] | null,
+    handlesDeliverables: user.handlesDeliverables,
+    deliveryWorkspace: userHasDeliveryWorkspace(user) || activeDeliverableAuthors.has(user.id),
     phone: user.phone || null,
     avatarUrl: user.avatarUrl || null,
-    projects: '',
+    projects: user.projectMembers.map((membership) => membership.project.name).join(', '),
     status: '',
   }));
 }

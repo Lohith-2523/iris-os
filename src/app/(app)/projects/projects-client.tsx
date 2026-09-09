@@ -29,6 +29,10 @@ import {
   ChevronDown,
   ChevronRight,
   ListPlus,
+  FolderKanban,
+  ClipboardList,
+  CircleDollarSign,
+  TimerReset,
   type LucideIcon,
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
@@ -616,26 +620,26 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border-sky-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(56,189,248,0.7)]">
           <CardHeader className="pb-1.5">
-            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Active Campaigns / Projects</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><FolderKanban className="h-4 w-4 text-sky-300" />Active Campaigns / Projects</CardTitle>
           </CardHeader>
           <CardContent className="flex items-baseline gap-2">
             <div className="text-xl font-bold font-mono tracking-tight text-sky-300">{stats.active}</div>
-            <span className="text-[9px] text-zinc-550">out of {stats.total} total</span>
+            <span className="text-[9px] text-white">out of {stats.total} total projects</span>
           </CardContent>
         </Card>
         
         <Card className="border-amber-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(245,158,11,0.65)]">
           <CardHeader className="pb-1.5">
-            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Total Program Backlog</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><ClipboardList className="h-4 w-4 text-amber-300" />Total Program Backlog</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold font-mono tracking-tight text-amber-300">{projects.filter(p => p.status === 'NOT_STARTED').length} Projects</div>
+            <div className="text-xl font-bold font-mono tracking-tight text-white">{projects.filter(p => p.status === 'NOT_STARTED').length} Projects</div>
           </CardContent>
         </Card>
 
         <Card className="border-emerald-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(52,211,153,0.65)]">
           <CardHeader className="pb-1.5">
-            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Project Contract Value</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><CircleDollarSign className="h-4 w-4 text-emerald-300" />Project Contract Value</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold font-mono tracking-tight text-emerald-300">{formatCurrency(stats.contractedValue)}</div>
@@ -644,7 +648,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
 
         <Card className={stats.delayCount > 0 ? 'border-rose-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(244,63,94,0.65)]' : 'border-emerald-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(52,211,153,0.55)]'}>
           <CardHeader className="pb-1.5">
-            <CardTitle className="text-[9px] font-bold uppercase tracking-wider text-zinc-550">Stage & task delays</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><TimerReset className="h-4 w-4 text-rose-300" />Stage & task delays</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2">
             <div className={`text-xl font-bold font-mono tracking-tight ${stats.delayCount > 0 ? 'text-rose-450' : 'text-emerald-450'}`}>

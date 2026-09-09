@@ -1,5 +1,6 @@
 export const MAX_SOURCE_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_PROCESSED_IMAGE_BYTES = 512 * 1024;
+export const MAX_WELCOME_BACKGROUND_BYTES = 2 * 1024 * 1024;
 
 export type ImageProcessingKind = 'profile-avatar' | 'invoice-logo' | 'welcome-background';
 
@@ -36,13 +37,13 @@ export function calculateImageGeometry(width: number, height: number, kind: Imag
   }
 
   if (kind === 'welcome-background') {
-    // Canva's standard web leaderboard banner is 728 x 90. Keep the same
-    // aspect ratio and retain up to a 2x export for sharper dashboard display.
+    // Crop to the dashboard's 728:90 ratio, then retain a 4x banner canvas.
+    // A standard 600x200 Canva export becomes a sharp 2912x360 working image.
     const targetRatio = 728 / 90;
     const sourceRatio = width / height;
     const sourceWidth = sourceRatio > targetRatio ? height * targetRatio : width;
     const sourceHeight = sourceRatio > targetRatio ? height : width / targetRatio;
-    const scale = Math.min(1, 1456 / sourceWidth, 180 / sourceHeight);
+    const scale = Math.min(6, 2912 / sourceWidth, 360 / sourceHeight);
     return {
       sourceX: (width - sourceWidth) / 2,
       sourceY: (height - sourceHeight) / 2,
@@ -133,17 +134,42 @@ async function encodeImage(
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
   }
-  context.drawImage(
-    decoded.source,
-    geometry.sourceX,
-    geometry.sourceY,
-    geometry.sourceWidth,
-    geometry.sourceHeight,
-    0,
-    0,
-    canvas.width,
-    canvas.height,
-  );
+
+  let currentSource = decoded.source;
+  let currentX = geometry.sourceX;
+  let currentY = geometry.sourceY;
+  let currentWidth = geometry.sourceWidth;
+  let currentHeight = geometry.sourceHeight;
+
+  // Progress through 2x steps before the final draw. Smaller scaling jumps
+  // preserve edges and text better than a single large browser interpolation.
+  while (canvas.width > currentWidth * 2 && canvas.height > currentHeight * 2) {
+    const intermediate = document.createElement('canvas');
+    intermediate.width = Math.min(canvas.width, Math.max(1, Math.round(currentWidth * 2)));
+    intermediate.height = Math.min(canvas.height, Math.max(1, Math.round(currentHeight * 2)));
+    const intermediateContext = intermediate.getContext('2d', { alpha: mimeType !== 'image/jpeg' });
+    if (!intermediateContext) throw new Error('Image processing is not supported by this browser.');
+    intermediateContext.imageSmoothingEnabled = true;
+    intermediateContext.imageSmoothingQuality = 'high';
+    intermediateContext.drawImage(
+      currentSource,
+      currentX,
+      currentY,
+      currentWidth,
+      currentHeight,
+      0,
+      0,
+      intermediate.width,
+      intermediate.height,
+    );
+    currentSource = intermediate;
+    currentX = 0;
+    currentY = 0;
+    currentWidth = intermediate.width;
+    currentHeight = intermediate.height;
+  }
+
+  context.drawImage(currentSource, currentX, currentY, currentWidth, currentHeight, 0, 0, canvas.width, canvas.height);
 
   return canvasBlob(canvas, mimeType, quality);
 }
@@ -165,26 +191,31 @@ export async function processBrowserImage(file: File, kind: ImageProcessingKind)
         ? 'image/png'
         : 'image/jpeg';
     let scale = 1;
-    let quality = 0.86;
+    const maxProcessedBytes = kind === 'welcome-background'
+      ? MAX_WELCOME_BACKGROUND_BYTES
+      : MAX_PROCESSED_IMAGE_BYTES;
+    let quality = kind === 'welcome-background' ? 0.94 : 0.86;
     let processed = await encodeImage(decoded, geometry, mimeType, scale, quality);
 
-    for (let attempt = 0; processed.size > MAX_PROCESSED_IMAGE_BYTES && attempt < 12; attempt += 1) {
-      if (mimeType !== 'image/png' && quality > 0.5) quality = Math.max(0.5, quality - 0.09);
+    for (let attempt = 0; processed.size > maxProcessedBytes && attempt < 12; attempt += 1) {
+      const minimumQuality = kind === 'welcome-background' ? 0.72 : 0.5;
+      if (mimeType !== 'image/png' && quality > minimumQuality) quality = Math.max(minimumQuality, quality - 0.055);
       else {
-        scale *= 0.82;
-        quality = 0.82;
+        scale *= kind === 'welcome-background' ? 0.9 : 0.82;
+        quality = kind === 'welcome-background' ? 0.86 : 0.82;
       }
       processed = await encodeImage(decoded, geometry, mimeType, scale, quality);
     }
 
-    if (processed.size > MAX_PROCESSED_IMAGE_BYTES) {
+    if (processed.size > maxProcessedBytes) {
       throw new Error('The image could not be compressed enough. Try a simpler or smaller image.');
     }
 
-    const canKeepOriginal = kind !== 'welcome-background' && file.size <= MAX_PROCESSED_IMAGE_BYTES
+    const outputMatchesSource = geometry.outputWidth === decoded.width && geometry.outputHeight === decoded.height;
+    const canKeepOriginal = file.size <= maxProcessedBytes && outputMatchesSource
       && (kind === 'profile-avatar'
         ? ['image/png', 'image/jpeg', 'image/webp'].includes(file.type)
-        : ['image/png', 'image/jpeg'].includes(file.type));
+        : ['image/png', 'image/jpeg', 'image/webp'].includes(file.type));
     const selectedBlob = canKeepOriginal && file.size <= processed.size ? file : processed;
 
     return {

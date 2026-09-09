@@ -3,23 +3,16 @@
 import * as React from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Lock,
   Mail,
-  User,
   Phone,
-  Layers,
-  ArrowRight,
-  ShieldCheck,
   CheckCircle2,
   AlertTriangle,
   Loader2,
-  Sparkles
 } from 'lucide-react';
-import { formatUserMessage } from '@/lib/utils';
 
 function MemberOnboardingContent() {
   const searchParams = useSearchParams();
@@ -119,10 +112,11 @@ function MemberOnboardingContent() {
       });
 
       if (res.ok) {
+        const result = await res.json();
         setSuccess(true);
         
         setTimeout(() => {
-          router.push('/teams-dashboard');
+          router.push(result.destination || '/teams-dashboard');
         }, 1500);
       } else {
         const err = await res.json();
@@ -169,7 +163,7 @@ function MemberOnboardingContent() {
           <CheckCircle2 className="h-8 w-8 text-emerald-450 mx-auto animate-bounce" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Account Activated</h2>
           <p className="text-zinc-500 leading-relaxed">
-            Welcome aboard, {invite?.name}! Your Iris OS team specialist workspace is active. Redirecting to workspace...
+            Welcome aboard, {invite?.name}! Your Iris OS workspace is active. Redirecting to your assigned workspace...
           </p>
         </div>
       </div>
@@ -182,8 +176,8 @@ function MemberOnboardingContent() {
         {/* Header brand */}
         <div className="text-center space-y-2 flex flex-col items-center">
           <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={84} height={32} priority className="h-8 w-auto object-contain" />
-          <h1 className="text-xl font-bold text-white tracking-tight mt-1">Specialist Onboarding Hub</h1>
-          <p className="text-zinc-555 text-[11px]">Configure credentials to unlock your delivery terminal.</p>
+          <h1 className="text-xl font-bold text-white tracking-tight mt-1">Team Member Onboarding</h1>
+          <p className="text-zinc-555 text-[11px]">Configure credentials to unlock your assigned workspace.</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-5 items-stretch">
@@ -192,7 +186,7 @@ function MemberOnboardingContent() {
           <div className="md:col-span-2">
             <Card className="h-full bg-zinc-950/30 border-zinc-900/60 p-4 space-y-4 flex flex-col justify-between">
               <div>
-                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest font-mono block mb-2">Assigned Specialist Profile</span>
+                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest font-mono block mb-2">Team Member Profile</span>
                 <h3 className="text-sm font-bold text-white truncate">{invite.name}</h3>
                 
                 <div className="space-y-2 mt-4 text-[10.5px] text-zinc-405">
@@ -210,13 +204,10 @@ function MemberOnboardingContent() {
               </div>
 
               <div className="border-t border-zinc-905 pt-4 space-y-2">
-                <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono block">Agency Disciplines</span>
+                <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono block">Workspace Access</span>
                 <div className="flex flex-wrap gap-1">
-                  {invite.agencyTypes.map((type: string, idx: number) => (
-                    <Badge key={idx} variant="secondary" className="text-[8.5px] uppercase tracking-wider bg-zinc-900 text-zinc-300 font-mono">
-                      {type}
-                    </Badge>
-                  ))}
+                  <Badge variant="secondary" className="text-[8.5px] uppercase tracking-wider bg-zinc-900 text-zinc-300 font-mono">{invite.handlesDeliverables || invite.projects?.length ? 'Team workspace' : 'Agency workspace'}</Badge>
+                  {(invite.accessPermissions || []).map((page: string) => <Badge key={page} variant="secondary" className="text-[8.5px] uppercase tracking-wider bg-zinc-900 text-zinc-300 font-mono">{page.replaceAll('-', ' ')}</Badge>)}
                 </div>
               </div>
             </Card>

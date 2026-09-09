@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { CalendarDays, FolderKanban, Gauge, ListChecks, Menu, MessageSquare, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type Props = { role?: string; plan?: string; accessPermissions?: string[] | null; onMore: () => void };
+type Props = { role?: string; plan?: string; accessPermissions?: string[] | null; deliveryWorkspace?: boolean; onMore: () => void };
 type Destination = { href: string; label: string; icon: typeof Gauge };
 
 function destinationsFor(role: string, plan: string): Destination[] {
@@ -29,11 +29,12 @@ function destinationsFor(role: string, plan: string): Destination[] {
   ];
 }
 
-export function MobileBottomNavigation({ role = '', plan = 'BASIC', accessPermissions, onMore }: Props) {
+export function MobileBottomNavigation({ role = '', plan = 'BASIC', accessPermissions, deliveryWorkspace = false, onMore }: Props) {
   const pathname = usePathname();
   const normalizedRole = role.toLowerCase();
   const allowed = new Set(accessPermissions || []);
-  const destinations = destinationsFor(normalizedRole, plan).filter((item) => normalizedRole !== 'sub_admin' || allowed.has(item.href.split('/').filter(Boolean)[0]));
+  const destinationRole = normalizedRole === 'sub_admin' && deliveryWorkspace ? 'member' : normalizedRole;
+  const destinations = destinationsFor(destinationRole, plan).filter((item) => normalizedRole !== 'sub_admin' || deliveryWorkspace || allowed.has(item.href.split('/').filter(Boolean)[0]));
 
   return (
     <nav className="workspace-mobile-nav" aria-label="Primary workspace navigation">

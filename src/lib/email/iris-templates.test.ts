@@ -48,13 +48,15 @@ describe('Iris email templates', () => {
     const email = memberOnboardingEmail({
       recipientName: 'Asha',
       organizationName: 'Iris Agency',
-      agencyTypes: ['Creative', 'Strategy'],
+      pageAccess: ['Finance', 'Reporting'],
+      handlesDeliverables: false,
       inviteUrl: 'https://irisos.app/onboarding/member?token=team-token',
       expiresAt: new Date('2026-08-04T00:00:00.000Z'),
     });
 
     expect(email.html).toContain('Team invitation');
-    expect(email.html).toContain('Creative, Strategy');
+    expect(email.html).toContain('Agency workspace');
+    expect(email.html).toContain('Finance, Reporting');
     expect(email.html).toContain('Complete team onboarding');
     expect(email.text).toContain('team-token');
   });

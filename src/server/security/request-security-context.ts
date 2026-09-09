@@ -2,7 +2,8 @@ import 'server-only';
 
 import { cache } from 'react';
 import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
-import { getRequestUser } from '@/lib/org';
+import { getRequestUser, userHasDeliveryWorkspace } from '@/lib/org';
+import { prisma } from '@/lib/db';
 import { canRenderWorkspaceRoute } from '@/lib/workspace-route-authorization';
 import { measureServerOperation } from '@/server/observability/performance';
 
@@ -12,11 +13,18 @@ export const getRequestSecurityContext = cache(async () => {
     if (!user) return null;
 
     const plan = normalizePlan(user.organization.plan);
+    const hasActiveDeliverable = ['member', 'sub_admin'].includes(user.role.toLowerCase())
+      ? await prisma.deliverable.findFirst({
+        where: { orgId: user.orgId, submittedById: user.id, status: { not: 'APPROVED' } },
+        select: { id: true },
+      })
+      : null;
     return {
       authUserId: user.authUserId!,
       userId: user.id,
       orgId: user.orgId,
       role: user.role,
+      deliveryWorkspace: userHasDeliveryWorkspace(user) || Boolean(hasActiveDeliverable),
       clientId: user.clientId,
       user,
       organization: user.organization,
@@ -35,5 +43,6 @@ export function canRenderRequestRoute(ctx: RequestSecurityContext, pathname: str
     role: ctx.role,
     plan: ctx.plan,
     accessPermissions: ctx.user.accessPermissions as string[] | null,
+    deliveryWorkspace: ctx.deliveryWorkspace,
   }, pathname);
 }

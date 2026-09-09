@@ -57,11 +57,19 @@ npm install
 Create a `.env` file in the root directory and define the following keys (see `.env` for references):
 ```env
 DATABASE_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public"
+DATABASE_POOL_MAX="5"
 AUTH_SECRET="your-auth-secret"
 META_WEBHOOK_VERIFY_TOKEN="irisos_meta_verify_token"
 GEMINI_API_KEY="your-google-ai-api-key"
+OPENAI_API_KEY="your-openai-api-key"
+OPENAI_TRANSCRIPTION_MODEL="gpt-transcribe"
+OPENAI_HELP_MODEL="gpt-5-mini"
+OPENAI_REALTIME_MODEL="gpt-realtime"
+OPENAI_REALTIME_TRANSCRIPTION_MODEL="gpt-4o-mini-transcribe"
+OPENAI_REALTIME_VOICE="cedar"
 GOOGLE_OAUTH_CLIENT_ID="your-google-oauth-client-id"
 GOOGLE_OAUTH_CLIENT_SECRET="your-google-oauth-client-secret"
+GOOGLE_SHEETS_OAUTH_USER_EMAIL="cto.admin@irisos.app"
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
 SMTP_SECURE="false"
@@ -79,6 +87,12 @@ settings configured in Google Workspace. `SMTP_USER` and `SMTP_PASSWORD` may be
 omitted together when the relay authorizes the deployment server by IP. Atlas
 meeting coordination always uses Gemini; the creating user must also connect
 Google Calendar with event-management access.
+
+Help requests and waitlist registrations use the existing Google OAuth client
+and an encrypted connected-account refresh token. Set `GOOGLE_SHEETS_OAUTH_USER_EMAIL`
+to the connected Google account that owns or can edit both sheets (it defaults to
+`cto.admin@irisos.app`), then reconnect that account once to approve the Sheets scope. Iris creates the header row when
+the first worksheet is empty.
 
 ### 4. Initialize Database
 Initialize the database schemas and populate the mock enterprise seed data:

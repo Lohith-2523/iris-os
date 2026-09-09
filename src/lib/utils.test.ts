@@ -5,6 +5,8 @@ describe('formatCurrencyFor', () => {
   it('formats identical server and client snapshots from explicit currency', () => {
     expect(formatCurrencyFor(25_000, 'USD')).toBe('$25,000');
     expect(formatCurrencyFor(25_000, 'INR')).toBe('₹25,000');
+    expect(formatCurrencyFor(25_000, 'JPY')).toBe('¥25,000');
+    expect(formatCurrencyFor(25_000, 'AED')).toContain('25,000');
   });
 
   it('preserves requested decimal precision', () => {

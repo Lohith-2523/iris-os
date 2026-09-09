@@ -27,7 +27,7 @@ describe('PATCH /api/user', () => {
     mocks.updateUser.mockResolvedValue({ avatarUrl: null });
   });
 
-  it.each(['admin', 'sub_admin', 'member'])('allows a %s to update their own avatar', async (role) => {
+  it.each(['admin', 'sub_admin', 'member', 'client'])('allows a %s to update their own avatar', async (role) => {
     mocks.getRequestUser.mockResolvedValue({ id: 'user-1', role });
     const avatar = `data:image/png;base64,${Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).toString('base64')}`;
     mocks.updateUser.mockResolvedValue({ avatarUrl: avatar });
@@ -40,15 +40,6 @@ describe('PATCH /api/user', () => {
       data: { avatarUrl: avatar },
       select: { avatarUrl: true },
     });
-  });
-
-  it('rejects client profile-picture updates', async () => {
-    mocks.getRequestUser.mockResolvedValue({ id: 'client-1', role: 'client' });
-
-    const response = await PATCH(patchRequest(null));
-
-    expect(response.status).toBe(403);
-    expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 
   it('validates image content before writing it', async () => {

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { formatUserMessage } from '@/lib/utils';
+import { TranscribeButton } from '@/components/ui/transcribe-button';
 
 type Kind = 'PROPOSAL' | 'CONTRACT' | 'SOW';
 type Recipient = { id: string; type: 'LEAD' | 'CLIENT'; name: string; company: string; email: string };
@@ -194,10 +195,10 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
         {documents.length === 0 ? <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground">No documents created yet.</div> : <div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="border-b border-border text-muted-foreground"><th className="px-3 py-3">Document</th><th className="px-3 py-3">Recipient</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Created</th><th className="px-3 py-3 text-right">Actions</th></tr></thead><tbody>{documents.map(renderDocumentRow)}</tbody></table></div>}
       </CardContent>
     </Card> : <>
-      <div className="agency-leads-tabs workspace-segmented-control inline-flex w-fit items-center gap-1 border border-zinc-900 bg-zinc-950 p-1" role="tablist" aria-label="Creation mode">
+      <div className="flex items-start justify-between gap-3"><div className="agency-leads-tabs workspace-segmented-control inline-flex w-fit items-center gap-1 border border-zinc-900 bg-zinc-950 p-1" role="tablist" aria-label="Creation mode">
         <button type="button" role="tab" aria-selected={mode === 'simple'} onClick={() => setMode('simple')} className={`workspace-segmented-trigger cursor-pointer px-3 py-1.5 text-sm font-semibold transition-all ${mode === 'simple' ? 'bg-white font-bold text-zinc-950' : 'text-zinc-400 hover:text-white'}`}><span>Simple</span></button>
         <button type="button" role="tab" aria-selected={mode === 'advanced'} onClick={() => setMode('advanced')} className={`workspace-segmented-trigger cursor-pointer px-3 py-1.5 text-sm font-semibold transition-all ${mode === 'advanced' ? 'bg-white font-bold text-zinc-950' : 'text-zinc-400 hover:text-white'}`}><span>Edit everything</span></button>
-      </div>
+      </div><TranscribeButton /></div>
       {mode === 'simple' ? <div className="space-y-6"><Card className="overflow-hidden border-foreground/20"><CardHeader className="border-b border-border bg-muted/35"><div className="flex items-center gap-2"><AtlasIcon className="h-5 w-5" /><CardTitle>Create from a lead with Atlas AI</CardTitle></div><CardDescription>Select an existing lead and tell Atlas what the document should accomplish. Atlas prepares it for your review and approval.</CardDescription></CardHeader><CardContent className="pt-6">
         <form className="space-y-5" onSubmit={createLeadDocumentWithAtlas}>
           {family === 'LEGAL' && <label className="block space-y-2"><span className="font-semibold text-foreground">Document type</span><select value={kind} onChange={event => setKind(event.target.value as Kind)} className={fieldClass}><option value="CONTRACT">Contract</option><option value="SOW">Statement of Work</option></select></label>}

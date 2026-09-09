@@ -110,3 +110,88 @@
 [0827/220357.688:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
 [0827/220357.688:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
 [0827/220357.688:ERROR:gpu\command_buffer\service\shared_image\shared_image_manager.cc:386] SharedImageManager::ProduceMemory: Trying to Produce a Memory representation from a non-existent mailbox.
+[0909/203118.109:INFO:third_party\blink\renderer\modules\peerconnection\peer_connection_dependency_factory.cc:941] Running WebRTC with a combined Network and Worker thread.
+[0909/203122.945:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/203122.963:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/203123.005:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/203123.351:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/203123.352:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.413:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/203123.413:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.473:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/203123.473:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.537:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.600:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.661:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.704:WARNING:third_party\webrtc\modules\pacing\pacing_controller.cc:301] Elapsed time (5555267 us) longer than expected, limiting to 2 s
+[0909/203123.731:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.809:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203123.888:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203201.007:INFO:third_party\blink\renderer\modules\peerconnection\peer_connection_dependency_factory.cc:941] Running WebRTC with a combined Network and Worker thread.
+[0909/203201.906:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/203201.930:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/203201.955:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/203202.266:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/203202.267:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.327:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/203202.327:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.390:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/203202.390:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.451:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.514:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.575:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.640:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.709:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/203202.762:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204407.658:INFO:third_party\blink\renderer\modules\peerconnection\peer_connection_dependency_factory.cc:941] Running WebRTC with a combined Network and Worker thread.
+[0909/204411.324:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/204411.339:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/204411.370:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/204411.695:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/204411.696:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204411.757:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/204411.757:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204411.819:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/204411.819:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204411.881:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204411.943:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204411.973:WARNING:third_party\webrtc\modules\pacing\pacing_controller.cc:301] Elapsed time (4314721 us) longer than expected, limiting to 2 s
+[0909/204412.005:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204412.067:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204412.129:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204412.189:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204524.102:INFO:third_party\blink\renderer\modules\peerconnection\peer_connection_dependency_factory.cc:941] Running WebRTC with a combined Network and Worker thread.
+[0909/204525.548:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/204525.570:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/204525.597:WARNING:third_party\webrtc\p2p\base\tcp_port.cc:502] Dropping connection as TCP socket bound to IP 192.168.0.x, rather than an address associated with network:Net[{37217669-42DA-4657-A55B-0D995D328250}:100.104.47.x/32:Unknown:id=1]
+[0909/204525.907:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/204525.907:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204525.968:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/204525.968:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204526.030:WARNING:net\base\net_errors_win.cc:121] Unknown error 1168 mapped to net::ERR_FAILED
+[0909/204526.030:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204526.093:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204526.154:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204526.186:WARNING:third_party\webrtc\modules\pacing\pacing_controller.cc:301] Elapsed time (2082447 us) longer than expected, limiting to 2 s
+[0909/204526.216:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204526.294:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204526.372:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204526.450:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204527.591:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204528.684:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204529.260:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204529.780:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204530.134:WARNING:third_party\webrtc\pc\srtp_session.cc:278] Failed to unprotect SRTP packet, err=9, previous failure count: 0
+[0909/204530.134:ERROR:third_party\webrtc\pc\srtp_transport.cc:100] Failed to unprotect RTP packet: size=25, seqnum=15381, SSRC=3229314013, previous failure count: 0
+[0909/204530.204:WARNING:third_party\webrtc\modules\audio_coding\neteq\packet_buffer.cc:99] Packet buffer flushed.
+[0909/204530.329:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204531.457:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204531.999:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204532.537:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204533.078:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204534.176:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204534.206:WARNING:third_party\webrtc\modules\audio_coding\neteq\packet_buffer.cc:99] Packet buffer flushed.
+[0909/204534.733:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204535.263:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204535.800:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0909/204536.895:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.

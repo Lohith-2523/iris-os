@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { appendSheetRecord } from '@/lib/google-sheets';
 
 export const runtime = 'nodejs';
 
@@ -27,13 +28,24 @@ export async function POST(request: NextRequest) {
     const name = cleanOptionalText(input.name, 120);
     const specialization = cleanOptionalText(input.specialization, 120);
 
-    try {
-      await prisma.waitlistEntry.create({ data: { name, email, specialization } });
-    } catch (error: unknown) {
-      const code = typeof error === 'object' && error && 'code' in error
-        ? (error as { code?: string }).code
-        : undefined;
-      if (code !== 'P2002') throw error;
+    const entry = await prisma.waitlistEntry.upsert({
+      where: { email },
+      create: { name, email, specialization },
+      update: {},
+    });
+    if (!entry.sheetSyncedAt) {
+      try {
+        await appendSheetRecord({
+          spreadsheetId: '1FyW5FeczNyfAv338j5kqBWv6auYtQVVreBsBIaXnJ_c',
+          headers: ['Work email', 'Joined at (UTC)', 'Full name', 'Agency specialization'],
+          values: [email, entry.createdAt.toISOString(), name || entry.name || '', specialization || entry.specialization || ''],
+          idempotencyValue: email,
+        });
+        await prisma.waitlistEntry.update({ where: { id: entry.id }, data: { sheetSyncedAt: new Date(), sheetSyncError: null } });
+      } catch (sheetError) {
+        await prisma.waitlistEntry.update({ where: { id: entry.id }, data: { sheetSyncError: sheetError instanceof Error ? sheetError.message.slice(0, 1_000) : 'Sheet sync failed' } });
+        console.error('Waitlist Google Sheet sync failed:', sheetError);
+      }
     }
 
     return NextResponse.json({ ok: true }, { status: 201 });

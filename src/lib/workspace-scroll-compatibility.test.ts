@@ -11,6 +11,16 @@ const workspaceShell = readFileSync(
 );
 
 describe('workspace scroll compatibility', () => {
+  it('preserves intrinsic page height for legacy Chromium scroll measurement', () => {
+    const pageRule = globalsCss.match(/\.workspace-page\s*\{[\s\S]*?\}/)?.[0];
+
+    expect(pageRule).toBeDefined();
+    expect(pageRule).toContain('flex: 1 0 auto;');
+    expect(pageRule).toContain('min-height: 100%;');
+    expect(pageRule).not.toContain('flex: 1 1 0%;');
+    expect(pageRule).not.toContain('min-height: 0;');
+  });
+
   it('keeps the primary vertical scroller on legacy-compatible overflow values', () => {
     const recoveryBlock = globalsCss.match(
       /\/\* Scroll recovery \+ Atlas topbar menu\.[\s\S]*?(?=\.atlas-topbar-menu-trigger)/,

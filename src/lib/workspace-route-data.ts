@@ -1,12 +1,8 @@
 const ROUTE_DATA: Record<string, readonly string[]> = {
   '/dashboard': [
-    '/api/data?domain=dashboard',
     '/api/data?domain=clients',
     '/api/tasks',
-    '/api/meta-portal',
     '/api/calendar',
-    '/api/agency-leads',
-    '/api/notifications',
   ],
   '/agency-leads': ['/api/agency-leads?view=kanban', '/api/integrations', '/api/workspace'],
   '/clients': ['/api/data?domain=clients&include=contacts', '/api/data?domain=team'],

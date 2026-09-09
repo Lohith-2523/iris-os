@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateImageGeometry, MAX_SOURCE_IMAGE_BYTES } from './browser-image-processing';
+import { calculateImageGeometry, MAX_SOURCE_IMAGE_BYTES, MAX_WELCOME_BACKGROUND_BYTES } from './browser-image-processing';
 
 describe('browser image processing geometry', () => {
   it('accepts source images up to 10 MB', () => {
@@ -28,14 +28,26 @@ describe('browser image processing geometry', () => {
     });
   });
 
-  it('center-crops welcome backgrounds to the dashboard card ratio', () => {
+  it('center-crops welcome backgrounds to the dashboard ratio', () => {
     expect(calculateImageGeometry(2400, 1600, 'welcome-background')).toEqual({
       sourceX: 0,
       sourceY: 651.6483516483516,
       sourceWidth: 2400,
       sourceHeight: 296.7032967032967,
-      outputWidth: 1456,
-      outputHeight: 180,
+      outputWidth: 2912,
+      outputHeight: 360,
+    });
+    expect(MAX_WELCOME_BACKGROUND_BYTES).toBe(2 * 1024 * 1024);
+  });
+
+  it('crops and upscales a standard 600 by 200 Canva banner', () => {
+    expect(calculateImageGeometry(600, 200, 'welcome-background')).toEqual({
+      sourceX: 0,
+      sourceY: 62.91208791208791,
+      sourceWidth: 600,
+      sourceHeight: 74.17582417582418,
+      outputWidth: 2912,
+      outputHeight: 360,
     });
   });
 });

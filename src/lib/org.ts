@@ -6,6 +6,7 @@ import { prisma } from './db';
 import { createClient } from './server';
 import { withDatabaseConnectionRetry } from './database-resilience';
 import { measureServerOperation } from '@/server/observability/performance';
+import { hasDeliveryWork } from '@/lib/team-member-access';
 
 const userWithWorkspace = {
   organization: {
@@ -15,7 +16,28 @@ const userWithWorkspace = {
   },
   client: true,
   preferences: true,
+  projectMembers: {
+    where: { project: { status: { not: 'COMPLETED' } } },
+    select: { id: true },
+  },
+  clientTasks: {
+    where: { status: { not: 'COMPLETED' } },
+    select: { id: true },
+    take: 1,
+  },
 } as const;
+
+export function userHasDeliveryWorkspace(user: {
+  handlesDeliverables?: boolean | null;
+  projectMembers?: Array<unknown>;
+  clientTasks?: Array<unknown>;
+}) {
+  return hasDeliveryWork({
+    handlesDeliverables: user.handlesDeliverables,
+    projectCount: user.projectMembers?.length || 0,
+    activeTaskCount: user.clientTasks?.length || 0,
+  });
+}
 
 export class WorkspaceIdentityConflictError extends Error {
   constructor() {

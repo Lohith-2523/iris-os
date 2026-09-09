@@ -12,15 +12,7 @@ import ClientDetailDashboard from '@/components/clients/client-detail-dashboard'
 import { formatCurrency } from '@/lib/utils';
 import { collectAssignedSpecialists, type AssignedSpecialist } from '@/lib/clients/assigned-specialists';
 import type { ClientsReadModel } from '@/server/read-models/workspace-pages';
-
-function specialistInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || '—';
-}
+import { ProfileAvatar } from '@/components/ui/profile-avatar';
 
 function SpecialistAvatar({ specialist, index }: { specialist: AssignedSpecialist; index: number }) {
   return (
@@ -30,10 +22,7 @@ function SpecialistAvatar({ specialist, index }: { specialist: AssignedSpecialis
       tabIndex={0}
       aria-label={specialist.name}
     >
-      {specialist.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={specialist.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
-      ) : specialistInitials(specialist.name)}
+      <ProfileAvatar src={specialist.avatarUrl} name={specialist.name} seed={specialist.id} className="rounded-full" />
       <span
         role="tooltip"
         className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 translate-y-1 scale-95 whitespace-nowrap rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-[10px] font-medium text-zinc-100 opacity-0 shadow-xl transition-[opacity,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:scale-100 group-focus-visible:opacity-100"

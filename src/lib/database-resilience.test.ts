@@ -6,15 +6,14 @@ import {
 } from './database-resilience';
 
 describe('resolveDatabasePoolMax', () => {
-  it('uses conservative defaults for development and production', () => {
-    expect(resolveDatabasePoolMax(undefined, 'development')).toBe(2);
-    expect(resolveDatabasePoolMax(undefined, 'production')).toBe(1);
+  it('uses a bounded five-connection default', () => {
+    expect(resolveDatabasePoolMax(undefined)).toBe(5);
   });
 
   it('accepts a valid override but caps unsafe values', () => {
-    expect(resolveDatabasePoolMax('3', 'production')).toBe(3);
-    expect(resolveDatabasePoolMax('20', 'development')).toBe(5);
-    expect(resolveDatabasePoolMax('invalid', 'production')).toBe(1);
+    expect(resolveDatabasePoolMax('3')).toBe(3);
+    expect(resolveDatabasePoolMax('20')).toBe(5);
+    expect(resolveDatabasePoolMax('invalid')).toBe(5);
   });
 });
 
