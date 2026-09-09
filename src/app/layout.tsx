@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -7,6 +7,7 @@ import { workspaceThemePaths } from "@/lib/theme-routes";
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { HelpCenter } from "@/components/help/help-center";
+import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -54,8 +55,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  applicationName: "Iris OS",
   title: "Iris OS - Enterprise Agency Operating System",
   description: "The operating system used by modern agencies and creative enterprises to manage finance, operations, clients, projects, reporting, forecasting, intelligence, and content production from a single platform.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Iris OS",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: [
       {
@@ -67,7 +75,13 @@ export const metadata: Metadata = {
         media: "(prefers-color-scheme: dark)",
       },
     ],
+    apple: [{ url: "/icons/iris-180.png", sizes: "180x180", type: "image/png" }],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0c0c0e",
+  colorScheme: "dark light",
 };
 
 export default function RootLayout({
@@ -90,6 +104,7 @@ export default function RootLayout({
         {children}
         <HelpCenter />
         <SpeedInsights />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

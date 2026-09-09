@@ -13,6 +13,15 @@ body {
   overflow-x: clip;
 }
 
+@media (display-mode: standalone) {
+  html,
+  body {
+    min-height: 100dvh;
+    overscroll-behavior: none;
+    background: #0c0c0e;
+  }
+}
+
 /* Increase the application surface scale by 10%. Body copy and controls keep
    the explicit 16px accessibility floor defined below. */
 html {

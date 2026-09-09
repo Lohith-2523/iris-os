@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0c0c0e" />
+    <title>Iris OS — Offline</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(circle at top, #232328 0, #0c0c0e 46%);
+        color: #f4f4f5;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      main {
+        width: min(440px, 100%);
+        padding: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        background: rgba(24, 24, 27, 0.82);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+        text-align: center;
+      }
+      img { width: 72px; height: 72px; }
+      h1 { margin: 20px 0 8px; font-size: 22px; }
+      p { margin: 0; color: #a1a1aa; font-size: 14px; line-height: 1.6; }
+      button {
+        margin-top: 24px;
+        padding: 10px 18px;
+        border: 1px solid #52525b;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #fafafa, #d4d4d8);
+        color: #09090b;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/iris-192.png" alt="" />
+      <h1>Iris OS is offline</h1>
+      <p>Reconnect to continue securely. Iris does not cache agency or client records on this device.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>
