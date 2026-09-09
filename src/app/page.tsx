@@ -134,25 +134,35 @@ function Header() {
           ))}
         </nav>
 
-        {/* CTA */}
-        <Link
-          href="/waitlist"
-          prefetch={false}
-          className="neo-button-accent hidden md:inline-block"
-          style={{
-            fontFamily: BODY,
-            fontWeight: 600,
-            fontSize: '14px',
-            padding: '12px 26px',
-            border: 'none',
-            cursor: 'pointer',
-            letterSpacing: '0.01em',
-            textDecoration: 'none',
-            color: '#0a0a0a',
-          }}
-        >
-          Join the Waitlist
-        </Link>
+        {/* Actions */}
+        <div className="hidden items-center gap-2 md:flex">
+          <Link
+            href="/login"
+            prefetch={false}
+            className="inline-block rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-zinc-200 no-underline transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
+            style={{ fontFamily: BODY }}
+          >
+            Login
+          </Link>
+          <Link
+            href="/waitlist"
+            prefetch={false}
+            className="neo-button-accent inline-block"
+            style={{
+              fontFamily: BODY,
+              fontWeight: 600,
+              fontSize: '14px',
+              padding: '12px 26px',
+              border: 'none',
+              cursor: 'pointer',
+              letterSpacing: '0.01em',
+              textDecoration: 'none',
+              color: '#0a0a0a',
+            }}
+          >
+            Join the Waitlist
+          </Link>
+        </div>
 
         {/* Mobile Menu Hamburger Button */}
         <button
@@ -207,7 +217,16 @@ function Header() {
           </nav>
         </div>
 
-        <div className="pt-6 border-t border-zinc-900">
+        <div className="flex flex-col gap-2 border-t border-zinc-900 pt-6">
+          <Link
+            href="/login"
+            prefetch={false}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="block w-full rounded-lg border border-white/10 py-3.5 text-center text-sm font-semibold text-zinc-200 no-underline transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
+            style={{ fontFamily: BODY }}
+          >
+            Login
+          </Link>
           <Link
             href="/waitlist"
             prefetch={false}
