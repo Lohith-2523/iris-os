@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { workspaceThemePaths } from "@/lib/theme-routes";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { HelpCenter } from "@/components/help/help-center";
 
 const spaceGrotesk = Space_Grotesk({
@@ -88,6 +89,7 @@ export default function RootLayout({
         </Script>
         {children}
         <HelpCenter />
+        <SpeedInsights />
       </body>
     </html>
   );
