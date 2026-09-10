@@ -68,6 +68,7 @@ model Organization {
   memberInvites             MemberInvite[]
   onboardingState           OrganizationOnboardingState?
   messagingDevices          MessagingDevice[]
+  messagingAccountKeys      MessagingAccountKey[]
   messagingConversations    MessagingConversation[]
   encryptedMessages         EncryptedMessage[]
   encryptedAttachments      EncryptedAttachment[]
@@ -241,6 +242,7 @@ model User {
   googleCalendarConnection      GoogleCalendarConnection?
   strategiesCreated             Strategy[]
   messagingDevices              MessagingDevice[]
+  messagingAccountKeys          MessagingAccountKey[]
   messagingMemberships          MessagingConversationMember[]
   messagingConversationsCreated MessagingConversation[]       @relation("MessagingConversationCreator")
   encryptedMessagesSent         EncryptedMessage[]            @relation("EncryptedMessageSender")
@@ -1129,8 +1131,8 @@ model RecurringRetainer {
   @@index([orgId, startDate])
 }
 
-/// Public device key bundles only. Private identity keys and session state never
-/// leave the user's device.
+/// Public key bundles used for message addressing and signature verification.
+/// Legacy browser keys remain here during the account-key migration.
 model MessagingDevice {
   id                   String       @id @default(uuid())
   orgId                String
@@ -1146,11 +1148,34 @@ model MessagingDevice {
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
-  messages EncryptedMessage[]
+  messages   EncryptedMessage[]
+  accountKey MessagingAccountKey?
 
   @@unique([userId, publicKeyFingerprint])
   @@index([orgId, userId])
   @@index([userId, revokedAt])
+}
+
+/// Private messaging keys are encrypted with the server-side messaging secret.
+/// A user's keyring makes the same encrypted history available to every session
+/// authenticated as that account. isPrimary selects the key used for new sends.
+model MessagingAccountKey {
+  id                   String          @id @default(uuid())
+  orgId                String
+  organization         Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId             String          @unique
+  device               MessagingDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  encryptedPrivateKey  String
+  publicKeyFingerprint String
+  isPrimary            Boolean         @default(false)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@unique([userId, publicKeyFingerprint])
+  @@index([orgId, userId])
+  @@index([userId, isPrimary])
 }
 
 /// Direct agency-owner conversations. participantKey is a canonical sorted pair

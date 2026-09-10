@@ -1,0 +1,106 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { readKey, readPrivateKey } from 'openpgp';
+import { z } from 'zod';
+import { prisma } from '@/lib/db';
+import { decryptMessagingPrivateKey, encryptMessagingPrivateKey } from '@/lib/messaging/account-key-secrets';
+import { getMessagingUser, messagingNoStoreHeaders } from '@/lib/messaging/server';
+
+const accountKeySchema = z.object({
+  identityPublicKey: z.string().startsWith('-----BEGIN PGP PUBLIC KEY BLOCK-----').max(200_000),
+  identityPrivateKey: z.string().startsWith('-----BEGIN PGP PRIVATE KEY BLOCK-----').max(400_000),
+  publicKeyFingerprint: z.string().regex(/^[a-fA-F0-9]{40,64}$/),
+});
+
+function accountKeyResponse(key: {
+  id: string;
+  deviceId: string;
+  encryptedPrivateKey: string;
+  publicKeyFingerprint: string;
+  isPrimary: boolean;
+  device: { identityPublicKey: string };
+}) {
+  return {
+    id: key.id,
+    deviceId: key.deviceId,
+    identityPublicKey: key.device.identityPublicKey,
+    identityPrivateKey: decryptMessagingPrivateKey(key.encryptedPrivateKey),
+    publicKeyFingerprint: key.publicKeyFingerprint,
+    isPrimary: key.isPrimary,
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const authorization = await getMessagingUser(request);
+  if ('error' in authorization) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
+  const keys = await prisma.messagingAccountKey.findMany({
+    where: { userId: authorization.user.id, orgId: authorization.user.orgId },
+    include: { device: { select: { identityPublicKey: true } } },
+    orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+  });
+  return NextResponse.json({ keys: keys.map(accountKeyResponse) }, { headers: messagingNoStoreHeaders() });
+}
+
+export async function POST(request: NextRequest) {
+  const authorization = await getMessagingUser(request);
+  if ('error' in authorization) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
+
+  const body = await request.json().catch(() => null);
+  const parsed = accountKeySchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid account messaging key.' }, { status: 400 });
+
+  const fingerprint = parsed.data.publicKeyFingerprint.toUpperCase();
+  try {
+    const [publicKey, privateKey] = await Promise.all([
+      readKey({ armoredKey: parsed.data.identityPublicKey }),
+      readPrivateKey({ armoredKey: parsed.data.identityPrivateKey }),
+    ]);
+    if (publicKey.isPrivate()
+      || publicKey.getFingerprint().toUpperCase() !== fingerprint
+      || privateKey.getFingerprint().toUpperCase() !== fingerprint) {
+      return NextResponse.json({ error: 'OpenPGP account key fingerprint does not match.' }, { status: 400 });
+    }
+  } catch {
+    return NextResponse.json({ error: 'Malformed OpenPGP account key.' }, { status: 400 });
+  }
+
+  const encryptedPrivateKey = encryptMessagingPrivateKey(parsed.data.identityPrivateKey);
+  const key = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`messaging-account:${authorization.user.id}`}))`;
+    const existingPrimary = await tx.messagingAccountKey.findFirst({
+      where: { userId: authorization.user.id, isPrimary: true },
+      select: { id: true },
+    });
+    const device = await tx.messagingDevice.upsert({
+      where: { userId_publicKeyFingerprint: { userId: authorization.user.id, publicKeyFingerprint: fingerprint } },
+      create: {
+        orgId: authorization.user.orgId,
+        userId: authorization.user.id,
+        deviceLabel: 'Account encryption key',
+        identityPublicKey: parsed.data.identityPublicKey,
+        publicKeyFingerprint: fingerprint,
+        protocolVersion: 1,
+      },
+      update: {
+        identityPublicKey: parsed.data.identityPublicKey,
+        lastSeenAt: new Date(),
+        revokedAt: null,
+      },
+      select: { id: true },
+    });
+    return tx.messagingAccountKey.upsert({
+      where: { userId_publicKeyFingerprint: { userId: authorization.user.id, publicKeyFingerprint: fingerprint } },
+      create: {
+        orgId: authorization.user.orgId,
+        userId: authorization.user.id,
+        deviceId: device.id,
+        encryptedPrivateKey,
+        publicKeyFingerprint: fingerprint,
+        isPrimary: !existingPrimary,
+      },
+      update: { encryptedPrivateKey },
+      include: { device: { select: { identityPublicKey: true } } },
+    });
+  });
+
+  return NextResponse.json({ key: accountKeyResponse(key) }, { status: 201, headers: messagingNoStoreHeaders() });
+}

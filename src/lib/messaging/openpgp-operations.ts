@@ -62,7 +62,7 @@ export async function decryptVerifiedOpenPgpText(input: {
 
 export async function decryptVerifiedOpenPgpTextWithKeys(input: {
   message: openpgp.Message<openpgp.MaybeStream<Uint8Array>>;
-  recipientPrivateKey: openpgp.PrivateKey;
+  recipientPrivateKey: openpgp.PrivateKey | openpgp.PrivateKey[];
   senderPublicKey: openpgp.PublicKey;
 }) {
   const result = await openpgp.decrypt({
@@ -121,7 +121,7 @@ export async function decryptVerifiedOpenPgpBinary(input: {
 
 export async function decryptVerifiedOpenPgpBinaryWithKeys(input: {
   message: openpgp.Message<openpgp.MaybeStream<Uint8Array>>;
-  recipientPrivateKey: openpgp.PrivateKey;
+  recipientPrivateKey: openpgp.PrivateKey | openpgp.PrivateKey[];
   senderPublicKey: openpgp.PublicKey;
 }) {
   const result = await openpgp.decrypt({ message: input.message, decryptionKeys: input.recipientPrivateKey, verificationKeys: input.senderPublicKey.toPublic(), expectSigned: true, format: 'binary' });

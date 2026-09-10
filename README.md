@@ -60,6 +60,7 @@ DATABASE_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public
 DIRECT_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public"
 DATABASE_POOL_MAX="5"
 AUTH_SECRET="your-auth-secret"
+MESSAGING_ENCRYPTION_KEY="a-stable-random-secret-of-at-least-32-characters"
 META_WEBHOOK_VERIFY_TOKEN="irisos_meta_verify_token"
 GEMINI_API_KEY="your-google-ai-api-key"
 OPENAI_API_KEY="your-openai-api-key"
@@ -79,6 +80,8 @@ SMTP_USER="noreply@irisos.app"
 SMTP_PASSWORD="your-google-app-password"
 APP_URL="https://irisos.app"
 ```
+
+`MESSAGING_ENCRYPTION_KEY` encrypts account-scoped messaging private keys at rest. Keep it stable across deployments; changing or losing it makes stored message keyrings unreadable. When omitted, the app falls back to `INTEGRATION_ENCRYPTION_KEY` and then `AUTH_SECRET` for compatibility.
 
 For a serverless Supabase deployment, use the transaction-pooler URL (port
 `6543`, with `?pgbouncer=true`) for runtime `DATABASE_URL`. Keep `DIRECT_URL` on

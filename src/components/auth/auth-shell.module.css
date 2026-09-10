@@ -190,11 +190,29 @@
   font-size: var(--text-auth-body);
   outline: 2px solid transparent;
   outline-offset: 1px;
-  transition: border-color var(--dur-auth-fast) var(--ease-auth-out), background-color var(--dur-auth-fast) var(--ease-auth-out);
+  transition: border-color var(--dur-auth-fast) var(--ease-auth-out), background-color var(--dur-auth-fast) var(--ease-auth-out), box-shadow var(--dur-auth-fast) var(--ease-auth-out);
 }
 
 .input::placeholder {
   color: var(--color-auth-placeholder);
+}
+
+.input:autofill,
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  border-color: var(--color-auth-focus);
+  background-color: var(--color-auth-field);
+  -webkit-text-fill-color: var(--color-auth-ink);
+  caret-color: var(--color-auth-ink);
+  -webkit-box-shadow:
+    inset 0 0 0 1000px var(--color-auth-field),
+    0 0 0 1px var(--color-auth-focus-soft),
+    0 0 0.85rem var(--color-auth-focus-soft);
+  box-shadow:
+    inset 0 0 0 1000px var(--color-auth-field),
+    0 0 0 1px var(--color-auth-focus-soft),
+    0 0 0.85rem var(--color-auth-focus-soft);
 }
 
 .input:focus-visible {

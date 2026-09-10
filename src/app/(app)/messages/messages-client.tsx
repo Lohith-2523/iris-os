@@ -278,6 +278,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     conversation: Conversation,
     options: {
       replace?: boolean;
+      retryLocked?: boolean;
       preloaded?: { messages: WireMessage[]; receiptStates: ReceiptState[] };
     } = {},
   ) => {
@@ -286,7 +287,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     try {
       let payload = options.preloaded;
       if (!payload) {
-        const cursor = options.replace ? null : cursorByConversationRef.current.get(conversation.id);
+        const cursor = options.replace || options.retryLocked ? null : cursorByConversationRef.current.get(conversation.id);
         const query = new URLSearchParams({ conversationId: conversation.id });
         if (cursor?.after) {
           query.set('after', cursor.after);
@@ -357,7 +358,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
         return {
           ...message,
           plaintext: local?.plaintext ?? message.plaintext,
-          attachments: local?.attachments?.length ? local.attachments : message.attachments,
+          attachments: local?.attachments?.some((attachment) => attachment.name) ? local.attachments : message.attachments,
           deliveryState: message.senderUserId === userId ? (receipt?.readAt ? 'read' : 'sent') : undefined,
         } as DisplayMessage;
       });
@@ -422,7 +423,10 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     const cachedMessages = threadMessageCacheRef.current.get(selected.id);
     setMessages(cachedMessages || []);
     setConversationLoading(cachedMessages === undefined);
-    const sync = () => void loadMessages(selected).catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Unable to load messages.'));
+    const sync = () => {
+      const retryLocked = Boolean(threadMessageCacheRef.current.get(selected.id)?.some((message) => message.plaintext === null));
+      void loadMessages(selected, { retryLocked }).catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Unable to load messages.'));
+    };
     if (cachedMessages === undefined) {
       void loadMessages(selected, { replace: true })
         .catch((loadError) => setError(loadError instanceof Error ? loadError.message : 'Unable to load messages.'))
@@ -438,10 +442,12 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     const stream = new EventSource(`/api/messaging/stream?conversationId=${encodeURIComponent(selected.id)}`);
     stream.addEventListener('change', sync);
     const fallback = window.setInterval(sync, 10_000);
+    window.addEventListener('focus', sync);
     return () => {
       activeConversationIdRef.current = '';
       stream.close();
       window.clearInterval(fallback);
+      window.removeEventListener('focus', sync);
     };
   }, [loadMessages, selected]);
 
@@ -755,14 +761,14 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                 </div>
                 <span className={`${styles.securePill} ${protocolReady ? styles.secureReady : ''}`}>
                   {protocolReady ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
-                  {protocolReady ? 'Signed end-to-end encryption' : 'Preparing secure device'}
+                  {protocolReady ? 'Account encryption active' : 'Preparing account encryption'}
                 </span>
               </header>
               <div className={styles.messages} aria-live="polite">
                 {conversationLoading ? (
                   <div className={styles.threadLoading} role="status">Decrypting conversation…</div>
                 ) : messages.length === 0 ? (
-                  <div className={styles.empty}><div><span className={styles.emptyIcon}><LockKeyhole size={23} /></span><h2>A private conversation</h2><p>End-to-End Encryption, powered by CipherText</p></div></div>
+                  <div className={styles.empty}><div><span className={styles.emptyIcon}><LockKeyhole size={23} /></span><h2>A private conversation</h2><p>Encrypted with keys secured to your account</p></div></div>
                 ) : messages.map((message) => {
                   const meeting = parseMeetingMessage(message.plaintext);
                   const meetingExpanded = expandedMeetingId === message.id;
@@ -775,7 +781,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                         <span><Clock3 size={14} />{meetingTime(meeting)} · {meeting.timeZone}</span>
                         {safeMeetingLink(meeting.meetingLink) && <a href={safeMeetingLink(meeting.meetingLink)} target="_blank" rel="noreferrer"><Link2 size={14} />Open meeting link</a>}
                       </div>}
-                    </div> : (message.plaintext || 'Encrypted message — unlock with a registered secure device.')}
+                    </div> : (message.plaintext || 'Encrypted message — syncing account key…')}
                     {message.attachments.length > 0 && (
                       <div className={styles.receivedAttachments}>
                         {message.attachments.map((attachment) => (
@@ -802,7 +808,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                 })}
               </div>
               <div ref={composerWrapRef} className={styles.composerWrap}>
-                {!protocolReady && <div className={styles.protocolNotice}><ShieldAlert size={15} /><span>{protocolError || 'Generating or restoring this browser’s OpenPGP device identity. Sending remains locked until secure setup completes.'}</span></div>}
+                {!protocolReady && <div className={styles.protocolNotice}><ShieldAlert size={15} /><span>{protocolError || 'Restoring the encryption keys secured to your account. Sending remains locked until setup completes.'}</span></div>}
                 <div className={styles.composer}>
                   <input ref={attachmentInputRef} className={styles.fileInput} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.avif,.mp3,.m4a,.ogg,.wav,.webm,.mp4,.mov,.pdf,.txt,.csv,.docx,.xlsx,.pptx,.zip" onChange={(event) => void queueAttachments(event.target.files)} />
                   <textarea className={styles.input} rows={2} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write a secure message…" disabled={!protocolReady} />
