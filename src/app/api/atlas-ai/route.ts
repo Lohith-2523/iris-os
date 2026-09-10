@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
@@ -22,6 +23,7 @@ import { IrisEmailDeliveryError } from '@/lib/email/iris-email';
 import { publicAppUrl } from '@/lib/app-url';
 import {
   automationConfirmationMessage,
+  automationDraftSchema,
   isAutomationRequest,
   isDecisionAutomationRequest,
   mergeAutomationWorkflow,
@@ -75,6 +77,18 @@ const atlasRequestSchema = z.object({
   query: z.string().trim().max(8_000).optional().default(''),
   context: z.record(z.string(), z.unknown()).optional(),
   sessionId: z.string().trim().min(1).max(128).optional(),
+  voiceWorkflow: z.object({
+    confirmed: z.literal(true),
+    transcript: z.array(z.object({
+      role: z.enum(['user', 'assistant']),
+      content: z.string().trim().min(1).max(1_000),
+    }).strict()).min(2).max(40),
+    action: z.object({
+      kind: z.enum(['PROJECT', 'TASK', 'INVOICE', 'REPORT', 'MEETING']),
+      request: z.string().trim().min(1).max(2_000),
+      details: z.record(z.string(), z.unknown()),
+    }).strict(),
+  }).strict().optional(),
 }).strict();
 
 function checkRateLimit(key: string, windowMs: number, maxRequests: number): boolean {
@@ -397,7 +411,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid Atlas AI request.' }, { status: 400 });
     }
-    const { action, query, context, sessionId } = parsed.data;
+    const { action, query, context, sessionId, voiceWorkflow } = parsed.data;
 
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -436,7 +450,8 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
 
     // 2. Injection Protection Check
     if (query && typeof query === 'string') {
-      const securityCheck = detectInjection(query);
+      const voiceTranscript = voiceWorkflow?.transcript.map((turn) => turn.content).join('\n') || '';
+      const securityCheck = detectInjection(`${query}\n${voiceTranscript}`);
       if (securityCheck.detected) {
         return NextResponse.json({ error: `Security Blocked: ${securityCheck.reason}` }, { status: 400 });
       }
@@ -865,13 +880,25 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           return NextResponse.json({ error: 'Chat session not found' }, { status: 404 });
         }
 
+        const workflowQuery = voiceWorkflow
+          ? [
+              `Create the confirmed ${voiceWorkflow.action.kind.toLowerCase()} described below.`,
+              `Confirmed action: ${voiceWorkflow.action.request}`,
+              'Execute only this action without requesting another confirmation.',
+            ].join('\n')
+          : query;
+        const confirmedVoiceKind = voiceWorkflow?.action.kind;
+
         if (plan === 'PRO') {
           const activeAutomation = activeSession?.workflowType === 'AUTOMATION'
             ? activeSession.workflowState as Partial<AutomationWorkflowState> | null
             : null;
           const isInvoiceWorkflow = activeAutomation?.kind === 'INVOICE';
-          const isInvoiceRequest = isAutomationRequest(query) && /\b(invoice|invoicing|bill|billing)\b/i.test(query);
-          const isAllowedMeeting = activeSession?.workflowType === 'MEETING' || isMeetingRequest(query);
+          const isInvoiceRequest = confirmedVoiceKind === 'INVOICE'
+            || (isAutomationRequest(workflowQuery) && /\b(invoice|invoicing|bill|billing)\b/i.test(workflowQuery));
+          const isAllowedMeeting = confirmedVoiceKind === 'MEETING'
+            || activeSession?.workflowType === 'MEETING'
+            || isMeetingRequest(workflowQuery);
           if (!isAllowedMeeting && !isInvoiceWorkflow && !isInvoiceRequest) {
             return NextResponse.json({
               error: 'On the Pro plan, Atlas AI chat can only create meetings and invoices.',
@@ -880,8 +907,9 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
         }
 
         const automationWorkflowActive = activeSession?.workflowType === 'AUTOMATION';
-        const delegatedDecisionRequest = isDecisionAutomationRequest(query);
-        if (automationWorkflowActive || isAutomationRequest(query) || (delegatedDecisionRequest && org.aiSharingConsent)) {
+        const delegatedDecisionRequest = isDecisionAutomationRequest(workflowQuery);
+        const confirmedVoiceAutomation = Boolean(confirmedVoiceKind && confirmedVoiceKind !== 'MEETING');
+        if (automationWorkflowActive || confirmedVoiceAutomation || isAutomationRequest(workflowQuery) || (delegatedDecisionRequest && org.aiSharingConsent)) {
           if (!isOrganizationAdmin(user)) {
             return NextResponse.json(
               { error: 'Only workspace administrators can create records with Atlas AI.' },
@@ -940,56 +968,78 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
               orderBy: { fullName: 'asc' },
             }),
           ]);
-          const automationResult = await extractAutomationDetailsWithGemini({
-            query,
-            currentState,
-            currentDate: new Date().toISOString().slice(0, 10),
-            currency: org.currency,
-            directory: {
-              clients: clients.map((client) => ({
-                name: client.name,
-                status: client.status,
-                churnRiskScore: client.churnRiskScore,
-                roiMetric: client.roiMetric,
-                activeProjects: client.projects.filter((project) => ['NOT_STARTED', 'IN_PROGRESS'].includes(project.status)).length,
-              })),
-              projects: projects.map((project) => ({
-                name: project.name,
-                clientName: project.client.name,
-                status: project.status,
-                progress: project.progress,
-                riskLevel: project.riskLevel,
-                riskDescription: project.riskDescription || '',
-                serviceLine: project.serviceLine || '',
-                startDate: project.startDate.toISOString().slice(0, 10),
-                endDate: project.endDate?.toISOString().slice(0, 10) || '',
-                paymentType: project.paymentType,
-                paymentAmount: project.paymentAmount,
-                paymentFrequency: project.paymentFrequency || '',
-                openTasks: project.tasks.filter((task) => task.status !== 'COMPLETED').length,
-                blockedTasks: project.tasks.filter((task) => task.status === 'BLOCKED').length,
-                assignedTeam: project.members.map((member) => member.user.name),
-              })),
-              team: team.map((member) => ({
-                name: member.name,
-                email: member.email,
-                role: member.role,
-                activeTasks: member.clientTasks.filter((task) => task.status !== 'COMPLETED').length,
-                assignedProjects: member.projectMembers.length,
-              })),
-              leads: leads.map((lead) => ({
-                name: lead.fullName,
-                email: lead.email,
-                status: lead.status,
-                estimatedValue: lead.estimatedClientValue,
-              })),
-            },
-            decisionRequested: delegatedDecisionRequest || Boolean(currentState?.decisionMode),
-            tokenBudget,
-          });
+          let automationResult;
+          if (voiceWorkflow) {
+            const voiceDraft = automationDraftSchema.safeParse(voiceWorkflow.action.details);
+            if (!voiceDraft.success) {
+              return NextResponse.json({
+                error: 'The confirmed voice details were invalid. Please review them and confirm again.',
+              }, { status: 400 });
+            }
+            automationResult = {
+              kind: confirmedVoiceKind === 'MEETING' ? 'NONE' as const : confirmedVoiceKind!,
+              action: 'CONFIRM' as const,
+              draft: voiceDraft.data,
+              reply: '',
+              decisionMode: false,
+              decisionRationale: '',
+              decisionEvidence: [],
+            };
+          } else {
+            automationResult = await extractAutomationDetailsWithGemini({
+              query: workflowQuery,
+              currentState,
+              currentDate: new Date().toISOString().slice(0, 10),
+              currency: org.currency,
+              directory: {
+                clients: clients.map((client) => ({
+                  name: client.name,
+                  status: client.status,
+                  churnRiskScore: client.churnRiskScore,
+                  roiMetric: client.roiMetric,
+                  activeProjects: client.projects.filter((project) => ['NOT_STARTED', 'IN_PROGRESS'].includes(project.status)).length,
+                })),
+                projects: projects.map((project) => ({
+                  name: project.name,
+                  clientName: project.client.name,
+                  status: project.status,
+                  progress: project.progress,
+                  riskLevel: project.riskLevel,
+                  riskDescription: project.riskDescription || '',
+                  serviceLine: project.serviceLine || '',
+                  startDate: project.startDate.toISOString().slice(0, 10),
+                  endDate: project.endDate?.toISOString().slice(0, 10) || '',
+                  paymentType: project.paymentType,
+                  paymentAmount: project.paymentAmount,
+                  paymentFrequency: project.paymentFrequency || '',
+                  openTasks: project.tasks.filter((task) => task.status !== 'COMPLETED').length,
+                  blockedTasks: project.tasks.filter((task) => task.status === 'BLOCKED').length,
+                  assignedTeam: project.members.map((member) => member.user.name),
+                })),
+                team: team.map((member) => ({
+                  name: member.name,
+                  email: member.email,
+                  role: member.role,
+                  activeTasks: member.clientTasks.filter((task) => task.status !== 'COMPLETED').length,
+                  assignedProjects: member.projectMembers.length,
+                })),
+                leads: leads.map((lead) => ({
+                  name: lead.fullName,
+                  email: lead.email,
+                  status: lead.status,
+                  estimatedValue: lead.estimatedClientValue,
+                })),
+              },
+              decisionRequested: delegatedDecisionRequest || Boolean(currentState?.decisionMode),
+              tokenBudget,
+            });
+          }
           let workflowState = mergeAutomationWorkflow(currentState, automationResult);
           if (!workflowState) {
             return NextResponse.json({ error: 'Atlas AI could not identify the requested automation.' }, { status: 400 });
+          }
+          if (confirmedVoiceKind && confirmedVoiceKind !== 'MEETING') {
+            workflowState = { ...workflowState, kind: confirmedVoiceKind };
           }
           if (!canUseAtlasCapability(plan, 'INVOICE') || (plan === 'PRO' && workflowState.kind !== 'INVOICE')) {
             return NextResponse.json({
@@ -998,6 +1048,11 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           }
 
           const missingFields = missingAutomationFields(workflowState);
+          if (voiceWorkflow && missingFields.length > 0) {
+            return NextResponse.json({
+              error: `The confirmed voice request is missing: ${missingFields.join(', ')}. Please provide those details and confirm again.`,
+            }, { status: 400 });
+          }
           let output: string;
           let workflowComplete = false;
           let createdAutomation: Awaited<ReturnType<typeof executeAtlasAutomation>> | null = null;
@@ -1006,8 +1061,10 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
             output = 'Automation cancelled. No records were created.';
             workflowComplete = true;
           } else if (
-            automationResult.action === 'CONFIRM'
-            && currentState?.awaitingConfirmation
+            (voiceWorkflow || (
+              automationResult.action === 'CONFIRM'
+              && currentState?.awaitingConfirmation
+            ))
             && missingFields.length === 0
           ) {
             createdAutomation = await executeAtlasAutomation({
@@ -1017,7 +1074,14 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
               baseUrl: publicAppUrl(request),
               workspaceContext: dbContextText,
               tokenBudget,
-              automationKey: sessionId ? `atlas-automation:${sessionId}` : undefined,
+              automationKey: sessionId
+                ? voiceWorkflow
+                  ? `atlas-voice:${sessionId}:${createHash('sha256')
+                      .update(`${voiceWorkflow.action.kind}:${voiceWorkflow.action.request}`)
+                      .digest('hex')
+                      .slice(0, 24)}`
+                  : `atlas-automation:${sessionId}`
+                : undefined,
             });
             output = createdAutomation.message;
             workflowComplete = true;
@@ -1031,6 +1095,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
 
           const persistedSessionId = await prisma.$transaction(async (tx) => {
             let persistedId = sessionId;
+            let createdSession = false;
             if (!persistedId) {
               const subject = workflowState.kind.toLowerCase();
               const title = workflowState.draft.name || workflowState.draft.title || workflowState.draft.projectName;
@@ -1044,6 +1109,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
                 },
               });
               persistedId = session.id;
+              createdSession = true;
             } else {
               await tx.atlasChatSession.update({
                 where: { id: persistedId },
@@ -1056,7 +1122,18 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
             }
             await tx.askAtlasMessage.createMany({
               data: [
-                { role: 'user', content: query, userId: user.id, orgId: user.orgId, sessionId: persistedId },
+                ...(voiceWorkflow && createdSession
+                  ? voiceWorkflow.transcript.map((turn) => ({
+                      role: turn.role,
+                      content: turn.content,
+                      userId: user.id,
+                      orgId: user.orgId,
+                      sessionId: persistedId,
+                    }))
+                  : []),
+                ...(!voiceWorkflow
+                  ? [{ role: 'user', content: query, userId: user.id, orgId: user.orgId, sessionId: persistedId }]
+                  : []),
                 { role: 'assistant', content: output, userId: user.id, orgId: user.orgId, sessionId: persistedId },
               ],
             });
@@ -1075,15 +1152,18 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
                   invalidateTags: createdAutomation.invalidateTags,
                 }
               : { completed: false, kind: workflowState.kind },
+            workflow: { active: !workflowComplete, kind: workflowState.kind },
           });
         }
 
         const meetingWorkflowActive = activeSession?.workflowType === 'MEETING';
-        if (meetingWorkflowActive || isMeetingRequest(query)) {
+        if (confirmedVoiceKind === 'MEETING' || meetingWorkflowActive || isMeetingRequest(workflowQuery)) {
           const currentState = meetingWorkflowActive
             ? activeSession.workflowState as Partial<MeetingWorkflowState> | null
             : null;
-          const timeZone = validTimeZone(currentState?.timeZone || context?.timeZone);
+          const timeZone = validTimeZone(
+            voiceWorkflow?.action.details.timeZone || currentState?.timeZone || context?.timeZone,
+          );
           const [teamDirectory, clientDirectory] = await Promise.all([
             prisma.user.findMany({
               where: { orgId: user.orgId },
@@ -1097,8 +1177,19 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
             }),
           ]);
 
-          const geminiResult = await extractMeetingDetailsWithGemini({
-            query,
+          const geminiResult = voiceWorkflow
+            ? {
+                title: typeof voiceWorkflow.action.details.title === 'string' ? voiceWorkflow.action.details.title : '',
+                attendees: Array.isArray(voiceWorkflow.action.details.attendees)
+                  ? voiceWorkflow.action.details.attendees.filter((value): value is string => typeof value === 'string')
+                  : [],
+                startLocal: typeof voiceWorkflow.action.details.startLocal === 'string' ? voiceWorkflow.action.details.startLocal : '',
+                action: 'CONFIRM' as const,
+                reply: '',
+                model: process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime',
+              }
+            : await extractMeetingDetailsWithGemini({
+            query: workflowQuery,
             currentState,
             timeZone,
             currentLocalDateTime: localDateTimeForPrompt(timeZone),
@@ -1110,6 +1201,11 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
           });
           let workflowState = mergeMeetingWorkflow(currentState, geminiResult, timeZone);
           const missingFields = missingMeetingFields(workflowState);
+          if (voiceWorkflow && missingFields.length > 0) {
+            return NextResponse.json({
+              error: `The confirmed voice request is missing: ${missingFields.join(', ')}. Please provide those details and confirm again.`,
+            }, { status: 400 });
+          }
           let output: string;
           let createdMeeting: Awaited<ReturnType<typeof createAtlasMeeting>> | null = null;
           let workflowComplete = false;
@@ -1118,8 +1214,10 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
             output = 'Meeting setup cancelled. No calendar event or invitations were created.';
             workflowComplete = true;
           } else if (
-            geminiResult.action === 'CONFIRM'
-            && currentState?.awaitingConfirmation
+            (voiceWorkflow || (
+              geminiResult.action === 'CONFIRM'
+              && currentState?.awaitingConfirmation
+            ))
             && missingFields.length === 0
           ) {
             const startTime = zonedLocalDateTimeToUtc(workflowState.startLocal, workflowState.timeZone);
@@ -1168,6 +1266,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
 
           const persistedSessionId = await prisma.$transaction(async (tx) => {
             let persistedId = sessionId;
+            let createdSession = false;
             if (!persistedId) {
               const title = workflowState.title
                 ? `Meeting: ${workflowState.title}`.slice(0, 80)
@@ -1182,6 +1281,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
                 },
               });
               persistedId = session.id;
+              createdSession = true;
             } else {
               await tx.atlasChatSession.update({
                 where: { id: persistedId },
@@ -1195,7 +1295,18 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
 
             await tx.askAtlasMessage.createMany({
               data: [
-                { role: 'user', content: query, userId: user.id, orgId: user.orgId, sessionId: persistedId },
+                ...(voiceWorkflow && createdSession
+                  ? voiceWorkflow.transcript.map((turn) => ({
+                      role: turn.role,
+                      content: turn.content,
+                      userId: user.id,
+                      orgId: user.orgId,
+                      sessionId: persistedId,
+                    }))
+                  : []),
+                ...(!voiceWorkflow
+                  ? [{ role: 'user', content: query, userId: user.id, orgId: user.orgId, sessionId: persistedId }]
+                  : []),
                 { role: 'assistant', content: output, userId: user.id, orgId: user.orgId, sessionId: persistedId },
               ],
             });
@@ -1208,6 +1319,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
             sessionId: persistedSessionId,
             persisted: true,
             meeting: createdMeeting?.event || null,
+            workflow: { active: !workflowComplete, kind: 'MEETING' },
           });
         }
 

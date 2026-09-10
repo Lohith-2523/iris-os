@@ -46,16 +46,35 @@ export class WorkspaceIdentityConflictError extends Error {
   }
 }
 
-function hasVerifiedEmail(identity: SupabaseUser) {
-  return Boolean(identity.email_confirmed_at || identity.confirmed_at);
+type AuthenticatedIdentity = Pick<
+  SupabaseUser,
+  'id' | 'email' | 'phone' | 'user_metadata' | 'email_confirmed_at' | 'confirmed_at'
+> & {
+  emailVerified?: boolean;
+};
+
+function hasVerifiedEmail(identity: AuthenticatedIdentity) {
+  return identity.emailVerified === true || Boolean(identity.email_confirmed_at || identity.confirmed_at);
 }
 
-async function resolveAuthenticatedIdentity(): Promise<SupabaseUser | null> {
-  return measureServerOperation('identity.supabase.get-user', async () => {
+async function resolveAuthenticatedIdentity(): Promise<AuthenticatedIdentity | null> {
+  return measureServerOperation('identity.supabase.get-claims', async () => {
     const supabase = await createClient();
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user?.email) return null;
-    return data.user;
+    const { data, error } = await supabase.auth.getClaims();
+    const claims = data?.claims;
+    if (error || !claims?.sub || typeof claims.email !== 'string') return null;
+
+    const userMetadata = claims.user_metadata && typeof claims.user_metadata === 'object'
+      ? claims.user_metadata as SupabaseUser['user_metadata']
+      : {};
+
+    return {
+      id: claims.sub,
+      email: claims.email,
+      phone: typeof claims.phone === 'string' ? claims.phone : undefined,
+      user_metadata: userMetadata,
+      emailVerified: claims.email_verified === true || userMetadata.email_verified === true,
+    };
   });
 }
 
@@ -97,7 +116,7 @@ async function resolveRequestUser(_request?: unknown) {
 
 export const getRequestUser = cache(resolveRequestUser);
 
-export async function provisionAuthenticatedUser(identity: SupabaseUser) {
+export async function provisionAuthenticatedUser(identity: AuthenticatedIdentity) {
   if (!identity.email) throw new Error('Authenticated user is missing an email address.');
 
   const normalizedEmail = identity.email.trim().toLowerCase();

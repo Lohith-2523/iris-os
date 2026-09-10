@@ -3,15 +3,6 @@ import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { normalizePlan } from '@/lib/plan-entitlements';
 
-function proSessionAllowed(session: { workflowType: string | null; workflowState: unknown }) {
-  if (session.workflowType === 'MEETING') return true;
-  return session.workflowType === 'AUTOMATION'
-    && typeof session.workflowState === 'object'
-    && session.workflowState !== null
-    && !Array.isArray(session.workflowState)
-    && (session.workflowState as Record<string, unknown>).kind === 'INVOICE';
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -41,8 +32,6 @@ export async function GET(
     if (!session || session.userId !== user.id || session.orgId !== user.orgId) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
-    if (plan === 'PRO' && !proSessionAllowed(session)) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-
     return NextResponse.json(session);
   } catch (error: any) {
     console.error('Error fetching chat session:', error);
@@ -68,8 +57,6 @@ export async function DELETE(
     if (!session || session.userId !== user.id || session.orgId !== user.orgId) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
-    if (plan === 'PRO' && !proSessionAllowed(session)) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-
     await prisma.atlasChatSession.delete({
       where: { id },
     });
@@ -102,10 +89,6 @@ export async function PATCH(
     if (!session || session.userId !== user.id || session.orgId !== user.orgId) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
-    if (plan === 'PRO' && !proSessionAllowed(session)) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
     const updated = await prisma.atlasChatSession.update({
       where: { id },
       data: { title },

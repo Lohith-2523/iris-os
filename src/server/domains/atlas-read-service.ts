@@ -7,15 +7,6 @@ import type { RequestSecurityContext } from '@/server/security/request-security-
 
 const retryOptions = { maxAttempts: 3, delaysMs: [150, 500] } as const;
 
-function proSessionAllowed(session: { workflowType: string | null; workflowState: unknown }) {
-  if (session.workflowType === 'MEETING') return true;
-  return session.workflowType === 'AUTOMATION'
-    && typeof session.workflowState === 'object'
-    && session.workflowState !== null
-    && !Array.isArray(session.workflowState)
-    && (session.workflowState as Record<string, unknown>).kind === 'INVOICE';
-}
-
 export const getAtlasInitialReadModel = cache(async (ctx: RequestSecurityContext) => {
   const sessionRows = await withDatabaseConnectionRetry(() => prisma.atlasChatSession.findMany({
     where: { userId: ctx.userId, orgId: ctx.orgId },
@@ -34,7 +25,7 @@ export const getAtlasInitialReadModel = cache(async (ctx: RequestSecurityContext
     },
   }), retryOptions);
 
-  const visibleSessions = (ctx.plan === 'PRO' ? sessionRows.filter(proSessionAllowed) : sessionRows).slice(0, 50);
+  const visibleSessions = sessionRows.slice(0, 50);
   const sessionMessages = Object.fromEntries(visibleSessions.map((session) => [
     session.id,
     session.messages.map((message) => ({

@@ -43,6 +43,18 @@ export class AtlasAIRequestError extends Error {
   }
 }
 
+export type AtlasVoiceWorkflowAction = {
+  kind: 'PROJECT' | 'TASK' | 'INVOICE' | 'REPORT' | 'MEETING';
+  request: string;
+  details: Record<string, unknown>;
+};
+
+export type AtlasVoiceWorkflowHandoff = {
+  confirmed: true;
+  transcript: Array<{ role: 'user' | 'assistant'; content: string }>;
+  action: AtlasVoiceWorkflowAction;
+};
+
 // Automatic Atlas insights are derived from a point-in-time workspace snapshot.
 // Keep them in session storage (not local storage) so navigating between workspace
 // pages does not repeatedly invoke an AI provider, while a new browser session starts
@@ -210,7 +222,11 @@ export const AtlasAIService = {
     query: string,
     context?: any,
     sessionId?: string,
-    options?: { onDelta?: (delta: string) => void; signal?: AbortSignal },
+    options?: {
+      onDelta?: (delta: string) => void;
+      signal?: AbortSignal;
+      voiceWorkflow?: AtlasVoiceWorkflowHandoff;
+    },
   ): Promise<{
     result: string;
     model: string;
@@ -218,6 +234,10 @@ export const AtlasAIService = {
     automation?: {
       completed: boolean;
       entity?: { type: 'project' | 'task' | 'invoice' | 'report'; id: string; href: string };
+    };
+    workflow?: {
+      active: boolean;
+      kind: 'PROJECT' | 'TASK' | 'INVOICE' | 'REPORT' | 'MEETING';
     };
   }> {
     if (typeof window === 'undefined') {
@@ -237,7 +257,13 @@ export const AtlasAIService = {
           'Content-Type': 'application/json',
           Accept: 'application/x-ndjson',
         },
-        body: JSON.stringify({ action: 'ask-atlas', query, context: meetingContext, sessionId }),
+        body: JSON.stringify({
+          action: 'ask-atlas',
+          query,
+          context: meetingContext,
+          sessionId,
+          voiceWorkflow: options?.voiceWorkflow,
+        }),
         signal: options?.signal,
       });
     } catch (error) {
@@ -293,6 +319,7 @@ export const AtlasAIService = {
       model: data.model || 'Atlas AI',
       sessionId: data.sessionId,
       automation: data.automation,
+      workflow: data.workflow,
     };
   },
 
@@ -320,6 +347,26 @@ export const AtlasAIService = {
     if (!res.ok) return [];
     const data = await res.json();
     return data.sessions || [];
+  },
+
+  async persistVoiceTurn(
+    role: 'user' | 'assistant',
+    content: string,
+    sessionId?: string,
+  ): Promise<{ sessionId: string; created: boolean }> {
+    const res = await workspaceFetch('/api/atlas-ai/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, content, sessionId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || typeof data.sessionId !== 'string') {
+      throw new AtlasAIRequestError(
+        typeof data.error === 'string' ? data.error : 'Atlas could not save this voice turn.',
+        res.status,
+      );
+    }
+    return { sessionId: data.sessionId, created: Boolean(data.created) };
   },
 
   async getSessionMessages(id: string) {
