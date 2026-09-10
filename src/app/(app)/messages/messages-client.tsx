@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarPlus, Check, ChevronDown, Clock3, Download, Eye, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
+import { isMessagingTeamRole } from '@/lib/messaging/roles';
+import { CalendarPlus, Check, ChevronDown, CircleCheck, Clock3, Download, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
 import { getMessagingProtocol } from '@/lib/messaging/protocol';
 import { safeDownloadName, validateBrowserFile, type SafeAttachmentCategory } from '@/lib/file-security';
 import type { MessagingLimits } from '@/lib/plan-entitlements';
@@ -102,7 +103,7 @@ function DeliveryReceipt({ state }: { state: DeliveryState }) {
   if (state === 'failed') return <span className={styles.failedState}>Failed</span>;
   if (state === 'sending') return <span className={styles.sendingState}>Sending</span>;
   if (state === 'read') return <span className={styles.readReceipt} aria-label="Seen" title="Seen">
-    <Eye aria-hidden="true" size={15} strokeWidth={2.2} />
+    <CircleCheck aria-hidden="true" size={15} strokeWidth={2.2} />
   </span>;
   return <span className={styles.sentReceipt} aria-label="Sent" title="Sent"><Check size={15} strokeWidth={2.4} /></span>;
 }
@@ -242,6 +243,20 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   }, []);
 
   const loadInbox = React.useCallback(async () => applyInbox(await requestInbox()), [applyInbox, requestInbox]);
+
+  React.useEffect(() => {
+    const syncInbox = () => {
+      void loadInbox().catch((inboxError) => {
+        setError(inboxError instanceof Error ? inboxError.message : 'Unable to refresh secure messaging.');
+      });
+    };
+    const refresh = window.setInterval(syncInbox, 10_000);
+    window.addEventListener('focus', syncInbox);
+    return () => {
+      window.clearInterval(refresh);
+      window.removeEventListener('focus', syncInbox);
+    };
+  }, [loadInbox]);
 
   React.useEffect(() => {
     if (!composerMenuOpen) return;
@@ -663,7 +678,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   const isAdmin = currentUserRole.toLowerCase() === 'admin';
   const matchesAudience = (person: Person | null) => Boolean(person) && (audience === 'clients'
     ? person!.role.toLowerCase() === 'client'
-    : person!.role.toLowerCase() === 'member');
+    : isMessagingTeamRole(person!.role));
   const visibleDirectory = isAdmin ? directory.filter(matchesAudience) : directory;
   const visibleConversations = isAdmin ? conversations.filter((conversation) => matchesAudience(conversation.participant)) : conversations;
 

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { withDatabaseConnectionRetry } from '@/lib/database-resilience';
 import type { MessagingLimits } from '@/lib/plan-entitlements';
 import type { SafeAttachmentCategory } from '@/lib/file-security';
+import { messagingDirectoryRolesFor } from '@/lib/messaging/roles';
 
 type MessagingInboxContext = {
   userId: string;
@@ -15,7 +16,7 @@ type MessagingInboxContext = {
 const retryOptions = { maxAttempts: 3, delaysMs: [150, 500] } as const;
 
 export async function getMessagingInbox(ctx: MessagingInboxContext) {
-  const eligibleRoles = ctx.role.toLowerCase() === 'admin' ? ['client', 'member'] : ['admin'];
+  const eligibleRoles = messagingDirectoryRolesFor(ctx.role);
 
   // Keep each stage within the two-connection application pool. Starting both
   // relation-heavy reads together can starve other Server Components.

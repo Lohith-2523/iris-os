@@ -86,7 +86,13 @@ export async function updateSession(request: NextRequest) {
       pathname === '/api/canva/return'
 
     if (!user && !isPublicRoute) {
-      // no user, potentially respond by redirecting the user to the login page
+      // API consumers expect JSON and fetch follows redirects by default. A
+      // redirect here would turn the login page HTML into a misleading JSON
+      // parse failure in the caller.
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)

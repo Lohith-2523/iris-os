@@ -3,6 +3,7 @@ import 'server-only';
 import type { NextRequest } from 'next/server';
 import { getRequestUser } from '@/lib/org';
 import { entitlementsFor } from '@/lib/plan-entitlements';
+export { isAllowedDirectPair } from '@/lib/messaging/roles';
 
 export async function getMessagingUser(request?: NextRequest) {
   const user = await getRequestUser(request);
@@ -11,11 +12,6 @@ export async function getMessagingUser(request?: NextRequest) {
     return { error: 'Secure messaging is available on the Pro and Advanced plans.', status: 403 } as const;
   }
   return { user, entitlements: entitlementsFor(user.organization.plan) } as const;
-}
-
-export function isAllowedDirectPair(roleA: string, roleB: string) {
-  const roles = new Set([roleA.toLowerCase(), roleB.toLowerCase()]);
-  return roles.has('admin') && (roles.has('client') || roles.has('member')) && roles.size === 2;
 }
 
 export function directParticipantKey(firstUserId: string, secondUserId: string) {
