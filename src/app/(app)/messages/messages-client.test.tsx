@@ -26,12 +26,7 @@ const refreshedInbox = {
     id: 'conversation-1',
     updatedAt: '2026-09-10T06:00:00.000Z',
     participant: { id: 'sub-admin-1', name: 'Sana Shah', email: 'sana@example.com', role: 'sub_admin' },
-    lastMessage: {
-      id: 'message-1',
-      senderUserId: 'sub-admin-1',
-      createdAt: '2026-09-10T06:00:00.000Z',
-      attachmentCount: 0,
-    },
+    lastMessage: null,
     messages: [],
     receiptStates: [],
   }],
@@ -61,5 +56,6 @@ describe('MessagesClient inbox discovery', () => {
     });
 
     expect(screen.getAllByText('Sana Shah').length).toBeGreaterThan(0);
+    expect(screen.getByText('Core member')).toBeInTheDocument();
   });
 });

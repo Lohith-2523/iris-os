@@ -55,7 +55,7 @@ const workspaceCommands: CommandItem[] = [
   { name: 'Data Explorer', category: 'Intelligence', description: 'Explore operational capacity, billings, overhead, and trends.', href: '/explorer', keywords: ['analytics', 'charts', 'datasets', 'capacity', 'billings', 'overhead', 'margin', 'data'] },
   { name: 'Atlas AI', category: 'Intelligence', description: 'Ask Atlas and run workspace-aware intelligence workflows.', href: '/atlas', keywords: ['ai', 'assistant', 'ask atlas', 'analysis', 'forecast', 'insights', 'recommendations', 'command center'] },
   { name: 'Settings', category: 'Administration', description: 'Manage profile, organization, preferences, and integrations.', href: '/settings', keywords: ['profile', 'organization', 'preferences', 'theme', 'integrations', 'account', 'workspace'] },
-  { name: 'Security & Roles', category: 'Administration', description: 'Manage roles, page access, permissions, and offboarding.', href: '/settings/security', keywords: ['security', 'roles', 'permissions', 'access', 'sub-admin', 'offboarding', 'users'] },
+  { name: 'Security & Roles', category: 'Administration', description: 'Manage roles, page access, permissions, and offboarding.', href: '/settings/security', keywords: ['security', 'roles', 'permissions', 'access', 'core member', 'offboarding', 'users'] },
   { name: 'Team Dashboard', category: 'Workspace', description: 'Open the specialist team-member command center.', href: '/teams-dashboard', keywords: ['member dashboard', 'specialist', 'assigned work', 'team workspace'] },
   { name: 'Client Dashboard', category: 'Workspace', description: 'Open the client-facing performance and delivery portal.', href: '/client-dashboard', keywords: ['client portal', 'campaigns', 'client workspace', 'clearance'] },
 ];

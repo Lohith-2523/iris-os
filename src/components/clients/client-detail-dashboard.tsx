@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { clientHasMetaEnabledProject } from '@/lib/agency-specializations';
 import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { ProjectBreakdownDrawer } from '@/components/projects/project-breakdown-drawer';
@@ -930,7 +931,7 @@ export default function ClientDetailDashboard({
                   </div>
                   <div>
                     <span className="block font-semibold text-white text-xs">{assignedSpecialist.name}</span>
-                    <span className="block text-[10px] text-zinc-500 mt-0.5">{assignedSpecialist.role}</span>
+                    <span className="block text-[10px] text-zinc-500 mt-0.5">{workspaceRoleLabel(assignedSpecialist.role)}</span>
                     <span className="block text-[9px] text-zinc-650 font-mono mt-0.5">{assignedSpecialist.email}</span>
                   </div>
                 </div>

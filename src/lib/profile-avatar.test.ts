@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_PROFILE_AVATAR_BYTES, validateProfileAvatarDataUrl } from './profile-avatar';
+import { profileAvatarTemplateUrl } from './profile-avatar-templates';
 
 function dataUrl(mime: string, bytes: number[]) {
   return `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
@@ -23,6 +24,12 @@ describe('profile avatar validation', () => {
   it('accepts only known built-in profile illustrations', () => {
     expect(validateProfileAvatarDataUrl('iris-avatar:waves')).toEqual({ value: 'iris-avatar:waves' });
     expect(validateProfileAvatarDataUrl('iris-avatar:unknown')).toHaveProperty('error');
+  });
+
+  it('maps built-in illustrations to the standard Notionists avatar set', () => {
+    expect(profileAvatarTemplateUrl('iris-avatar:waves')).toBe(
+      'https://api.dicebear.com/10.x/notionists/svg?seed=Christian',
+    );
   });
 
   it('rejects active, mismatched, and oversized content', () => {

@@ -27,6 +27,7 @@ import {
   Users
 } from 'lucide-react';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 
 interface Task {
   id: string;
@@ -775,7 +776,7 @@ export default function TeamsDashboardPage() {
                     <option value="">Select successor specialist...</option>
                     {teamMembers.map(m => (
                       <option key={m.id} value={m.id}>
-                        {m.name} ({m.role})
+                        {m.name} ({workspaceRoleLabel(m.role)})
                       </option>
                     ))}
                   </select>

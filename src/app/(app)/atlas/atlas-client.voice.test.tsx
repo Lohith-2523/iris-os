@@ -80,6 +80,7 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   expect(AtlasAIService.askAtlas).not.toHaveBeenCalled();
   await waitFor(() => expect(AtlasAIService.persistVoiceTurn).toHaveBeenCalledWith('user', 'Hi', undefined));
   await waitFor(() => expect(AtlasAIService.persistVoiceTurn).toHaveBeenCalledWith('assistant', 'Hello! How can I help?', 'voice-history-1'));
+  await waitFor(() => expect(AtlasAIService.getSessions).toHaveBeenCalledTimes(2));
 
   emit('input_audio_buffer.speech_started', { item_id: 'user-1' });
   emit('conversation.item.input_audio_transcription.completed', { item_id: 'user-1', transcript: 'Create a project and an invoice.' });

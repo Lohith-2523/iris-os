@@ -4,6 +4,8 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, KeyRound, Loader2, ShieldCheck, UserMinus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { planDisplayName } from '@/lib/plan-pricing';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
@@ -52,13 +54,13 @@ export default function SecurityUsersClient({ initialData }: { initialData: Secu
     <div className="grid gap-4 md:grid-cols-3">
       <Card><CardHeader><CardDescription>Total active users</CardDescription><CardTitle className="text-3xl">{activeUsers.length}</CardTitle></CardHeader></Card>
       <Card><CardHeader><CardDescription>Team members</CardDescription><CardTitle className="text-3xl">{teamMemberCount}</CardTitle></CardHeader></Card>
-      <Card><CardHeader><CardDescription>Plan access</CardDescription><CardTitle className="text-xl">{data.plan}</CardTitle></CardHeader></Card>
+      <Card><CardHeader><CardDescription>Plan access</CardDescription><CardTitle className="text-xl">{planDisplayName(data.plan)}</CardTitle></CardHeader></Card>
     </div>
     <Card><CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Workspace users</CardTitle><CardDescription>Pro and Advanced include unlimited team members with individual page access.</CardDescription></CardHeader>
       <CardContent className="space-y-3">{data.users.map((user, index) => {
         const permissions = Array.isArray(user.accessPermissions) ? user.accessPermissions : [];
         return <div key={user.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/30 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3"><div><div className="font-semibold text-white">{index + 1}. {user.name}</div><div className="text-zinc-500">{user.email}</div></div><div className="flex items-center gap-2"><Badge>{user.accessRevokedAt ? 'OFFBOARDED' : user.role === 'admin' ? 'AGENCY ADMIN' : user.role === 'client' ? 'CLIENT' : 'TEAM MEMBER'}</Badge>{busyId === user.id && <Loader2 className="h-4 w-4 animate-spin" />}</div></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><div className="font-semibold text-white">{index + 1}. {user.name}</div><div className="text-zinc-500">{user.email}</div></div><div className="flex items-center gap-2"><Badge>{user.accessRevokedAt ? 'OFFBOARDED' : workspaceRoleLabel(user.role).toUpperCase()}</Badge>{busyId === user.id && <Loader2 className="h-4 w-4 animate-spin" />}</div></div>
           {!user.accessRevokedAt && user.role === 'member' && ['PRO', 'ADVANCED'].includes(data.plan) && <Button className="mt-4" disabled={busyId === user.id} onClick={() => void mutate({ action: 'make_sub_admin', userId: user.id, permissions: [], handlesDeliverables: true })}><ShieldCheck className="mr-2 h-4 w-4" /> Enable individual access</Button>}
           {!user.accessRevokedAt && user.role === 'sub_admin' && <div className="mt-4 space-y-3"><label className="flex items-center gap-2 rounded-xl border border-zinc-800 p-3 font-semibold text-white"><input type="checkbox" checked={user.handlesDeliverables} onChange={(event) => { const handlesDeliverables = event.target.checked; setData((current) => current ? { ...current, users: current.users.map((item) => item.id === user.id ? { ...item, handlesDeliverables } : item) } : current); void mutate({ action: 'update_access', userId: user.id, permissions, handlesDeliverables }); }} />Handles Deliverables</label><div><div className="mb-2 flex items-center gap-2 font-semibold text-white"><KeyRound className="h-4 w-4" /> Page access</div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{data.allowedPages.map((page) => <label key={page} className="flex items-center gap-2 rounded-xl border border-zinc-800 p-3 capitalize"><input type="checkbox" checked={permissions.includes(page)} onChange={(event) => { const next = event.target.checked ? [...permissions, page] : permissions.filter((item) => item !== page); setData((current) => current ? { ...current, users: current.users.map((item) => item.id === user.id ? { ...item, accessPermissions: next } : item) } : current); void mutate({ action: 'update_access', userId: user.id, permissions: next, handlesDeliverables: user.handlesDeliverables }); }} />{page}</label>)}</div></div></div>}
           {!user.accessRevokedAt && ['member', 'sub_admin'].includes(user.role) && <Button variant="ghost" className="mt-4 text-rose-300" onClick={() => { setOffboardUser(user); setFeedback(''); }}><UserMinus className="mr-2 h-4 w-4" /> Offboard & revoke access</Button>}

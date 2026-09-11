@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   const user = await getRequestUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (normalizePlan(user.organization.plan) === 'BASIC') {
-    return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+    return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
   }
 
   const form = await request.formData().catch(() => null);

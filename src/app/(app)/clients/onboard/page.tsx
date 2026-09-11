@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -922,7 +923,7 @@ export default function ClientOnboardPage() {
           </div>
         </div>
 
-        <div>
+        <div className="mx-auto w-[90%]">
           <Card
             className="relative min-h-[400px] overflow-hidden border-zinc-850/80 flex flex-col justify-between"
             aria-busy={submitStatus === 'submitting'}
@@ -1424,7 +1425,7 @@ export default function ClientOnboardPage() {
                                     </div>
                                   )}
                                   <span className="block font-semibold text-xs text-white">{member.name}</span>
-                                  <span className="block text-[9px] text-zinc-550 mt-0.5">{member.role}</span>
+                                  <span className="block text-[9px] text-zinc-550 mt-0.5">{workspaceRoleLabel(member.role)}</span>
                                 </button>
                               );
                             })}

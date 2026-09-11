@@ -6,15 +6,17 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, ShieldCheck, Building, User, CreditCard, Calendar, Key, Loader2 } from 'lucide-react';
+import { Check, ArrowRight, ShieldCheck, Building, User, Loader2 } from 'lucide-react';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
+import { RazorpayCheckout } from '@/components/billing/razorpay-checkout';
+import { usePlanPricing } from '@/components/billing/use-plan-pricing';
+import { formatPlanMoney } from '@/lib/plan-pricing';
 
-const PLANS = [
+const PLAN_COPY = [
   {
     id: 'basic',
-    name: 'Basic Plan',
-    price: 99,
+    name: 'Free Plan',
     tagline: 'Starter Workspace Clearance',
     features: [
       'All 10 Agency Specializations Included',
@@ -27,7 +29,6 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro Plan',
-    price: 299,
     tagline: 'Professional Scale Workspace',
     features: [
       'All 10 Agency Specializations Included',
@@ -41,7 +42,6 @@ const PLANS = [
   {
     id: 'advanced',
     name: 'Advanced Plan',
-    price: 599,
     tagline: 'Unlimited Enterprise Console',
     features: [
       'All 10 Agency Specializations Included',
@@ -98,16 +98,17 @@ export default function OnboardingPage() {
   const [showPrivacyTldr, setShowPrivacyTldr] = React.useState(false);
 
   // Payment state
-  const [cardNumber, setCardNumber] = React.useState('');
-  const [cardName, setCardName] = React.useState('');
-  const [cardExpiry, setCardExpiry] = React.useState('');
-  const [cardCvv, setCardCvv] = React.useState('');
-  const [paymentLog, setPaymentLog] = React.useState<string[]>([]);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [advancingStep, setAdvancingStep] = React.useState<'agency' | 'pricing' | 'consent' | null>(null);
   const transitionLockRef = React.useRef(false);
 
   const [email, setEmail] = React.useState('');
+  const { region: pricingRegion, plans: regionalPlans, loading: pricingLoading } = usePlanPricing();
+  const PLANS = regionalPlans.map((price, index) => ({
+    ...PLAN_COPY[index],
+    ...price,
+    id: price.id.toLowerCase() as 'basic' | 'pro' | 'advanced',
+  }));
   React.useEffect(() => {
     fetch('/api/workspace')
       .then(async (response) => {
@@ -120,7 +121,6 @@ export default function OnboardingPage() {
         setEmail(workspace.user.email);
         setAgencyName(draft.agencyName || workspace.organization.name || '');
         setUsername(draft.username || workspace.user.username || workspace.user.name || '');
-        setCardName(workspace.user.name || '');
         setCurrency(draft.currency || workspace.organization.currency || 'USD');
         setAgencyDetails({ legalEntityName: draft.legalEntityName || workspace.organization.legalEntityName || '', billingEmail: draft.billingEmail || workspace.organization.billingEmail || workspace.user.email || '', phone: draft.phone || workspace.user.phone || '', website: draft.website || workspace.organization.preferences?.website || '', addressLine1: draft.addressLine1 || workspace.organization.billingAddressLine1 || '', addressLine2: draft.addressLine2 || workspace.organization.billingAddressLine2 || '', city: draft.city || workspace.organization.billingCity || '', state: draft.state || workspace.organization.billingState || '', postalCode: draft.postalCode || workspace.organization.billingPostalCode || '', country: draft.country || workspace.organization.billingCountry || '', taxNumber: draft.taxNumber || workspace.organization.gstNumber || '', specialization: draft.specialization || workspace.organization.agencyTypes?.[0] || 'Digital Marketing Agency', bankName: draft.bankName || workspace.organization.bankNames?.[0] || '' });
         setSelectedPlanId(draft.selectedPlanId || 'pro');
@@ -220,78 +220,50 @@ export default function OnboardingPage() {
     }
   };
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const completeOnboarding = async (paidPlan?: 'PRO' | 'ADVANCED') => {
     if (transitionLockRef.current) return;
-    if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
-      alert('Please fill out all billing credentials.');
-      return;
-    }
     transitionLockRef.current = true;
     setIsProcessing(true);
-    const logs = [
-      'Initializing Supabase Payment Gateway transaction...',
-      '[1/3] Validating credit card credentials token clearance...',
-      '[2/3] Registering enterprise ledger & organization databases...',
-      '[3/3] Clearance approved! Logging user into secure workspace portal...'
-    ];
-
-    let currentLogIndex = 0;
-    const interval = setInterval(() => {
-      if (currentLogIndex < logs.length) {
-        setPaymentLog((prev) => [...prev, logs[currentLogIndex]]);
-        currentLogIndex++;
-      } else {
-        clearInterval(interval);
-        
-        // Update organization plan in PostgreSQL
-        fetch('/api/organization', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: agencyName,
-            plan: selectedPlanId.toUpperCase(),
-            hasAddon: selectedPlanId === 'basic' ? false : undefined,
-            currency: currency,
-            aiSharingConsent: selectedPlanId === 'basic' ? false : aiSharingConsent,
-            metaAccessConsent,
-            username: username,
-            billingEmail: agencyDetails.billingEmail,
-            legalEntityName: agencyDetails.legalEntityName,
-            billingAddressLine1: agencyDetails.addressLine1,
-            billingAddressLine2: agencyDetails.addressLine2,
-            billingCity: agencyDetails.city,
-            billingState: agencyDetails.state,
-            billingPostalCode: agencyDetails.postalCode,
-            billingCountry: agencyDetails.country,
-            gstNumber: agencyDetails.taxNumber,
-            agencyTypes: parseAgencyIndustryList(agencyDetails.specialization),
-            bankNames: [agencyDetails.bankName],
-            preferences: { website: agencyDetails.website, agencyPhone: agencyDetails.phone },
-          })
-        }).then(async (res) => {
-          if (res.ok) {
-            await saveProgress(4);
-            setTimeout(() => {
-              setIsProcessing(false);
-              const params = new URLSearchParams(window.location.search);
-              const redirectUrl = params.get('redirect') || '/dashboard';
-              router.push(redirectUrl);
-            }, 800);
-          } else {
-            const errData = await res.json().catch(() => ({}));
-            setIsProcessing(false);
-            transitionLockRef.current = false;
-            alert(`Failed to register organization: ${errData.error || res.statusText || 'Unknown error'}${errData.details ? ` (${errData.details})` : ''}`);
-          }
-        }).catch((err) => {
-          console.error('Error updating organization plan on onboarding completion:', err);
-          setIsProcessing(false);
-          transitionLockRef.current = false;
-          alert('Network error while registering organization.');
-        });
+    try {
+      const response = await fetch('/api/organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: agencyName,
+          plan: paidPlan ? undefined : 'BASIC',
+          hasAddon: selectedPlanId === 'basic' ? false : undefined,
+          currency,
+          aiSharingConsent: selectedPlanId === 'basic' ? false : aiSharingConsent,
+          metaAccessConsent,
+          username,
+          billingEmail: agencyDetails.billingEmail,
+          legalEntityName: agencyDetails.legalEntityName,
+          billingAddressLine1: agencyDetails.addressLine1,
+          billingAddressLine2: agencyDetails.addressLine2,
+          billingCity: agencyDetails.city,
+          billingState: agencyDetails.state,
+          billingPostalCode: agencyDetails.postalCode,
+          billingCountry: agencyDetails.country,
+          gstNumber: agencyDetails.taxNumber,
+          agencyTypes: parseAgencyIndustryList(agencyDetails.specialization),
+          bankNames: [agencyDetails.bankName],
+          preferences: { website: agencyDetails.website, agencyPhone: agencyDetails.phone },
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Unable to finish workspace setup.');
       }
-    }, 1000);
+      await saveProgress(4);
+      const params = new URLSearchParams(window.location.search);
+      router.push(params.get('redirect') || '/dashboard');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to finish workspace setup.');
+      throw error;
+    } finally {
+      setIsProcessing(false);
+      transitionLockRef.current = false;
+    }
   };
 
   // Swapping cards positioning logic:
@@ -410,7 +382,7 @@ export default function OnboardingPage() {
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 2 of 4</span>
               <h2 className="text-2xl font-extrabold uppercase tracking-tight text-white">Choose Your Workspace Level</h2>
               <p className="text-zinc-500 text-xs max-w-md mx-auto">
-                The selected option is highlighted in the center. Click the side plans to change selection.
+                {pricingLoading ? 'Detecting regional pricing from your public IP country…' : `${pricingRegion === 'INDIA' ? 'Indian' : 'International'} pricing was selected from your public IP country. Paid prices exclude 18% GST.`}
               </p>
             </div>
 
@@ -420,13 +392,13 @@ export default function OnboardingPage() {
               {/* Left Column Plan (Unselected) */}
               <button
                 type="button"
-                disabled={advancingStep !== null}
+                disabled={advancingStep !== null || pricingLoading}
                 onClick={() => setSelectedPlanId(ordered.left.id as any)}
                 className="onboarding-plan-card-compact md:col-span-3 min-w-0 overflow-hidden text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
               >
                 <div>
                   <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.left.name}</span>
-                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">${ordered.left.price}</span>
+                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
                   <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.left.tagline}</span>
                 </div>
                 <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
@@ -448,8 +420,9 @@ export default function OnboardingPage() {
                     <span className="block text-[9px] font-semibold text-zinc-400 mt-0.5 uppercase tracking-wide">{ordered.center.tagline}</span>
                   </div>
                   <div className="border-b border-zinc-800 pb-3">
-                    <span className="font-mono text-4xl font-black text-white">${ordered.center.price}</span>
+                    <span className="font-mono text-4xl font-black text-white">{formatPlanMoney(ordered.center.baseAmount, ordered.center.currency)}</span>
                     <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
+                    {ordered.center.baseAmount > 0 && <span className="mt-1 block text-[9px] text-zinc-500">+ 18% GST · {formatPlanMoney(ordered.center.totalAmount, ordered.center.currency)} due today</span>}
                   </div>
                   <div className="space-y-2">
                     <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Included Features:</span>
@@ -467,7 +440,7 @@ export default function OnboardingPage() {
                 <div className="mt-6 pt-4 border-t border-zinc-800">
                   <Button
                     onClick={handlePricingNext}
-                    disabled={advancingStep !== null}
+                    disabled={advancingStep !== null || pricingLoading}
                     aria-busy={advancingStep === 'pricing'}
                     className="w-full h-10 font-bold text-xs bg-white text-zinc-950 hover:bg-zinc-200 cursor-pointer flex items-center justify-center gap-1.5"
                   >
@@ -479,13 +452,13 @@ export default function OnboardingPage() {
               {/* Right Column Plan (Unselected) */}
               <button
                 type="button"
-                disabled={advancingStep !== null}
+                disabled={advancingStep !== null || pricingLoading}
                 onClick={() => setSelectedPlanId(ordered.right.id as any)}
                 className="onboarding-plan-card-compact md:col-span-3 min-w-0 overflow-hidden text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
               >
                 <div>
                   <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.right.name}</span>
-                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">${ordered.right.price}</span>
+                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
                   <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.right.tagline}</span>
                 </div>
                 <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
@@ -620,7 +593,7 @@ export default function OnboardingPage() {
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 4 of 4</span>
               <CardTitle className="text-lg font-bold uppercase tracking-tight mt-1 text-white">Billing Details</CardTitle>
               <CardDescription className="text-xs text-zinc-500">
-                Process recurring workspace fee for your selected plan
+                Activate your selected workspace plan
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 py-6 space-y-5">
@@ -634,105 +607,32 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <span className="font-mono text-xl font-bold text-white">
-                  ${PLANS.find(p => p.id === selectedPlanId)?.price}/mo
+                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}
                 </span>
               </div>
 
-              {isProcessing ? (
-                <div className="space-y-4 py-4 min-h-[160px] flex flex-col justify-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border border-t-transparent border-red-500" />
-                    <span className="text-xs text-zinc-300 font-semibold font-mono">Executing Safe Pay Operations...</span>
-                  </div>
-                  <div className="bg-[#09090b] border border-zinc-850 p-3 rounded font-mono text-[9px] text-zinc-450 space-y-1.5 h-[100px] overflow-y-auto">
-                    {paymentLog.map((log, index) => (
-                      <div key={index} className="flex gap-1.5 items-start">
-                        <span className="text-red-500">&gt;</span>
-                        <span>{log}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {selectedPlanId !== 'basic' && (() => {
+                const selected = PLANS.find(p => p.id === selectedPlanId)!;
+                return <p className="text-center text-[10px] text-zinc-500">18% GST is added at checkout. Total due: {formatPlanMoney(selected.totalAmount, selected.currency)}.</p>;
+              })()}
+
+              {isProcessing ? <div className="flex min-h-24 items-center justify-center gap-2 text-xs text-zinc-300"><Loader2 className="h-4 w-4 animate-spin" />Finishing workspace setup…</div> : selectedPlanId === 'basic' ? (
+                <Button type="button" onClick={() => void completeOnboarding()} className="w-full">Start with Free</Button>
               ) : (
-                <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Cardholder Name</label>
-                    <div className="relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <User className="h-3.5 w-3.5 text-zinc-500" />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="e.g. John Doe"
-                        value={cardName}
-                        onChange={(e) => setCardName(e.target.value)}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Credit Card Number</label>
-                    <div className="relative">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <CreditCard className="h-3.5 w-3.5 text-zinc-500" />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="4111 2222 3333 4444"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Expiration</label>
-                      <div className="relative">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <Calendar className="h-3.5 w-3.5 text-zinc-500" />
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="MM/YY"
-                          value={cardExpiry}
-                          onChange={(e) => setCardExpiry(e.target.value)}
-                          className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">CVV Security Code</label>
-                      <div className="relative">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <Key className="h-3.5 w-3.5 text-zinc-500" />
-                        </div>
-                        <input
-                          type="password"
-                          placeholder="•••"
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          className="w-full rounded border border-zinc-850 bg-zinc-900/45 py-2.5 pl-9 pr-3 text-white placeholder-zinc-650 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Button type="submit" disabled={isProcessing} aria-busy={isProcessing} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer pt-1 mt-4">
-                    {isProcessing ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Processing payment...</span></> : <><span>Submit & Process Payment</span><ArrowRight className="h-4 w-4" /></>}
-                  </Button>
-                </form>
+                <RazorpayCheckout
+                  plan={selectedPlanId.toUpperCase() as 'PRO' | 'ADVANCED'}
+                  price={PLANS.find(p => p.id === selectedPlanId)!}
+                  buttonLabel={`Pay securely for ${PLANS.find(p => p.id === selectedPlanId)?.name}`}
+                  onVerified={(verifiedPlan) => completeOnboarding(verifiedPlan)}
+                />
               )}
 
               <div className="rounded border border-zinc-850 bg-zinc-900/10 p-3.5 flex items-start gap-2.5">
                 <ShieldCheck className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
                 <div>
-                  <span className="block font-semibold text-zinc-300">Secure AES-256 Encryption</span>
+                  <span className="block font-semibold text-zinc-300">Secure Razorpay Checkout</span>
                   <span className="block text-[10px] text-zinc-500 mt-1 leading-relaxed">
-                    Credit credentials are authenticated and processed directly under PCI compliance guidelines.
+                    Payment details are entered in Razorpay&apos;s checkout and are never collected by Iris OS.
                   </span>
                 </div>
               </div>

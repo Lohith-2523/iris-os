@@ -29,11 +29,12 @@ import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import type { TeamReadModel } from '@/server/read-models/workspace-pages';
 import { SECURITY_PAGE_OPTIONS } from '@/lib/security-pages';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
 const isInternalTeamUser = (user: { role?: string }) => ['admin', 'member', 'sub_admin'].includes(user.role?.toLowerCase() || '');
-const teamRoleLabel = (role?: string) => role?.toLowerCase() === 'admin' ? 'Agency Admin' : 'Team Member';
+const teamRoleLabel = (role?: string) => workspaceRoleLabel(role) || 'Team member';
 
 export default function TeamClient({ initialData }: { initialData: TeamReadModel }) {
   const [canManageTeam] = React.useState(initialData.workspace.user.role.toLowerCase() === 'admin');

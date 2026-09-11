@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/delivery-delays';
@@ -1248,7 +1249,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                         }`}
                       >
                         <span className="block text-[11px] truncate">{member.name}</span>
-                        <span className="block text-[8px] text-zinc-550 truncate mt-0.5">{member.role}</span>
+                        <span className="block text-[8px] text-zinc-550 truncate mt-0.5">{workspaceRoleLabel(member.role)}</span>
                       </button>
                     );
                   })}
@@ -1680,7 +1681,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                         </div>
                         <div>
                           <span className="block font-semibold text-white">{m.user?.name}</span>
-                          <span className="block text-[8px] text-zinc-550 mt-0.5">{m.user?.role}</span>
+                          <span className="block text-[8px] text-zinc-550 mt-0.5">{workspaceRoleLabel(m.user?.role)}</span>
                         </div>
                       </div>
                     ))}

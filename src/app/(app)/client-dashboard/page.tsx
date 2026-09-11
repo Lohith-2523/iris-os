@@ -29,6 +29,7 @@ import {
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { taskStatusLabel } from '@/lib/tasks/status-progress';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
@@ -1180,7 +1181,7 @@ export default function ClientDashboardPage() {
 
                       <div className="flex justify-between items-center text-[9px] text-zinc-650 pt-1">
                         <span>Lead Specialist:</span>
-                        <span>{task.assignedTo?.name || 'Unassigned'} ({task.assignedTo?.role || 'Apex Specialist'})</span>
+                        <span>{task.assignedTo?.name || 'Unassigned'} ({workspaceRoleLabel(task.assignedTo?.role) || 'Apex Specialist'})</span>
                       </div>
                     </div>
                   ))}

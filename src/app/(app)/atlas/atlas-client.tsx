@@ -151,6 +151,11 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
+  const setActiveSessionId = React.useCallback((sessionId: string | null) => {
+    currentSessionIdRef.current = sessionId;
+    setCurrentSessionId(sessionId);
+  }, []);
+
   const updateVoiceState = React.useCallback((state: typeof voiceState) => {
     voiceStateRef.current = state;
     setVoiceState(state);
@@ -219,17 +224,16 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           content,
           currentSessionIdRef.current || undefined,
         );
-        if (saved.sessionId !== currentSessionIdRef.current) {
-          currentSessionIdRef.current = saved.sessionId;
-          setCurrentSessionId(saved.sessionId);
-        }
-        if (saved.created) await loadSessions();
+        if (saved.sessionId !== currentSessionIdRef.current) setActiveSessionId(saved.sessionId);
+        // Existing voice chats need their updated timestamp promoted in history,
+        // just as newly created voice-only chats need to appear there.
+        void loadSessions().catch(() => undefined);
       })
       .catch((error) => {
         setVoiceError(error instanceof Error ? error.message : 'Atlas could not save this voice conversation.');
       });
     return realtimePersistenceQueueRef.current;
-  }, [loadSessions]);
+  }, [loadSessions, setActiveSessionId]);
 
   const handleSendMessage = async (textToSend: string) => {
     if (!textToSend.trim() || isLoading || voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || voiceChatActiveRef.current) return;
@@ -239,7 +243,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     const assistantPlaceholder: Message = { role: 'assistant', content: '' };
     setMessages((prev) => startingFromGuide ? [userMsg, assistantPlaceholder] : [...prev, userMsg, assistantPlaceholder]);
     if (startingFromGuide) {
-      setCurrentSessionId(null);
+      setActiveSessionId(null);
       setIsGuideSelected(false);
     }
     setQuery('');
@@ -268,7 +272,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       );
       
       if (response.sessionId !== currentSessionId) {
-        setCurrentSessionId(response.sessionId);
+        setActiveSessionId(response.sessionId);
       }
       setMessages((current) => current.map((message, index) =>
         index === current.length - 1 && message.role === 'assistant'
@@ -310,33 +314,39 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     handleSendMessage(query);
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
+    if (voiceChatActiveRef.current || realtimeAttemptRef.current) return;
     abortActiveResponse();
+    await realtimePersistenceQueueRef.current.catch(() => undefined);
     voiceActionTranscriptRef.current = [];
     voiceWorkflowActiveRef.current = false;
     if (currentSessionId) setSessionMessages((current) => ({ ...current, [currentSessionId]: messages }));
-    setCurrentSessionId(null);
+    setActiveSessionId(null);
     setIsGuideSelected(false);
     setMessages([initialMessage]);
   };
 
-  const selectGuide = () => {
+  const selectGuide = async () => {
+    if (voiceChatActiveRef.current || realtimeAttemptRef.current) return;
     abortActiveResponse();
+    await realtimePersistenceQueueRef.current.catch(() => undefined);
     voiceActionTranscriptRef.current = [];
     voiceWorkflowActiveRef.current = false;
     if (currentSessionId) setSessionMessages((current) => ({ ...current, [currentSessionId]: messages }));
-    setCurrentSessionId(null);
+    setActiveSessionId(null);
     setIsGuideSelected(true);
     setMessages(ATLAS_GUIDE_MESSAGES.map((message) => ({ ...message })));
   };
 
   const selectSession = async (id: string) => {
+    if (voiceChatActiveRef.current || realtimeAttemptRef.current) return;
     abortActiveResponse();
+    await realtimePersistenceQueueRef.current.catch(() => undefined);
     voiceActionTranscriptRef.current = [];
     voiceWorkflowActiveRef.current = false;
     if (currentSessionId) setSessionMessages((current) => ({ ...current, [currentSessionId]: messages }));
     setIsGuideSelected(false);
-    setCurrentSessionId(id);
+    setActiveSessionId(id);
     if (Object.prototype.hasOwnProperty.call(sessionMessages, id)) {
       const cachedMessages = sessionMessages[id];
       setMessages(cachedMessages.length > 0 ? cachedMessages : [initialMessage]);
@@ -568,8 +578,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           },
         );
         if (!voiceChatActiveRef.current || controller.signal.aborted) return;
-        currentSessionIdRef.current = result.sessionId;
-        setCurrentSessionId(result.sessionId);
+        setActiveSessionId(result.sessionId);
         completedResults.push(result.result);
         workflowActive = Boolean(result.workflow?.active);
         if (workflowActive) break;
@@ -658,7 +667,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     } finally {
       if (realtimeWorkflowAbortRef.current === controller) realtimeWorkflowAbortRef.current = null;
     }
-  }, [loadSessions]);
+  }, [loadSessions, setActiveSessionId]);
 
   const startRealtimeVoice = React.useCallback(async () => {
     if (voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || voiceChatActiveRef.current || realtimeState === 'connecting') return;
@@ -940,7 +949,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             </Badge>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleNewChat} className="h-8 border-zinc-800 text-zinc-300 gap-1.5 self-start md:self-auto rounded-none bg-zinc-900 hover:bg-zinc-800">
+        <Button variant="outline" size="sm" onClick={() => void handleNewChat()} disabled={voiceChatActive || realtimeState === 'connecting'} className="h-8 border-zinc-800 text-zinc-300 gap-1.5 self-start md:self-auto rounded-none bg-zinc-900 hover:bg-zinc-800">
           <Plus className="h-3.5 w-3.5" />
           <span>New Chat</span>
         </Button>
@@ -965,7 +974,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             <button
               type="button"
               data-session-id={ATLAS_GUIDE_SESSION_ID}
-              onClick={selectGuide}
+              onClick={() => void selectGuide()}
+              disabled={voiceChatActive || realtimeState === 'connecting'}
               className={`flex w-full items-start gap-3 rounded-md border p-3.5 text-left text-xs transition-colors ${
                 isGuideSelected ? 'border-zinc-700 bg-zinc-900 text-white' : 'border-zinc-800/70 bg-zinc-950/40 text-zinc-300 hover:bg-zinc-900/60'
               }`}
@@ -980,7 +990,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             {sessions.map((session) => (
               <div
                 key={session.id}
-                onClick={() => selectSession(session.id)}
+                onClick={() => void selectSession(session.id)}
+                aria-disabled={voiceChatActive || realtimeState === 'connecting'}
                 className={`group relative flex flex-col justify-between w-full text-left rounded-md border p-3.5 text-xs transition-colors duration-200 cursor-pointer ${
                   currentSessionId === session.id 
                     ? 'bg-zinc-900 border-zinc-750 text-white shadow-lg' 
@@ -1061,13 +1072,14 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
         {/* Chat Stream Panel */}
         <div onDoubleClick={(event) => { if ((event.target as HTMLElement).closest('button,input,textarea,a')) return; setChatExpanded(true); }} className={`${chatExpanded ? 'fixed inset-0 z-[80]' : 'relative'} flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-zinc-800 bg-[#0d0e12] brushed-border`}>
-          <button type="button" onClick={() => setChatExpanded((value) => !value)} className="absolute left-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full border border-zinc-700 bg-zinc-950/80 text-zinc-400 backdrop-blur hover:text-white" aria-label={chatExpanded ? 'Restore chat interface' : 'Expand chat interface'} title="Expand chat interface">
+          <button type="button" onClick={() => setChatExpanded((value) => !value)} className="absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full border border-zinc-700 bg-zinc-950/80 text-zinc-400 backdrop-blur hover:text-white" aria-label={chatExpanded ? 'Restore chat interface' : 'Expand chat interface'} title="Expand chat interface">
             {chatExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
           <div className="border-b border-zinc-800 p-2 lg:hidden">
             <button
               type="button"
-              onClick={selectGuide}
+              onClick={() => void selectGuide()}
+              disabled={voiceChatActive || realtimeState === 'connecting'}
               className={`flex h-11 w-full items-center gap-2 whitespace-nowrap px-3 text-xs font-semibold transition-colors ${isGuideSelected ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:bg-zinc-900/60 hover:text-white'}`}
             >
               <Pin className="h-3.5 w-3.5" />

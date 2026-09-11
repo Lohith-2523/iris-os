@@ -93,6 +93,9 @@ export async function POST(request: NextRequest) {
       if (!['BASIC', 'PRO', 'ADVANCED'].includes(requestedPlan)) {
         return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
       }
+      if (plan !== undefined && requestedPlan !== 'BASIC' && requestedPlan !== org.plan) {
+        return NextResponse.json({ error: 'Complete Razorpay checkout to activate a paid plan.' }, { status: 402 });
+      }
       const planToCheck = normalizePlan(requestedPlan);
       org = await prisma.organization.update({
         where: { id: org.id },

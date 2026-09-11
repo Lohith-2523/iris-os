@@ -120,5 +120,7 @@ export function canUseAtlasCapability(plan: unknown, capability: Exclude<AtlasCa
 }
 
 export function planLimitMessage(resource: 'clients' | 'team members', limit: number, plan: unknown) {
-  return `The ${normalizePlan(plan).toLowerCase()} plan supports up to ${limit} ${resource}. Upgrade the workspace plan to add more.`;
+  const normalized = normalizePlan(plan);
+  const label = normalized === 'BASIC' ? 'Free' : normalized === 'PRO' ? 'Pro' : 'Advanced';
+  return `The ${label} plan supports up to ${limit} ${resource}. Upgrade the workspace plan to add more.`;
 }

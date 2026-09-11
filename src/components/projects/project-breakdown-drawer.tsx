@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MetricCard } from '@/components/ui/metric-card';
 import { cn, formatCurrency } from '@/lib/utils';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
 
 type BreakdownTab = 'overview' | 'workflow' | 'tasks' | 'deliverables' | 'changes' | 'team';
@@ -302,7 +303,7 @@ export function ProjectBreakdownDrawer({
                   <Card key={member.id || person.id || index}>
                     <CardContent className="flex items-center gap-4 p-5">
                       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-muted font-bold">{person.name?.slice(0, 1)?.toUpperCase() || 'T'}</span>
-                      <div className="min-w-0"><p className="truncate font-semibold">{person.name || 'Team member'}</p><p className="mt-1 truncate text-sm text-muted-foreground">{statusLabel(person.role || member.role || 'Project team')}</p></div>
+                      <div className="min-w-0"><p className="truncate font-semibold">{person.name || 'Team member'}</p><p className="mt-1 truncate text-sm text-muted-foreground">{workspaceRoleLabel(person.role || member.role) || 'Project team'}</p></div>
                     </CardContent>
                   </Card>
                 );

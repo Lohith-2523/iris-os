@@ -20,6 +20,10 @@ import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
 import { mergeAgencySpecializations } from '@/lib/agency-specializations';
 import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
 import { entitlementsFor, type PlanId } from '@/lib/plan-entitlements';
+import { formatPlanMoney, planDisplayName } from '@/lib/plan-pricing';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
+import { usePlanPricing } from '@/components/billing/use-plan-pricing';
+import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { PROFILE_AVATAR_TEMPLATES, type ProfileAvatarTemplateId } from '@/lib/profile-avatar-templates';
 import {
   getMetaSdkStatus,
@@ -61,12 +65,6 @@ import {
   UserRoundCog,
   Bot,
 } from 'lucide-react';
-
-const SETTINGS_PLANS: Array<{ id: PlanId; name: string; price: string; description: string; features: string[] }> = [
-  { id: 'BASIC', name: 'Basic', price: '$99', description: 'Core agency operations', features: ['5 clients', '2 team members', 'Core finance and delivery'] },
-  { id: 'PRO', name: 'Pro', price: '$299', description: 'AI-enabled collaboration', features: ['15 clients', 'Unlimited team members', 'Atlas AI and secure messages'] },
-  { id: 'ADVANCED', name: 'Advanced', price: '$599', description: 'Complete enterprise workspace', features: ['30 clients', 'Unlimited team members', 'Full Atlas, Strategy and Briefing'] },
-];
 
 type WorkspaceUsage = {
   clients: number;
@@ -173,7 +171,7 @@ function ProfileIdentity({
       <div className="min-w-0">
         <p className="truncate font-semibold text-white">{user?.name || 'Iris OS user'}</p>
         <p className="truncate text-sm text-zinc-500">{user?.email}</p>
-        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">{user?.role?.replace('_', ' ')}</p>
+        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">{workspaceRoleLabel(user?.role)}</p>
         {canEditAvatar && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded border border-zinc-750 bg-zinc-900 px-2.5 text-[10px] font-semibold text-zinc-300 transition-colors hover:text-white">
@@ -249,6 +247,8 @@ export default function SettingsPage() {
   const [currency, setCurrency] = React.useState('USD');
   const [hasFinancialData, setHasFinancialData] = React.useState(false);
   const [plan, setPlan] = React.useState<'BASIC' | 'PRO' | 'ADVANCED'>('PRO');
+  const [planDialog, setPlanDialog] = React.useState<{ feature: string; requiredPlan: PlanId } | null>(null);
+  const { region: pricingRegion, plans: settingsPlans, loading: pricingLoading } = usePlanPricing();
   const [hasAddon, setHasAddon] = React.useState(false);
   const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, teamMembers: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
@@ -1244,7 +1244,7 @@ export default function SettingsPage() {
                         </label>
                         <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
                           {plan === 'BASIC'
-                            ? 'AI analysis is not included with the Basic plan. Upgrade to Pro or Advanced to enable it.'
+                            ? 'AI analysis is not included with the Free plan. Upgrade to Pro or Advanced to enable it.'
                             : 'Allow Atlas AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.'}
                         </span>
                       </div>
@@ -1428,7 +1428,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white"><Gauge className="h-4.5 w-4.5 text-zinc-400" /><span>Workspace usage limits</span></CardTitle>
-              <CardDescription>Live consumption against the capacity included with the {plan.toLowerCase()} plan.</CardDescription>
+              <CardDescription>Live consumption against the capacity included with the {planDisplayName(plan)} plan.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
@@ -1448,18 +1448,18 @@ export default function SettingsPage() {
           </Card>
 
           <section aria-labelledby="settings-plan-options" className="space-y-4">
-            <div><h2 id="settings-plan-options" className="text-base font-bold text-white">Plan options</h2><p className="mt-1 text-xs text-zinc-500">The same three workspace tiers available during agency onboarding.</p></div>
+            <div><h2 id="settings-plan-options" className="text-base font-bold text-white">Plan options</h2><p className="mt-1 text-xs text-zinc-500">{pricingLoading ? 'Detecting regional pricing from your public IP country…' : `${pricingRegion === 'INDIA' ? 'Indian' : 'International'} pricing from your public IP country. Paid prices exclude 18% GST.`}</p></div>
             <div className="grid gap-4 lg:grid-cols-3">
-              {SETTINGS_PLANS.map((tier) => {
+              {settingsPlans.map((tier) => {
                 const isCurrent = tier.id === plan;
                 return <Card key={tier.id} className={`flex min-h-[290px] flex-col ${isCurrent ? 'border-zinc-500 bg-zinc-900/45' : 'border-zinc-850'}`}>
                   <CardHeader className="flex-1">
                     <div className="flex items-start justify-between gap-3"><div><CardTitle className="text-base font-bold text-white">{tier.name}</CardTitle><CardDescription className="mt-1">{tier.description}</CardDescription></div>{isCurrent && <Badge variant="outline" className="whitespace-nowrap border-zinc-600 text-[9px] uppercase text-zinc-300">Current plan</Badge>}</div>
-                    <div className="mt-5"><span className="font-mono text-3xl font-black tabular-nums text-white">{tier.price}</span><span className="ml-1 text-xs text-zinc-500">/ month</span></div>
+                    <div className="mt-5"><span className="font-mono text-3xl font-black tabular-nums text-white">{formatPlanMoney(tier.baseAmount, tier.currency)}</span><span className="ml-1 text-xs text-zinc-500">/ month</span>{tier.baseAmount > 0 && <p className="mt-1 text-[10px] text-zinc-500">+ 18% GST · {formatPlanMoney(tier.totalAmount, tier.currency)} due at checkout</p>}</div>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 border-t border-zinc-850 pt-4 text-xs text-zinc-300">{tier.features.map((feature) => <li key={feature} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />{feature}</li>)}</ul>
-                    <Button type="button" variant={isCurrent ? 'outline' : 'default'} disabled={isCurrent} onClick={() => { window.location.href = '/onboarding?step=pricing&redirect=/settings'; }} className="mt-5 h-10 w-full whitespace-nowrap text-xs font-bold">{isCurrent ? 'Current plan' : `View ${tier.name}`}</Button>
+                    <Button type="button" variant={isCurrent ? 'outline' : 'default'} disabled={isCurrent} onClick={() => setPlanDialog({ feature: 'your workspace', requiredPlan: tier.id })} className="mt-5 h-10 w-full whitespace-nowrap text-xs font-bold">{isCurrent ? 'Current plan' : `Choose ${tier.name}`}</Button>
                   </CardContent>
                 </Card>;
               })}
@@ -1482,14 +1482,14 @@ export default function SettingsPage() {
                   <div className="p-5 rounded border border-zinc-800 bg-zinc-900/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest block">Current Plan</span>
-                      <h3 className="text-base font-bold text-white uppercase">{plan} Plan</h3>
+                      <h3 className="text-base font-bold text-white uppercase">{planDisplayName(plan)} Plan</h3>
                       <p className="text-zinc-500 text-[11px]">
                         All 10 agency specializations
                       </p>
                     </div>
                     <div className="sm:text-right">
                       <span className="font-mono text-2xl font-black text-white">
-                        {plan === 'BASIC' ? '$99' : plan === 'PRO' ? '$299' : '$599'}
+                        {(() => { const selected = settingsPlans.find(tier => tier.id === plan)!; return formatPlanMoney(selected.baseAmount, selected.currency); })()}
                       </span>
                       <span className="text-zinc-500 font-semibold block text-[10px] uppercase font-mono mt-0.5">per month</span>
                     </div>
@@ -1499,19 +1499,16 @@ export default function SettingsPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="p-4 rounded border border-zinc-850 bg-zinc-950/20 space-y-1">
                       <span className="text-zinc-500 block font-semibold text-[10px] uppercase tracking-wider">Billing Cycle</span>
-                      <span className="text-white font-medium block">Monthly recurring</span>
-                      <span className="text-zinc-500 text-[10px] block mt-1">Next invoice date: July 30, 2026</span>
+                      <span className="text-white font-medium block">Monthly plan</span>
+                      <span className="text-zinc-500 text-[10px] block mt-1">Renew through Razorpay Checkout</span>
                     </div>
 
                     <div className="p-4 rounded border border-zinc-850 bg-zinc-950/20 space-y-1">
                       <span className="text-zinc-500 block font-semibold text-[10px] uppercase tracking-wider">Default Payment Method</span>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className="h-5 w-8 bg-zinc-850 rounded border border-zinc-800 flex items-center justify-center font-bold text-[8px] tracking-wide text-zinc-300">
-                          VISA
-                        </div>
-                        <span className="text-white font-mono font-medium">•••• 4444</span>
+                        <span className="text-white font-medium">Razorpay Checkout</span>
                       </div>
-                      <span className="text-zinc-500 text-[10px] block mt-1">Expiry date: 12/28</span>
+                      <span className="text-zinc-500 text-[10px] block mt-1">No card details stored by Iris OS</span>
                     </div>
                   </div>
 
@@ -1519,9 +1516,7 @@ export default function SettingsPage() {
                   <div className="pt-2 flex justify-start">
                     <Button
                       type="button"
-                      onClick={() => {
-                        window.location.href = '/onboarding?step=pricing&redirect=/settings';
-                      }}
+                      onClick={() => setPlanDialog({ feature: 'your workspace', requiredPlan: 'BASIC' })}
                       className="text-xs font-bold h-10 px-6 flex items-center justify-center gap-2 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer animate-fade-in"
                     >
                       <RefreshCw className="h-4 w-4" />
@@ -1542,28 +1537,18 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center py-1 text-[11px] border-b border-zinc-900">
                       <span className="text-zinc-500">Selected Tier:</span>
-                      <span className="font-bold text-white uppercase">{plan}</span>
+                      <span className="font-bold text-white uppercase">{planDisplayName(plan)}</span>
                     </div>
                     <div className="flex justify-between items-center py-1 text-[11px] border-b border-zinc-900">
                       <span className="text-zinc-500">Base Price:</span>
                       <span className="font-mono text-zinc-300">
-                        {plan === 'BASIC' ? '$99' : plan === 'PRO' ? '$299' : '$599'}/mo
+                        {(() => { const selected = settingsPlans.find(tier => tier.id === plan)!; return `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}
                       </span>
                     </div>
-                    {plan === 'BASIC' && hasAddon && (
-                      <div className="flex justify-between items-center py-1 text-[11px] border-b border-zinc-900">
-                        <span className="text-zinc-500">Add-on:</span>
-                        <span className="font-mono text-zinc-300">+$29/mo</span>
-                      </div>
-                    )}
                     <div className="flex justify-between items-center pt-3 text-[11px] font-bold">
-                      <span className="text-zinc-400">Total Recurring Cost:</span>
+                      <span className="text-zinc-400">Total with 18% GST:</span>
                       <span className="font-mono text-white text-sm">
-                        {plan === 'BASIC'
-                          ? `$${99 + (hasAddon ? 29 : 0)}/mo`
-                          : plan === 'PRO'
-                          ? '$299/mo'
-                          : '$599/mo'}
+                        {(() => { const selected = settingsPlans.find(tier => tier.id === plan)!; return `${formatPlanMoney(selected.totalAmount, selected.currency)}/mo`; })()}
                       </span>
                     </div>
                   </div>
@@ -1970,6 +1955,19 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      <SubscriptionPlanDialog
+        open={Boolean(planDialog)}
+        currentPlan={plan}
+        feature={planDialog?.feature || 'your workspace'}
+        requiredPlan={planDialog?.requiredPlan || 'BASIC'}
+        canManage={currentUser?.role.toLowerCase() === 'admin'}
+        onClose={() => setPlanDialog(null)}
+        onPlanChanged={(nextPlan) => {
+          setPlan(nextPlan);
+          setPlanDialog(null);
+        }}
+      />
 
       {/* 3-Step destructive-action confirmation modal */}
       {showWipeModal && (

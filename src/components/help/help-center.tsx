@@ -79,7 +79,7 @@ export function HelpCenter() {
   };
 
   return (
-    <div className="iris-help-root">
+    <div className={`iris-help-root ${pathname === '/atlas' ? 'iris-help-root-atlas' : ''}`}>
       {open && (
         <section className="iris-help-panel" aria-label="Iris help">
           <header>

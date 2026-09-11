@@ -358,6 +358,7 @@ export const AtlasAIService = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role, content, sessionId }),
+      keepalive: true,
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || typeof data.sessionId !== 'string') {

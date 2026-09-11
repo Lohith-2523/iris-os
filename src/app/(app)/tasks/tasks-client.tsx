@@ -31,6 +31,7 @@ import {
 import { formatCurrency } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { normalizeTaskStatusProgress, TASK_STATUS_OPTIONS, taskStatusLabel } from '@/lib/tasks/status-progress';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import type { TasksReadModel } from '@/server/read-models/workspace-pages';
@@ -1280,7 +1281,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                   {selectedTask.comments?.map((c: any) => (
                     <div key={c.id} className="p-2 border border-zinc-900/60 bg-zinc-950/20 space-y-1.5">
                       <div className="flex justify-between items-center text-[9px]">
-                        <span className="font-semibold text-zinc-350">{c.user?.name || 'Unknown User'} ({c.user?.role || 'User'})</span>
+                        <span className="font-semibold text-zinc-350">{c.user?.name || 'Unknown User'} ({workspaceRoleLabel(c.user?.role) || 'User'})</span>
                         <span className="text-zinc-600 font-mono">{new Date(c.createdAt).toLocaleDateString()}</span>
                       </div>
                       <p className="text-[10px] text-zinc-300">{c.content}</p>

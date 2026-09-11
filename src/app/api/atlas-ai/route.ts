@@ -418,7 +418,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
     const plan = normalizePlan(user.organization.plan);
     const entitlements = entitlementsFor(plan);
     if (!entitlements.aiFeatures) {
-      return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+      return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
     }
 
     // Automatic insight requests have a 30-minute response lifetime. Check this

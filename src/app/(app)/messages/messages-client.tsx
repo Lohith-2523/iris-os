@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { isMessagingTeamRole } from '@/lib/messaging/roles';
+import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { CalendarPlus, Check, ChevronDown, CircleCheck, Clock3, Download, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
 import { getMessagingProtocol } from '@/lib/messaging/protocol';
 import { safeDownloadName, validateBrowserFile, type SafeAttachmentCategory } from '@/lib/file-security';
@@ -733,7 +734,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                 <ProfileAvatar src={conversation.participant.avatarUrl} name={conversation.participant.name} seed={conversation.participant.id} className={styles.avatar} />
                 <span>
                   <span className={styles.threadName}>{conversation.participant.name}</span>
-                  <span className={styles.threadMeta}>{conversation.lastMessage ? 'Encrypted message' : conversation.participant.role}</span>
+                  <span className={styles.threadMeta}>{conversation.lastMessage ? 'Encrypted message' : workspaceRoleLabel(conversation.participant.role)}</span>
                 </span>
                 <span className={styles.time}>{shortTime(conversation.updatedAt)}</span>
               </button>
@@ -757,7 +758,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
               <header className={styles.chatHeader}>
                 <div className={styles.identity}>
                   <ProfileAvatar src={selected.participant.avatarUrl} name={selected.participant.name} seed={selected.participant.id} className={styles.avatar} />
-                  <div><div className={styles.threadName}>{selected.participant.name}</div><div className={styles.threadMeta}>{selected.participant.role} · {selected.participant.email}</div></div>
+                  <div><div className={styles.threadName}>{selected.participant.name}</div><div className={styles.threadMeta}>{workspaceRoleLabel(selected.participant.role)} · {selected.participant.email}</div></div>
                 </div>
                 <span className={`${styles.securePill} ${protocolReady ? styles.secureReady : ''}`}>
                   {protocolReady ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}

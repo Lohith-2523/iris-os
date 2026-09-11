@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const plan = normalizePlan(user.organization.plan);
     if (plan === 'BASIC') {
-      return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+      return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
     }
 
     const pageRequest = readCursorPage(request);
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (normalizePlan(user.organization.plan) === 'BASIC') {
-      return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+      return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
     }
 
     const parsed = voiceTurnSchema.safeParse(await request.json().catch(() => null));

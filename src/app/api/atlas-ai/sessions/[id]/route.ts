@@ -12,7 +12,7 @@ export async function GET(
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const plan = normalizePlan(user.organization.plan);
-    if (plan === 'BASIC') return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+    if (plan === 'BASIC') return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
 
     const session = await prisma.atlasChatSession.findUnique({
       where: { id },
@@ -48,7 +48,7 @@ export async function DELETE(
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const plan = normalizePlan(user.organization.plan);
-    if (plan === 'BASIC') return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+    if (plan === 'BASIC') return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
 
     const session = await prisma.atlasChatSession.findUnique({
       where: { id },
@@ -77,7 +77,7 @@ export async function PATCH(
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const plan = normalizePlan(user.organization.plan);
-    if (plan === 'BASIC') return NextResponse.json({ error: 'Atlas AI is not available on the Basic plan.' }, { status: 403 });
+    if (plan === 'BASIC') return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
 
     const body = await request.json().catch(() => null) as { title?: unknown } | null;
     const title = typeof body?.title === 'string' ? body.title.trim() : '';
