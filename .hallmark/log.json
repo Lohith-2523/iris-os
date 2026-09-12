@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-09-12",
+    "scope": "login and signup authentication shell",
+    "macrostructure": "Geometry-aware Split Studio",
+    "theme": "Iris OS porcelain, graphite, and frosted glass",
+    "axes": ["procedural WebGL surface reconstruction", "responsive glass orbit", "adaptive monochrome geometry"],
+    "nav": "none",
+    "footer": "inline auth switch",
+    "enrichment": "real-time textured surface with points, contour lines, lifting fragments, and morphing wave fields",
+    "brief": "Replace the authentication video with an adaptive black-on-white procedural surface animation behind a responsive frosted-glass form surface"
+  },
+  {
     "date": "2026-09-07",
     "scope": "admin dashboard executive workspace",
     "macrostructure": "Geometry-aware Workbench",

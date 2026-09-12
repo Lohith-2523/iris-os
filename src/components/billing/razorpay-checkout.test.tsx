@@ -33,8 +33,10 @@ async function openCheckout() {
     name: 'Iris OS',
     description: 'Pro plan · ₹799 + ₹143.82 GST',
     image: 'http://localhost:3000/icons/iris-512.png',
-    theme: { color: '#09090B' },
+    parent: expect.stringMatching(/^#razorpay-checkout-/),
+    theme: { color: '#09090B', backdrop_color: 'rgba(9, 9, 11, 0.62)' },
   });
+  expect(screen.getByRole('dialog', { name: 'Secure Razorpay checkout' })).toBeInTheDocument();
 }
 it('verifies the callback before displaying success', async () => {
   await openCheckout();

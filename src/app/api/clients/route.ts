@@ -20,6 +20,8 @@ import { publicAppUrl } from '@/lib/app-url';
 import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
 import { clientHasMetaEnabledProject, isSelectedAgencyServiceLine } from '@/lib/agency-specializations';
 import { normalizeRequiredPhone } from '@/lib/phone';
+import { purgeClientData } from '@/server/domains/client-deletion-service';
+import { createAuthenticationUserDeleter } from '@/server/domains/auth-user-deletion';
 
 class ClientPlanLimitError extends Error {}
 
@@ -36,14 +38,26 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing clientId parameter' }, { status: 400 });
     }
 
-    // Scope deletion to the active organization. Database referential actions
-    // remove related client-owned records atomically with the client record.
-    const result = await prisma.client.deleteMany({
-      where: { id: clientId, orgId: user.orgId },
-    });
-    if (result.count === 0) {
+    const body = await request.json().catch(() => null) as { deleteRelatedData?: unknown } | null;
+    if (body?.deleteRelatedData !== true) {
+      return NextResponse.json({ error: 'Confirm deletion of all related client data.' }, { status: 400 });
+    }
+
+    // Initialize the privileged auth client before changing database records so
+    // missing server credentials cannot leave an active login after a purge.
+    const deleteAuthenticationUsers = createAuthenticationUserDeleter();
+
+    const clientUsers = await prisma.$transaction(
+      (tx) => purgeClientData(tx, user.orgId, clientId),
+      { maxWait: 10_000, timeout: 60_000 },
+    );
+    if (!clientUsers) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
+
+    await deleteAuthenticationUsers(
+      clientUsers.map(({ authUserId }) => authUserId).filter((id): id is string => Boolean(id)),
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

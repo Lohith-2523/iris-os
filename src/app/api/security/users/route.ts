@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { sendIrisEmail } from '@/lib/email/iris-email';
 import { SECURITY_ALLOWED_PAGES } from '@/lib/security-pages';
+import { purgeWorkspaceUsers } from '@/server/domains/member-deletion-service';
+import { createAuthenticationUserDeleter } from '@/server/domains/auth-user-deletion';
 
 const schema = z.object({
   action: z.enum(['make_sub_admin', 'update_permissions', 'update_access', 'offboard']),
@@ -11,6 +13,7 @@ const schema = z.object({
   permissions: z.array(z.enum(SECURITY_ALLOWED_PAGES)).optional(),
   handlesDeliverables: z.boolean().optional(),
   feedback: z.string().trim().min(5).max(3000).optional(),
+  deleteRelatedData: z.boolean().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -70,14 +73,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!body.feedback) return NextResponse.json({ error: 'Offboarding feedback is required.' }, { status: 400 });
+    if (body.deleteRelatedData !== true) return NextResponse.json({ error: 'Confirm deletion of all related team member data.' }, { status: 400 });
     if (!['member', 'sub_admin'].includes(target.role.toLowerCase())) return NextResponse.json({ error: 'Only team members can be offboarded from this workflow.' }, { status: 400 });
-    const revokedAt = new Date();
-    const [updated] = await prisma.$transaction([
-      prisma.user.update({ where: { id: target.id }, data: { offboardedAt: revokedAt, accessRevokedAt: revokedAt, offboardingFeedback: body.feedback } }),
-      prisma.messagingDevice.updateMany({ where: { userId: target.id, revokedAt: null }, data: { revokedAt } }),
-      prisma.clientTask.updateMany({ where: { assignedToId: target.id }, data: { assignedToId: null } }),
-      prisma.projectMember.deleteMany({ where: { userId: target.id } }),
-    ]);
+    const deleteAuthenticationUsers = target.authUserId ? createAuthenticationUserDeleter() : null;
+    await prisma.$transaction(
+      (tx) => purgeWorkspaceUsers(tx, admin.orgId, [{ id: target.id, authUserId: target.authUserId, email: target.email }]),
+      { maxWait: 10_000, timeout: 60_000 },
+    );
+    if (target.authUserId && deleteAuthenticationUsers) await deleteAuthenticationUsers([target.authUserId]);
     let emailSent = false;
     try {
       const escapedFeedback = body.feedback.replace(/[<>&]/g, '');
@@ -86,14 +89,14 @@ export async function POST(request: NextRequest) {
         subject: `Your access to ${admin.organization.name} has been revoked`,
         text: `Hello ${target.name},\n\nYour Iris OS team access has been revoked.\n\nFeedback from the agency:\n${body.feedback}\n\nPlease contact ${admin.name} if you have questions.`,
         html: `<p>Hello ${target.name},</p><p>Your Iris OS team access has been revoked.</p><p><strong>Feedback from the agency</strong></p><p>${escapedFeedback}</p><p>Please contact ${admin.name} if you have questions.</p>`,
-        idempotencyKey: `offboard-${target.id}-${updated.updatedAt.toISOString()}`,
+        idempotencyKey: `offboard-${target.id}`,
         tags: [{ name: 'category', value: 'team_offboarding' }],
       });
       emailSent = true;
     } catch (emailError) {
       console.error('Offboarding email could not be delivered:', emailError);
     }
-    return NextResponse.json({ success: true, user: updated, emailSent });
+    return NextResponse.json({ success: true, emailSent });
   } catch (error) {
     console.error('Unable to update workspace security:', error);
     return NextResponse.json({ error: 'Unable to update workspace security' }, { status: 500 });

@@ -4608,5 +4608,3 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
     transform: none;
   }
 }
-/* Razorpay owns its full-viewport iframe and renders the responsive checkout
-   modal inside it. Do not size or transform that iframe as a payment card. */

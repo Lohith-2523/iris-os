@@ -1,16 +1,19 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal, flushSync } from 'react-dom';
 import Script from 'next/script';
 import { Button } from '@/components/ui/button';
 import type { PlanId } from '@/lib/plan-entitlements';
 import { formatPlanMoney } from '@/lib/plan-pricing';
+import styles from './razorpay-checkout.module.css';
 
 type PaymentResult = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
 type CheckoutOptions = {
   key: string; amount: number; currency: string; order_id: string; name: string;
   description?: string;
   image: string;
+  parent: string;
   theme: { color: string; backdrop_color?: string };
   handler: (result: PaymentResult) => void;
   modal: { ondismiss: () => void };
@@ -47,15 +50,25 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
 }) {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [checkoutVisible, setCheckoutVisible] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const locked = useRef(false);
+  const checkout = useRef<CheckoutInstance | null>(null);
+  const checkoutHostId = `razorpay-checkout-${useId().replace(/:/g, '')}`;
+
+  useEffect(() => () => checkout.current?.close(), []);
 
   async function pay() {
     if (locked.current) return;
     setError(''); setMessage('');
     locked.current = true; setBusy(true);
-    const finish = () => { locked.current = false; setBusy(false); };
+    const finish = () => {
+      checkout.current = null;
+      locked.current = false;
+      setBusy(false);
+      setCheckoutVisible(false);
+    };
     let verifying = false;
     let failed = false;
     try {
@@ -64,7 +77,8 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
       const orderCurrency = order.currency === 'INR' ? 'INR' : 'USD';
       const orderBaseAmount = Number(order.base_amount ?? price.baseAmount);
       const orderTaxAmount = Number(order.tax_amount ?? price.taxAmount);
-      const checkout = new window.Razorpay({
+      flushSync(() => setCheckoutVisible(true));
+      const instance = new window.Razorpay({
         key: order.key_id,
         amount: Number(order.amount),
         currency: order.currency,
@@ -72,7 +86,8 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
         name: 'Iris OS',
         description: `${plan === 'PRO' ? 'Pro' : 'Advanced'} plan · ${formatPlanMoney(orderBaseAmount, orderCurrency)} + ${formatPlanMoney(orderTaxAmount, orderCurrency)} GST`,
         image: new URL('/icons/iris-512.png', window.location.origin).toString(),
-        theme: { color: '#09090B' },
+        parent: `#${checkoutHostId}`,
+        theme: { color: '#09090B', backdrop_color: 'rgba(9, 9, 11, 0.62)' },
         handler: async result => {
           verifying = true; setError(''); setMessage('Verifying payment…');
           try {
@@ -87,18 +102,29 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
         },
         modal: { ondismiss: () => { if (!verifying && !failed) { setMessage('Payment cancelled.'); finish(); } } },
       });
-      checkout.on('payment.failed', result => {
-        failed = true; checkout.close();
+      checkout.current = instance;
+      instance.on('payment.failed', result => {
+        failed = true; instance.close();
         setError(result.error?.description || 'Payment failed. Please try again.'); finish();
       });
-      checkout.open();
+      instance.open();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to open checkout.'); finish();
     }
   }
 
+  const checkoutModal = checkoutVisible && typeof document !== 'undefined' ? createPortal(
+    <div className={styles.overlay} aria-hidden={!checkoutVisible}>
+      <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="Secure Razorpay checkout">
+        <div id={checkoutHostId} className={styles.host} />
+      </div>
+    </div>,
+    document.body,
+  ) : null;
+
   return <section className="space-y-4 rounded-xl border border-white/10 bg-black/25 p-4 shadow-inner backdrop-blur-md" aria-label="Payment price breakdown">
     <Script src="https://checkout.razorpay.com/v1/checkout.js" onReady={() => setReady(true)} onError={() => { setReady(false); setError('Checkout could not load. Refresh the page and try again.'); }} />
+    {checkoutModal}
     <dl className="space-y-2 text-xs">
       <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>Plan price</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.baseAmount, price.currency)}</dd></div>
       <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>GST (18%)</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.taxAmount, price.currency)}</dd></div>

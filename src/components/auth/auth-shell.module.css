@@ -1,48 +1,26 @@
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
-/* Hallmark · genre: modern-minimal · macrostructure: Split Studio · design-system: design.md · designed-as-app · enrichment: supplied video · contrast: pass (40–41) · nav: none · footer: inline auth switch · slop: pass (42–49) · mobile: source-checked (34, 49–57) */
+/* Hallmark · genre: modern-minimal · macrostructure: Split Studio · design-system: design.md · designed-as-app · enrichment: procedural geometry · contrast: pass (40–41) · nav: none · footer: inline auth switch · slop: pass (42–49) · mobile: source-checked (34, 49–57) */
 .shell {
   position: relative;
   display: block;
-  height: 100svh;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 100svh;
+  overflow-x: clip;
+  overflow-y: auto;
   isolation: isolate;
   background: var(--color-auth-canvas);
   color: var(--color-auth-ink);
   font-family: var(--font-auth-body);
 }
 
-.videoPanel {
-  position: absolute;
+.backgroundPanel {
+  position: fixed;
   inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-auth-video-fallback);
-}
-
-.video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  opacity: 0;
-  transition: opacity var(--dur-auth-reveal) var(--ease-auth-out);
-}
-
-.video[data-loaded='true'] {
-  opacity: 0.4;
-}
-
-.videoOverlay {
-  position: absolute;
-  inset: 0;
-  background: var(--color-auth-video-overlay);
-  pointer-events: none;
+  background: var(--color-auth-canvas);
 }
 
 .formPanel {
@@ -50,23 +28,20 @@
   z-index: var(--z-auth-raised);
   display: grid;
   min-width: 0;
-  height: 100%;
-  min-height: 0;
+  min-height: 100svh;
   align-items: center;
   place-items: center;
-  overflow: hidden;
+  overflow: clip;
   padding: var(--space-auth-lg) var(--space-auth-md);
 }
 
 .abstractShape {
   position: absolute;
-  top: 50%;
-  right: 50%;
-  width: max(48rem, 165vw);
-  height: max(72rem, 160svh);
-  transform: translate(50%, -50%) rotate(-2deg);
-  border-radius: 50%;
-  background: var(--color-auth-paper);
+  inset: -2rem;
+  border: var(--rule-auth) solid var(--color-auth-glass-edge);
+  background: var(--color-auth-glass);
+  backdrop-filter: blur(1.125rem) saturate(72%);
+  -webkit-backdrop-filter: blur(1.125rem) saturate(72%);
   box-shadow: var(--shadow-auth-orbit);
   pointer-events: none;
 }
@@ -395,17 +370,23 @@
   }
 }
 
-@media (min-width: 56.25rem) {
+@media (min-width: 64rem) and (min-aspect-ratio: 4 / 3) {
   .formPanel {
     place-items: center end;
     padding: var(--space-auth-xl) clamp(var(--space-auth-3xl), 7vw, 10rem);
   }
 
   .abstractShape {
+    top: 50%;
     right: clamp(-13rem, -10.8vw, -6rem);
+    bottom: auto;
+    left: auto;
     width: max(50vw, 46rem);
     height: max(72rem, 160svh);
+    border-radius: 50%;
     transform: translateY(-50%) rotate(-2deg);
+    backdrop-filter: blur(1.5rem) saturate(68%);
+    -webkit-backdrop-filter: blur(1.5rem) saturate(68%);
   }
 }
 
@@ -482,11 +463,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .video {
-    opacity: 0;
-    transition: none;
-  }
-
   .input,
   .primaryButton,
   .googleButton {
@@ -513,5 +489,19 @@
   .formPanel { width: 44%; margin-left: auto; padding-inline: clamp(5rem, 6vw, 9rem); }
   .abstractShape { right: -18rem; width: max(58rem, 50vw); height: max(80rem, 175svh); }
   .card { width: min(100%, 31rem); }
-  .video { object-position: 34% center; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .abstractShape {
+    background: var(--color-auth-paper);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .abstractShape {
+    background: var(--color-auth-paper);
+    border-color: var(--color-auth-ink);
+  }
 }

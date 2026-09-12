@@ -8,7 +8,7 @@ Modern-minimal enterprise software with restrained graphite, titanium, silver, a
 
 ## Macrostructure families
 
-- Authentication pages: Geometry-aware Split Studio — full-height supplied video and porcelain form retain their identity while their relative canvas allocation changes for compact, standard, large, and ultrawide screens.
+- Authentication pages: Geometry-aware Split Studio — a full-height procedural monochrome WebGL field sits behind a responsive frosted-glass form surface.
 - Application pages: Geometry-aware Workbench — the existing sidebar, topbar, feature components, and domain layouts are composed through shared viewport modes and route families.
 - Touch application pages: Touch-first Workbench — phone bottom navigation, one-task canvases, safe-area sheets, and tablet rail/master-detail compositions. The platform-neutral specification is `docs/mobile-native-design-language.md`.
 - Marketing pages: Geometry-aware Workbench — the narrative remains vertical on standard screens and becomes a split editorial/product composition on ultrawide screens.
@@ -19,7 +19,7 @@ Modern-minimal enterprise software with restrained graphite, titanium, silver, a
 - Paper: cool porcelain, expressed through `--color-auth-paper`.
 - Ink: cool graphite, expressed through `--color-auth-ink`.
 - Accent: monochrome; focus is a restrained cool graphite signal.
-- Video treatment: supplied footage with a translucent dark-grey overlay.
+- Background treatment: white canvas with a black procedural triangulated surface, contour texture, vertices, connections, and restrained reconstruction motion.
 
 ## Typography
 
@@ -30,8 +30,8 @@ Modern-minimal enterprise software with restrained graphite, titanium, silver, a
 ## Spacing and motion
 
 - Four-point named spacing scale in `tokens.css`.
-- Motion is limited to video opacity and control transforms.
-- Reduced-motion users receive a static graphite video panel and no media download.
+- Motion uses a slow procedural surface-state cycle plus restrained control transforms.
+- Reduced-motion users receive a static generated geometry frame.
 
 ## Layout modes
 
@@ -52,16 +52,16 @@ Application routes are additionally grouped as dashboard, planner, records, stud
 
 ## Authentication performance contract
 
-- The form and logo render before the video is requested.
-- Desktop video loading begins during browser idle time with `preload="none"`.
-- The video fills the fixed authentication viewport at every size where motion is allowed.
-- The versioned local asset is served with immutable one-year caching.
+- The form and logo render independently from the client-only WebGL canvas.
+- The background uses adaptive vertex density and device-pixel-ratio limits.
+- Geometry updates use typed buffers and a small, fixed number of draw calls.
+- Reduced-motion mode renders a static frame without a continuous animation loop.
 
 ## Shared requirements
 
 - Login and signup share one auth shell and the same control states.
 - Existing Supabase authentication, bootstrap, OAuth, validation, and redirects remain unchanged.
-- The right-side porcelain orbit may change dimensions responsively, but the form must remain readable at 320, 375, 414, and 768 px widths.
+- The frosted-glass surface fills compact and unconventional viewports, then becomes a right-side orbit on desktop. The form must remain readable at 320, 375, 414, and 768 px widths.
 - Every workspace route inherits the shared layout-mode and route-family attributes from the application shell.
 - Geometry overrides remain in labelled additive CSS blocks and must not alter routing, permissions, state, data fetching, or integrations.
 - The pre-redesign language and exact reversion recipe live in `docs/design-language-original-2026-08-25.md`.

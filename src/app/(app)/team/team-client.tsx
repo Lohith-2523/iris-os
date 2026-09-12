@@ -48,6 +48,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
   const [loadingMemberTasks, setLoadingMemberTasks] = React.useState(false);
   const [memberPendingOffboarding, setMemberPendingOffboarding] = React.useState<any | null>(null);
   const [offboardingFeedback, setOffboardingFeedback] = React.useState('');
+  const [offboardingDataAcknowledged, setOffboardingDataAcknowledged] = React.useState(false);
   const [isOffboardingMember, setIsOffboardingMember] = React.useState(false);
   const [offboardingError, setOffboardingError] = React.useState('');
   const [teamNotice, setTeamNotice] = React.useState('');
@@ -517,14 +518,14 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
   };
 
   const offboardMember = async () => {
-    if (!memberPendingOffboarding || isOffboardingMember || offboardingFeedback.trim().length < 5) return;
+    if (!memberPendingOffboarding || isOffboardingMember || offboardingFeedback.trim().length < 5 || !offboardingDataAcknowledged) return;
     setIsOffboardingMember(true);
     setOffboardingError('');
     try {
       const response = await fetch('/api/security/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'offboard', userId: memberPendingOffboarding.id, feedback: offboardingFeedback.trim() }),
+        body: JSON.stringify({ action: 'offboard', userId: memberPendingOffboarding.id, feedback: offboardingFeedback.trim(), deleteRelatedData: true }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Unable to offboard team member');
@@ -532,6 +533,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
       setSelectedMember(null);
       setMemberPendingOffboarding(null);
       setOffboardingFeedback('');
+      setOffboardingDataAcknowledged(false);
       setTeamNotice(payload.emailSent ? 'Member offboarded, access revoked, and feedback email sent.' : 'Member offboarded and access revoked. The feedback email could not be delivered.');
     } catch (error) {
       setOffboardingError(error instanceof Error ? error.message : 'Unable to offboard team member');
@@ -1427,7 +1429,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                     <Button type="button" disabled={savingAccess} onClick={() => void saveMemberAccess()} className="w-full text-xs">{savingAccess ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save workspace access</Button>
                   </div>
                 )}
-                <Button type="button" variant="ghost" className="w-full text-rose-300 hover:bg-rose-950/20 hover:text-rose-200" onClick={() => { setOffboardingFeedback(''); setOffboardingError(''); setMemberPendingOffboarding(selectedMember); }}>
+                <Button type="button" variant="ghost" className="w-full text-rose-300 hover:bg-rose-950/20 hover:text-rose-200" onClick={() => { setOffboardingFeedback(''); setOffboardingDataAcknowledged(false); setOffboardingError(''); setMemberPendingOffboarding(selectedMember); }}>
                   <UserMinus className="mr-2 h-4 w-4" /> Offboard & revoke access
                 </Button>
               </div>
@@ -1441,15 +1443,19 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
           <Card className="w-full max-w-xl border-rose-900/40 bg-zinc-950 shadow-2xl">
             <CardHeader>
               <CardTitle id="offboard-member-title">Offboard {memberPendingOffboarding.name}</CardTitle>
-              <CardDescription>The member will immediately lose access to the teams dashboard. Their project assignments will be removed, active tasks will become unassigned, and this feedback will be emailed to them.</CardDescription>
+              <CardDescription>The member will immediately lose access. Their assigned tasks, project assignments, messages, chats, chat history, files, and all other related data will be permanently deleted. This feedback will be emailed to them.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <textarea required value={offboardingFeedback} onChange={(event) => setOffboardingFeedback(event.target.value)} placeholder="Provide clear offboarding feedback and handover notes" className="min-h-36 w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white outline-none focus:border-zinc-600" />
               <div className="flex items-center justify-between gap-3"><span className="text-zinc-500">Minimum 5 characters</span><span className="font-mono text-zinc-500">{offboardingFeedback.trim().length}</span></div>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-sm text-zinc-300">
+                <input type="checkbox" checked={offboardingDataAcknowledged} onChange={(event) => setOffboardingDataAcknowledged(event.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-white" />
+                <span>Delete all data related to this team member, including their access, messages, chats, and chat history.</span>
+              </label>
               {offboardingError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-rose-200">{offboardingError}</div>}
               <div className="flex justify-end gap-3">
-                <Button type="button" variant="ghost" disabled={isOffboardingMember} onClick={() => setMemberPendingOffboarding(null)}>Cancel</Button>
-                <Button type="button" disabled={isOffboardingMember || offboardingFeedback.trim().length < 5} className="bg-rose-700 text-white hover:bg-rose-600" onClick={() => void offboardMember()}>
+                <Button type="button" variant="ghost" disabled={isOffboardingMember} onClick={() => { setMemberPendingOffboarding(null); setOffboardingDataAcknowledged(false); }}>Cancel</Button>
+                <Button type="button" disabled={isOffboardingMember || offboardingFeedback.trim().length < 5 || !offboardingDataAcknowledged} className="bg-rose-700 text-white hover:bg-rose-600" onClick={() => void offboardMember()}>
                   {isOffboardingMember ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Revoking access…</> : <><UserMinus className="mr-2 h-4 w-4" />Confirm offboarding</>}
                 </Button>
               </div>

@@ -105,6 +105,8 @@ export default function ClientsPage({ initialData }: { initialData: ClientsReadM
     try {
       const response = await fetch(`/api/clients?clientId=${encodeURIComponent(clientPendingDeletion.id)}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteRelatedData: true }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -261,7 +263,7 @@ export default function ClientsPage({ initialData }: { initialData: ClientsReadM
             </div>
 
             <p className="mt-4 text-sm leading-6 text-zinc-400">
-              This permanently removes the client and associated client records. This action cannot be undone.
+              This revokes every client login and permanently removes the client account, projects, financial records, messages, chats, chat history, files, and all other related data. This action cannot be undone.
             </p>
 
             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm text-zinc-300">
@@ -271,7 +273,7 @@ export default function ClientsPage({ initialData }: { initialData: ClientsReadM
                 onChange={(event) => setDeleteAcknowledged(event.target.checked)}
                 className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-white"
               />
-              <span>I understand that deleting this client is permanent.</span>
+              <span>Delete all data related to this client, including their access, messages, chats, and chat history.</span>
             </label>
 
             {deleteError && <p className="mt-3 text-xs text-rose-300" role="alert">{deleteError}</p>}

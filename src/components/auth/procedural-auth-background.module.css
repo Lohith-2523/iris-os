@@ -1,0 +1,11 @@
+/* Hallmark: procedural auth background; modern-minimal; Iris porcelain.
+ * States: ambient, reduced motion, and WebGL fallback. */
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-auth-canvas);
+  pointer-events: none;
+}
+
+.root canvas { display: block; }

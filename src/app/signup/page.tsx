@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, Phone, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
+import { User, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import styles from '@/components/auth/auth-shell.module.css';

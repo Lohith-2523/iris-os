@@ -100,10 +100,11 @@
 
 /* Iris OS authentication surface */
 :root {
-  --color-auth-canvas: oklch(0.135 0.008 255);
-  --color-auth-video-fallback: oklch(0.19 0.01 255);
-  --color-auth-video-overlay: oklch(0.24 0.008 255 / 0.36);
+  --color-auth-canvas: oklch(0.992 0.002 255);
   --color-auth-paper: oklch(0.985 0.004 255);
+  --color-auth-glass: oklch(0.99 0.004 255 / 0.64);
+  --color-auth-glass-edge: oklch(1 0 0 / 0.74);
+  --color-auth-geometry-rule: oklch(0.19 0.012 255 / 0.2);
   --color-auth-field: oklch(0.965 0.006 255);
   --color-auth-field-hover: oklch(0.945 0.008 255);
   --color-auth-ink: oklch(0.19 0.012 255);
@@ -142,7 +143,6 @@
   --text-auth-title: clamp(2.125rem, 3.2vw, 3rem);
   --ease-auth-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-auth-fast: 160ms;
-  --dur-auth-reveal: 480ms;
   --dur-auth-reduced: 100ms;
   --rule-auth: 1px;
   --radius-auth-xs: 0.25rem;
