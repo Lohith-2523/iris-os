@@ -13,6 +13,8 @@ import {
 } from '@/lib/atlas-ai/service';
 import { formatUserMessage } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
+import { ChatFilePreview } from '@/components/ui/chat-file-preview';
+import { extractChatFileArtifacts } from '@/lib/chat-file-artifacts';
 import { ATLAS_GUIDE_MESSAGES, ATLAS_GUIDE_SESSION_ID, ATLAS_GUIDE_TITLE } from '@/lib/atlas-ai/guide';
 import type { AtlasInitialReadModel } from '@/server/domains/atlas-read-service';
 
@@ -1093,7 +1095,11 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                 {chatError}
               </div>
             )}
-            {messages.map((msg, idx) => (
+            {messages.map((msg, idx) => {
+              const fileContent = msg.role === 'assistant'
+                ? extractChatFileArtifacts(msg.content)
+                : { displayText: msg.content, artifacts: [] };
+              return (
               <div
                 key={idx}
                 className={`flex gap-3 text-xs leading-relaxed max-w-[85%] ${
@@ -1122,7 +1128,19 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                       <span className="italic text-zinc-500">Atlas is thinking...</span>
                     ) : (
                       <>
-                        <FormattedMarkdown text={msg.content} />
+                        <FormattedMarkdown text={fileContent.displayText} />
+                        {fileContent.artifacts.length > 0 && (
+                          <div className="mt-3 grid gap-2">
+                            {fileContent.artifacts.map((artifact) => (
+                              <ChatFilePreview
+                                key={artifact.href}
+                                fileKey={artifact.href}
+                                fileName={artifact.fileName}
+                                href={artifact.href}
+                              />
+                            ))}
+                          </div>
+                        )}
                         {isLoading && idx === messages.length - 1 && msg.role === 'assistant' && (
                           <span aria-hidden="true" className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-zinc-400 align-middle" />
                         )}
@@ -1131,7 +1149,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* Suggestions when empty */}
             {showSuggestions && (

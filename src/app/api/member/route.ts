@@ -1,3 +1,4 @@
+import { validateProfileAvatarDataUrl } from '@/lib/profile-avatar';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import * as crypto from 'crypto';
@@ -207,6 +208,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Authenticate with the invited email before continuing.' }, { status: 401 });
       }
 
+      const avatarResult = validateProfileAvatarDataUrl(body.avatarDataUrl);
+      if ('error' in avatarResult) return NextResponse.json({ error: avatarResult.error }, { status: 400 });
+      const avatarUpdate = body.avatarDataUrl === undefined ? {} : { avatarUrl: avatarResult.value };
+
       // Members created with the invitation are activated here. The create fallback
       // keeps invitations issued before this workflow compatible.
       let newUser = await prisma.user.findFirst({
@@ -217,6 +222,7 @@ export async function POST(request: NextRequest) {
           where: { id: newUser.id },
           data: {
             authUserId: identity.id,
+            ...avatarUpdate,
             name: invite.name,
             phone: invite.phone,
             accessPermissions: invite.accessPermissions ?? undefined,
@@ -239,6 +245,7 @@ export async function POST(request: NextRequest) {
             data: {
               email: invite.email,
               authUserId: identity.id,
+              ...avatarUpdate,
               name: invite.name,
               role: plan === 'BASIC' ? 'member' : 'sub_admin',
               phone: invite.phone,

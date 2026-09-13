@@ -173,9 +173,9 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
 
   return (
     <>
-      <header className="workspace-topbar flex w-full items-center justify-between border-b border-zinc-800 bg-[#09090b]">
+      <header className="workspace-topbar workspace-topbar-centered w-full border-b border-zinc-800 bg-[#09090b]">
         {/* Left: Mobile Toggle & Brand indicator */}
-        <div className="flex items-center gap-4">
+        <div className="workspace-topbar-navigation">
           <Button
             variant="ghost"
             size="icon"
@@ -188,9 +188,10 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
 
         </div>
 
+        <div className="workspace-topbar-controls">
         {/* Center: Ask Atlas Form */}
         {!isClient && atlasMenuEnabled && (
-          <div className="mx-2 max-w-fit flex-1 md:mx-4 md:max-w-md">
+          <div className="workspace-topbar-atlas">
             <div className="workspace-topbar-search flex h-9 w-9 items-center justify-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 transition-colors focus-within:border-zinc-700 focus-within:bg-zinc-900/80 md:w-full md:justify-start md:pl-3">
               <AtlasTopbarMenu workspacePlan={workspacePlan} canManagePlan={canManagePlan} />
               <form onSubmit={handleAtlasSubmit} className="hidden h-full min-w-0 flex-1 md:flex">
@@ -208,8 +209,9 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
           </div>
         )}
 
-        {/* Right: Search & Theme Toggle */}
-        <div className="flex items-center gap-3">
+        {(!atlasMenuEnabled || isClient) && <div className="workspace-topbar-atlas"><div className="workspace-topbar-search flex h-9 items-center justify-center gap-2 rounded-full border border-zinc-800 px-3 text-xs text-zinc-500" title="Atlas AI is not enabled for this role" aria-label="Atlas AI unavailable for this role"><AtlasIcon className="h-4 w-4" /><span className="hidden md:inline">Atlas AI</span></div></div>}
+        {/* Controls stay beside Atlas at every workspace width. */}
+        <div className="workspace-topbar-actions">
           <NotificationCenter />
           <Button
             variant="ghost"
@@ -242,6 +244,8 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
               </button>
             )}
         </div>
+        </div>
+        <div id="workspace-help-slot" className="workspace-topbar-help" />
       </header>
 
       {/* Command Menu Modal Dialog */}

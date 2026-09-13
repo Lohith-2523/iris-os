@@ -24,8 +24,7 @@ export function AuthShell({ title, description, children }: AuthShellProps) {
       </section>
 
       <section className={styles.formPanel} aria-label={title}>
-        <div className={styles.abstractShape} aria-hidden="true" />
-        <div className={styles.card}>
+        <div className={styles.card} style={{ backdropFilter: 'var(--filter-auth-frost)', WebkitBackdropFilter: 'var(--filter-auth-frost)' }}>
           <header className={styles.header}>
             <Image
               src="/iris-logo-black-transparent.png"

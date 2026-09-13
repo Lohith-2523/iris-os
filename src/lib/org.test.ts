@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getClaims: vi.fn(),
   getUser: vi.fn(),
   findUnique: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock('server-only', () => ({}));
@@ -13,6 +14,7 @@ vi.mock('./server', () => ({
 }));
 vi.mock('./db', () => ({
   prisma: {
+    $transaction: mocks.transaction,
     user: {
       findUnique: mocks.findUnique,
       findFirst: vi.fn(),
@@ -28,11 +30,29 @@ vi.mock('@/server/observability/performance', () => ({
 }));
 vi.mock('@/lib/team-member-access', () => ({ hasDeliveryWork: vi.fn() }));
 
-import { getAuthenticatedIdentity, getRequestUser } from './org';
+import { getAuthenticatedIdentity, getRequestUser, provisionAuthenticatedUser } from './org';
 
 describe('workspace authentication', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('does not provision a workspace from editable email-verification metadata', async () => {
+    mocks.findUnique.mockResolvedValue(null);
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'auth-user', email: 'person@example.com', email_confirmed_at: null } }, error: null });
+    await expect(provisionAuthenticatedUser({ id: 'auth-user', email: 'person@example.com', user_metadata: { email_verified: true } })).rejects.toThrow('Confirm your email');
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it('uses the verified callback identity before redirect cookies reach the browser', async () => {
+    mocks.findUnique.mockResolvedValue(null);
+    mocks.transaction.mockResolvedValue({ id: 'created-workspace-user' });
+    await expect(provisionAuthenticatedUser({
+      id: 'auth-user', email: 'person@example.com', user_metadata: {},
+      app_metadata: { provider: 'google' }, email_confirmed_at: '2026-09-13T12:00:00Z',
+    })).resolves.toEqual({ id: 'created-workspace-user' });
+    expect(mocks.getUser).not.toHaveBeenCalled();
+    expect(mocks.transaction).toHaveBeenCalled();
   });
 
   it('uses verified session claims without calling the remote getUser endpoint', async () => {

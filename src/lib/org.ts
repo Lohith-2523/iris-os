@@ -7,6 +7,7 @@ import { createClient } from './server';
 import { withDatabaseConnectionRetry } from './database-resilience';
 import { measureServerOperation } from '@/server/observability/performance';
 import { hasDeliveryWork } from '@/lib/team-member-access';
+import { EmailVerificationRequiredError, requireEmailConfirmationEnabled } from '@/lib/email-verification';
 
 const userWithWorkspace = {
   organization: {
@@ -51,6 +52,7 @@ type AuthenticatedIdentity = Pick<
   'id' | 'email' | 'phone' | 'user_metadata' | 'email_confirmed_at' | 'confirmed_at'
 > & {
   emailVerified?: boolean;
+  app_metadata?: SupabaseUser['app_metadata'];
 };
 
 function hasVerifiedEmail(identity: AuthenticatedIdentity) {
@@ -126,6 +128,18 @@ export async function provisionAuthenticatedUser(identity: AuthenticatedIdentity
   });
 
   if (existing) return existing;
+
+  // Only provider-verified inboxes may provision a new workspace. User-editable
+  // profile metadata is not proof of email ownership.
+  // The callback passes the user returned by exchangeCodeForSession; its new
+  // cookies are on the redirect response and cannot yet be read from the request.
+  const verifiedUser = identity.email_confirmed_at
+    ? identity
+    : (await (await createClient()).auth.getUser()).data.user;
+  if (verifiedUser?.id !== identity.id || verifiedUser.email?.trim().toLowerCase() !== normalizedEmail || !verifiedUser.email_confirmed_at) {
+    throw new EmailVerificationRequiredError();
+  }
+  if (verifiedUser.app_metadata?.provider === 'email') await requireEmailConfirmationEnabled();
 
   const displayName =
     identity.user_metadata?.full_name ||

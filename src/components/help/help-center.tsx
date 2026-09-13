@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { Bot, Bug, ChevronLeft, CircleHelp, Lightbulb, MessageCircleQuestion, Send, ShieldAlert, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
@@ -17,6 +18,10 @@ const choices = [
 export function HelpCenter() {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+  const [headerSlot, setHeaderSlot] = React.useState<HTMLElement | null>(null);
+  React.useEffect(() => {
+    setHeaderSlot(document.getElementById('workspace-help-slot'));
+  }, [pathname]);
   const [mode, setMode] = React.useState<HelpMode>('menu');
   const [status, setStatus] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -25,7 +30,9 @@ export function HelpCenter() {
     { role: 'assistant', text: 'Ask me how anything in Iris OS works.' },
   ]);
 
-  if (pathname === '/' || pathname === '/waitlist') return null;
+  const isAuthenticationSurface = ['/login', '/signup', '/invite', '/forgot-password', '/reset-password'].includes(pathname)
+    || pathname.startsWith('/onboarding/member');
+  if (pathname === '/' || pathname === '/waitlist' || isAuthenticationSurface) return null;
 
   const close = () => {
     setOpen(false);
@@ -78,8 +85,14 @@ export function HelpCenter() {
     }]);
   };
 
+  const trigger = (
+    <button type="button" className="iris-help-bubble" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Close help' : 'Get help'} aria-expanded={open}>
+      {open ? <X /> : <CircleHelp />}<span>Get help</span>
+    </button>
+  );
+
   return (
-    <div className={`iris-help-root ${pathname === '/atlas' ? 'iris-help-root-atlas' : ''}`}>
+    <div className={`iris-help-root ${headerSlot ? 'iris-help-root-header' : pathname === '/atlas' ? 'iris-help-root-atlas' : ''}`}>
       {open && (
         <section className="iris-help-panel" aria-label="Iris help">
           <header>
@@ -113,9 +126,7 @@ export function HelpCenter() {
           )}
         </section>
       )}
-      <button type="button" className="iris-help-bubble" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Close help' : 'Get help'} aria-expanded={open}>
-        {open ? <X /> : <CircleHelp />}<span>Get help</span>
-      </button>
+      {headerSlot ? createPortal(trigger, headerSlot) : trigger}
     </div>
   );
 }

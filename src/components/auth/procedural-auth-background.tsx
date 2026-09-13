@@ -102,9 +102,9 @@ function createSystem(rows: number, columns: number, density: number): System {
   triangleGeometry.setAttribute('position', new THREE.BufferAttribute(triangles, 3));
   triangleGeometry.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1));
 
-  const ink = new THREE.Color(0x111214);
-  const pointMaterial = new THREE.PointsMaterial({ color: ink, size: 0.035, sizeAttenuation: true, transparent: true, opacity: 0.68, depthWrite: false });
-  const lineMaterial = new THREE.LineBasicMaterial({ color: ink, transparent: true, opacity: 0.3, depthWrite: false });
+  const ink = new THREE.Color(0x000000);
+  const pointMaterial = new THREE.PointsMaterial({ color: ink, size: 0.035, sizeAttenuation: true, depthWrite: false });
+  const lineMaterial = new THREE.LineBasicMaterial({ color: ink, depthWrite: false });
   const triangleMaterial = new THREE.ShaderMaterial({
     transparent: true,
     side: THREE.DoubleSide,
@@ -113,7 +113,8 @@ function createSystem(rows: number, columns: number, density: number): System {
     fragmentShader: 'varying float vAlpha; varying vec3 vSurface; void main(){float contour=pow(abs(sin(vSurface.z*18.0+vSurface.x*1.4)),18.0);float weave=pow(abs(sin(vSurface.x*8.0-vSurface.y*5.0)),28.0);float textureMix=0.48+contour*0.34+weave*0.18;gl_FragColor=vec4(0.025,0.027,0.03,vAlpha*0.32*textureMix);}',
   });
   const group = new THREE.Group();
-  group.add(new THREE.Mesh(triangleGeometry, triangleMaterial), new THREE.LineSegments(lineGeometry, lineMaterial), new THREE.Points(pointGeometry, pointMaterial));
+  // Keep the geometry black and open: translucent filled faces read as grey.
+  group.add(new THREE.LineSegments(lineGeometry, lineMaterial), new THREE.Points(pointGeometry, pointMaterial));
   return {
     group, points, lines, triangles, alpha, uv, seeds,
     edges: Uint16Array.from(edgeList), faces: Uint16Array.from(faceList),

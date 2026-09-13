@@ -195,3 +195,7 @@
 [0909/204535.263:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
 [0909/204535.800:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
 [0909/204536.895:INFO:services\network\p2p\socket_udp.cc:618] sendto() has failed twice returning a  transient error net::ERR_ADDRESS_UNREACHABLE. Dropping the packet.
+[0913/222032.895:ERROR:gpu\command_buffer\service\gl_utils.cc:430] [.WebGL-0x1b5c031aea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[0913/222032.917:ERROR:gpu\command_buffer\service\gl_utils.cc:430] [.WebGL-0x1b5c031aea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[0913/222032.939:ERROR:gpu\command_buffer\service\gl_utils.cc:430] [.WebGL-0x1b5c031aea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[0913/222032.953:ERROR:gpu\command_buffer\service\gl_utils.cc:430] [.WebGL-0x1b5c031aea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)

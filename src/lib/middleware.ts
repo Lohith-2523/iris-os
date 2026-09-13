@@ -77,6 +77,7 @@ export async function updateSession(request: NextRequest) {
       pathname === '/auth/callback' ||
       pathname === '/api/member' ||
       pathname === '/api/invite' ||
+      pathname === '/api/auth/signup' ||
       pathname.startsWith('/api/document-signing/') ||
       pathname === '/api/webhooks/meta' ||
       pathname === '/api/meta-ads/deauthorize' ||

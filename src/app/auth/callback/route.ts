@@ -82,9 +82,11 @@ export async function GET(request: Request) {
       response.headers.set('Location', recoveryFailureUrl.toString());
       return response;
     }
-    if (next.startsWith('/onboarding/member')) {
+    if (new URL(next, origin).pathname === '/onboarding/member' || new URL(next, origin).pathname === '/invite') {
       const inviteToken = new URL(next, origin).searchParams.get('token');
-      const invite = inviteToken ? await prisma.memberInvite.findUnique({ where: { token: inviteToken } }) : null;
+      const invite = !inviteToken ? null : new URL(next, origin).pathname === '/invite'
+        ? await prisma.clientInvite.findUnique({ where: { token: inviteToken } })
+        : await prisma.memberInvite.findUnique({ where: { token: inviteToken } });
       if (invite && !invite.used && invite.expiresAt > new Date() && invite.email.toLowerCase() === email.toLowerCase()) {
         response.headers.set('Location', new URL(next, origin).toString());
         return response;

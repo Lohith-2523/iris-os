@@ -1,11 +1,12 @@
 'use client';
 
 import * as React from 'react';
+import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, User, Lock, ArrowRight, ShieldCheck, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, ArrowRight, ShieldCheck, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 function InvitePageContent() {
   const router = useRouter();
@@ -19,6 +20,20 @@ function InvitePageContent() {
   );
 
   const [name, setName] = React.useState('');
+  const [avatar, setAvatar] = React.useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = React.useState(false);
+  const [authenticated, setAuthenticated] = React.useState(false);
+  React.useEffect(() => {
+    if (!token) return;
+    try { setAvatar(sessionStorage.getItem('onboarding-avatar:' + token)); } catch { /* Optional draft storage. */ }
+    void import('@/lib/client').then(({ createClient }) => createClient().auth.getUser()).then(({ data }) => {
+      setAuthenticated(Boolean(data.user?.email && data.user.email.toLowerCase() === inviteData?.email?.toLowerCase()));
+    }).catch(() => undefined);
+  }, [token, inviteData?.email]);
+  const chooseAvatar = (value: string | null) => {
+    setAvatar(value);
+    try { if (value) sessionStorage.setItem('onboarding-avatar:' + token, value); else sessionStorage.removeItem('onboarding-avatar:' + token); } catch { /* Optional draft storage. */ }
+  };
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
@@ -62,24 +77,27 @@ function InvitePageContent() {
     try {
       const { createClient } = await import('@/lib/client');
       const supabase = createClient();
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: inviteData.email,
-        password,
-        options: { data: { name, role: 'client' } },
-      });
-      if (signUpError && !signUpError.message.toLowerCase().includes('already registered')) throw signUpError;
-      if (!authData.session) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email: inviteData.email, password });
-        if (signInError) throw signInError;
-      }
+      if (!authenticated) {
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: inviteData.email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/invite?token=${token}`)}`, data: { name, role: 'client' } },
+        });
+        if (signUpError && !signUpError.message.toLowerCase().includes('already registered')) throw signUpError;
+        if (!authData.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email: inviteData.email, password });
+          if (signInError) throw new Error(signInError.code === 'email_not_confirmed' ? 'Check your inbox and confirm your email, then return here to finish registration.' : signInError.message);
+        }
 
+      }
       const res = await fetch('/api/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password, name })
+        body: JSON.stringify({ token, name, avatarDataUrl: avatar })
       });
 
       if (res.ok) {
+        try { sessionStorage.removeItem('onboarding-avatar:' + token); } catch { /* Optional draft storage. */ }
         setTimeout(() => {
           router.push('/client-dashboard');
         }, 300);
@@ -90,7 +108,7 @@ function InvitePageContent() {
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg('Network error registering account.');
+      setErrorMsg(err instanceof Error ? err.message : 'Unable to register your account.');
       setSubmitting(false);
     }
   };
@@ -107,7 +125,7 @@ function InvitePageContent() {
   }
 
   return (
-    <div className="workspace-auth flex h-screen w-screen items-center justify-center bg-[#09090b] px-4">
+    <div className="workspace-auth flex min-h-screen w-full items-center justify-center bg-[#09090b] px-4 py-6">
       <div className="absolute inset-0 bg-radial-[circle_at_center,rgba(255,255,255,0.015)_0%,transparent_70%]" />
 
       <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl font-sans text-xs">
@@ -121,7 +139,7 @@ function InvitePageContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-8 space-y-6">
-          {errorMsg ? (
+          {!inviteData && errorMsg ? (
             <div className="rounded border border-rose-900/30 bg-rose-950/20 p-4 space-y-3">
               <div className="flex gap-2.5 text-rose-400 items-start">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -137,6 +155,8 @@ function InvitePageContent() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {errorMsg && <p role="alert" className="text-rose-400">{errorMsg}</p>}
+              <ProfilePicturePicker value={avatar} onChange={chooseAvatar} name={name} disabled={submitting || avatarBusy} onBusyChange={setAvatarBusy} />
               <div className="space-y-1.5">
                 <label className="font-semibold text-zinc-400 block">Workspace Email</label>
                 <input
@@ -164,7 +184,7 @@ function InvitePageContent() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              {!authenticated && <div className="space-y-1.5">
                 <label className="font-semibold text-zinc-400 block">Create Password</label>
                 <div className="relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -192,9 +212,10 @@ function InvitePageContent() {
                 </div>
               </div>
 
+              }
               <Button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || avatarBusy}
                 className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer"
               >
                 <span>{submitting ? 'Registering Account...' : 'Complete Registration'}</span>

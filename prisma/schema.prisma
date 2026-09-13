@@ -328,6 +328,7 @@ model Project {
   startDate              DateTime
   endDate                DateTime?
   progress               Int          @default(0) // 0-100
+  autoCompleted          Boolean      @default(false) // Set by task/stage completion rollup.
   riskLevel              String // LOW, MEDIUM, HIGH
   riskDescription        String?
   timeline               String?
@@ -1031,6 +1032,7 @@ model TaskComment {
 model ProjectStage {
   id        String       @id @default(uuid())
   name      String
+  status    String       @default("NOT_STARTED") // Derived from tasks: NOT_STARTED, IN_PROGRESS, COMPLETED.
   position  Int // 0-based order index
   startDate DateTime
   endDate   DateTime

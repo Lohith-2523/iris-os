@@ -621,7 +621,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border-sky-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(56,189,248,0.7)]">
           <CardHeader className="pb-1.5">
-            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><FolderKanban className="h-4 w-4 text-sky-300" />Active Campaigns / Projects</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><FolderKanban className="h-4 w-4 text-sky-300" />Active Projects</CardTitle>
           </CardHeader>
           <CardContent className="flex items-baseline gap-2">
             <div className="text-xl font-bold font-mono tracking-tight text-sky-300">{stats.active}</div>
@@ -1702,6 +1702,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                       <div key={stage.id} className="p-2 border border-zinc-900 bg-zinc-950/30 flex justify-between items-center">
                         <div>
                           <span className="font-semibold text-white text-[11px]">{idx + 1}. {stage.name}</span>
+                          <Badge variant={stage.status === 'COMPLETED' ? 'risk-low' : 'outline'}>{stage.status === 'COMPLETED' ? 'Completed' : stage.status === 'IN_PROGRESS' ? 'In progress' : 'Not started'}</Badge>
                           <span className="block text-[8px] text-zinc-550 font-mono mt-0.5">
                             {new Date(stage.startDate).toLocaleDateString()} to {new Date(stage.endDate).toLocaleDateString()}
                           </span>

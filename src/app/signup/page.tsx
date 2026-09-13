@@ -1,16 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import styles from '@/components/auth/auth-shell.module.css';
 import { passwordConfirmationError } from '@/lib/password-validation';
+import { signupEmailSchema } from '@/lib/signup-validation';
 
 export default function SignupPage() {
-  const router = useRouter();
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
@@ -19,10 +18,14 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmation, setShowConfirmation] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [confirmationEmail, setConfirmationEmail] = React.useState('');
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+    const parsedEmail = signupEmailSchema.safeParse(email);
+    if (!parsedEmail.success) { setErrorMsg(parsedEmail.error.issues[0].message); return; }
     if (!name || !email || !phone || !password) {
       setErrorMsg('Please fill in all fields.');
       return;
@@ -35,22 +38,15 @@ export default function SignupPage() {
     setIsLoading(true);
     
     try {
-      const { createClient } = await import('@/lib/client');
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: { data: { name, full_name: name, phone, role: 'admin' } },
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email: parsedEmail.data, phone, password, confirmPassword }),
       });
-      if (error) throw error;
-      if (!data.session) {
-        setErrorMsg('Check your email to confirm your account, then sign in to continue onboarding.');
-        return;
-      }
-      const bootstrap = await fetch('/api/auth/bootstrap', { method: 'POST' });
-      if (!bootstrap.ok) throw new Error('Unable to initialize your workspace.');
-      router.push('/onboarding');
-      router.refresh();
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to start email verification.');
+      setConfirmationEmail(parsedEmail.data);
+      setPassword('');
+      setConfirmPassword('');
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'Unable to create your workspace.');
     } finally {
@@ -84,7 +80,8 @@ export default function SignupPage() {
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}
 
-        <form onSubmit={handleSignup} className={styles.form} aria-busy={isLoading}>
+        {confirmationEmail && <div className={styles.success} role="status"><strong>Check your inbox</strong><p>We sent a confirmation link to {confirmationEmail}. Confirm your email to activate your workspace. If you already have an account, sign in below.</p><button type="button" className={styles.footerLink} onClick={() => setConfirmationEmail('')}>Use a different email</button></div>}
+        {!confirmationEmail && <form onSubmit={handleSignup} className={styles.form} aria-busy={isLoading}>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="signup-name">Full name</label>
             <div className={styles.inputWrap}>
@@ -97,10 +94,11 @@ export default function SignupPage() {
             <label className={styles.label} htmlFor="signup-email">Workspace email</label>
             <div className={styles.inputWrap}>
               <Mail className={styles.inputIcon} aria-hidden="true" />
-              <input id="signup-email" type="email" required placeholder="name@agency.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" className={styles.input} />
+              <input id="signup-email" type="email" required maxLength={254} aria-describedby="signup-email-help" placeholder="name@agency.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" className={styles.input} />
             </div>
           </div>
 
+          <p id="signup-email-help" className={styles.description}>Use an inbox you can access. We will email a link to verify it before activating your workspace.</p>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="signup-phone">Phone number</label>
             <CountryPhoneInput id="signup-phone" required value={phone} onChange={setPhone} placeholder="Phone number" className={styles.input} />
@@ -132,7 +130,7 @@ export default function SignupPage() {
             <span>{isLoading ? 'Creating workspace…' : 'Create workspace'}</span>
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
-        </form>
+        </form>}
 
         <div className={styles.divider}><span>or</span></div>
 

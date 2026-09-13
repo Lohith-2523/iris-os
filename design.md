@@ -8,7 +8,7 @@ Modern-minimal enterprise software with restrained graphite, titanium, silver, a
 
 ## Macrostructure families
 
-- Authentication pages: Geometry-aware Split Studio — a full-height procedural monochrome WebGL field sits behind a responsive frosted-glass form surface.
+- Authentication pages: Centered Glass ? black procedural wireframes fade to white across the upper 60% behind a centered, rounded rectangular frosted-glass form.
 - Application pages: Geometry-aware Workbench — the existing sidebar, topbar, feature components, and domain layouts are composed through shared viewport modes and route families.
 - Touch application pages: Touch-first Workbench — phone bottom navigation, one-task canvases, safe-area sheets, and tablet rail/master-detail compositions. The platform-neutral specification is `docs/mobile-native-design-language.md`.
 - Marketing pages: Geometry-aware Workbench — the narrative remains vertical on standard screens and becomes a split editorial/product composition on ultrawide screens.
@@ -60,8 +60,8 @@ Application routes are additionally grouped as dashboard, planner, records, stud
 ## Shared requirements
 
 - Login and signup share one auth shell and the same control states.
-- Existing Supabase authentication, bootstrap, OAuth, validation, and redirects remain unchanged.
-- The frosted-glass surface fills compact and unconventional viewports, then becomes a right-side orbit on desktop. The form must remain readable at 320, 375, 414, and 768 px widths.
+- Supabase remains the identity provider; email signup requires verification before workspace activation.
+- The frosted-glass card stays centered at every viewport, with a bounded width and internal padding. The form must remain readable at 320, 375, 414, and 768 px widths.
 - Every workspace route inherits the shared layout-mode and route-family attributes from the application shell.
 - Geometry overrides remain in labelled additive CSS blocks and must not alter routing, permissions, state, data fetching, or integrations.
 - The pre-redesign language and exact reversion recipe live in `docs/design-language-original-2026-08-25.md`.

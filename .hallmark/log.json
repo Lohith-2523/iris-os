@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-09-13",
+    "scope": "login and signup authentication shell",
+    "macrostructure": "Centered Glass",
+    "theme": "Iris OS porcelain, graphite, and frosted glass",
+    "axes": ["centered rounded rectangle", "upper field fading to white", "black wireframe geometry"],
+    "nav": "none",
+    "footer": "inline auth switch",
+    "enrichment": "procedural monochrome wireframe behind a frosted glass card",
+    "brief": "Center the authentication forms, remove grey animation fills, and fade the upper 60 percent into white"
+  },
+  {
     "date": "2026-09-12",
     "scope": "login and signup authentication shell",
     "macrostructure": "Geometry-aware Split Studio",

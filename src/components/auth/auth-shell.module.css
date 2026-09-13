@@ -1,5 +1,5 @@
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
-/* Hallmark · genre: modern-minimal · macrostructure: Split Studio · design-system: design.md · designed-as-app · enrichment: procedural geometry · contrast: pass (40–41) · nav: none · footer: inline auth switch · slop: pass (42–49) · mobile: source-checked (34, 49–57) */
+/* Hallmark · genre: modern-minimal · macrostructure: Centered Glass · design-system: design.md · designed-as-app · enrichment: procedural geometry · contrast: pass (40–41) · nav: none · footer: inline auth switch · slop: pass (42–49) · mobile: source-checked (34, 49–57) */
 .shell {
   position: relative;
   display: block;
@@ -35,22 +35,17 @@
   padding: var(--space-auth-lg) var(--space-auth-md);
 }
 
-.abstractShape {
-  position: absolute;
-  inset: -2rem;
-  border: var(--rule-auth) solid var(--color-auth-glass-edge);
-  background: var(--color-auth-glass);
-  backdrop-filter: blur(1.125rem) saturate(72%);
-  -webkit-backdrop-filter: blur(1.125rem) saturate(72%);
-  box-shadow: var(--shadow-auth-orbit);
-  pointer-events: none;
-}
-
 .card {
   position: relative;
   z-index: var(--z-auth-raised);
-  width: min(100%, 28rem);
-  padding-block: var(--space-auth-md);
+  width: min(100%, 31rem);
+  padding: var(--space-auth-xl);
+  border: var(--rule-auth) solid var(--color-auth-glass-edge);
+  border-radius: var(--radius-auth-card);
+  background: repeating-linear-gradient(110deg, transparent 0 2px, var(--color-auth-frost-grain) 2px 3px), var(--color-auth-frost);
+  backdrop-filter: blur(24px) saturate(110%);
+  -webkit-backdrop-filter: blur(24px) saturate(110%);
+  box-shadow: var(--shadow-auth-orbit);
 }
 
 .header {
@@ -370,26 +365,6 @@
   }
 }
 
-@media (min-width: 64rem) and (min-aspect-ratio: 4 / 3) {
-  .formPanel {
-    place-items: center end;
-    padding: var(--space-auth-xl) clamp(var(--space-auth-3xl), 7vw, 10rem);
-  }
-
-  .abstractShape {
-    top: 50%;
-    right: clamp(-13rem, -10.8vw, -6rem);
-    bottom: auto;
-    left: auto;
-    width: max(50vw, 46rem);
-    height: max(72rem, 160svh);
-    border-radius: 50%;
-    transform: translateY(-50%) rotate(-2deg);
-    backdrop-filter: blur(1.5rem) saturate(68%);
-    -webkit-backdrop-filter: blur(1.5rem) saturate(68%);
-  }
-}
-
 @media (max-height: 56rem) {
   .formPanel {
     padding-block: var(--space-auth-sm);
@@ -470,38 +445,28 @@
   }
 }
 
-/* Hallmark · geometry-aware Split Studio · design-system: design.md
- * Iris geometry-aware composition system — shared by login and signup. */
-@media (min-width: 75rem) and (max-height: 50rem) {
-  .formPanel { padding-block: var(--space-auth-sm); }
-  .card { padding-block: var(--space-auth-xs); }
-  .header { margin-bottom: var(--space-auth-md); }
-  .content, .form { gap: var(--space-auth-sm); }
+@media (max-width: 26rem) {
+  .card { padding: var(--space-auth-lg) var(--space-auth-md); }
 }
-
-@media (min-width: 100rem) and (max-aspect-ratio: 2 / 1) {
-  .formPanel { place-items: center end; padding-inline: clamp(7rem, 9vw, 13rem); }
-  .abstractShape { right: clamp(-15rem, -9vw, -8rem); width: max(52vw, 58rem); }
-  .card { width: min(100%, 30rem); }
-}
-
-@media (min-width: 120rem) and (min-aspect-ratio: 2 / 1) {
-  .formPanel { width: 44%; margin-left: auto; padding-inline: clamp(5rem, 6vw, 9rem); }
-  .abstractShape { right: -18rem; width: max(58rem, 50vw); height: max(80rem, 175svh); }
-  .card { width: min(100%, 31rem); }
-}
-
 @media (prefers-reduced-transparency: reduce) {
-  .abstractShape {
-    background: var(--color-auth-paper);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+  .card { --filter-auth-frost: none; background: var(--color-auth-paper); }
+}
+@media (prefers-contrast: more) {
+  .card { background: var(--color-auth-paper); border-color: var(--color-auth-ink); }
 }
 
-@media (prefers-contrast: more) {
-  .abstractShape {
-    background: var(--color-auth-paper);
-    border-color: var(--color-auth-ink);
-  }
+/* Keep the shared dark workspace inputs from overriding the white auth card. */
+.shell:global(.workspace-auth) { background: var(--color-auth-canvas) !important; }
+.shell .input:not([type='checkbox']):not([type='radio']),
+.shell:global(.workspace-auth) input[type='tel'] {
+  background: var(--color-auth-field) !important;
+  border: var(--rule-auth) solid var(--color-auth-rule) !important;
+  color: var(--color-auth-ink) !important;
+  box-shadow: none !important;
+}
+.shell .input:not([type='checkbox']):not([type='radio']):focus-visible,
+.shell:global(.workspace-auth) input[type='tel']:focus-visible {
+  border-color: var(--color-auth-focus) !important;
+  outline: 2px solid var(--color-auth-focus);
+  outline-offset: 2px;
 }

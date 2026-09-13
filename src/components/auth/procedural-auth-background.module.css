@@ -9,3 +9,9 @@
 }
 
 .root canvas { display: block; }
+
+/* Fade the upper 60% into the white canvas. */
+.root canvas {
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 15%, #000 60%, #000 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 15%, #000 60%, #000 100%);
+}

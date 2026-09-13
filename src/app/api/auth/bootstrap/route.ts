@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { EmailVerificationRequiredError } from '@/lib/email-verification';
 import { getOrCreateRequestUser, WorkspaceIdentityConflictError } from '@/lib/org';
 import {
   isTransientDatabaseConnectionError,
@@ -28,6 +29,9 @@ export async function POST() {
       },
     });
   } catch (error) {
+    if (error instanceof EmailVerificationRequiredError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     if (error instanceof WorkspaceIdentityConflictError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }

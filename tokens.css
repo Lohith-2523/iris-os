@@ -100,7 +100,11 @@
 
 /* Iris OS authentication surface */
 :root {
-  --color-auth-canvas: oklch(0.992 0.002 255);
+  --color-auth-canvas: #ffffff;
+  --color-auth-frost: rgb(255 255 255 / 0.7);
+  --color-auth-frost-grain: rgb(255 255 255 / 0.15);
+  --radius-auth-card: 1.5rem;
+  --filter-auth-frost: blur(24px) saturate(110%);
   --color-auth-paper: oklch(0.985 0.004 255);
   --color-auth-glass: oklch(0.99 0.004 255 / 0.64);
   --color-auth-glass-edge: oklch(1 0 0 / 0.74);

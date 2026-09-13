@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { isMessagingTeamRole } from '@/lib/messaging/roles';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
-import { CalendarPlus, Check, ChevronDown, CircleCheck, Clock3, Download, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
+import { CalendarPlus, Check, ChevronDown, CircleCheck, Clock3, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
 import { getMessagingProtocol } from '@/lib/messaging/protocol';
 import { safeDownloadName, validateBrowserFile, type SafeAttachmentCategory } from '@/lib/file-security';
 import type { MessagingLimits } from '@/lib/plan-entitlements';
 import styles from './messages.module.css';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
+import { ChatFilePreview, type LoadedChatFile } from '@/components/ui/chat-file-preview';
 
 type Person = { id: string; name: string; email: string; role: string; avatarUrl?: string | null };
 type Conversation = {
@@ -211,7 +212,6 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   const [limits, setLimits] = React.useState<MessagingLimits | null>(initialInbox.limits);
   const [pageReady, setPageReady] = React.useState(false);
   const [conversationLoading, setConversationLoading] = React.useState(false);
-  const [downloadingAttachmentId, setDownloadingAttachmentId] = React.useState('');
   const [composerMenuOpen, setComposerMenuOpen] = React.useState(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = React.useState(false);
   const [expandedMeetingId, setExpandedMeetingId] = React.useState('');
@@ -224,6 +224,11 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   const syncingConversationIdsRef = React.useRef(new Set<string>());
   const decryptedMessageCacheRef = React.useRef(new Map<string, DisplayMessage>());
   const threadMessageCacheRef = React.useRef(new Map<string, DisplayMessage[]>());
+  const attachmentFileCacheRef = React.useRef(new Map<string, Promise<LoadedChatFile>>());
+
+  React.useEffect(() => {
+    attachmentFileCacheRef.current.clear();
+  }, [selected?.id]);
 
   const requestInbox = React.useCallback(async () => {
     const messagingResponse = await fetch('/api/messaging', { cache: 'no-store' });
@@ -637,16 +642,19 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     }
   }
 
-  async function downloadAttachment(message: DisplayMessage, attachment: DisplayAttachment) {
-    if (!attachment.name || !attachment.type) return setError('Encrypted attachment metadata is unavailable on this device.');
-    if (!selected) return setError('Select a conversation before downloading an attachment.');
-    setDownloadingAttachmentId(attachment.id);
-    setError('');
-    try {
+  async function loadAttachmentFile(message: DisplayMessage, attachment: DisplayAttachment, signal: AbortSignal) {
+    if (!attachment.name || !attachment.type) throw new Error('Encrypted attachment metadata is unavailable on this device.');
+    if (!selected) throw new Error('Select a conversation before opening an attachment.');
+    const attachmentName = attachment.name;
+    const attachmentType = attachment.type;
+    const conversationId = selected.id;
+    const cached = attachmentFileCacheRef.current.get(attachment.id);
+    if (cached) return cached;
+    const pending = (async (): Promise<LoadedChatFile> => {
       let ciphertext = attachment.ciphertext;
       if (!ciphertext) {
-        const query = new URLSearchParams({ conversationId: selected.id, attachmentId: attachment.id });
-        const response = await fetch(`/api/messaging/messages?${query.toString()}`, { cache: 'no-store' });
+        const query = new URLSearchParams({ conversationId, attachmentId: attachment.id });
+        const response = await fetch(`/api/messaging/messages?${query.toString()}`, { cache: 'no-store', signal });
         const payload = await response.json().catch(() => ({})) as { attachment?: { ciphertext?: string }; error?: string };
         if (!response.ok || !payload.attachment?.ciphertext) throw new Error(payload.error || 'Unable to retrieve encrypted attachment.');
         ciphertext = payload.attachment.ciphertext;
@@ -658,24 +666,17 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
       });
       const copy = Uint8Array.from(bytes);
       const validation = await validateBrowserFile({
-        name: attachment.name,
-        type: attachment.type,
+        name: attachmentName,
+        type: attachmentType,
         size: copy.byteLength,
         arrayBuffer: async () => copy.buffer,
       }, 'message-attachment');
       if (!validation.ok) throw new Error(validation.error);
-      const url = URL.createObjectURL(new Blob([copy], { type: 'application/octet-stream' }));
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = safeDownloadName(attachment.name);
-      anchor.rel = 'noopener';
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
-    } catch (downloadError) {
-      setError(downloadError instanceof Error ? downloadError.message : 'Unable to decrypt this attachment safely.');
-    } finally {
-      setDownloadingAttachmentId('');
-    }
+      return { blob: new Blob([copy], { type: attachmentType }), fileName: safeDownloadName(attachmentName), mimeType: attachmentType };
+    })();
+    attachmentFileCacheRef.current.set(attachment.id, pending);
+    pending.catch(() => attachmentFileCacheRef.current.delete(attachment.id));
+    return pending;
   }
 
   if (!pageReady) {
@@ -786,16 +787,14 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                     {message.attachments.length > 0 && (
                       <div className={styles.receivedAttachments}>
                         {message.attachments.map((attachment) => (
-                          <button
-                            type="button"
+                          <ChatFilePreview
                             key={attachment.id}
-                            className={styles.downloadAttachment}
-                            onClick={() => void downloadAttachment(message, attachment)}
-                            disabled={!attachment.name || downloadingAttachmentId === attachment.id}
-                          >
-                            <Download size={13} />
-                            <span>{attachment.name || 'Encrypted attachment'}</span>
-                          </button>
+                            fileKey={attachment.id}
+                            fileName={attachment.name || 'Encrypted attachment'}
+                            mimeType={attachment.type}
+                            byteSize={attachment.byteSize}
+                            loadFile={(signal) => loadAttachmentFile(message, attachment, signal)}
+                          />
                         ))}
                       </div>
                     )}

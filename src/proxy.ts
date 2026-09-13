@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/middleware';
 
 export async function proxy(request: NextRequest) {
+  // Discovery files must remain public, including during coming-soon mode and
+  // authentication-provider outages. They never contain workspace information.
+  if (['/robots.txt', '/llms.txt'].includes(request.nextUrl.pathname)) return NextResponse.next();
   const host = request.headers.get('host') || '';
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
   const isProduction = process.env.NODE_ENV === 'production';

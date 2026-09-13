@@ -232,6 +232,7 @@ export function ProjectBreakdownDrawer({
                       <div>
                         <div className="flex flex-wrap items-center gap-3">
                           <h3 className="text-lg font-semibold">{stage.name}</h3>
+                          <Badge variant={stage.status === 'COMPLETED' ? 'risk-low' : 'outline'}>{statusLabel(stage.status || 'NOT_STARTED')}</Badge>
                           <Badge variant="outline">{stageTasks.length} tasks</Badge>
                           <Badge variant="outline">{stageDeliverables.length} deliverables</Badge>
                         </div>

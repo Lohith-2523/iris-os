@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
@@ -26,6 +27,20 @@ function MemberOnboardingContent() {
   );
 
   // Form password details
+  const [avatar, setAvatar] = React.useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = React.useState(false);
+  const [authenticated, setAuthenticated] = React.useState(false);
+  React.useEffect(() => {
+    if (!token) return;
+    try { setAvatar(sessionStorage.getItem('onboarding-avatar:' + token)); } catch { /* Optional draft storage. */ }
+    void import('@/lib/client').then(({ createClient }) => createClient().auth.getUser()).then(({ data }) => {
+      setAuthenticated(Boolean(data.user?.email && data.user.email.toLowerCase() === invite?.email?.toLowerCase()));
+    }).catch(() => undefined);
+  }, [token, invite?.email]);
+  const chooseAvatar = (value: string | null) => {
+    setAvatar(value);
+    try { if (value) sessionStorage.setItem('onboarding-avatar:' + token, value); else sessionStorage.removeItem('onboarding-avatar:' + token); } catch { /* Optional draft storage. */ }
+  };
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
@@ -65,12 +80,12 @@ function MemberOnboardingContent() {
     if (e) e.preventDefault();
     setFormError(null);
 
-    if (!useGoogle && (!password || password.length < 6)) {
+    if (!authenticated && !useGoogle && (!password || password.length < 6)) {
       setFormError('Password must be at least 6 characters long.');
       return;
     }
 
-    if (!useGoogle && password !== confirmPassword) {
+    if (!authenticated && !useGoogle && password !== confirmPassword) {
       setFormError('Passwords do not match.');
       return;
     }
@@ -80,7 +95,7 @@ function MemberOnboardingContent() {
     try {
       const { createClient } = await import('@/lib/client');
       const supabase = createClient();
-      if (useGoogle) {
+      if (useGoogle && !authenticated) {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/onboarding/member?token=${token}`)}` },
@@ -89,31 +104,33 @@ function MemberOnboardingContent() {
         return;
       }
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: invite.email,
-        password,
-        options: { data: { name: invite.name, role: 'member' } },
-      });
-      if (signUpError && !signUpError.message.toLowerCase().includes('already registered')) throw signUpError;
-      if (!data.session) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email: invite.email, password });
-        if (signInError) throw signInError;
-      }
+      if (!authenticated) {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: invite.email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/onboarding/member?token=${token}`)}`, data: { name: invite.name, role: 'member' } },
+        });
+        if (signUpError && !signUpError.message.toLowerCase().includes('already registered')) throw signUpError;
+        if (!data.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email: invite.email, password });
+          if (signInError) throw new Error(signInError.code === 'email_not_confirmed' ? 'Check your inbox and confirm your email, then return here to finish onboarding.' : signInError.message);
+        }
 
+      }
       const res = await fetch('/api/member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'complete_onboarding',
           token,
-          password: useGoogle ? 'GOOGLE_OAUTH_LINKED' : password,
-          useGoogle
+          avatarDataUrl: avatar
         })
       });
 
       if (res.ok) {
         const result = await res.json();
         setSuccess(true);
+        try { sessionStorage.removeItem('onboarding-avatar:' + token); } catch { /* Optional draft storage. */ }
         
         setTimeout(() => {
           router.push(result.destination || '/teams-dashboard');
@@ -124,7 +141,7 @@ function MemberOnboardingContent() {
       }
     } catch (e) {
       console.error(e);
-      setFormError('Network communication timeout.');
+      setFormError(e instanceof Error ? e.message : 'Unable to finish onboarding.');
     } finally {
       setSubmitting(false);
     }
@@ -225,14 +242,16 @@ function MemberOnboardingContent() {
                 </div>
               )}
 
+              <ProfilePicturePicker value={avatar} onChange={chooseAvatar} name={invite?.name || "Your"} disabled={submitting || avatarBusy} onBusyChange={setAvatarBusy} />
               {/* Set Password Option */}
               <form onSubmit={(e) => handleOnboardSubmit(e, false)} className="space-y-3.5">
+                {!authenticated && <>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">Workspace Password</label>
                   <input
                     type="password"
                     required
-                    disabled={submitting}
+                    disabled={submitting || avatarBusy}
                     placeholder="Enter password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -245,7 +264,7 @@ function MemberOnboardingContent() {
                   <input
                     type="password"
                     required
-                    disabled={submitting}
+                    disabled={submitting || avatarBusy}
                     placeholder="Retype password to confirm"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -253,12 +272,13 @@ function MemberOnboardingContent() {
                   />
                 </div>
 
+                </>}
                 <Button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || avatarBusy}
                   className="w-full bg-white hover:bg-zinc-200 text-zinc-950 h-9 font-semibold text-xs rounded transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>Activate via Password</span>}
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>{authenticated ? 'Complete onboarding' : 'Activate via Password'}</span>}
                 </Button>
               </form>
 
@@ -273,7 +293,7 @@ function MemberOnboardingContent() {
               <Button
                 type="button"
                 onClick={() => handleOnboardSubmit(null as any, true)}
-                disabled={submitting}
+                disabled={submitting || avatarBusy}
                 className="w-full bg-zinc-900 hover:bg-zinc-850 text-white border border-zinc-800 h-9 font-semibold text-xs rounded transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 {submitting ? (

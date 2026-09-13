@@ -1,3 +1,4 @@
+import { validateProfileAvatarDataUrl } from '@/lib/profile-avatar';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getAuthenticatedIdentity } from '@/lib/org';
@@ -38,10 +39,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { token, password, name } = body;
+    const { token, name } = body;
 
-    if (!token || !password) {
-      return NextResponse.json({ error: 'Missing token or password parameters' }, { status: 400 });
+    if (!token) {
+      return NextResponse.json({ error: 'Missing token parameter' }, { status: 400 });
     }
 
     const invite = await prisma.clientInvite.findUnique({
@@ -66,6 +67,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authenticate with the invited email before continuing.' }, { status: 401 });
     }
 
+    const avatarResult = validateProfileAvatarDataUrl(body.avatarDataUrl);
+    if ('error' in avatarResult) return NextResponse.json({ error: avatarResult.error }, { status: 400 });
+    const avatarUpdate = body.avatarDataUrl === undefined ? {} : { avatarUrl: avatarResult.value };
+
     // 1. Create local user record linked to client
     const existingUser = await prisma.user.findUnique({
       where: { email: invite.email }
@@ -80,6 +85,7 @@ export async function POST(request: NextRequest) {
           role: 'client',
           clientId: invite.clientId,
           authUserId: identity.id,
+          ...avatarUpdate,
         }
       });
     } else {
@@ -87,6 +93,7 @@ export async function POST(request: NextRequest) {
         data: {
           email: invite.email,
           authUserId: identity.id,
+          ...avatarUpdate,
           name: name || invite.name || invite.email.split('@')[0],
           role: 'client',
           clientId: invite.clientId,
