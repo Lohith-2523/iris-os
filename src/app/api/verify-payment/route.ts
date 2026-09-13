@@ -3,7 +3,7 @@ import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { getRazorpay, razorpayErrorResponse, verifyPaymentSchema, verifyRazorpaySignature } from '@/lib/razorpay';
 import { planPrice, type PricingRegion } from '@/lib/plan-pricing';
 import { prisma } from '@/lib/db';
-import { normalizePlan, planIncludes } from '@/lib/plan-entitlements';
+import { normalizePlan } from '@/lib/plan-entitlements';
 
 export const runtime = 'nodejs';
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const currentPlan = normalizePlan(user.organization?.plan);
-    const activePlan = planIncludes(currentPlan, purchasedPlan) ? currentPlan : purchasedPlan;
+    const activePlan = purchasedPlan;
     if (activePlan !== currentPlan) {
       await prisma.organization.update({ where: { id: user.orgId }, data: { plan: activePlan } });
     }

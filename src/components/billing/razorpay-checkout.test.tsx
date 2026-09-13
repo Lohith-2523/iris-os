@@ -27,7 +27,7 @@ async function openCheckout() {
   expect(screen.getByLabelText('Payment price breakdown')).toHaveTextContent('Amount due today₹942.82');
   fireEvent.click(screen.getByRole('button', { name: 'Choose Pro' }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-  await waitFor(() => expect(screen.getByRole('button')).toHaveTextContent('Processing'));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Processing…' })).toBeDisabled());
   expect(fetchMock).toHaveBeenCalledWith('/api/create-order', expect.objectContaining({ body: JSON.stringify({ plan: 'PRO' }) }));
   expect(options).toMatchObject({
     name: 'Iris OS',
@@ -49,7 +49,7 @@ it('verifies the callback before displaying success', async () => {
 it('handles dismissal', async () => {
   await openCheckout(); options.modal.ondismiss();
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Payment cancelled'));
-  expect(screen.getByRole('button')).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Choose Pro' })).toBeEnabled();
 });
 it('handles payment failure', async () => {
   await openCheckout(); failure({ error: { description: 'Payment declined' } });
@@ -61,4 +61,43 @@ it('never displays success after failed verification', async () => {
   options.handler({ razorpay_order_id: 'order_123', razorpay_payment_id: 'pay_123', razorpay_signature: 'wrong' });
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Signature mismatch'));
   expect(screen.queryByText(/Payment verified/)).not.toBeInTheDocument();
+});
+
+it('validates first, then activates from the plan button without opening Razorpay', async () => {
+  const onVerified = vi.fn();
+  fetchMock
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, valid: true }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, plan: 'ADVANCED' }) });
+  render(<RazorpayCheckout plan="ADVANCED" price={{ currency: 'INR', baseAmount: 159_900, taxAmount: 28_782, totalAmount: 188_682 }} onVerified={onVerified} />);
+
+  const input = screen.getByLabelText('Coupon code');
+  expect(input).toHaveAttribute('type', 'text');
+  const manuallyTypedCoupon = ['manual', 'coupon'].join('-');
+  fireEvent.change(input, { target: { value: manuallyTypedCoupon } });
+  fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+  expect(await screen.findByRole('status')).toHaveTextContent('Valid coupon. Choose Advanced to activate it at no charge.');
+  expect(screen.getByRole('button', { name: 'Valid' })).toBeDisabled();
+  expect(screen.getByLabelText('Payment price breakdown')).toHaveTextContent('Amount due today₹0');
+  expect(onVerified).not.toHaveBeenCalled();
+  expect(fetchMock).toHaveBeenLastCalledWith('/api/plan-coupons/redeem', expect.objectContaining({
+    body: JSON.stringify({ plan: 'ADVANCED', coupon: manuallyTypedCoupon, action: 'VALIDATE' }),
+  }));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Choose Advanced' }));
+  await waitFor(() => expect(onVerified).toHaveBeenCalledWith('ADVANCED'));
+  expect(fetchMock).toHaveBeenLastCalledWith('/api/plan-coupons/redeem', expect.objectContaining({
+    body: JSON.stringify({ plan: 'ADVANCED', coupon: manuallyTypedCoupon, action: 'REDEEM' }),
+  }));
+  expect(screen.getByRole('status')).toHaveTextContent('Advanced activated at no charge.');
+  expect(screen.queryByRole('dialog', { name: 'Secure Razorpay checkout' })).not.toBeInTheDocument();
+});
+
+it('allows pasted coupon values', () => {
+  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} />);
+  const input = screen.getByLabelText('Coupon code');
+  fireEvent.paste(input, { clipboardData: { getData: () => 'pasted-value' } });
+  fireEvent.change(input, { target: { value: 'pasted-value' } });
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(input).toHaveValue('pasted-value');
 });

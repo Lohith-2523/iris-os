@@ -65,6 +65,13 @@ describe('Razorpay plan endpoints', () => {
     expect(mocks.update).toHaveBeenCalledWith({ where: { id: 'org-1' }, data: { plan: 'PRO' } });
   });
 
+  it('allows a verified Pro purchase to downgrade an Advanced workspace', async () => {
+    mocks.user.mockResolvedValue({ id: 'user-1', orgId: 'org-1', organization: { plan: 'ADVANCED' } });
+    const response = await verifyPayment(request(payment));
+    expect(await response.json()).toEqual(expect.objectContaining({ success: true, plan: 'PRO' }));
+    expect(mocks.update).toHaveBeenCalledWith({ where: { id: 'org-1' }, data: { plan: 'PRO' } });
+  });
+
   it('rejects a mismatching signature without changing the plan', async () => {
     expect((await verifyPayment(request({ ...payment, razorpay_signature: '0'.repeat(64) }))).status).toBe(400);
     expect(mocks.update).not.toHaveBeenCalled();

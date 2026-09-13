@@ -53,6 +53,9 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
   const [checkoutVisible, setCheckoutVisible] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [coupon, setCoupon] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponValidated, setCouponValidated] = useState(false);
   const locked = useRef(false);
   const checkout = useRef<CheckoutInstance | null>(null);
   const checkoutHostId = `razorpay-checkout-${useId().replace(/:/g, '')}`;
@@ -113,6 +116,40 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
     }
   }
 
+  async function applyCoupon() {
+    if (locked.current || !coupon) return;
+    setError(''); setMessage(''); setApplyingCoupon(true); locked.current = true;
+    try {
+      const validation = await postJson('/api/plan-coupons/redeem', { plan, coupon, action: 'VALIDATE' });
+      if (validation.success !== true || validation.valid !== true) throw new Error('Coupon could not be applied.');
+      setCouponValidated(true);
+      setMessage(`Valid coupon. Choose ${plan === 'PRO' ? 'Pro' : 'Advanced'} to activate it at no charge.`);
+    } catch (reason) {
+      setCouponValidated(false);
+      setError(reason instanceof Error ? reason.message : 'Coupon could not be applied.');
+    } finally {
+      locked.current = false; setApplyingCoupon(false);
+    }
+  }
+
+  async function activateWithCoupon() {
+    if (locked.current || !couponValidated) return;
+    setError(''); setMessage(''); setBusy(true); locked.current = true;
+    try {
+      const redeemed = await postJson('/api/plan-coupons/redeem', { plan, coupon, action: 'REDEEM' });
+      if (redeemed.success !== true || (redeemed.plan !== 'PRO' && redeemed.plan !== 'ADVANCED')) throw new Error('Coupon could not be redeemed.');
+      setCoupon(''); setCouponValidated(false);
+      setMessage(`${redeemed.plan === 'PRO' ? 'Pro' : 'Advanced'} activated at no charge.`);
+      window.dispatchEvent(new Event('organization-updated'));
+      window.dispatchEvent(new Event('user-updated'));
+      await onVerified?.(redeemed.plan);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Coupon could not be redeemed.');
+    } finally {
+      locked.current = false; setBusy(false);
+    }
+  }
+
   const checkoutModal = checkoutVisible && typeof document !== 'undefined' ? createPortal(
     <div className={styles.overlay} aria-hidden={!checkoutVisible}>
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="Secure Razorpay checkout">
@@ -128,10 +165,32 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
     <dl className="space-y-2 text-xs">
       <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>Plan price</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.baseAmount, price.currency)}</dd></div>
       <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>GST (18%)</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.taxAmount, price.currency)}</dd></div>
-      <div className="flex items-center justify-between gap-4 border-t border-border pt-3 font-semibold"><dt>Amount due today</dt><dd className="font-mono text-sm tabular-nums text-foreground">{formatPlanMoney(price.totalAmount, price.currency)}</dd></div>
+      {couponValidated && <div className="flex items-center justify-between gap-4 text-emerald-400"><dt>Coupon discount</dt><dd className="font-mono tabular-nums">−{formatPlanMoney(price.totalAmount, price.currency)}</dd></div>}
+      <div className="flex items-center justify-between gap-4 border-t border-border pt-3 font-semibold"><dt>Amount due today</dt><dd className="font-mono text-sm tabular-nums text-foreground">{formatPlanMoney(couponValidated ? 0 : price.totalAmount, price.currency)}</dd></div>
     </dl>
-    <Button type="button" className="w-full" onClick={() => void pay()} disabled={disabled || !ready || busy}>{busy ? 'Processing…' : buttonLabel || `Choose ${plan === 'PRO' ? 'Pro' : 'Advanced'}`}</Button>
+    <div className="space-y-2 border-t border-white/10 pt-4">
+      <label htmlFor={`${checkoutHostId}-coupon`} className="block text-xs font-semibold text-foreground">Coupon code</label>
+      <div className="flex gap-2">
+        <input
+          id={`${checkoutHostId}-coupon`}
+          name="iris-plan-coupon"
+          type="text"
+          value={coupon}
+          onChange={(event) => { setCoupon(event.target.value); setCouponValidated(false); setError(''); setMessage(''); }}
+          autoComplete="new-password"
+          autoCapitalize="none"
+          spellCheck={false}
+          data-1p-ignore="true"
+          data-lpignore="true"
+          disabled={disabled || busy || applyingCoupon}
+          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/35 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-white/35 disabled:opacity-50"
+          placeholder="Enter coupon"
+        />
+        <Button type="button" variant="outline" onClick={() => void applyCoupon()} disabled={disabled || busy || applyingCoupon || couponValidated || coupon.length === 0}>{applyingCoupon ? 'Applying…' : couponValidated ? 'Valid' : 'Apply'}</Button>
+      </div>
+    </div>
+    <Button type="button" className="w-full" onClick={() => void (couponValidated ? activateWithCoupon() : pay())} disabled={disabled || (!couponValidated && !ready) || busy || applyingCoupon}>{busy ? 'Processing…' : couponValidated ? `Choose ${plan === 'PRO' ? 'Pro' : 'Advanced'}` : buttonLabel || `Choose ${plan === 'PRO' ? 'Pro' : 'Advanced'}`}</Button>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
+    {message && <p role="status" className={`text-sm ${couponValidated ? 'font-medium text-emerald-400' : 'text-muted-foreground'}`}>{message}</p>}
   </section>;
 }
