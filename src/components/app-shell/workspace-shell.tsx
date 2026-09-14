@@ -37,6 +37,14 @@ function WorkspaceRuntime() {
   const metaAppId = process.env.NEXT_PUBLIC_META_APP_ID;
   const metaApiVersion = process.env.NEXT_PUBLIC_META_API_VERSION || 'v25.0';
 
+  React.useEffect(() => {
+    void fetch('/api/auth/device-access', { method: 'POST', cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) console.error('Unable to initialize persistent device access.');
+      })
+      .catch((error) => console.error('Unable to initialize persistent device access:', error));
+  }, []);
+
   return (
     <>
       <AuthSync />

@@ -97,6 +97,7 @@ export async function updateSession(request: NextRequest) {
       pathname === '/api/auth/signup' ||
       pathname === '/api/auth/access-request' ||
       pathname === '/api/auth/access-activate' ||
+      pathname === '/api/auth/device-access' ||
       pathname.startsWith('/api/cron/') ||
       pathname.startsWith('/api/document-signing/') ||
       pathname === '/api/webhooks/meta' ||

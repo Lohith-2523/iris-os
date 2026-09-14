@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { formatPlanMoney } from '@/lib/plan-pricing';
+import { ReturningDevicePrompt } from '@/components/marketing/returning-device-prompt';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -1581,6 +1582,7 @@ export default function App() {
         `,
       }}
     >
+      <ReturningDevicePrompt />
       <Header />
       <Hero />
       <VideoSection />

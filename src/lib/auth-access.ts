@@ -172,6 +172,48 @@ export async function validateDeviceAccess(cookieValue: string | null | undefine
   return grant;
 }
 
+export async function ensureDeviceAccessForUser(
+  cookieValue: string | null | undefined,
+  user: { id: string; email: string },
+  now = new Date(),
+) {
+  const normalizedEmail = user.email.trim().toLowerCase();
+  const parsed = verifyDeviceAccessCookieValue(cookieValue, now);
+  const existingGrant = parsed ? await validateDeviceAccess(cookieValue, normalizedEmail, now) : null;
+
+  if (parsed && existingGrant && (!existingGrant.authUserId || existingGrant.authUserId === user.id)) {
+    if (!existingGrant.authUserId) {
+      await prisma.deviceAccessGrant.update({ where: { id: existingGrant.id }, data: { authUserId: user.id } });
+    }
+    return {
+      cookieValue: createDeviceAccessCookieValue(
+        existingGrant.id,
+        parsed.rawToken,
+        parsed.expiresAt,
+        parsed.landingPreference,
+      ),
+      expiresAt: parsed.expiresAt,
+      created: false,
+    };
+  }
+
+  const rawGrantToken = rawToken();
+  const expiresAt = new Date(now.getTime() + DEVICE_LIFETIME_MS);
+  const grant = await prisma.deviceAccessGrant.create({
+    data: {
+      tokenHash: hashToken(rawGrantToken),
+      email: normalizedEmail,
+      authUserId: user.id,
+      expiresAt,
+    },
+  });
+  return {
+    cookieValue: createDeviceAccessCookieValue(grant.id, rawGrantToken, expiresAt),
+    expiresAt,
+    created: true,
+  };
+}
+
 export async function bindDeviceGrantToAuthUser(cookieValue: string | null | undefined, authUserId: string, email: string) {
   const grant = await validateDeviceAccess(cookieValue, email);
   if (!grant) return false;
