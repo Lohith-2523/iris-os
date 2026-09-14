@@ -35,13 +35,46 @@ vi.mock('@/lib/org', () => ({
 vi.mock('@/lib/db', () => ({
   prisma: {
     $transaction: mocks.transaction,
+    organization: mocks.delegates.organization,
   },
 }));
 
-import { DELETE } from './route';
+import { DELETE, POST } from './route';
 
 function deleteRequest() {
   return new NextRequest('http://localhost:3000/api/organization', { method: 'DELETE' });
+}
+
+function planRequest(plan: string) {
+  return new NextRequest('http://localhost:3000/api/organization', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan }),
+  });
+}
+
+function organizationUser(role = 'admin') {
+  return {
+    id: 'admin-1',
+    orgId: 'org-1',
+    role,
+    organization: {
+      id: 'org-1',
+      name: 'Atlas Studio',
+      plan: 'ADVANCED',
+      hasAddon: true,
+      agencyTypes: ['Design'],
+      bankNames: [],
+      currency: 'INR',
+      aiSharingConsent: true,
+      metaAccessConsent: false,
+      metaAccessConsentAt: null,
+      atlasMetaAnalyticsConsent: false,
+      atlasMetaAnalyticsConsentAt: null,
+      billingEmail: 'billing@example.com',
+      preferences: null,
+    },
+  };
 }
 
 describe('DELETE /api/organization', () => {
@@ -90,5 +123,39 @@ describe('DELETE /api/organization', () => {
 
     expect(response.status).toBe(500);
     expect(body.error).toBe('Unable to wipe agency data while deleting financial data. No data was deleted.');
+  });
+});
+
+describe('POST /api/organization plan cancellation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getRequestUser.mockResolvedValue(organizationUser());
+    mocks.isOrganizationAdmin.mockReturnValue(true);
+    mocks.delegates.organization.update.mockResolvedValue({ id: 'org-1', plan: 'BASIC' });
+  });
+
+  it('returns an existing paid workspace to the free plan', async () => {
+    const response = await POST(planRequest('BASIC'));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.plan).toBe('BASIC');
+    expect(mocks.delegates.organization.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'org-1' },
+      data: expect.objectContaining({
+        plan: 'BASIC',
+        aiSharingConsent: false,
+      }),
+    }));
+  });
+
+  it('rejects cancellation attempts from non-admin users', async () => {
+    mocks.getRequestUser.mockResolvedValue(organizationUser('member'));
+    mocks.isOrganizationAdmin.mockReturnValue(false);
+
+    const response = await POST(planRequest('BASIC'));
+
+    expect(response.status).toBe(403);
+    expect(mocks.delegates.organization.update).not.toHaveBeenCalled();
   });
 });
