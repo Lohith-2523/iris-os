@@ -4,10 +4,6 @@
     {
       "path": "/api/cron/waitlist-daily",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/waitlist-invitations",
-      "schedule": "0 * * * *"
     }
   ]
 }

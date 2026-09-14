@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sendDueWaitlistInvitations } from '@/lib/auth-access';
 import { sendDailyWaitlistReport } from '@/lib/waitlist-daily-report';
 
 export const runtime = 'nodejs';
@@ -11,11 +12,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  try {
-    const result = await sendDailyWaitlistReport();
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error('Daily waitlist report failed:', error);
-    return NextResponse.json({ error: 'Waitlist report delivery failed.' }, { status: 500 });
+  const [reportResult, invitationResult] = await Promise.allSettled([
+    sendDailyWaitlistReport(),
+    sendDueWaitlistInvitations(),
+  ]);
+
+  if (reportResult.status === 'rejected' || invitationResult.status === 'rejected') {
+    if (reportResult.status === 'rejected') console.error('Daily waitlist report failed:', reportResult.reason);
+    if (invitationResult.status === 'rejected') console.error('Waitlist invitation delivery failed:', invitationResult.reason);
+    return NextResponse.json({
+      error: 'One or more daily waitlist tasks failed.',
+      report: reportResult.status === 'fulfilled' ? reportResult.value : null,
+      invitations: invitationResult.status === 'fulfilled' ? invitationResult.value : null,
+    }, { status: 500 });
   }
+
+  return NextResponse.json({
+    report: reportResult.value,
+    invitations: invitationResult.value,
+  });
 }
