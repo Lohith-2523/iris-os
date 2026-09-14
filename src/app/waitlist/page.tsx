@@ -22,6 +22,9 @@ export default function WaitlistPage() {
   const [focusedName, setFocusedName] = React.useState(false);
   const [focusedEmail, setFocusedEmail] = React.useState(false);
   const [focusedSpec, setFocusedSpec] = React.useState(false);
+  const [accountEmail, setAccountEmail] = React.useState('');
+  const [accountAccessBusy, setAccountAccessBusy] = React.useState(false);
+  const [accountAccessMessage, setAccountAccessMessage] = React.useState('');
 
   React.useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -50,6 +53,27 @@ export default function WaitlistPage() {
       setSubmissionError(error instanceof Error ? error.message : 'Unable to join the waitlist. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAccountAccess = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!accountEmail.trim() || accountAccessBusy) return;
+    setAccountAccessBusy(true);
+    setAccountAccessMessage('');
+    try {
+      const response = await fetch('/api/auth/access-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: accountEmail }),
+      });
+      const payload = await response.json().catch(() => ({})) as { error?: string; message?: string };
+      if (!response.ok) throw new Error(payload.error || 'Unable to request account access.');
+      setAccountAccessMessage(payload.message || 'If an account exists, an access link is on its way.');
+    } catch (error) {
+      setAccountAccessMessage(error instanceof Error ? error.message : 'Unable to request account access.');
+    } finally {
+      setAccountAccessBusy(false);
     }
   };
 
@@ -460,6 +484,14 @@ export default function WaitlistPage() {
                   </button>
                 </form>
               </div>
+              <div style={{ marginTop: '28px', paddingTop: '28px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <p style={{ margin: '0 0 12px', fontFamily: BODY, fontSize: '14px', color: 'rgba(232,232,232,0.5)' }}>Already have an Iris OS account?</p>
+                <form onSubmit={handleAccountAccess} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <input type="email" required value={accountEmail} onChange={event => setAccountEmail(event.target.value)} placeholder="Your account email" className="neo-input" style={{ flex: '1 1 240px', minWidth: 0, padding: '12px 18px', fontFamily: BODY, fontSize: '14px' }} />
+                  <button type="submit" disabled={accountAccessBusy} className="neo-button" style={{ padding: '12px 18px', fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.78)' }}>{accountAccessBusy ? 'Sending…' : 'Email me an access link'}</button>
+                </form>
+                {accountAccessMessage && <p role="status" style={{ margin: '12px 0 0', fontFamily: BODY, fontSize: '12px', lineHeight: 1.5, color: 'rgba(232,232,232,0.45)' }}>{accountAccessMessage}</p>}
+              </div>
             </>
           ) : (
             /* Success Screen */
@@ -514,7 +546,7 @@ export default function WaitlistPage() {
                   margin: 0,
                 }}
               >
-                Thank you{name ? `, ${name}` : ''}. We have registered <strong>{email}</strong> for early access. We will email you once your workspace spot is ready.
+                Thank you{name ? `, ${name}` : ''}. We have registered <strong>{email}</strong> for early access. Your secure signup link will arrive within 1–2 days.
               </p>
 
               <Link

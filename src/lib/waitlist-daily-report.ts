@@ -3,6 +3,7 @@ import 'server-only';
 import * as XLSX from 'xlsx';
 import { prisma } from '@/lib/db';
 import { sendIrisEmail } from '@/lib/email/iris-email';
+import { waitlistDailyReportEmail } from '@/lib/email/iris-templates';
 
 const WAITLIST_REPORT_RECIPIENT = 'cto.admin@irisos.app';
 const STALE_LOCK_MS = 15 * 60 * 1000;
@@ -74,11 +75,12 @@ export async function sendDailyWaitlistReport(now = new Date()) {
     });
     const attachment = waitlistWorkbook(entries, reportDate);
     const date = isoDate(reportDate);
+    const email = waitlistDailyReportEmail({ reportDate: date, entryCount: entries.length });
     const delivery = await sendIrisEmail({
       to: [WAITLIST_REPORT_RECIPIENT],
-      subject: `Iris OS waitlist — ${date}`,
-      text: `Attached is the Iris OS waitlist report for ${date}. Total registrations: ${entries.length}.`,
-      html: `<p>Attached is the Iris OS waitlist report for <strong>${date}</strong>.</p><p>Total registrations: <strong>${entries.length}</strong>.</p>`,
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
       idempotencyKey: `waitlist-report:${date}`,
       tags: [{ name: 'category', value: 'waitlist-daily-report' }],
       attachments: [{

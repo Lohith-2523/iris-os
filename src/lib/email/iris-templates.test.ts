@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   __testing,
+  authAccessEmail,
   clientOnboardingEmail,
+  generatedDocumentDeliveryEmail,
+  helpRequestNotificationEmail,
   invoiceDeliveryEmail,
   meetingInvitationEmail,
   memberOnboardingEmail,
+  teamOffboardingEmail,
+  waitlistDailyReportEmail,
 } from './iris-templates';
 
 describe('Iris email templates', () => {
@@ -94,5 +99,29 @@ describe('Iris email templates', () => {
 
     expect(email.html).not.toContain('Valid until');
     expect(email.text).not.toContain('Valid until');
+  });
+
+  it('uses the workspace invitation design for secure access and offboarding', () => {
+    const access = authAccessEmail({ accessUrl: 'https://irisos.app/access?token=secure', expiresAt: new Date('2026-09-21T00:00:00.000Z'), isSignup: false });
+    const offboarding = teamOffboardingEmail({ recipientName: 'Asha', organizationName: 'Iris Agency', administratorName: 'Lohith', administratorEmail: 'admin@example.com', feedback: '<script>unsafe</script>' });
+    for (const email of [access, offboarding]) {
+      expect(email.html).toContain('https://irisos.app/iris-logo-white-bg.png');
+      expect(email.html).toContain('background-color:#090a0c');
+      expect(email.html).toContain('linear-gradient(135deg,#fafafa');
+    }
+    expect(offboarding.html).not.toContain('<script>');
+    expect(offboarding.html).toContain('&lt;script&gt;unsafe&lt;/script&gt;');
+  });
+
+  it('uses the branded system for documents, help requests, and waitlist reports', () => {
+    const emails = [
+      generatedDocumentDeliveryEmail({ recipientName: 'Asha', organizationName: 'Iris Agency', documentTitle: 'Project agreement', documentNumber: 'DOC-1', documentLabel: 'contract', signingUrl: 'https://irisos.app/sign-document/token' }),
+      helpRequestNotificationEmail({ type: 'ISSUE', name: 'Asha', email: 'asha@example.com', subject: 'Export issue', details: 'The export did not finish.', page: '/reporting' }),
+      waitlistDailyReportEmail({ reportDate: '2026-09-14', entryCount: 42 }),
+    ];
+    for (const email of emails) {
+      expect(email.html).toContain('https://irisos.app/iris-logo-white-bg.png');
+      expect(email.html).toContain('ENTERPRISE WORKSPACE MANAGEMENT');
+    }
   });
 });

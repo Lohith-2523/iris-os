@@ -10,12 +10,14 @@ vi.mock('@supabase/ssr', () => ({
 }));
 
 import { updateSession } from './middleware';
+import { createDeviceAccessCookieValue, DEVICE_ACCESS_COOKIE } from './auth-access-cookie';
 
 describe('authentication proxy responses', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'publishable-key');
+    vi.stubEnv('AUTH_ACCESS_SECRET', 'test-auth-access-secret-that-is-long-enough');
     auth.getClaims.mockResolvedValue({ data: null, error: null });
   });
 
@@ -32,5 +34,20 @@ describe('authentication proxy responses', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe('http://localhost:3000/login');
+  });
+
+  it('redirects direct login and signup visits to the waitlist without a device grant', async () => {
+    for (const path of ['/login', '/signup']) {
+      const response = await updateSession(new NextRequest(`http://localhost:3000${path}`));
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe('http://localhost:3000/waitlist?access=required');
+    }
+  });
+
+  it('allows an unexpired signed device grant to open the login page', async () => {
+    const request = new NextRequest('http://localhost:3000/login');
+    request.cookies.set(DEVICE_ACCESS_COOKIE, createDeviceAccessCookieValue('grant-1', 'device-token', new Date(Date.now() + 60_000)));
+    const response = await updateSession(request);
+    expect(response.status).toBe(200);
   });
 });

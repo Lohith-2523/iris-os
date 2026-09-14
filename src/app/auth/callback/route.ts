@@ -13,6 +13,8 @@ import {
   PASSWORD_RECOVERY_COOKIE_VALUE,
   RESET_PASSWORD_PATH,
 } from '@/lib/auth-routes';
+import { hasApprovedSignup, validateDeviceAccess } from '@/lib/auth-access';
+import { DEVICE_ACCESS_COOKIE } from '@/lib/auth-access-cookie';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -92,6 +94,23 @@ export async function GET(request: Request) {
         return response;
       }
       return NextResponse.redirect(`${origin}/login?auth_error=invalid_invite`);
+    }
+
+    const existingWorkspaceUser = await prisma.user.findFirst({
+      where: { OR: [{ authUserId: session.user.id }, { email: email.toLowerCase() }] },
+      select: { id: true },
+    });
+    const deviceCookie = request.headers.get('cookie')
+      ?.split(';')
+      .map(value => value.trim())
+      .find(value => value.startsWith(`${DEVICE_ACCESS_COOKIE}=`))
+      ?.slice(DEVICE_ACCESS_COOKIE.length + 1);
+    const approvedDevice = existingWorkspaceUser
+      || await validateDeviceAccess(deviceCookie ? decodeURIComponent(deviceCookie) : null, email)
+      || await hasApprovedSignup(session.user.id, email);
+    if (!approvedDevice) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(`${origin}/waitlist?access=required`);
     }
 
     const dbUser = await withDatabaseConnectionRetry(

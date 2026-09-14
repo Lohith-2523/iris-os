@@ -382,7 +382,7 @@ export default function OnboardingPage() {
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 2 of 4</span>
               <h2 className="text-2xl font-extrabold uppercase tracking-tight text-white">Choose Your Workspace Level</h2>
               <p className="text-zinc-500 text-xs max-w-md mx-auto">
-                {pricingLoading ? 'Detecting regional pricing from your public IP country…' : `${pricingRegion === 'INDIA' ? 'Indian' : 'International'} pricing was selected from your public IP country. Paid prices exclude 18% GST.`}
+                {pricingLoading ? 'Detecting regional pricing from your public IP country…' : `${pricingRegion === 'INDIA' ? 'Indian' : 'International'} pricing was selected from your public IP country. Paid prices exclude 18% ${pricingRegion === 'INDIA' ? 'GST' : 'Tax'}.`}
               </p>
             </div>
 
@@ -398,7 +398,8 @@ export default function OnboardingPage() {
               >
                 <div>
                   <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.left.name}</span>
-                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
+                  {ordered.left.baseAmount > 0 && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px]"><del className="text-zinc-500">{formatPlanMoney(ordered.left.listAmount, ordered.left.currency)}</del><b className="text-emerald-400">50% OFF</b></span>}
+                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{ordered.left.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
                   <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.left.tagline}</span>
                 </div>
                 <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
@@ -420,9 +421,10 @@ export default function OnboardingPage() {
                     <span className="block text-[9px] font-semibold text-zinc-400 mt-0.5 uppercase tracking-wide">{ordered.center.tagline}</span>
                   </div>
                   <div className="border-b border-zinc-800 pb-3">
-                    <span className="font-mono text-4xl font-black text-white">{formatPlanMoney(ordered.center.baseAmount, ordered.center.currency)}</span>
+                    {ordered.center.baseAmount > 0 && <span className="mb-1 flex items-center gap-2 text-[9px]"><del className="text-zinc-500">{formatPlanMoney(ordered.center.listAmount, ordered.center.currency)}</del><b className="uppercase tracking-wide text-emerald-400">Early bird · 50% off</b></span>}
+                    <span className="font-mono text-4xl font-black text-white">{ordered.center.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.center.baseAmount, ordered.center.currency)}</span>
                     <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
-                    {ordered.center.baseAmount > 0 && <span className="mt-1 block text-[9px] text-zinc-500">+ 18% GST · {formatPlanMoney(ordered.center.totalAmount, ordered.center.currency)} due today</span>}
+                    {ordered.center.baseAmount > 0 && <span className="mt-1 block text-[9px] text-zinc-500">+ 18% {ordered.center.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(ordered.center.totalAmount, ordered.center.currency)} due today</span>}
                   </div>
                   <div className="space-y-2">
                     <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Included Features:</span>
@@ -458,7 +460,8 @@ export default function OnboardingPage() {
               >
                 <div>
                   <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.right.name}</span>
-                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
+                  {ordered.right.baseAmount > 0 && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px]"><del className="text-zinc-500">{formatPlanMoney(ordered.right.listAmount, ordered.right.currency)}</del><b className="text-emerald-400">50% OFF</b></span>}
+                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{ordered.right.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
                   <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.right.tagline}</span>
                 </div>
                 <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
@@ -606,14 +609,15 @@ export default function OnboardingPage() {
                     {PLANS.find(p => p.id === selectedPlanId)?.name}
                   </span>
                 </div>
-                <span className="font-mono text-xl font-bold text-white">
-                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}
-                </span>
+                <div className="text-right">
+                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.baseAmount > 0 ? <span className="block text-[9px]"><del className="text-zinc-500">{formatPlanMoney(selected.listAmount, selected.currency)}</del> <b className="text-emerald-400">50% OFF</b></span> : null; })()}
+                  <span className="font-mono text-xl font-bold text-white">{(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.baseAmount === 0 ? 'Free' : `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}</span>
+                </div>
               </div>
 
               {selectedPlanId !== 'basic' && (() => {
                 const selected = PLANS.find(p => p.id === selectedPlanId)!;
-                return <p className="text-center text-[10px] text-zinc-500">18% GST is added at checkout. Total due: {formatPlanMoney(selected.totalAmount, selected.currency)}.</p>;
+                return <p className="text-center text-[10px] text-zinc-500">18% {selected.currency === 'INR' ? 'GST' : 'Tax'} is added at checkout. Total due: {formatPlanMoney(selected.totalAmount, selected.currency)}.</p>;
               })()}
 
               {isProcessing ? <div className="flex min-h-24 items-center justify-center gap-2 text-xs text-zinc-300"><Loader2 className="h-4 w-4 animate-spin" />Finishing workspace setup…</div> : selectedPlanId === 'basic' ? (

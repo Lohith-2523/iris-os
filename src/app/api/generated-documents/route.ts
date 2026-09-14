@@ -10,6 +10,7 @@ import { generateProposalPdf } from '@/lib/proposals/pdf';
 import { generateProposalDocx } from '@/lib/proposals/docx';
 import { generateLegalDocumentPdf } from '@/lib/legal-documents/pdf';
 import { IrisEmailDeliveryError, sendIrisEmail } from '@/lib/email/iris-email';
+import { generatedDocumentDeliveryEmail } from '@/lib/email/iris-templates';
 import { agencyViaIrisSenderName } from '@/lib/email/sender-name';
 import { contentWithSignatureAudit, newSigningToken, runSignedDocumentAutomation, signingContentHash } from '@/lib/documents/signing';
 import { getInvoiceForPdf, invoicePdfFromRecord } from '@/lib/invoices/service';
@@ -76,9 +77,7 @@ async function sendDocument(record: { id: string; kind: string; title: string; d
   const pdf = record.kind === 'PROPOSAL' && record.pdfArtifact ? Buffer.from(record.pdfArtifact) : await pdfFor(record.kind as DocumentKind, pdfContent);
   const label = record.kind === 'SOW' ? 'statement of work' : record.kind.toLowerCase();
   const signingUrl = record.signingToken && record.kind !== 'PROPOSAL' ? `${baseUrl.replace(/\/$/, '')}/sign-document/${record.signingToken}` : '';
-  const signingHtml = signingUrl ? `<p><a href="${signingUrl}" style="display:inline-block;background:#111;color:#fff;padding:12px 18px;text-decoration:none;border-radius:8px">Review and sign document</a></p><p style="font-size:12px;color:#666">This secure signing link is intended for ${record.recipientEmail}.</p>` : '';
-  const signingText = signingUrl ? `\n\nReview and sign securely: ${signingUrl}` : '';
-  const linkedProformaText = record.kind === 'PROPOSAL' && record.proformaInvoiceId ? ' The linked proforma invoice is attached as well.' : '';
+  const includesLinkedProforma = Boolean(record.kind === 'PROPOSAL' && record.proformaInvoiceId);
   const safeNumber = record.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_');
   const attachments = [{ filename: `${safeNumber}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }];
   if (record.kind === 'PROPOSAL') {
@@ -92,12 +91,21 @@ async function sendDocument(record: { id: string; kind: string; title: string; d
       attachments.push({ filename: `${proforma.invoiceNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`, content: Buffer.from(proformaPdf), contentType: 'application/pdf' });
     }
   }
+  const email = generatedDocumentDeliveryEmail({
+    recipientName: record.recipientName,
+    organizationName: organization.name,
+    documentTitle: record.title,
+    documentNumber: record.documentNumber,
+    documentLabel: label,
+    signingUrl: signingUrl || undefined,
+    includesLinkedProforma,
+  });
   await sendIrisEmail({
     to: [record.recipientEmail],
     fromName: agencyViaIrisSenderName(organization.name, organization.plan),
-    subject: `${record.title} from Iris OS`,
-    html: `<div style="font-family:Arial,sans-serif;color:#111;line-height:1.6"><p>Hello ${record.recipientName.replace(/[<>&]/g, '')},</p><p>Your ${label} is attached for review.${linkedProformaText}</p>${signingHtml}<p>Regards,<br>Iris OS</p></div>`,
-    text: `Hello ${record.recipientName},\n\nYour ${label} is attached for review.${linkedProformaText}${signingText}\n\nRegards,\nIris OS`,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
     idempotencyKey: `generated-document-${record.id}-${Date.now()}`,
     tags: [{ name: 'category', value: 'generated_document' }],
     attachments,

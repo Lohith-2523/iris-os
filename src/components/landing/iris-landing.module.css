@@ -554,3 +554,8 @@
   .atlasHeading, .futureHeader { grid-template-columns: minmax(0, 0.72fr) minmax(26rem, 1.28fr); }
   .trustPanel { grid-template-columns: repeat(4, minmax(16rem, 1fr)); }
 }
+
+.planPriceBlock > div { display: flex; align-items: center; gap: 0.6rem; margin-top: 1.2rem; font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; }
+.planPriceBlock del { color: var(--quiet); }
+.planPriceBlock > div span { color: var(--positive); font-weight: 700; }
+.planPriceBlock > div + h3 { margin-top: 0.35rem; }

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePlanPricing } from '@/components/billing/use-plan-pricing';
+import { formatPlanMoney } from '@/lib/plan-pricing';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -73,6 +75,7 @@ function Header() {
     { label: 'Preview',  href: '#video'    },
     { label: 'About',    href: '#about'    },
     { label: 'Features', href: '#features' },
+    { label: 'Pricing',  href: '#pricing'  },
   ]
 
   return (
@@ -136,14 +139,6 @@ function Header() {
 
         {/* Actions */}
         <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/login"
-            prefetch={false}
-            className="inline-block rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-zinc-200 no-underline transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
-            style={{ fontFamily: BODY }}
-          >
-            Login
-          </Link>
           <Link
             href="/waitlist"
             prefetch={false}
@@ -218,15 +213,6 @@ function Header() {
         </div>
 
         <div className="flex flex-col gap-2 border-t border-zinc-900 pt-6">
-          <Link
-            href="/login"
-            prefetch={false}
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="block w-full rounded-lg border border-white/10 py-3.5 text-center text-sm font-semibold text-zinc-200 no-underline transition-colors hover:border-white/20 hover:bg-white/5 hover:text-white"
-            style={{ fontFamily: BODY }}
-          >
-            Login
-          </Link>
           <Link
             href="/waitlist"
             prefetch={false}
@@ -1169,7 +1155,7 @@ function Features() {
         </div>
 
         {/* Center Panel â€” holds the Large Interactive Iris Eye */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', zIndex: 7, flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 7, flexShrink: 0 }}>
           <div
             ref={irisRef}
             style={{
@@ -1320,6 +1306,9 @@ function Features() {
             <div style={{ width: '100%', height: '100%' }} />
           )}
         </div>
+          <p style={{ margin: 0, fontFamily: JBMONO, fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(232,232,232,0.34)', textAlign: 'center' }}>
+            Click on a section to view more
+          </p>
       </div>
 
       {/* Mobile-only Detail Card Container (Visible on mobile/tablet below the eye) */}
@@ -1403,6 +1392,56 @@ function Features() {
 }
 
 // â”€â”€â”€ Waitlist Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function Pricing() {
+  const { region, plans, loading } = usePlanPricing();
+
+  return (
+    <section id="pricing" className="scroll-mt-24 px-4 py-24 sm:px-6 sm:py-32">
+      <div className="mx-auto max-w-[1200px]">
+        <ScrollReveal>
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="section-divider mx-auto mb-6" />
+            <span className="mb-5 block text-[11px] uppercase tracking-[0.14em] text-white/40" style={{ fontFamily: JBMONO }}>Simple monthly pricing</span>
+            <h2 className="gradient-text text-4xl font-bold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: DISPLAY }}>Choose how far Atlas can take you.</h2>
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/45 sm:text-base" style={{ fontFamily: BODY }}>
+              {loading ? 'Detecting pricing for your region…' : `${region === 'INDIA' ? 'India' : 'International'} pricing selected from your location. Early-bird prices exclude applicable taxes.`}
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          {plans.map((plan, index) => (
+            <ScrollReveal key={plan.id} delay={`${index * 0.1}s`} className="h-full">
+              <article className={`flex h-full min-h-[430px] flex-col rounded-[24px] border p-7 ${plan.id === 'PRO' ? 'border-white/20 bg-white/[0.055] shadow-[8px_8px_24px_#040404,-8px_-8px_24px_#1e1e1e]' : 'border-white/[0.07] bg-[#111111] shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919]'}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div><span className="text-[10px] uppercase tracking-[0.15em] text-white/35" style={{ fontFamily: JBMONO }}>Iris / {plan.name}</span><h3 className="mt-2 text-xl font-bold text-white" style={{ fontFamily: DISPLAY }}>{plan.name}</h3></div>
+                  {plan.id === 'PRO' && <span className="rounded-full border border-white/15 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-white/70">Popular</span>}
+                </div>
+
+                <div className="mt-7 min-h-[86px]">
+                  {plan.baseAmount > 0 && <div className="mb-1 flex items-center gap-2 text-xs"><del className="text-white/35">{formatPlanMoney(plan.listAmount, plan.currency)}</del><span className="font-bold uppercase tracking-wide text-emerald-400">Early bird · 50% off</span></div>}
+                  <span className="font-mono text-4xl font-black tabular-nums text-white">{plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}</span>
+                  <span className="ml-1 text-xs text-white/35">/ month</span>
+                </div>
+
+                <p className="mt-3 text-sm leading-6 text-white/45">{plan.description}</p>
+                <ul className="mt-7 flex-1 space-y-3 border-t border-white/[0.07] pt-6 text-sm text-white/65">
+                  {plan.features.map((feature) => <li key={feature} className="flex items-start gap-3"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-white/50" />{feature}</li>)}
+                </ul>
+                <Link href="/waitlist" prefetch={false} className={plan.id === 'PRO' ? 'neo-button-accent mt-8 block py-3.5 text-center text-sm font-semibold text-[#0a0a0a] no-underline' : 'neo-button mt-8 block py-3.5 text-center text-sm font-semibold text-white/75 no-underline'}>
+                  {plan.id === 'BASIC' ? 'Start for free' : `Choose ${plan.name}`}
+                </Link>
+              </article>
+            </ScrollReveal>
+          ))}
+        </div>
+
+        <div className="mt-8 text-center"><Link href="/pricing" prefetch={false} className="text-sm font-semibold text-white/55 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white">View the full pricing page</Link></div>
+      </div>
+    </section>
+  );
+}
+
 function Waitlist() {
   return (
     <section id="waitlist" style={{ padding: 'clamp(88px, 10vw, 120px) clamp(16px, 5vw, 32px) clamp(112px, 14vw, 160px)', maxWidth: '1200px', margin: '0 auto' }}>
@@ -1547,6 +1586,7 @@ export default function App() {
       <VideoSection />
       <About />
       <Features />
+      <Pricing />
       <Waitlist />
       <Footer />
     </div>

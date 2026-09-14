@@ -21,8 +21,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv('RAZORPAY_KEY_ID', 'test-key'); vi.stubEnv('RAZORPAY_KEY_SECRET', 'test-secret');
   mocks.user.mockResolvedValue({ id: 'user-1', orgId: 'org-1', organization: { plan: 'BASIC' } }); mocks.admin.mockReturnValue(true);
-  mocks.create.mockResolvedValue({ id: 'order_123', amount: 1_887, currency: 'USD' });
-  mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 1_887, currency: 'USD', notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
+  mocks.create.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD' });
+  mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD', notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
   mocks.update.mockResolvedValue({});
 });
 
@@ -30,8 +30,8 @@ describe('Razorpay plan endpoints', () => {
   it('creates an international Pro order with server-owned pricing and GST', async () => {
     const response = await createOrder(request({ plan: 'PRO', amount: 100, currency: 'INR' }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ order_id: 'order_123', amount: 1_887, currency: 'USD', key_id: 'test-key', plan: 'PRO', base_amount: 1_599, tax_amount: 288 });
-    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 1_887, currency: 'USD', notes: expect.objectContaining({ plan: 'PRO', pricingRegion: 'INTERNATIONAL', country: 'US' }) }));
+    expect(await response.json()).toEqual({ order_id: 'order_123', amount: 2_359, currency: 'USD', key_id: 'test-key', plan: 'PRO', base_amount: 1_999, tax_amount: 360 });
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 2_359, currency: 'USD', notes: expect.objectContaining({ plan: 'PRO', pricingRegion: 'INTERNATIONAL', country: 'US' }) }));
   });
 
   it('creates an Indian Advanced order in paise', async () => {
@@ -85,7 +85,7 @@ describe('Razorpay plan endpoints', () => {
 
   it('rejects missing fields and another user’s order', async () => {
     expect((await verifyPayment(request({}))).status).toBe(400);
-    mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 1_887, currency: 'USD', notes: { userId: 'user-2', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
+    mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD', notes: { userId: 'user-2', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
     expect((await verifyPayment(request(payment))).status).toBe(403);
   });
 });

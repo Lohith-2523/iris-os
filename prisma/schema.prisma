@@ -137,8 +137,50 @@ model WaitlistEntry {
   updatedAt      DateTime @updatedAt
   sheetSyncedAt  DateTime?
   sheetSyncError String?
+  accessTokens   AuthAccessToken[]
 
   @@index([createdAt])
+}
+
+model AuthAccessToken {
+  id              String         @id @default(uuid())
+  email           String
+  purpose         String
+  status          String         @default("PENDING")
+  dedupeKey       String?        @unique
+  tokenHash       String?        @unique
+  scheduledAt     DateTime
+  expiresAt       DateTime?
+  sentAt          DateTime?
+  redeemedAt      DateTime?
+  attemptCount    Int            @default(0)
+  lockedAt        DateTime?
+  lastError       String?
+  waitlistEntryId String?
+  waitlistEntry   WaitlistEntry? @relation(fields: [waitlistEntryId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([email, purpose, createdAt])
+  @@index([waitlistEntryId])
+}
+
+model DeviceAccessGrant {
+  id           String   @id @default(uuid())
+  tokenHash    String   @unique
+  email        String
+  authUserId   String?
+  expiresAt    DateTime
+  lastUsedAt   DateTime @default(now())
+  revokedAt    DateTime?
+  sourceTokenId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email, expiresAt])
+  @@index([authUserId])
+  @@index([expiresAt, revokedAt])
 }
 
 model HelpRequest {

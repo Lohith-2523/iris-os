@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { appendSheetRecord } from '@/lib/google-sheets';
+import { scheduleWaitlistInvitation } from '@/lib/auth-access';
 
 export const runtime = 'nodejs';
 
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
       create: { name, email, specialization },
       update: {},
     });
+    await scheduleWaitlistInvitation(entry);
     if (!entry.sheetSyncedAt) {
       try {
         await appendSheetRecord({

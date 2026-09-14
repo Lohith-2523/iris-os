@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { sendIrisEmail } from '@/lib/email/iris-email';
+import { teamOffboardingEmail } from '@/lib/email/iris-templates';
 import { SECURITY_ALLOWED_PAGES } from '@/lib/security-pages';
 import { purgeWorkspaceUsers } from '@/server/domains/member-deletion-service';
 import { createAuthenticationUserDeleter } from '@/server/domains/auth-user-deletion';
@@ -83,12 +84,18 @@ export async function POST(request: NextRequest) {
     if (target.authUserId && deleteAuthenticationUsers) await deleteAuthenticationUsers([target.authUserId]);
     let emailSent = false;
     try {
-      const escapedFeedback = body.feedback.replace(/[<>&]/g, '');
+      const email = teamOffboardingEmail({
+        recipientName: target.name,
+        organizationName: admin.organization.name,
+        administratorName: admin.name,
+        administratorEmail: admin.email,
+        feedback: body.feedback,
+      });
       await sendIrisEmail({
         to: [target.email],
-        subject: `Your access to ${admin.organization.name} has been revoked`,
-        text: `Hello ${target.name},\n\nYour Iris OS team access has been revoked.\n\nFeedback from the agency:\n${body.feedback}\n\nPlease contact ${admin.name} if you have questions.`,
-        html: `<p>Hello ${target.name},</p><p>Your Iris OS team access has been revoked.</p><p><strong>Feedback from the agency</strong></p><p>${escapedFeedback}</p><p>Please contact ${admin.name} if you have questions.</p>`,
+        subject: email.subject,
+        text: email.text,
+        html: email.html,
         idempotencyKey: `offboard-${target.id}`,
         tags: [{ name: 'category', value: 'team_offboarding' }],
       });

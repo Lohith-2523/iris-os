@@ -87,7 +87,7 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
         currency: order.currency,
         order_id: order.order_id,
         name: 'Iris OS',
-        description: `${plan === 'PRO' ? 'Pro' : 'Advanced'} plan · ${formatPlanMoney(orderBaseAmount, orderCurrency)} + ${formatPlanMoney(orderTaxAmount, orderCurrency)} GST`,
+        description: `${plan === 'PRO' ? 'Pro' : 'Advanced'} plan · ${formatPlanMoney(orderBaseAmount, orderCurrency)} + ${formatPlanMoney(orderTaxAmount, orderCurrency)} ${orderCurrency === 'INR' ? 'GST' : 'Tax'}`,
         image: new URL('/icons/iris-512.png', window.location.origin).toString(),
         parent: `#${checkoutHostId}`,
         theme: { color: '#09090B', backdrop_color: 'rgba(9, 9, 11, 0.62)' },
@@ -164,7 +164,7 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
     {checkoutModal}
     <dl className="space-y-2 text-xs">
       <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>Plan price</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.baseAmount, price.currency)}</dd></div>
-      <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>GST (18%)</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.taxAmount, price.currency)}</dd></div>
+      <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>{price.currency === 'INR' ? 'GST' : 'Tax'} (18%)</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.taxAmount, price.currency)}</dd></div>
       {couponValidated && <div className="flex items-center justify-between gap-4 text-emerald-400"><dt>Coupon discount</dt><dd className="font-mono tabular-nums">−{formatPlanMoney(price.totalAmount, price.currency)}</dd></div>}
       <div className="flex items-center justify-between gap-4 border-t border-border pt-3 font-semibold"><dt>Amount due today</dt><dd className="font-mono text-sm tabular-nums text-foreground">{formatPlanMoney(couponValidated ? 0 : price.totalAmount, price.currency)}</dd></div>
     </dl>

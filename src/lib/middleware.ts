@@ -5,6 +5,7 @@ import {
   FORGOT_PASSWORD_PATH,
   PASSWORD_RECOVERY_COOKIE,
 } from '@/lib/auth-routes'
+import { DEVICE_ACCESS_COOKIE, verifyDeviceAccessCookieValue } from '@/lib/auth-access-cookie'
 
 export async function updateSession(request: NextRequest) {
   try {
@@ -49,6 +50,21 @@ export async function updateSession(request: NextRequest) {
     const user = data?.claims
 
     const pathname = request.nextUrl.pathname
+    const isGuardedAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup')
+    let hasDeviceAccess = false
+    if (isGuardedAuthPage && !user) {
+      try {
+        hasDeviceAccess = Boolean(verifyDeviceAccessCookieValue(request.cookies.get(DEVICE_ACCESS_COOKIE)?.value))
+      } catch {
+        hasDeviceAccess = false
+      }
+      if (!hasDeviceAccess) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/waitlist'
+        url.searchParams.set('access', 'required')
+        return NextResponse.redirect(url)
+      }
+    }
     if (!canAccessPasswordReset(
       pathname,
       Boolean(user),
@@ -68,6 +84,7 @@ export async function updateSession(request: NextRequest) {
       pathname === '/terms' ||
       pathname === '/privacy' ||
       pathname === '/waitlist' ||
+      pathname === '/access' ||
       pathname.startsWith('/signup') ||
       pathname.startsWith('/onboarding/member') ||
       pathname === '/invite' ||
@@ -78,6 +95,9 @@ export async function updateSession(request: NextRequest) {
       pathname === '/api/member' ||
       pathname === '/api/invite' ||
       pathname === '/api/auth/signup' ||
+      pathname === '/api/auth/access-request' ||
+      pathname === '/api/auth/access-activate' ||
+      pathname.startsWith('/api/cron/') ||
       pathname.startsWith('/api/document-signing/') ||
       pathname === '/api/webhooks/meta' ||
       pathname === '/api/meta-ads/deauthorize' ||

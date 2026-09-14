@@ -60,6 +60,8 @@ DATABASE_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public
 DIRECT_URL="postgresql://<user>:<password>@localhost:5432/irisos?schema=public"
 DATABASE_POOL_MAX="5"
 AUTH_SECRET="your-auth-secret"
+AUTH_ACCESS_SECRET="a-stable-random-secret-of-at-least-24-characters"
+CRON_SECRET="a-random-secret-used-by-scheduled-routes"
 MESSAGING_ENCRYPTION_KEY="a-stable-random-secret-of-at-least-32-characters"
 META_WEBHOOK_VERIFY_TOKEN="irisos_meta_verify_token"
 GEMINI_API_KEY="your-google-ai-api-key"
@@ -80,6 +82,11 @@ SMTP_USER="noreply@irisos.app"
 SMTP_PASSWORD="your-google-app-password"
 APP_URL="https://irisos.app"
 ```
+
+`AUTH_ACCESS_SECRET` signs the first-party device grant that permits the login
+and signup pages to open. Keep it stable across deployments; rotating it revokes
+all existing device grants. The hourly waitlist invitation cron uses
+`CRON_SECRET` and sends each signup invitation 24–48 hours after registration.
 
 `MESSAGING_ENCRYPTION_KEY` encrypts account-scoped messaging private keys at rest. Keep it stable across deployments; changing or losing it makes stored message keyrings unreadable. When omitted, the app falls back to `INTEGRATION_ENCRYPTION_KEY` and then `AUTH_SECRET` for compatibility.
 

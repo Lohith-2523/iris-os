@@ -8,28 +8,36 @@ const PLAN_DETAILS: Record<PlanId, {
   description: string;
   features: string[];
   indiaMinor: number;
+  indiaListMinor: number;
   internationalMinor: number;
+  internationalListMinor: number;
 }> = {
   BASIC: {
     name: 'Free',
     description: 'Core agency operations',
     features: ['Up to 5 clients', '2 team members', 'Core finance and delivery'],
     indiaMinor: 0,
+    indiaListMinor: 0,
     internationalMinor: 0,
+    internationalListMinor: 0,
   },
   PRO: {
     name: 'Pro',
     description: 'AI-enabled collaboration',
     features: ['Up to 15 clients', 'Unlimited team members', 'Atlas AI and secure messages'],
     indiaMinor: 79_900,
-    internationalMinor: 1_599,
+    indiaListMinor: 159_900,
+    internationalMinor: 1_999,
+    internationalListMinor: 3_999,
   },
   ADVANCED: {
     name: 'Advanced',
     description: 'Complete enterprise workspace',
     features: ['Up to 30 clients', 'Unlimited team members', 'Full Atlas, Strategy and Briefing'],
     indiaMinor: 159_900,
-    internationalMinor: 3_199,
+    indiaListMinor: 319_900,
+    internationalMinor: 3_999,
+    internationalListMinor: 7_999,
   },
 };
 
@@ -45,6 +53,7 @@ export function planPrice(plan: unknown, region: PricingRegion) {
   const id = normalizePlan(plan);
   const details = PLAN_DETAILS[id];
   const baseAmount = region === 'INDIA' ? details.indiaMinor : details.internationalMinor;
+  const listAmount = region === 'INDIA' ? details.indiaListMinor : details.internationalListMinor;
   const taxAmount = Math.round(baseAmount * GST_RATE);
   return {
     id,
@@ -52,6 +61,7 @@ export function planPrice(plan: unknown, region: PricingRegion) {
     description: details.description,
     features: details.features,
     currency: region === 'INDIA' ? 'INR' as const : 'USD' as const,
+    listAmount,
     baseAmount,
     taxAmount,
     totalAmount: baseAmount + taxAmount,

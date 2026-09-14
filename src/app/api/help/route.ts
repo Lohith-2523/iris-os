@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { appendSheetRecord } from '@/lib/google-sheets';
 import { sendIrisEmail } from '@/lib/email/iris-email';
+import { helpRequestNotificationEmail } from '@/lib/email/iris-templates';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -16,10 +17,6 @@ const schema = z.object({
   details: z.string().trim().min(10).max(8_000),
   page: z.string().trim().max(500).optional().default(''),
 });
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character);
-}
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
@@ -38,11 +35,19 @@ export async function POST(request: Request) {
       values: [input.requestId, createdAt, input.type, input.name, input.email.toLowerCase(), input.subject, input.details, input.page],
       idempotencyValue: input.requestId,
     });
+    const emailTemplate = helpRequestNotificationEmail({
+      type: input.type,
+      name: input.name,
+      email: input.email,
+      subject: input.subject,
+      details: input.details,
+      page: input.page || 'Iris OS',
+    });
     const emailPromise = stored.emailSentAt ? Promise.resolve() : sendIrisEmail({
       to: ['cto.admin@irisos.app'],
-      subject: `[Iris ${input.type.toLowerCase()}] ${input.subject}`,
-      text: `${input.name} (${input.email}) submitted a ${input.type.toLowerCase()} from ${input.page || 'Iris OS'}.\n\n${input.details}`,
-      html: `<p><strong>${escapeHtml(input.name)}</strong> (${escapeHtml(input.email)}) submitted a ${input.type.toLowerCase()}.</p><p><strong>Page:</strong> ${escapeHtml(input.page || 'Iris OS')}</p><p>${escapeHtml(input.details).replace(/\n/g, '<br>')}</p>`,
+      subject: emailTemplate.subject,
+      text: emailTemplate.text,
+      html: emailTemplate.html,
       idempotencyKey: `help:${input.requestId}`,
       tags: [{ name: 'category', value: 'help-request' }],
     });
