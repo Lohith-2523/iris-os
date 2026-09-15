@@ -30,7 +30,7 @@ describe('GET /api/cron/waitlist-daily', () => {
     mocks.sendDueWaitlistInvitations.mockResolvedValue({ processed: 2, sent: 2, failed: 0 });
   });
 
-  it('runs the report and invitation deliveries in one daily invocation', async () => {
+  it('runs reports and invitations from one scheduled endpoint', async () => {
     const response = await GET(cronRequest());
     const body = await response.json();
 
@@ -43,7 +43,7 @@ describe('GET /api/cron/waitlist-daily', () => {
     });
   });
 
-  it('rejects requests without the cron secret', async () => {
+  it('rejects requests without the configured cron secret', async () => {
     const response = await GET(cronRequest('wrong-secret'));
 
     expect(response.status).toBe(401);

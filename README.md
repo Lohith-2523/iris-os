@@ -96,9 +96,9 @@ APP_URL="https://irisos.app"
 
 `AUTH_ACCESS_SECRET` signs the first-party device grant that permits the login
 and signup pages to open. Keep it stable across deployments; rotating it revokes
-all existing device grants. The daily waitlist cron uses `CRON_SECRET`, sends
-each signup invitation 24–48 hours after registration, and delivers the daily
-waitlist report.
+all existing device grants. The single daily waitlist cron uses `CRON_SECRET`,
+sends each signup invitation 24–48 hours after registration, and delivers the
+daily waitlist report.
 
 `MESSAGING_ENCRYPTION_KEY` encrypts account-scoped messaging private keys at rest. Keep it stable across deployments; changing or losing it makes stored message keyrings unreadable. When omitted, the app falls back to `INTEGRATION_ENCRYPTION_KEY` and then `AUTH_SECRET` for compatibility.
 
