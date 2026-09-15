@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { prisma } from '@/lib/db';
 import { sendIrisEmail } from '@/lib/email/iris-email';
 import { authAccessEmail } from '@/lib/email/iris-templates';
@@ -25,7 +25,8 @@ export function configuredAppUrl() {
 }
 
 export async function scheduleWaitlistInvitation(waitlistEntry: { id: string; email: string }, now = new Date()) {
-  const scheduledAt = new Date(now.getTime() + (24 * 60 * 60 * 1000) + randomInt(0, 24 * 60 * 60 * 1000));
+  // The first daily run after this becomes due occurs 24–48 hours after signup.
+  const scheduledAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   return prisma.authAccessToken.upsert({
     where: { dedupeKey: `waitlist:${waitlistEntry.id}` },
     create: {
@@ -92,6 +93,17 @@ export async function sendDueWaitlistInvitations(now = new Date()) {
   });
   await prisma.authAccessToken.deleteMany({
     where: { status: { in: ['REDEEMED', 'EXPIRED'] }, updatedAt: { lt: retentionCutoff } },
+  });
+  // Normalize invitations created under the old randomized hourly schedule so
+  // the move to daily delivery cannot push them beyond the promised window.
+  await prisma.authAccessToken.updateMany({
+    where: {
+      purpose: WAITLIST_SIGNUP_PURPOSE,
+      status: 'PENDING',
+      createdAt: { lte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+      scheduledAt: { gt: now },
+    },
+    data: { scheduledAt: now },
   });
   const due = await prisma.authAccessToken.findMany({
     where: { purpose: WAITLIST_SIGNUP_PURPOSE, scheduledAt: { lte: now }, status: { in: ['PENDING', 'FAILED', 'SENDING'] } },
