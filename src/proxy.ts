@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
       pathname === '/sitemap.xml' ||
       pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|mp4|webm)$/i);
 
-    if (pathname !== '/coming-soon' && !isStaticAsset) {
+    if (pathname !== '/coming-soon' && !pathname.startsWith('/admin') && !isStaticAsset) {
       const url = request.nextUrl.clone();
       url.pathname = '/coming-soon';
       return NextResponse.redirect(url);

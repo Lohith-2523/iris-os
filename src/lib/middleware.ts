@@ -2,8 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import {
   canAccessPasswordReset,
-  FORGOT_PASSWORD_PATH,
   PASSWORD_RECOVERY_COOKIE,
+  passwordRecoveryFailurePath,
 } from '@/lib/auth-routes'
 import { DEVICE_ACCESS_COOKIE, verifyDeviceAccessCookieValue } from '@/lib/auth-access-cookie'
 
@@ -71,7 +71,7 @@ export async function updateSession(request: NextRequest) {
       request.cookies.get(PASSWORD_RECOVERY_COOKIE)?.value,
     )) {
       const url = request.nextUrl.clone()
-      url.pathname = FORGOT_PASSWORD_PATH
+      url.pathname = passwordRecoveryFailurePath(pathname)
       url.searchParams.set('recovery_error', 'secure_link_required')
       return NextResponse.redirect(url)
     }
@@ -85,6 +85,8 @@ export async function updateSession(request: NextRequest) {
       pathname === '/privacy' ||
       pathname === '/waitlist' ||
       pathname === '/access' ||
+      pathname === '/admin/login' ||
+      pathname === '/admin/forgot-password' ||
       pathname.startsWith('/signup') ||
       pathname.startsWith('/onboarding/member') ||
       pathname === '/invite' ||

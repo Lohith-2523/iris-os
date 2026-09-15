@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
-import { matchPlanCoupon } from '@/lib/plan-coupons';
 import { normalizePlan } from '@/lib/plan-entitlements';
+import { matchManagedCoupon } from '@/server/admin/managed-coupons';
 
 export const runtime = 'nodejs';
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: { ...noStoreHeaders, 'Retry-After': String(seconds) } });
   }
 
-  const couponId = matchPlanCoupon(input.data.coupon);
+  const couponId = await matchManagedCoupon(input.data.coupon, input.data.plan);
   if (!couponId) {
     const lockedUntil = await registerFailure(user.id);
     const status = lockedUntil ? 429 : 400;
@@ -80,6 +80,14 @@ export async function POST(request: NextRequest) {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`plan-coupon:${user.id}`}, 0::bigint))::text AS "lockAcquired"`;
     const currentSecurityState = await tx.planCouponSecurityState.findUnique({ where: { userId: user.id } });
     if (currentSecurityState?.lockedUntil && currentSecurityState.lockedUntil > new Date()) return null;
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`managed-coupon:${couponId}`}, 0::bigint))::text AS "lockAcquired"`;
+    const managedCoupon = await tx.managedCoupon.findUnique({ where: { id: couponId } });
+    const now = new Date();
+    if (!managedCoupon || !managedCoupon.enabled || managedCoupon.startsAt > now
+      || (managedCoupon.endsAt && managedCoupon.endsAt <= now)
+      || (managedCoupon.plan !== 'ANY' && managedCoupon.plan !== input.data.plan)) return null;
+    const totalUses = await tx.planCouponRedemption.count({ where: { couponId } });
+    if (managedCoupon.maxUses !== null && totalUses >= managedCoupon.maxUses) return null;
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`plan-coupon-org:${user.orgId}`}, 0::bigint))::text AS "lockAcquired"`;
     const organization = await tx.organization.findUniqueOrThrow({ where: { id: user.orgId }, select: { plan: true } });
     const currentPlan = normalizePlan(organization.plan);

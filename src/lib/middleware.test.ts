@@ -50,4 +50,11 @@ describe('authentication proxy responses', () => {
     const response = await updateSession(request);
     expect(response.status).toBe(200);
   });
+
+  it('keeps superadmin sign-in and recovery request pages public', async () => {
+    for (const path of ['/admin/login', '/admin/forgot-password']) {
+      const response = await updateSession(new NextRequest(`http://localhost:3000${path}`));
+      expect(response.status).toBe(200);
+    }
+  });
 });

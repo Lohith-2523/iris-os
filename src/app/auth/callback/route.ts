@@ -8,6 +8,8 @@ import {
 } from '@/lib/database-resilience';
 import {
   FORGOT_PASSWORD_PATH,
+  ADMIN_FORGOT_PASSWORD_PATH,
+  ADMIN_RESET_PASSWORD_PATH,
   isPasswordRecoveryExchange,
   PASSWORD_RECOVERY_COOKIE,
   PASSWORD_RECOVERY_COOKIE_VALUE,
@@ -15,17 +17,20 @@ import {
 } from '@/lib/auth-routes';
 import { hasApprovedSignup, validateDeviceAccess } from '@/lib/auth-access';
 import { DEVICE_ACCESS_COOKIE } from '@/lib/auth-access-cookie';
+import { hasSuperadminAccess, SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const requestedNext = searchParams.get('next') ?? '/dashboard';
   const next = requestedNext.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/dashboard';
-  const recoveryFailureUrl = new URL(FORGOT_PASSWORD_PATH, origin);
+  const recoveryFailureUrl = new URL(next === ADMIN_RESET_PASSWORD_PATH ? ADMIN_FORGOT_PASSWORD_PATH : FORGOT_PASSWORD_PATH, origin);
   recoveryFailureUrl.searchParams.set('recovery_error', 'invalid_or_expired');
-  const authenticationFailureUrl = next === RESET_PASSWORD_PATH
+  const authenticationFailureUrl = next === RESET_PASSWORD_PATH || next === ADMIN_RESET_PASSWORD_PATH
     ? recoveryFailureUrl.toString()
-    : `${origin}/login`;
+    : next === '/admin'
+      ? `${origin}/admin/login`
+      : `${origin}/login`;
   // The code exchange refreshes auth cookies. Keep those cookies on the same
   // redirect response so the destination request is authenticated.
   const response = NextResponse.redirect(new URL('/dashboard', request.url));
@@ -77,10 +82,14 @@ export async function GET(request: Request) {
         path: '/',
         maxAge: 10 * 60,
       });
-      response.headers.set('Location', new URL(RESET_PASSWORD_PATH, origin).toString());
+      response.headers.set('Location', new URL(next, origin).toString());
       return response;
     }
     if (next === RESET_PASSWORD_PATH) {
+      response.headers.set('Location', recoveryFailureUrl.toString());
+      return response;
+    }
+    if (next === ADMIN_RESET_PASSWORD_PATH) {
       response.headers.set('Location', recoveryFailureUrl.toString());
       return response;
     }
@@ -94,6 +103,20 @@ export async function GET(request: Request) {
         return response;
       }
       return NextResponse.redirect(`${origin}/login?auth_error=invalid_invite`);
+    }
+
+    if (next === '/admin') {
+      const normalizedEmail = email.trim().toLowerCase();
+      const grant = normalizedEmail === SUPERADMIN_OWNER_EMAIL
+        ? null
+        : await prisma.adminAccess.findUnique({ where: { email: normalizedEmail } });
+      if (hasSuperadminAccess(normalizedEmail, Boolean(session.user.email_confirmed_at), grant)) {
+        response.headers.set('Location', new URL('/admin', origin).toString());
+        return response;
+      }
+      await supabase.auth.signOut();
+      response.headers.set('Location', new URL('/admin/login?auth_error=admin_access_denied', origin).toString());
+      return response;
     }
 
     const existingWorkspaceUser = await prisma.user.findFirst({
@@ -138,7 +161,7 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     console.error('Authentication callback failed:', error);
-    if (next === RESET_PASSWORD_PATH) {
+    if (next === RESET_PASSWORD_PATH || next === ADMIN_RESET_PASSWORD_PATH) {
       return NextResponse.redirect(recoveryFailureUrl);
     }
     if (isTransientDatabaseConnectionError(error)) {
