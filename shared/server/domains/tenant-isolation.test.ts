@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   userFindMany: vi.fn().mockResolvedValue([]),
   projectFindMany: vi.fn().mockResolvedValue([]),
   taskFindMany: vi.fn().mockResolvedValue([]),
+  deliverableFindMany: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -15,6 +16,7 @@ vi.mock('@/lib/db', () => ({
     user: { findMany: mocks.userFindMany },
     project: { findMany: mocks.projectFindMany },
     clientTask: { findMany: mocks.taskFindMany },
+    deliverable: { findMany: mocks.deliverableFindMany },
   },
 }));
 

@@ -10,14 +10,17 @@ export type LegalSection = {
   note?: string;
 };
 
-export function LegalPolicyPage({ title, badge, updated, introduction, sections, sources = [] }: {
+export function LegalPolicyPage({ title, badge, updated, effectiveDate, jurisdiction, introduction, sections, sources = [] }: {
   title: string;
   badge: string;
   updated: string;
-  introduction: string;
+  effectiveDate?: string;
+  jurisdiction?: string;
+  introduction: string | string[];
   sections: LegalSection[];
   sources?: Array<{ label: string; href: string }>;
 }) {
+  const introductions = Array.isArray(introduction) ? introduction : [introduction];
   return <div className="min-h-screen bg-[#0a0a0a] text-zinc-100">
     <MarketingHeader />
     <main>
@@ -25,8 +28,12 @@ export function LegalPolicyPage({ title, badge, updated, introduction, sections,
         <div className="mx-auto max-w-4xl">
           <span className="inline-flex rounded-full border border-white/10 bg-zinc-900 px-4 py-2 font-mono text-sm font-semibold uppercase tracking-[0.16em] text-zinc-400">{badge}</span>
           <h1 className="mt-7 text-4xl font-bold uppercase tracking-tight sm:text-6xl">{title}</h1>
-          <p className="mx-auto mt-6 max-w-3xl text-base leading-7 text-zinc-400">{introduction}</p>
-          <p className="mt-5 font-mono text-sm uppercase tracking-[0.12em] text-zinc-500">Last updated: {updated}</p>
+          <div className="mx-auto mt-6 max-w-3xl space-y-4 text-base leading-7 text-zinc-400">{introductions.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+          <div className="mt-5 flex flex-wrap justify-center gap-x-6 gap-y-2 font-mono text-sm uppercase tracking-[0.12em] text-zinc-500">
+            {effectiveDate && <span>Effective date: {effectiveDate}</span>}
+            <span>Last updated: {updated}</span>
+            {jurisdiction && <span>Governing jurisdiction: {jurisdiction}</span>}
+          </div>
         </div>
       </section>
 
@@ -50,6 +57,6 @@ export function LegalPolicyPage({ title, badge, updated, introduction, sections,
       </section>
     </main>
 
-    <footer className="border-t border-white/5 px-6 py-10"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5"><Image src="/iris-logo-white-transparent.svg" alt="Iris OS" width={120} height={42} className="h-10 w-auto opacity-70" /><span className="text-sm text-zinc-600">© 2026 Iris OS. All rights reserved.</span><div className="flex gap-5 text-sm text-zinc-500"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link></div></div></footer>
+    <footer className="border-t border-white/5 px-6 py-10"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5"><Image src="/iris-logo-white-transparent.svg" alt="Iris OS" width={120} height={42} className="h-10 w-auto opacity-70" /><span className="text-sm text-zinc-600">© 2026 Iris OS. All rights reserved.</span><div className="flex flex-wrap gap-5 text-sm text-zinc-500"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link><Link href="/cancellation-refund-policy" className="hover:text-white">Cancellation &amp; Refunds</Link></div></div></footer>
   </div>;
 }

@@ -71,8 +71,8 @@ part of the redesign.
 - `tokens.css` — landing, authentication, and daily-briefing token groups.
 - `src/app/globals.css` — workspace light/dark materials, primitives, shell, and
   the previous proportional responsive refinement.
-- `src/components/landing/iris-landing.module.css` — public landing composition.
-- `src/components/auth/auth-shell.module.css` — shared login/signup composition.
+- `shared/components/landing/iris-landing.module.css` — public landing composition.
+- `shared/components/auth/auth-shell.module.css` — shared login/signup composition.
 - `src/app/(app)/layout.tsx` — application shell and universal route wrapper.
 
 ## Reversion recipe
@@ -86,7 +86,7 @@ The geometry-aware redesign is intentionally isolated behind
    `src/app/globals.css`.
 3. Remove the final matching geometry-aware blocks from the landing and auth CSS
    modules.
-4. Remove `src/lib/workspace-layout-mode.ts` and its test.
+4. Remove `shared/lib/workspace-layout-mode.ts` and its test.
 5. Restore the prior `design.md`, `tokens.css`, and `.hallmark/log.json` entries.
 
 No route tree, production component directory, feature component, backend

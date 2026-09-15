@@ -42,6 +42,17 @@ Iris OS is an enterprise-grade SaaS operating system designed for creative agenc
 
 ---
 
+## Source layout
+
+* `src/app` contains the customer-facing Next.js application deployed to production.
+* `src/admin` is reserved for the future Iris OS super-admin application and its internal-only entrypoints.
+* `shared/components`, `shared/config`, `shared/lib`, and `shared/server` contain reusable code for both applications.
+* `src/proxy.ts` is the required Next.js proxy entrypoint and delegates authentication policy to shared server code.
+
+Keep customer-facing routes out of `src/admin`. The admin application must use a separate Iris OS super-admin authorization boundary before it is exposed or deployed.
+
+---
+
 ## ⚙️ Getting Started
 
 ### 1. Prerequisites

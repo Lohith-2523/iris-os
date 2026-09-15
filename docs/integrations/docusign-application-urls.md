@@ -24,4 +24,4 @@ Origins intentionally contain only the scheme, host, and port. Do not include a
 path or trailing slash. Register localhost only for developer/demo use.
 
 The source-of-truth constants are in
-`src/config/docusign-application-urls.ts`.
+`shared/config/docusign-application-urls.ts`.

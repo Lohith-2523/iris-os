@@ -83,6 +83,7 @@ export async function updateSession(request: NextRequest) {
       pathname === '/pricing' ||
       pathname === '/terms' ||
       pathname === '/privacy' ||
+      pathname === '/cancellation-refund-policy' ||
       pathname === '/waitlist' ||
       pathname === '/access' ||
       pathname.startsWith('/signup') ||

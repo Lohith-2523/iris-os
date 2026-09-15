@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const globalsCss = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8');
 const workspaceShell = readFileSync(
-  join(process.cwd(), 'src/components/app-shell/workspace-shell.tsx'),
+  join(process.cwd(), 'shared/components/app-shell/workspace-shell.tsx'),
   'utf8',
 );
 

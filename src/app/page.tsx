@@ -1535,34 +1535,20 @@ function Footer() {
         Â© 2026 Iris OS, Inc. All rights reserved.
       </span>
       <div style={{ display: 'flex', gap: '24px' }}>
-        {['Privacy', 'Terms', 'Security'].map((item) => {
-          const href = item === 'Privacy' ? '/privacy' : item === 'Terms' ? '/terms' : '#';
-          if (href !== '#') {
-            return (
-              <Link
-                key={item}
-                href={href}
-                prefetch={false}
-                style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
-              >
-                {item}
-              </Link>
-            )
-          }
-          return (
-            <a
-              key={item}
-              href="#"
-              style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
-            >
-              {item}
-            </a>
-          )
-        })}
+        {[
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Terms', href: '/terms' },
+          { label: 'Cancellations & Refunds', href: '/cancellation-refund-policy' },
+        ].map((item) => <Link
+          key={item.href}
+          href={item.href}
+          prefetch={false}
+          style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
+        >
+          {item.label}
+        </Link>)}
       </div>
     </footer>
   )
