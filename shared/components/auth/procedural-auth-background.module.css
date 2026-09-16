@@ -10,8 +10,12 @@
 
 .root canvas { display: block; }
 
-/* Fade the upper 60% into the white canvas. */
-.root canvas {
-  mask-image: linear-gradient(to bottom, transparent 0%, transparent 10%, #000 70%, #000 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 10%, #000 70%, #000 100%);
+/* Keep the fade separate from the live WebGL canvas so browser-edge repaints
+ * do not have to composite a mask on every animation frame. */
+.root::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--color-auth-canvas) 0%, var(--color-auth-canvas) 10%, transparent 70%, transparent 100%);
 }
