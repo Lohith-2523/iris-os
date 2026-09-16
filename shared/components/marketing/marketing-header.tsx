@@ -60,12 +60,12 @@ export function MarketingHeader() {
           </nav>
 
           <Link
-            href="/#waitlist"
+            href="/signup"
             prefetch={false}
             className="neo-button-accent hidden px-[22px] py-2.5 text-[13px] font-semibold text-[#0a0a0a] no-underline md:block"
             style={{ fontFamily: BODY }}
           >
-            Request Early Access
+            Join the Waitlist
           </Link>
 
           <button
@@ -102,13 +102,13 @@ export function MarketingHeader() {
             ))}
           </nav>
           <Link
-            href="/#waitlist"
+            href="/signup"
             prefetch={false}
             onClick={() => setMobileMenuOpen(false)}
             className="neo-button-accent mt-2 p-3 text-center text-sm font-semibold text-[#0a0a0a] no-underline"
             style={{ fontFamily: BODY }}
           >
-            Request Early Access
+            Join the Waitlist
           </Link>
         </div>
       )}

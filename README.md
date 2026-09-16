@@ -94,11 +94,15 @@ SMTP_PASSWORD="your-google-app-password"
 APP_URL="https://irisos.app"
 ```
 
-`AUTH_ACCESS_SECRET` signs the first-party device grant that permits the login
-and signup pages to open. Keep it stable across deployments; rotating it revokes
-all existing device grants. The single daily waitlist cron uses `CRON_SECRET`,
-sends each signup invitation 24–48 hours after registration, and delivers the
-daily waitlist report.
+The waitlist is temporarily paused by `WAITLIST_ENABLED = false` in
+`shared/lib/waitlist-config.ts`. Login and signup are public, old waitlist links
+redirect to signup, registration returns 410, and the daily cron skips reports
+and invitations. Existing waitlist records and device grants are preserved.
+Email verification remains required for signup.
+
+`AUTH_ACCESS_SECRET` signs first-party device grants. Keep it stable across
+deployments; rotating it revokes existing grants. The daily waitlist cron
+continues to require `CRON_SECRET`, including while paused.
 
 `MESSAGING_ENCRYPTION_KEY` encrypts account-scoped messaging private keys at rest. Keep it stable across deployments; changing or losing it makes stored message keyrings unreadable. When omitted, the app falls back to `INTEGRATION_ENCRYPTION_KEY` and then `AUTH_SECRET` for compatibility.
 

@@ -16,7 +16,7 @@ export function IrisPricing({ region }: { region: PricingRegion }) {
   return <main className={`${styles.landing} ${pageStyles.pricingPage}`} id="top">
     <header className={pageStyles.pricingPageNav}><div className={pageStyles.pricingPageNavInner}>
       <Link className={styles.wordmark} href="/" aria-label="Iris OS home"><Image className={styles.brandLogo} src="/iris-logo-white-transparent.svg" alt="" width={28} height={28} priority /><span>IRIS <b>OS</b></span></Link>
-      <Link className={styles.primaryButton} href="/waitlist">Join the waitlist <ArrowRight aria-hidden="true" /></Link>
+      <Link className={styles.primaryButton} href="/signup">Join the Waitlist <ArrowRight aria-hidden="true" /></Link>
     </div></header>
 
     <section className={pageStyles.pricingPageHero} aria-labelledby="pricing-title"><div className={pageStyles.pricingPageHeroInner}>
@@ -34,10 +34,10 @@ export function IrisPricing({ region }: { region: PricingRegion }) {
         </div>
         <p>{plan.copy}</p>
         <ul>{plan.items.map((item) => <li key={item}><Check aria-hidden="true" />{item}</li>)}</ul>
-        <Link className={index === 1 ? styles.primaryButton : styles.secondaryButton} href="/waitlist">{plan.cta}<ArrowRight aria-hidden="true" /></Link>
+        <Link className={index === 1 ? styles.primaryButton : styles.secondaryButton} href="/signup">{plan.cta}<ArrowRight aria-hidden="true" /></Link>
       </article>)}</div>
     </div></section>
 
-    <footer className={pageStyles.pricingPageFooter}><span>© 2026 Iris OS</span><nav aria-label="Pricing footer navigation"><Link href="/">Product overview</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/waitlist">Waitlist</Link></nav></footer>
+    <footer className={pageStyles.pricingPageFooter}><span>© 2026 Iris OS</span><nav aria-label="Pricing footer navigation"><Link href="/">Product overview</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/signup">Join the Waitlist</Link></nav></footer>
   </main>;
 }

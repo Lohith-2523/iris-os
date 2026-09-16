@@ -1,3 +1,4 @@
+import { WAITLIST_ENABLED } from '@/lib/waitlist-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendDueWaitlistInvitations } from '@/lib/auth-access';
 import { sendDailyWaitlistReport } from '@/lib/waitlist-daily-report';
@@ -11,6 +12,8 @@ export async function GET(request: NextRequest) {
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  if (!WAITLIST_ENABLED) return NextResponse.json({ skipped: true, reason: 'Waitlist is paused.' });
 
   const [reportResult, invitationResult] = await Promise.allSettled([
     sendDailyWaitlistReport(),

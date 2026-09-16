@@ -1,3 +1,4 @@
+import { WAITLIST_ENABLED } from '@/lib/waitlist-config';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
@@ -96,21 +97,23 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/login?auth_error=invalid_invite`);
     }
 
-    const existingWorkspaceUser = await prisma.user.findFirst({
-      where: { OR: [{ authUserId: session.user.id }, { email: email.toLowerCase() }] },
-      select: { id: true },
-    });
-    const deviceCookie = request.headers.get('cookie')
-      ?.split(';')
-      .map(value => value.trim())
-      .find(value => value.startsWith(`${DEVICE_ACCESS_COOKIE}=`))
-      ?.slice(DEVICE_ACCESS_COOKIE.length + 1);
-    const approvedDevice = existingWorkspaceUser
-      || await validateDeviceAccess(deviceCookie ? decodeURIComponent(deviceCookie) : null, email)
-      || await hasApprovedSignup(session.user.id, email);
-    if (!approvedDevice) {
-      await supabase.auth.signOut();
-      return NextResponse.redirect(`${origin}/waitlist?access=required`);
+    if (WAITLIST_ENABLED) {
+      const existingWorkspaceUser = await prisma.user.findFirst({
+        where: { OR: [{ authUserId: session.user.id }, { email: email.toLowerCase() }] },
+        select: { id: true },
+      });
+      const deviceCookie = request.headers.get('cookie')
+        ?.split(';')
+        .map(value => value.trim())
+        .find(value => value.startsWith(`${DEVICE_ACCESS_COOKIE}=`))
+        ?.slice(DEVICE_ACCESS_COOKIE.length + 1);
+      const approvedDevice = existingWorkspaceUser
+        || await validateDeviceAccess(deviceCookie ? decodeURIComponent(deviceCookie) : null, email)
+        || await hasApprovedSignup(session.user.id, email);
+      if (!approvedDevice) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/waitlist?access=required`);
+      }
     }
 
     const dbUser = await withDatabaseConnectionRetry(

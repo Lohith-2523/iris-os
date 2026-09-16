@@ -141,7 +141,7 @@ function Header() {
         {/* Actions */}
         <div className="hidden items-center gap-2 md:flex">
           <Link
-            href="/waitlist"
+            href="/signup"
             prefetch={false}
             className="neo-button-accent inline-block"
             style={{
@@ -215,7 +215,7 @@ function Header() {
 
         <div className="flex flex-col gap-2 border-t border-zinc-900 pt-6">
           <Link
-            href="/waitlist"
+            href="/signup"
             prefetch={false}
             onClick={() => setIsMobileMenuOpen(false)}
             className="neo-button-accent w-full text-center py-3.5 block font-semibold text-sm cursor-pointer"
@@ -395,7 +395,7 @@ function Hero() {
         style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}
       >
         <Link
-          href="/waitlist"
+          href="/signup"
           prefetch={false}
           className="neo-button-accent"
           style={{
@@ -410,7 +410,7 @@ function Hero() {
             textAlign: 'center',
           }}
         >
-          Request Early Access
+          Join the Waitlist
         </Link>
         <a
           href="#video"
@@ -1429,7 +1429,7 @@ function Pricing() {
                 <ul className="mt-7 flex-1 space-y-3 border-t border-white/[0.07] pt-6 text-sm text-white/65">
                   {plan.features.map((feature) => <li key={feature} className="flex items-start gap-3"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-white/50" />{feature}</li>)}
                 </ul>
-                <Link href="/waitlist" prefetch={false} className={plan.id === 'PRO' ? 'neo-button-accent mt-8 block py-3.5 text-center text-sm font-semibold text-[#0a0a0a] no-underline' : 'neo-button mt-8 block py-3.5 text-center text-sm font-semibold text-white/75 no-underline'}>
+                <Link href="/signup" prefetch={false} className={plan.id === 'PRO' ? 'neo-button-accent mt-8 block py-3.5 text-center text-sm font-semibold text-[#0a0a0a] no-underline' : 'neo-button mt-8 block py-3.5 text-center text-sm font-semibold text-white/75 no-underline'}>
                   {plan.id === 'BASIC' ? 'Start for free' : `Choose ${plan.name}`}
                 </Link>
               </article>
@@ -1460,7 +1460,7 @@ function Waitlist() {
             marginBottom: '24px',
           }}
         >
-          Early Access
+          Get started
         </span>
         <h2
           style={{
@@ -1476,12 +1476,12 @@ function Waitlist() {
           Ready to clarify your agency&apos;s vision?
         </h2>
         <p style={{ fontFamily: BODY, fontSize: '17px', color: 'rgba(232,232,232,0.45)', lineHeight: 1.7, marginBottom: '56px' }}>
-          Consolidate your tools and focus your operations. Join the waitlist for the definitive all-in-one agency workspace.
+          Consolidate your tools and focus your operations. Create your all-in-one agency workspace.
         </p>
 
         <div className="neo-raised" style={{ padding: 'clamp(28px, 6vw, 48px) clamp(20px, 6vw, 40px)', display: 'flex', justifyContent: 'center' }}>
           <Link
-            href="/waitlist"
+            href="/signup"
             prefetch={false}
             className="neo-button-accent"
             style={{
@@ -1502,7 +1502,7 @@ function Waitlist() {
 
         {/* Social proof */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', marginTop: '40px', flexWrap: 'wrap' }}>
-          {['1,200+ on waitlist', 'Ships Q3 2026', 'Invite-only beta'].map((item, i) => (
+          {['Client management', 'Project delivery', 'Team collaboration'].map((item, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
               <span style={{ fontFamily: JBMONO, fontSize: '11px', color: 'rgba(232,232,232,0.32)', letterSpacing: '0.04em' }}>{item}</span>

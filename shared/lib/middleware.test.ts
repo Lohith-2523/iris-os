@@ -36,11 +36,11 @@ describe('authentication proxy responses', () => {
     expect(response.headers.get('location')).toBe('http://localhost:3000/login');
   });
 
-  it('redirects direct login and signup visits to the waitlist without a device grant', async () => {
+  it('allows direct login and signup visits without a device grant', async () => {
     for (const path of ['/login', '/signup']) {
       const response = await updateSession(new NextRequest(`http://localhost:3000${path}`));
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe('http://localhost:3000/waitlist?access=required');
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
     }
   });
 
@@ -49,5 +49,14 @@ describe('authentication proxy responses', () => {
     request.cookies.set(DEVICE_ACCESS_COOKIE, createDeviceAccessCookieValue('grant-1', 'device-token', new Date(Date.now() + 60_000)));
     const response = await updateSession(request);
     expect(response.status).toBe(200);
+  });
+  it('redirects old waitlist links to signup', async () => {
+    const response = await updateSession(new NextRequest('https://irisos.app/waitlist?access=required'));
+    expect(response.headers.get('location')).toBe('https://irisos.app/signup');
+  });
+
+  it('disables public waitlist registration', async () => {
+    const response = await updateSession(new NextRequest('https://irisos.app/api/waitlist', { method: 'POST' }));
+    expect(response.status).toBe(410);
   });
 });
