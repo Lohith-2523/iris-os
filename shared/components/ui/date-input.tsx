@@ -107,7 +107,7 @@ export function DateInput({ value, onChange, placeholder = 'DD/MM/YYYY', min, ma
       max={max}
       tabIndex={-1}
       aria-hidden="true"
-      className="fixed left-0 top-0 h-px w-px overflow-hidden opacity-0 pointer-events-none"
+      className="pointer-events-none absolute right-0 top-0 h-full w-10 opacity-0"
       onChange={(event) => {
         const nextDate = event.target.value;
         setDraft(formatDateForInput(nextDate));

@@ -42,9 +42,11 @@ export function ProfilePicturePicker({ value, onChange, name, disabled, onBusyCh
       <legend className="px-1 text-xs font-semibold text-zinc-300">Profile picture (optional)</legend>
       <div className="flex items-center gap-3">
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full"><ProfileAvatar src={value} name={name || 'Your'} /></div>
-        <div className="min-w-0 space-y-1">
-          <label htmlFor={inputId} className="block text-xs text-zinc-300">Upload a photo</label>
-          <input id={inputId} type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} className="block w-full text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:px-2 file:py-1" />
+        <div className="min-w-0 space-y-2">
+          <input id={inputId} type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} className="sr-only" />
+          <label htmlFor={inputId} className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-white bg-white px-4 py-2 text-sm font-bold text-black shadow-[0_8px_24px_rgba(255,255,255,0.12)] transition-colors hover:bg-zinc-200 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-white">
+            {busy ? 'Preparing photoâ€¦' : 'Choose photo'}
+          </label>
           <p className="text-[10px] text-zinc-500">PNG, JPEG or WebP, up to 10 MB. Optimized before saving.</p>
         </div>
       </div>

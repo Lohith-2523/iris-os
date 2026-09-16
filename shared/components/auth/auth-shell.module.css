@@ -12,6 +12,32 @@
   font-family: var(--font-auth-body);
 }
 
+.dark {
+  --color-auth-canvas: #050506;
+  --color-auth-frost: rgb(8 8 10 / 0.76);
+  --color-auth-frost-grain: rgb(255 255 255 / 0.025);
+  --color-auth-glass-edge: rgb(255 255 255 / 0.14);
+  --color-auth-ink: oklch(0.985 0.004 255);
+  --color-auth-label: oklch(0.91 0.006 255);
+  --color-auth-muted: oklch(0.73 0.008 255);
+  --color-auth-placeholder: oklch(0.56 0.01 255);
+  --color-auth-icon: oklch(0.4 0.012 255);
+  --color-auth-rule: oklch(0.38 0.01 255);
+  --color-auth-rule-hover: oklch(0.62 0.012 255);
+  --color-auth-focus: oklch(0.88 0.01 255);
+  --color-auth-focus-soft: oklch(0.92 0.01 255 / 0.2);
+  --color-auth-button: oklch(0.985 0.004 255);
+  --color-auth-button-hover: oklch(0.9 0.006 255);
+  --color-auth-button-ink: oklch(0.14 0.008 255);
+  --color-auth-field: oklch(0.17 0.008 255);
+  --color-auth-field-hover: oklch(0.205 0.009 255);
+  --color-auth-field-ink: oklch(0.96 0.004 255);
+  --color-auth-field-placeholder: oklch(0.62 0.008 255);
+  --color-auth-field-icon: oklch(0.7 0.008 255);
+  --shadow-auth-orbit: 0 2rem 6rem rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --shadow-auth-field: 0 0 0 1px rgb(255 255 255 / 0.085), 0 0.75rem 1.75rem rgb(0 0 0 / 0.48), inset 0 1px 0 rgb(255 255 255 / 0.055);
+}
+
 .backgroundPanel {
   position: fixed;
   inset: 0;
@@ -114,6 +140,12 @@
   color: var(--color-auth-ink);
 }
 
+.dark .success,
+.dark .status,
+.dark .success strong {
+  color: var(--color-auth-field-ink);
+}
+
 .form {
   display: flex;
   flex-direction: column;
@@ -144,7 +176,7 @@
   width: 1rem;
   height: 1rem;
   transform: translateY(-50%);
-  color: var(--color-auth-icon);
+  color: var(--color-auth-field-icon, var(--color-auth-icon));
   pointer-events: none;
 }
 
@@ -155,16 +187,17 @@
   border-radius: var(--radius-auth-input);
   background: var(--color-auth-field);
   padding: 0 var(--space-auth-md) 0 2.75rem;
-  color: var(--color-auth-ink);
+  color: var(--color-auth-field-ink, var(--color-auth-ink));
   font: inherit;
   font-size: var(--text-auth-body);
   outline: 2px solid transparent;
   outline-offset: 1px;
+  box-shadow: var(--shadow-auth-field, none);
   transition: border-color var(--dur-auth-fast) var(--ease-auth-out), background-color var(--dur-auth-fast) var(--ease-auth-out), box-shadow var(--dur-auth-fast) var(--ease-auth-out);
 }
 
 .input::placeholder {
-  color: var(--color-auth-placeholder);
+  color: var(--color-auth-field-placeholder, var(--color-auth-placeholder));
 }
 
 .input:autofill,
@@ -173,8 +206,8 @@
 .input:-webkit-autofill:focus {
   border-color: var(--color-auth-focus);
   background-color: var(--color-auth-field);
-  -webkit-text-fill-color: var(--color-auth-ink);
-  caret-color: var(--color-auth-ink);
+  -webkit-text-fill-color: var(--color-auth-field-ink, var(--color-auth-ink));
+  caret-color: var(--color-auth-field-ink, var(--color-auth-ink));
   -webkit-box-shadow:
     inset 0 0 0 1000px var(--color-auth-field),
     0 0 0 1px var(--color-auth-focus-soft),
@@ -218,7 +251,7 @@
   border: 0;
   border-radius: var(--radius-auth-input);
   background: transparent;
-  color: var(--color-auth-icon);
+  color: var(--color-auth-field-icon, var(--color-auth-icon));
   cursor: pointer;
 }
 
@@ -271,6 +304,12 @@
   border: var(--rule-auth) solid var(--color-auth-rule);
   background: var(--color-auth-paper);
   color: var(--color-auth-ink);
+}
+
+.dark .googleButton {
+  background: var(--color-auth-field);
+  color: var(--color-auth-field-ink);
+  box-shadow: var(--shadow-auth-field);
 }
 
 .primaryButton:active,
@@ -410,7 +449,7 @@
   }
 
   .iconButton:hover {
-    color: var(--color-auth-ink);
+    color: var(--color-auth-field-ink, var(--color-auth-ink));
   }
 
   .primaryButton:hover {
@@ -461,12 +500,27 @@
 .shell:global(.workspace-auth) input[type='tel'] {
   background: var(--color-auth-field) !important;
   border: var(--rule-auth) solid var(--color-auth-rule) !important;
-  color: var(--color-auth-ink) !important;
-  box-shadow: none !important;
+  color: var(--color-auth-field-ink, var(--color-auth-ink)) !important;
+  box-shadow: var(--shadow-auth-field, none) !important;
 }
 .shell .input:not([type='checkbox']):not([type='radio']):focus-visible,
 .shell:global(.workspace-auth) input[type='tel']:focus-visible {
   border-color: var(--color-auth-focus) !important;
   outline: 2px solid var(--color-auth-focus);
   outline-offset: 2px;
+}
+
+.dark :global(.country-phone-input) {
+  border-radius: var(--radius-auth-input);
+  box-shadow: var(--shadow-auth-field);
+}
+
+.dark :global(.country-phone-code-button) {
+  border-color: var(--color-auth-rule);
+  background: var(--color-auth-field);
+  color: var(--color-auth-field-ink);
+}
+
+.dark:global(.workspace-auth) :global(.country-phone-input) input[type='tel'] {
+  box-shadow: none !important;
 }

@@ -39,6 +39,7 @@ describe('date input formatting', () => {
 
     const pickerProxy = container.querySelector('input[type="date"]');
     expect(pickerProxy).toHaveAttribute('data-date-picker-proxy', 'true');
-    expect(pickerProxy).toHaveClass('fixed', 'h-px', 'w-px');
+    expect(pickerProxy).toHaveClass('absolute', 'right-0', 'top-0', 'h-full', 'w-10');
+    expect(pickerProxy).not.toHaveClass('fixed', 'left-0');
   });
 });

@@ -17,6 +17,7 @@ import { ChatFilePreview } from '@/components/ui/chat-file-preview';
 import { extractChatFileArtifacts } from '@/lib/chat-file-artifacts';
 import { ATLAS_GUIDE_MESSAGES, ATLAS_GUIDE_SESSION_ID, ATLAS_GUIDE_TITLE } from '@/lib/atlas-ai/guide';
 import type { AtlasInitialReadModel } from '@/server/domains/atlas-read-service';
+import { hasMeaningfulEnglishSpeech } from '@/lib/atlas-ai/voice-input';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -399,7 +400,9 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     setVoiceError(null);
     updateVoiceState('requesting');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+      });
       const preferredType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((type) => MediaRecorder.isTypeSupported(type));
       const recorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream);
       mediaStreamRef.current = stream;
@@ -438,12 +441,13 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           const response = await fetch('/api/atlas-ai/transcribe', { method: 'POST', body: form });
           const data = await response.json().catch(() => ({}));
           if (!response.ok || typeof data.text !== 'string') throw new Error(data.error || 'Atlas could not transcribe this recording.');
-          const finalText = joinTranscript(voicePrefixRef.current, data.text || liveTranscript);
+          const verifiedTranscript = hasMeaningfulEnglishSpeech(data.text) ? data.text : '';
+          const finalText = joinTranscript(voicePrefixRef.current, verifiedTranscript);
           setQuery(finalText);
           setLiveVoiceText('');
           requestAnimationFrame(() => inputRef.current?.focus());
         } catch (error) {
-          if (liveTranscript) {
+          if (hasMeaningfulEnglishSpeech(liveTranscript)) {
             setQuery(joinTranscript(voicePrefixRef.current, liveTranscript));
             setLiveVoiceText('');
             setVoiceError('Live transcript kept; final transcription could not be verified.');
@@ -462,7 +466,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = navigator.language || 'en-US';
+        recognition.lang = 'en-US';
         recognition.onresult = (event) => {
           let finalAddition = '';
           let interim = '';
@@ -718,7 +722,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           setVoiceError('Voice connection lost. Please start the conversation again.');
         }
       };
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false } });
       if (attempt.signal.aborted) { stream.getTracks().forEach((track) => track.stop()); return; }
       stream.getTracks().forEach((track) => peer.addTrack(track, stream));
       realtimeStreamRef.current = stream;
@@ -758,9 +762,17 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           updateItem('user', delta, true);
         } else if (type === 'conversation.item.input_audio_transcription.completed') {
           const transcript = String(event.transcript || '').trim();
-          updateItem('user', transcript || '[No speech recognised]');
+          if (!hasMeaningfulEnglishSpeech(transcript)) {
+            setLiveVoiceText('');
+            if (itemId) {
+              processedRealtimeTurnIdsRef.current.add(itemId);
+              setMessages((current) => current.filter((item) => item.voiceItemId !== itemId));
+            }
+            return;
+          }
+          updateItem('user', transcript);
           setLiveVoiceText(transcript);
-          if (transcript && itemId && !processedRealtimeTurnIdsRef.current.has(itemId)) {
+          if (itemId && !processedRealtimeTurnIdsRef.current.has(itemId)) {
             processedRealtimeTurnIdsRef.current.add(itemId);
             void persistRealtimeTurn('user', transcript);
             voiceActionTranscriptRef.current = [
@@ -779,6 +791,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                 .catch(() => undefined)
                 .then(() => realtimePersistenceQueueRef.current)
                 .then(() => processRealtimeTranscript(transcript, itemId, channel));
+            } else {
+              channel.send(JSON.stringify({ type: 'response.create', event_id: `atlas-turn:${itemId}` }));
             }
           }
         } else if (type === 'response.output_item.done') {
@@ -1189,7 +1203,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                   {Array.from({ length: 64 }, (_, index) => <i aria-hidden="true" key={index} className="atlas-transcription-wave min-w-px flex-1" style={{ '--wave-scale': .3 + ((index * 7) % 11) / 14, '--wave-delay': `${index * 45}ms` } as React.CSSProperties} />)}
                 </div>
               ) : (<>
-              <button type="button" onClick={() => setComposerExpanded((value) => !value)} className="absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-zinc-500 hover:bg-zinc-800 hover:text-white" aria-label={composerExpanded ? 'Collapse message editor' : 'Expand message editor'}>
+              <button type="button" onClick={() => setComposerExpanded((value) => !value)} className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-zinc-500 hover:bg-zinc-800 hover:text-white" aria-label={composerExpanded ? 'Collapse message editor' : 'Expand message editor'}>
                 {composerExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
               </button>
               <textarea
@@ -1198,7 +1212,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Ask Atlas anything, or say “Create a project…”"
                 onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !composerExpanded) { event.preventDefault(); void handleSendMessage(query); } }}
-                className={`${composerExpanded ? 'h-40' : 'h-11'} block w-full resize-none rounded-none border border-zinc-800 bg-zinc-900/40 pb-2 pl-10 pr-4 pt-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-[height,background-color,border-color] font-sans`}
+                className={`${composerExpanded ? 'h-40' : 'h-11'} block w-full resize-none rounded-none border border-zinc-800 bg-zinc-900/40 pb-2 pl-4 pr-10 pt-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-[height,background-color,border-color] font-sans`}
               />
               </>)}
               </div>

@@ -40,5 +40,10 @@ export function AuthSync() {
     return () => subscription.unsubscribe();
   }, [pathname, supabase]);
 
+  React.useEffect(() => {
+    if (!isWorkspaceThemePath(pathname)) return;
+    void fetch('/api/activity', { method: 'POST', keepalive: true });
+  }, [pathname]);
+
   return null;
 }

@@ -4,9 +4,12 @@ import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
-const mocks = vi.hoisted(() => ({ user: vi.fn(), admin: vi.fn(), create: vi.fn(), fetch: vi.fn(), update: vi.fn() }));
+const mocks = vi.hoisted(() => ({ user: vi.fn(), admin: vi.fn(), create: vi.fn(), fetch: vi.fn(), update: vi.fn(), paymentUpsert: vi.fn() }));
 vi.mock('@/lib/org', () => ({ getRequestUser: mocks.user, isOrganizationAdmin: mocks.admin }));
-vi.mock('@/lib/db', () => ({ prisma: { organization: { update: mocks.update } } }));
+vi.mock('@/lib/db', () => {
+  const tx = { organization: { update: mocks.update }, platformPayment: { upsert: mocks.paymentUpsert } };
+  return { prisma: { ...tx, $transaction: (callback: (value: typeof tx) => unknown) => callback(tx) } };
+});
 vi.mock('razorpay', () => ({ default: class { orders = { create: mocks.create, fetch: mocks.fetch }; } }));
 import { POST as createOrder } from '@/app/api/create-order/route';
 import { POST as verifyPayment } from '@/app/api/verify-payment/route';

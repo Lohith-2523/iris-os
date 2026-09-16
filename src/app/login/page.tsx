@@ -90,6 +90,7 @@ export default function LoginPage() {
     <AuthShell
       title="Sign in"
       description="Enter your Iris OS workspace and continue where your team left off."
+      appearance="dark"
     >
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}

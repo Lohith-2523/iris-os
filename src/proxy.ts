@@ -1,7 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/middleware';
 
+const SUPERADMIN_HOSTNAME = 'superadmin.irisos.app';
+
+function requestHostname(request: NextRequest) {
+  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
+  return (forwardedHost || request.headers.get('host') || request.nextUrl.hostname)
+    .split(':')[0]
+    .toLowerCase();
+}
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  if (requestHostname(request) === SUPERADMIN_HOSTNAME && (pathname === '/' || pathname === '/login')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/login';
+    return NextResponse.redirect(url);
+  }
+
   // Discovery files must remain public, including during coming-soon mode and
   // authentication-provider outages. They never contain workspace information.
   if (['/robots.txt', '/llms.txt'].includes(request.nextUrl.pathname)) return NextResponse.next();
@@ -11,8 +27,6 @@ export async function proxy(request: NextRequest) {
   const isComingSoon = process.env.NEXT_PUBLIC_COMING_SOON === 'true';
 
   if (isProduction && !isLocalhost && isComingSoon) {
-    const { pathname } = request.nextUrl;
-
     // Skip Next.js internals, images, sitemaps, robots, favicon
     const isStaticAsset =
       pathname.startsWith('/_next') ||
@@ -22,7 +36,7 @@ export async function proxy(request: NextRequest) {
       pathname === '/sitemap.xml' ||
       pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|mp4|webm)$/i);
 
-    if (pathname !== '/coming-soon' && !isStaticAsset) {
+    if (pathname !== '/coming-soon' && !pathname.startsWith('/admin') && !isStaticAsset) {
       const url = request.nextUrl.clone();
       url.pathname = '/coming-soon';
       return NextResponse.redirect(url);

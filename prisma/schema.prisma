@@ -185,6 +185,7 @@ model DeviceAccessGrant {
 
 model HelpRequest {
   id             String   @id
+  status         String   @default("OPEN")
   type           String
   name           String
   email          String
@@ -200,6 +201,75 @@ model HelpRequest {
 
   @@index([createdAt])
   @@index([type, createdAt])
+}
+
+// Superadmin authorization is intentionally separate from organization roles.
+model AdminAccess {
+  email      String    @id
+  role       String    @default("VIEWER")
+  invitedBy  String
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([expiresAt, revokedAt])
+}
+
+model ManagedCoupon {
+  id         String   @id @default(uuid())
+  label      String
+  codeSalt   String
+  codeDigest String   @unique
+  codeHint   String
+  plan       String   @default("ANY")
+  enabled    Boolean  @default(true)
+  startsAt   DateTime @default(now())
+  endsAt     DateTime?
+  maxUses    Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([enabled, startsAt, endsAt])
+}
+
+model PlatformPayment {
+  paymentId      String   @id
+  orderId        String   @unique
+  userId         String
+  orgId          String
+  plan           String
+  currency       String
+  baseAmount     Int
+  taxAmount      Int
+  totalAmount    Int
+  refundedAmount Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([orgId, createdAt])
+}
+
+model UserActivity {
+  userId       String   @id
+  lastActiveAt DateTime @default(now())
+  requests     Int      @default(0)
+
+  @@index([lastActiveAt])
+}
+
+model BackendIncident {
+  id          String   @id @default(uuid())
+  fingerprint String   @unique
+  source      String
+  summary     String
+  occurrences Int      @default(1)
+  status      String   @default("OPEN")
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([status, lastSeenAt])
 }
 
 model WaitlistDailyReport {

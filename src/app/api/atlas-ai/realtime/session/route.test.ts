@@ -31,9 +31,13 @@ describe('Atlas realtime session', () => {
     const requestBody = JSON.parse(String(init?.body));
     expect(requestBody.session.audio.input.turn_detection).toMatchObject({
       type: 'server_vad',
-      threshold: 0.5,
-      silence_duration_ms: 500,
-      create_response: true,
+      threshold: 0.65,
+      silence_duration_ms: 650,
+      create_response: false,
+    });
+    expect(requestBody.session.audio.input.transcription).toMatchObject({
+      language: 'en',
+      prompt: expect.stringContaining('spoken English only'),
     });
     expect(requestBody.session.instructions).toContain('Respond to a simple greeting with a brief greeting');
     expect(requestBody.session.instructions).toContain('The authenticated server validates and executes those exact details');

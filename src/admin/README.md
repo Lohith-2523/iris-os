@@ -1,13 +1,13 @@
 # Iris OS Admin
 
-This directory is reserved for the private Iris OS super-admin application. It is separate from the customer-facing production routes in `src/app` and is not currently exposed as a Next.js route.
+This directory owns the private Iris OS superadmin application. Thin Next.js route entries in `src/app/admin` expose it at `/admin` while keeping its policy, data views, and client workspace separate from customer-facing modules.
 
 The admin application will provide:
 
 - User, organization, plan, and access oversight
-- Service health, deployment, downtime, and outage data from Vercel
-- Subscription revenue, payment, coupon, cancellation, and refund reporting
-- Error and incident tracking
-- Bugs, feature requests, feedback, and help requests synchronized from the existing Google Sheet workflow
+- Subscription revenue, verified payments, coupon usage, and refund reporting
+- Sanitized backend error and incident tracking through Next.js instrumentation
+- Bugs, feature requests, feedback, and help requests from the existing support workflow
+- Invite-only superadmin access for verified `@irisos.app` identities
 
-The admin surface must use a distinct Iris OS super-admin authorization boundary. Customer workspace roles, including organization administrators, must never grant access to it. Provider access should be implemented through server-side adapters in `shared/server`, with secrets kept out of browser bundles. Reusable UI, domain logic, types, and integrations belong in `shared` so both applications can consume them without duplication.
+The admin surface uses a distinct Iris OS superadmin authorization boundary. Customer workspace roles, including organization administrators, never grant access to it. Provider access and aggregation live in `shared/server`, with secrets and coupon digests kept out of browser bundles.

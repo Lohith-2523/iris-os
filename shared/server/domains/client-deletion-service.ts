@@ -12,11 +12,30 @@ export async function purgeClientData(
       id: true,
       sourceLeadId: true,
       users: { select: { id: true, authUserId: true, email: true } },
+      invites: { select: { email: true } },
     },
   });
   if (!client) return null;
 
-  await purgeWorkspaceUsers(tx, orgId, client.users);
+  const linkedUserIds = new Set(client.users.map(({ id }) => id));
+  const invitedEmails = client.invites.map(({ email }) => email.trim().toLowerCase());
+  const orphanedInviteUsers = invitedEmails.length === 0
+    ? []
+    : await tx.user.findMany({
+        where: {
+          orgId,
+          role: { equals: 'client', mode: 'insensitive' },
+          clientId: null,
+          email: { in: invitedEmails, mode: 'insensitive' },
+        },
+        select: { id: true, authUserId: true, email: true },
+      });
+  const clientUsers = [
+    ...client.users,
+    ...orphanedInviteUsers.filter(({ id }) => !linkedUserIds.has(id)),
+  ];
+
+  await purgeWorkspaceUsers(tx, orgId, clientUsers);
 
   const documentRelations = [
     { recipientType: 'CLIENT', recipientId: client.id },
@@ -33,6 +52,6 @@ export async function purgeClientData(
     await tx.agencyLead.deleteMany({ where: { id: client.sourceLeadId, orgId } });
   }
 
-  return client.users;
+  return clientUsers;
 }
 

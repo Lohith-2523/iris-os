@@ -119,13 +119,17 @@ export async function POST(request: NextRequest) {
         tool_choice: 'auto',
         audio: {
           input: {
-            transcription: { model: process.env.OPENAI_REALTIME_TRANSCRIPTION_MODEL || 'gpt-4o-mini-transcribe', language: 'en' },
+            transcription: {
+              model: process.env.OPENAI_REALTIME_TRANSCRIPTION_MODEL || 'gpt-4o-mini-transcribe',
+              language: 'en',
+              prompt: 'Transcribe spoken English only. Preserve English phonetics as English; never translate them into another language. Emit no text for silence, ambient noise, or non-speech sounds.',
+            },
             turn_detection: {
               type: 'server_vad',
-              threshold: 0.5,
+              threshold: 0.65,
               prefix_padding_ms: 300,
-              silence_duration_ms: 500,
-              create_response: true,
+              silence_duration_ms: 650,
+              create_response: false,
               interrupt_response: true,
             },
           },

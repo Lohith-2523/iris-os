@@ -2,13 +2,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const mocks = vi.hoisted(() => ({ waitlistEnabled: true, signUp: vi.fn(), signOut: vi.fn(), requireConfirmation: vi.fn(), validateAccess: vi.fn(), bindGrant: vi.fn() }));
+const mocks = vi.hoisted(() => ({ waitlistEnabled: true, signUp: vi.fn(), signOut: vi.fn(), validateAccess: vi.fn(), bindGrant: vi.fn() }));
 vi.mock('@/lib/waitlist-config', () => ({ get WAITLIST_ENABLED() { return mocks.waitlistEnabled; } }));
 vi.mock('@/lib/server', () => ({ createClient: async () => ({ auth: { signUp: mocks.signUp, signOut: mocks.signOut } }) }));
-vi.mock('@/lib/email-verification', () => ({
-  requireEmailConfirmationEnabled: mocks.requireConfirmation,
-  EmailVerificationRequiredError: class extends Error {},
-}));
 vi.mock('@/lib/auth-access', () => ({ validateDeviceAccess: mocks.validateAccess, bindDeviceGrantToAuthUser: mocks.bindGrant }));
 import { POST } from './route';
 
@@ -19,16 +15,12 @@ describe('verified email signup', () => {
     vi.resetAllMocks();
     mocks.waitlistEnabled = true;
     mocks.validateAccess.mockResolvedValue({ id: 'grant-1' });
+    mocks.signOut.mockResolvedValue({ error: null });
     mocks.signUp.mockResolvedValue({ data: { session: null }, error: null });
   });
   it('rejects invalid email before contacting the provider', async () => {
     const response = await POST(request({ ...details, email: 'not-an-email' }));
     expect(response.status).toBe(400);
-    expect(mocks.signUp).not.toHaveBeenCalled();
-  });
-  it('fails closed when email confirmation is unavailable', async () => {
-    mocks.requireConfirmation.mockRejectedValue(new Error('autoconfirm enabled'));
-    expect((await POST(request(details))).status).toBe(503);
     expect(mocks.signUp).not.toHaveBeenCalled();
   });
   it('requires a device grant matching the signup email when the waitlist is enabled', async () => {
@@ -53,11 +45,14 @@ describe('verified email signup', () => {
       email: 'person@example.com',
       options: expect.objectContaining({ emailRedirectTo: 'https://iris.example/auth/callback?next=/onboarding' }),
     }));
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    expect(mocks.signOut.mock.invocationCallOrder[0]).toBeLessThan(mocks.signUp.mock.invocationCallOrder[0]);
   });
-  it('rejects a session issued without the required confirmation step', async () => {
+  it('keeps an immediately confirmed email signup authenticated', async () => {
     mocks.signUp.mockResolvedValue({ data: { session: { access_token: 'test' } }, error: null });
-    expect((await POST(request(details))).status).toBe(503);
-    expect(mocks.signOut).toHaveBeenCalled();
+    const response = await POST(request(details));
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({ confirmationRequired: false });
   });
   it('preserves provider rate-limit responses', async () => {
     mocks.signUp.mockResolvedValue({ data: {}, error: { message: 'Try again later.', status: 429 } });

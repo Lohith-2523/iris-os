@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-09-15",
+    "scope": "superadmin authentication",
+    "macrostructure": "Centered Glass",
+    "theme": "Iris OS porcelain, graphite, and frosted glass",
+    "axes": ["admin-specific identity copy", "Google Workspace SSO", "admin-scoped password recovery"],
+    "nav": "none",
+    "footer": "access policy note",
+    "enrichment": "shared procedural monochrome wireframe",
+    "brief": "Match superadmin authentication to the main login while adding recovery and Google Workspace SSO"
+  },
+  {
     "date": "2026-09-13",
     "scope": "login and signup authentication shell",
     "macrostructure": "Centered Glass",

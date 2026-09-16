@@ -50,6 +50,7 @@ describe('authentication proxy responses', () => {
     const response = await updateSession(request);
     expect(response.status).toBe(200);
   });
+
   it('redirects old waitlist links to signup', async () => {
     const response = await updateSession(new NextRequest('https://irisos.app/waitlist?access=required'));
     expect(response.headers.get('location')).toBe('https://irisos.app/signup');
@@ -58,5 +59,12 @@ describe('authentication proxy responses', () => {
   it('disables public waitlist registration', async () => {
     const response = await updateSession(new NextRequest('https://irisos.app/api/waitlist', { method: 'POST' }));
     expect(response.status).toBe(410);
+  });
+
+  it('keeps superadmin sign-in and recovery request pages public', async () => {
+    for (const path of ['/admin/login', '/admin/forgot-password']) {
+      const response = await updateSession(new NextRequest(`http://localhost:3000${path}`));
+      expect(response.status).toBe(200);
+    }
   });
 });

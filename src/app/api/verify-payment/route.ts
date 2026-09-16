@@ -38,9 +38,26 @@ export async function POST(request: NextRequest) {
 
     const currentPlan = normalizePlan(user.organization?.plan);
     const activePlan = purchasedPlan;
-    if (activePlan !== currentPlan) {
-      await prisma.organization.update({ where: { id: user.orgId }, data: { plan: activePlan } });
-    }
+    await prisma.$transaction(async (tx) => {
+      if (activePlan !== currentPlan) {
+        await tx.organization.update({ where: { id: user.orgId }, data: { plan: activePlan } });
+      }
+      await tx.platformPayment.upsert({
+        where: { paymentId: payment.razorpay_payment_id },
+        create: {
+          paymentId: payment.razorpay_payment_id,
+          orderId: order.id,
+          userId: user.id,
+          orgId: user.orgId,
+          plan: activePlan,
+          currency: expected.currency,
+          baseAmount: expected.baseAmount,
+          taxAmount: expected.taxAmount,
+          totalAmount: expected.totalAmount,
+        },
+        update: {},
+      });
+    });
 
     return NextResponse.json({ success: true, order_id: order.id, payment_id: payment.razorpay_payment_id, plan: activePlan });
   } catch (error) {

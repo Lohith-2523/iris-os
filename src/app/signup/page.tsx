@@ -43,7 +43,16 @@ export default function SignupPage() {
         body: JSON.stringify({ name, email: parsedEmail.data, phone, password, confirmPassword }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Unable to start email verification.');
+      if (!response.ok) throw new Error(result.error || 'Unable to create your workspace.');
+      if (!result.confirmationRequired) {
+        const bootstrap = await fetch('/api/auth/bootstrap?intent=workspace-signup', { method: 'POST' });
+        if (!bootstrap.ok) {
+          const payload = await bootstrap.json().catch(() => ({}));
+          throw new Error(payload.error || 'Unable to load your workspace.');
+        }
+        window.location.replace('/onboarding');
+        return;
+      }
       setConfirmationEmail(parsedEmail.data);
       setPassword('');
       setConfirmPassword('');
@@ -59,6 +68,8 @@ export default function SignupPage() {
     try {
       const { createClient } = await import('@/lib/client');
       const supabase = createClient();
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+      if (signOutError) throw signOutError;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -76,6 +87,7 @@ export default function SignupPage() {
     <AuthShell
       title="Create your workspace"
       description="Set up the operating system for your agency, studio, or consulting team."
+      appearance="dark"
     >
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}
@@ -98,7 +110,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <p id="signup-email-help" className={styles.description}>Use an inbox you can access. We will email a link to verify it before activating your workspace.</p>
+          <p id="signup-email-help" className={styles.description}>Use an inbox you can access for account recovery and workspace notifications.</p>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="signup-phone">Phone number</label>
             <CountryPhoneInput id="signup-phone" required value={phone} onChange={setPhone} placeholder="Phone number" className={styles.input} />

@@ -14,20 +14,22 @@ type AuthShellProps = {
   title: string;
   description: string;
   children: React.ReactNode;
+  appearance?: 'light' | 'dark';
 };
 
-export function AuthShell({ title, description, children }: AuthShellProps) {
+export function AuthShell({ title, description, children, appearance = 'light' }: AuthShellProps) {
+  const dark = appearance === 'dark';
   return (
-    <main className={`${styles.shell} workspace-auth`}>
+    <main className={`${styles.shell} ${dark ? styles.dark : ''} workspace-auth`}>
       <section className={styles.backgroundPanel} aria-hidden="true">
-        <ProceduralAuthBackground />
+        <ProceduralAuthBackground inverted={dark} />
       </section>
 
       <section className={styles.formPanel} aria-label={title}>
         <div className={styles.card} style={{ backdropFilter: 'var(--filter-auth-frost)', WebkitBackdropFilter: 'var(--filter-auth-frost)' }}>
           <header className={styles.header}>
             <Image
-              src="/iris-logo-black-transparent.png"
+              src={dark ? '/iris-logo-white-transparent.png' : '/iris-logo-black-transparent.png'}
               alt="Iris OS"
               width={120}
               height={46}

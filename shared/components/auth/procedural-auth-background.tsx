@@ -12,6 +12,7 @@ type Props = {
   speed?: number;
   fragmentation?: number;
   interaction?: boolean;
+  inverted?: boolean;
 };
 
 type System = {
@@ -67,7 +68,7 @@ function usePreferences(requested: ProceduralGeometryQuality) {
   return value;
 }
 
-function createSystem(rows: number, columns: number, density: number): System {
+function createSystem(rows: number, columns: number, density: number, inverted: boolean): System {
   const count = rows * columns;
   const uv = new Float32Array(count * 2);
   const seeds = new Float32Array(count);
@@ -102,7 +103,7 @@ function createSystem(rows: number, columns: number, density: number): System {
   triangleGeometry.setAttribute('position', new THREE.BufferAttribute(triangles, 3));
   triangleGeometry.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1));
 
-  const ink = new THREE.Color(0x000000);
+  const ink = new THREE.Color(inverted ? 0xffffff : 0x000000);
   const pointMaterial = new THREE.PointsMaterial({ color: ink, size: 0.035, sizeAttenuation: true, depthWrite: false });
   const lineMaterial = new THREE.LineBasicMaterial({ color: ink, depthWrite: false });
   const triangleMaterial = new THREE.ShaderMaterial({
@@ -110,10 +111,10 @@ function createSystem(rows: number, columns: number, density: number): System {
     side: THREE.DoubleSide,
     depthWrite: false,
     vertexShader: 'attribute float aAlpha; varying float vAlpha; varying vec3 vSurface; void main(){vAlpha=aAlpha;vSurface=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-    fragmentShader: 'varying float vAlpha; varying vec3 vSurface; void main(){float contour=pow(abs(sin(vSurface.z*18.0+vSurface.x*1.4)),18.0);float weave=pow(abs(sin(vSurface.x*8.0-vSurface.y*5.0)),28.0);float textureMix=0.48+contour*0.34+weave*0.18;gl_FragColor=vec4(0.025,0.027,0.03,vAlpha*0.32*textureMix);}',
+    fragmentShader: `varying float vAlpha; varying vec3 vSurface; void main(){float contour=pow(abs(sin(vSurface.z*18.0+vSurface.x*1.4)),18.0);float weave=pow(abs(sin(vSurface.x*8.0-vSurface.y*5.0)),28.0);float textureMix=0.48+contour*0.34+weave*0.18;gl_FragColor=vec4(${inverted ? '0.975,0.975,0.98' : '0.025,0.027,0.03'},vAlpha*0.32*textureMix);}`,
   });
   const group = new THREE.Group();
-  // Keep the geometry black and open: translucent filled faces read as grey.
+  // Keep the geometry monochrome and open: translucent filled faces read as grey.
   group.add(new THREE.LineSegments(lineGeometry, lineMaterial), new THREE.Points(pointGeometry, pointMaterial));
   return {
     group, points, lines, triangles, alpha, uv, seeds,
@@ -196,7 +197,7 @@ function update(system: System, elapsed: number, speed: number, fragmentation: n
   system.triangleGeometry.attributes.aAlpha.needsUpdate = true;
 }
 
-export function ProceduralAuthBackground({ quality = 'auto', density = 0.96, speed = 0.34, fragmentation = 0.72, interaction = true }: Props) {
+export function ProceduralAuthBackground({ quality = 'auto', density = 0.96, speed = 0.34, fragmentation = 0.72, interaction = true, inverted = false }: Props) {
   const preferences = usePreferences(quality);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const pointerRef = React.useRef({ x: 0, y: 0 });
@@ -215,7 +216,7 @@ export function ProceduralAuthBackground({ quality = 'auto', density = 0.96, spe
     const container = canvas?.parentElement;
     if (!canvas || !container) return;
     const [columns, rows] = GRIDS[preferences.quality];
-    const system = createSystem(rows, columns, clamp(density, 0.35, 1));
+    const system = createSystem(rows, columns, clamp(density, 0.35, 1), inverted);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 40);
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: preferences.quality !== 'low', powerPreference: 'high-performance' });
@@ -271,7 +272,7 @@ export function ProceduralAuthBackground({ quality = 'auto', density = 0.96, spe
       system.materials.forEach((material) => material.dispose());
       renderer.dispose();
     };
-  }, [density, fragmentation, preferences.quality, preferences.reducedMotion, speed]);
+  }, [density, fragmentation, inverted, preferences.quality, preferences.reducedMotion, speed]);
 
   return (
     <div className={styles.root} aria-hidden="true">
