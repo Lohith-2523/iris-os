@@ -194,7 +194,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         { name: 'Tasks', href: '/tasks', icon: Activity },
         { name: 'Team', href: '/team', icon: UserCheck },
         { name: 'Calendar', href: '/calendar', icon: Calendar },
-        { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
+        { name: 'Messages', href: '/messages', icon: MessageSquare },
       ],
     },
    
@@ -221,7 +221,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         label: 'Workspace',
         items: [
           { name: 'Calendar', href: '/calendar', icon: Calendar },
-          { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
+          { name: 'Messages', href: '/messages', icon: MessageSquare },
         ],
       }];
     }
@@ -231,7 +231,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         items: [
           { name: 'Tasks', href: '/tasks', icon: Activity },
           { name: 'Calendar', href: '/calendar', icon: Calendar },
-          { name: 'Messages', href: '/messages', icon: MessageSquare, requiredPlan: 'PRO' },
+          { name: 'Messages', href: '/messages', icon: MessageSquare },
         ],
       }];
     }
@@ -249,7 +249,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   }, [deliveryWorkspace, navigationGroups, resolvedPermissions, resolvedRole]);
 
   const dashboardItem = React.useMemo<NavigationItem | null>(() => {
-    if (resolvedRole === 'client') return { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard };
+    if (resolvedRole === 'client') return resolvedPlan === 'BASIC' ? null : { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard };
     if (resolvedRole === 'member') return { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard };
     if (resolvedRole === 'sub_admin') {
       if (deliveryWorkspace) return { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard };
@@ -258,7 +258,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         : null;
     }
     return { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard };
-  }, [deliveryWorkspace, resolvedPermissions, resolvedRole]);
+  }, [deliveryWorkspace, resolvedPermissions, resolvedPlan, resolvedRole]);
 
   const homeHref = teamMemberWorkspaceHome({
     role: resolvedRole,

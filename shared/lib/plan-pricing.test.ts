@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
-import { formatPlanMoney, planDisplayName, planPrice, pricingRegionForCountry } from './plan-pricing';
+import { formatPlanMoney, planDisplayName, planPrice, pricingCatalog, pricingRegionForCountry } from './plan-pricing';
 import { countryFromPublicIpHeaders, pricingLocation } from './request-country';
 
 describe('regional plan pricing', () => {
@@ -23,6 +23,21 @@ describe('regional plan pricing', () => {
     expect(planDisplayName('BASIC')).toBe('Free');
     expect(formatPlanMoney(0, 'INR')).toBe('₹0');
     expect(formatPlanMoney(1_999, 'USD')).toBe('$19.99');
+  });
+
+  it('matches the complete pricing strategy feature matrix', () => {
+    const [free, pro, advanced] = pricingCatalog('INDIA');
+    expect([free.baseAmount, pro.baseAmount, advanced.baseAmount]).toEqual([0, 79_900, 159_900]);
+    expect(pro.listAmount).toBe(159_900);
+    expect(advanced.listAmount).toBe(319_900);
+    expect(free.features.map((feature) => [feature.label, feature.value])).toEqual([
+      ['Clients', '5'], ['Projects', '5'], ['Active leads', '20'], ['Team members', '0'],
+      ['Core team members', '—'], ['Data Transfer', '300 MB'], ['Atlas AI', '✓'],
+      ['AI allowance', '20k'], ['Invoices', '3/mo'], ['Reports', 'Basic'], ['Client workspace', 'Limited'],
+      ['Automations', 'Limited'], ['Business analytics', 'Basic'], ['Unlimited onboarding', '—'], ['Priority support', '—'],
+    ]);
+    expect(pro.features.map((feature) => feature.value)).toEqual(['25', '50', '150', '5', '2', '5 GB', '✓✓', '500k', 'Unlimited', 'Advanced', '✓', '✓', '✓', '—', '—']);
+    expect(advanced.features.map((feature) => feature.value)).toEqual(['Unlimited', 'Unlimited', '500', '15', '5', '25 GB', '✓✓✓', '1M', 'Unlimited', 'Advanced', '✓', '✓✓', '✓✓', '✓', '✓']);
   });
 
   it('reads supported deployment country headers without exposing an IP', () => {

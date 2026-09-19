@@ -144,7 +144,7 @@ describe('POST /api/organization plan cancellation', () => {
       where: { id: 'org-1' },
       data: expect.objectContaining({
         plan: 'BASIC',
-        aiSharingConsent: false,
+        aiSharingConsent: true,
       }),
     }));
   });

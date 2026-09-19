@@ -5,15 +5,23 @@ import { createPortal } from 'react-dom';
 import { Bot, Bug, ChevronLeft, CircleHelp, Lightbulb, MessageCircleQuestion, Send, ShieldAlert, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-type HelpMode = 'menu' | 'FEATURE' | 'COMPLAINT' | 'ISSUE' | 'QUESTION';
+type HelpMode = 'menu' | 'FEEDBACK' | 'FEATURE' | 'COMPLAINT' | 'ISSUE' | 'QUESTION';
 type ChatMessage = { role: 'user' | 'assistant'; text: string };
 
 const choices = [
+  { mode: 'FEEDBACK' as const, label: 'Share feedback', icon: MessageCircleQuestion },
   { mode: 'FEATURE' as const, label: 'Request a feature', icon: Lightbulb },
   { mode: 'COMPLAINT' as const, label: 'Raise a complaint', icon: ShieldAlert },
   { mode: 'ISSUE' as const, label: 'Raise an issue', icon: Bug },
   { mode: 'QUESTION' as const, label: 'Ask a question', icon: MessageCircleQuestion },
 ];
+
+const sentConfirmation: Record<Exclude<HelpMode, 'menu' | 'QUESTION'>, string> = {
+  FEEDBACK: 'Your feedback has been sent. You can expect a response within a day.',
+  FEATURE: 'Your request has been sent. You can expect a response within a day.',
+  COMPLAINT: 'Your complaint has been sent. You can expect a response within a day.',
+  ISSUE: 'Your issue has been sent. You can expect a response within a day.',
+};
 
 export function HelpCenter() {
   const pathname = usePathname();
@@ -44,7 +52,8 @@ export function HelpCenter() {
     event.preventDefault();
     setBusy(true);
     setStatus('');
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const response = await fetch('/api/help', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -61,8 +70,8 @@ export function HelpCenter() {
     const body = await response?.json().catch(() => ({}));
     setBusy(false);
     if (!response?.ok) return setStatus(body?.error || 'Could not send your request.');
-    event.currentTarget.reset();
-    setStatus('Sent. The Iris team has your request.');
+    formElement.reset();
+    setStatus(sentConfirmation[mode as Exclude<HelpMode, 'menu' | 'QUESTION'>]);
   };
 
   const askAtlas = async (event: React.FormEvent) => {

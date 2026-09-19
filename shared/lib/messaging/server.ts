@@ -8,9 +8,6 @@ export { isAllowedDirectPair } from '@/lib/messaging/roles';
 export async function getMessagingUser(request?: NextRequest) {
   const user = await getRequestUser(request);
   if (!user) return { error: 'Unauthorized', status: 401 } as const;
-  if (!entitlementsFor(user.organization.plan).messaging) {
-    return { error: 'Secure messaging is available on the Pro and Advanced plans.', status: 403 } as const;
-  }
   return { user, entitlements: entitlementsFor(user.organization.plan) } as const;
 }
 

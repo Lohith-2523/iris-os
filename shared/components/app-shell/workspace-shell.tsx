@@ -157,10 +157,11 @@ export function WorkspaceShell({
   const isMemberGated = routeRestriction === 'member';
   const isAdminGated = routeRestriction === 'admin';
   const isSubAdminGated = routeRestriction === 'sub_admin';
+  const isClientDashboardPlanGated = routeRestriction === 'plan';
   const workspaceHome = teamMemberWorkspaceHome(user);
 
-  const planGate: { feature: string; requiredPlan: PlanId } | null = pathname === '/messages'
-    ? { feature: 'Messages', requiredPlan: 'PRO' }
+  const planGate: { feature: string; requiredPlan: PlanId } | null = isClientDashboardPlanGated
+    ? { feature: 'Client Dashboard', requiredPlan: 'PRO' }
     : pathname === '/atlas'
       ? { feature: 'Atlas AI', requiredPlan: 'PRO' }
       : pathname === '/strategy'
@@ -294,6 +295,14 @@ export function WorkspaceShell({
                 </div>
               </div>
             </div>
+          ) : isClientDashboardPlanGated ? (
+            <div className="flex h-[70vh] flex-col items-center justify-center">
+              <div className="workspace-access-card w-full max-w-lg space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-7 text-center">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl border border-zinc-800 bg-zinc-900"><Lock className="h-6 w-6" /></div>
+                <div><h2 className="font-bold text-white">Client Dashboard requires an upgrade</h2><p className="mt-2 text-zinc-400">The client-facing dashboard is available on Pro and Advanced plans.</p></div>
+                <Button onClick={() => router.push(workspaceHome)}>Return to workspace</Button>
+              </div>
+            </div>
           ) : (
             <div key={pathname} className={`workspace-page ${pathname === '/atlas' ? 'workspace-page-contained' : ''}`}>
               {children}
@@ -302,7 +311,7 @@ export function WorkspaceShell({
         </main>
       </div>
       {user && <MobileBottomNavigation role={user.role} plan={user.plan} accessPermissions={user.accessPermissions} deliveryWorkspace={user.deliveryWorkspace} onMore={() => setIsMobileOpen(true)} />}
-      <SubscriptionPlanDialog open={isPlanGated} currentPlan={user?.plan} feature={planGate?.feature || 'this feature'} requiredPlan={planGate?.requiredPlan || 'PRO'} canManage={user?.role.toLowerCase() === 'admin'} onClose={() => router.push('/dashboard')} onPlanChanged={(nextPlan) => setUser(current => current ? { ...current, plan: nextPlan } : current)} />
+      <SubscriptionPlanDialog open={isPlanGated} currentPlan={user?.plan} feature={planGate?.feature || 'this feature'} requiredPlan={planGate?.requiredPlan || 'PRO'} canManage={user?.role.toLowerCase() === 'admin'} onClose={() => router.push(workspaceHome)} onPlanChanged={(nextPlan) => { setUser(current => current ? { ...current, plan: nextPlan } : current); router.refresh(); }} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const protocol = vi.hoisted(() => ({
@@ -36,6 +36,10 @@ describe('MessagesClient inbox discovery', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     protocol.prepare.mockResolvedValue(undefined);
+    vi.stubGlobal('EventSource', class {
+      addEventListener() {}
+      close() {}
+    });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(refreshedInbox), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -57,5 +61,18 @@ describe('MessagesClient inbox discovery', () => {
 
     expect(screen.getAllByText('Sana Shah').length).toBeGreaterThan(0);
     expect(screen.getByText('Core member')).toBeInTheDocument();
+  });
+
+  it('lets Free users compose before showing the send-time paywall', async () => {
+    vi.useRealTimers();
+    render(<MessagesClient initialInbox={{ ...refreshedInbox, plan: 'BASIC' }} />);
+    await act(async () => { await Promise.resolve(); });
+
+    fireEvent.click((await screen.findByText('Core member')).closest('button')!);
+    fireEvent.change(screen.getByPlaceholderText('Write a secure message…'), { target: { value: 'Ready to send' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send encrypted message' }));
+
+    expect(await screen.findByRole('dialog', { name: /Choose a plan for sending messages/ })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Ready to send')).toBeInTheDocument();
   });
 });

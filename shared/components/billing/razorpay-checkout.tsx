@@ -36,6 +36,7 @@ async function postJson(url: string, body: unknown) {
 
 type CheckoutPrice = {
   currency: 'INR' | 'USD';
+  listAmount?: number;
   baseAmount: number;
   taxAmount: number;
   totalAmount: number;
@@ -163,6 +164,7 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
     <Script src="https://checkout.razorpay.com/v1/checkout.js" onReady={() => setReady(true)} onError={() => { setReady(false); setError('Checkout could not load. Refresh the page and try again.'); }} />
     {checkoutModal}
     <dl className="space-y-2 text-xs">
+      {(price.listAmount ?? price.baseAmount) > price.baseAmount && <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>List price</dt><dd className="font-mono tabular-nums"><del>{formatPlanMoney(price.listAmount!, price.currency)}</del> <strong className="ml-2 text-foreground">50% off</strong></dd></div>}
       <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>Plan price</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.baseAmount, price.currency)}</dd></div>
       <div className="flex items-center justify-between gap-4 text-muted-foreground"><dt>{price.currency === 'INR' ? 'GST' : 'Tax'} (18%)</dt><dd className="font-mono tabular-nums text-foreground">{formatPlanMoney(price.taxAmount, price.currency)}</dd></div>
       {couponValidated && <div className="flex items-center justify-between gap-4 text-emerald-400"><dt>Coupon discount</dt><dd className="font-mono tabular-nums">−{formatPlanMoney(price.totalAmount, price.currency)}</dd></div>}

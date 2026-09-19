@@ -3,9 +3,13 @@ import 'server-only';
 import { prisma } from '@/lib/db';
 import { SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
 import { ensureLegacyManagedCoupons } from '@/server/admin/managed-coupons';
+import { buildAdminCreditAnalytics } from '@/lib/admin-credit-analytics';
 
 export async function getAdminDashboardData() {
   await ensureLegacyManagedCoupons();
+  const now = new Date();
+  const creditPeriodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const creditPeriodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   const users = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
     select: { id: true, name: true, email: true, avatarUrl: true, role: true, createdAt: true, offboardedAt: true, accessRevokedAt: true, orgId: true, organization: { select: { name: true, plan: true } } },
@@ -23,6 +27,7 @@ export async function getAdminDashboardData() {
     coupons,
     couponUses,
     grants,
+    creditUsage,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { offboardedAt: null, accessRevokedAt: null } }),
@@ -36,16 +41,35 @@ export async function getAdminDashboardData() {
     prisma.managedCoupon.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }),
     prisma.planCouponRedemption.groupBy({ by: ['couponId'], _count: true }),
     prisma.adminAccess.findMany({ orderBy: { createdAt: 'desc' }, take: 200 }),
+    prisma.atlasCreditUsageEvent.groupBy({
+      by: ['userId', 'provider'],
+      where: { createdAt: { gte: creditPeriodStart, lt: creditPeriodEnd } },
+      _sum: { inputCredits: true, outputCredits: true, totalCredits: true },
+      _count: { _all: true },
+    }),
   ]);
 
   const activityByUser = new Map(activities.map((entry) => [entry.userId, entry]));
   const storageByOrg = new Map(storage.map((entry) => [entry.orgId, entry]));
   const usesByCoupon = new Map(couponUses.map((entry) => [entry.couponId, entry._count]));
   const customerAdminCount = users.filter((user) => user.role.toLowerCase() === 'admin').length;
+  const creditAnalytics = buildAdminCreditAnalytics(users, creditUsage.map((row) => ({
+    userId: row.userId,
+    provider: row.provider,
+    inputCredits: row._sum.inputCredits ?? 0,
+    outputCredits: row._sum.outputCredits ?? 0,
+    totalCredits: row._sum.totalCredits ?? 0,
+    requests: row._count._all,
+  })));
 
   return {
     generatedAt: new Date().toISOString(),
     metrics: { totalUsers, activeUsers, totalAdmins: grants.filter((grant) => !grant.revokedAt).length + 1, customerAdminCount },
+    creditAnalytics: {
+      periodStart: creditPeriodStart.toISOString(),
+      resetsAt: creditPeriodEnd.toISOString(),
+      ...creditAnalytics,
+    },
     users: users.map((user) => ({
       ...user,
       createdAt: user.createdAt.toISOString(),

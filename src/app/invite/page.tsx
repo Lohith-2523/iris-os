@@ -97,9 +97,10 @@ function InvitePageContent() {
       });
 
       if (res.ok) {
+        const result = await res.json();
         try { sessionStorage.removeItem('onboarding-avatar:' + token); } catch { /* Optional draft storage. */ }
         setTimeout(() => {
-          router.push('/client-dashboard');
+          router.push(result.destination || '/calendar');
         }, 300);
       } else {
         const err = await res.json();

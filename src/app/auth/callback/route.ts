@@ -23,6 +23,7 @@ import {
 import { hasApprovedSignup, validateDeviceAccess } from '@/lib/auth-access';
 import { DEVICE_ACCESS_COOKIE } from '@/lib/auth-access-cookie';
 import { hasSuperadminAccess, SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
+import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -173,7 +174,7 @@ export async function GET(request: Request) {
     // First-time users and users with unfinished onboarding resume the saved
     // wizard state. Completed workspaces return to their requested page/dashboard.
     const redirectUrl = role === 'client'
-        ? '/client-dashboard'
+        ? teamMemberWorkspaceHome({ role, plan: dbUser.organization.plan })
         : role === 'member'
           ? '/teams-dashboard'
           : dbUser.organization.onboardingState?.needsOnboarding

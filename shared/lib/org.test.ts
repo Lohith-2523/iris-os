@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   createOrganization: vi.fn(),
   transaction: vi.fn(),
   purgeWorkspaceUsers: vi.fn(),
+  purgeOrganizationData: vi.fn(),
+  deleteOrganization: vi.fn(),
 }));
 
 vi.mock('server-only', () => ({}));
@@ -36,6 +38,9 @@ vi.mock('@/server/observability/performance', () => ({
 vi.mock('@/lib/team-member-access', () => ({ hasDeliveryWork: vi.fn() }));
 vi.mock('@/server/domains/member-deletion-service', () => ({
   purgeWorkspaceUsers: mocks.purgeWorkspaceUsers,
+}));
+vi.mock('@/server/domains/account-deletion-service', () => ({
+  purgeOrganizationData: mocks.purgeOrganizationData,
 }));
 
 import { getAuthenticatedIdentity, getRequestUser, provisionAuthenticatedUser } from './org';
@@ -186,6 +191,40 @@ describe('workspace authentication', () => {
       email_confirmed_at: '2026-09-13T12:00:00Z',
     }, { intent: 'workspace-signup' })).rejects.toThrow('belongs to an invited workspace account');
 
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('replaces stale admin workspace data when a verified auth identity is recreated for signup', async () => {
+    const staleAdmin = {
+      id: 'stale-admin',
+      authUserId: 'deleted-auth-user',
+      email: 'person@example.com',
+      orgId: 'stale-org',
+      role: 'admin',
+    };
+    const newAdmin = { id: 'new-admin', role: 'admin' };
+    const transactionClient = { organization: { delete: mocks.deleteOrganization } };
+    mocks.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(newAdmin);
+    mocks.findFirst.mockResolvedValue(staleAdmin);
+    mocks.transaction.mockImplementation(async (operation: (tx: unknown) => unknown) => operation(transactionClient));
+
+    await expect(provisionAuthenticatedUser({
+      id: 'new-auth-user',
+      email: 'person@example.com',
+      user_metadata: { full_name: 'New Person' },
+      email_confirmed_at: '2026-09-17T12:00:00Z',
+    }, { intent: 'workspace-signup' })).resolves.toBe(newAdmin);
+
+    expect(mocks.purgeOrganizationData).toHaveBeenCalledWith(transactionClient, 'stale-org');
+    expect(mocks.deleteOrganization).toHaveBeenCalledWith({ where: { id: 'stale-org' } });
+    expect(mocks.createOrganization).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        name: "New Person's Agency",
+        users: { create: expect.objectContaining({ name: 'New Person', authUserId: 'new-auth-user' }) },
+      }),
+    }));
     expect(mocks.update).not.toHaveBeenCalled();
   });
 

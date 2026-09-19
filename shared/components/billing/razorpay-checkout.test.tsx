@@ -21,7 +21,8 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); delete window.Razorpay; });
 async function openCheckout() {
-  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} />);
+  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', listAmount: 159_900, baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} />);
+  expect(screen.getByLabelText('Payment price breakdown')).toHaveTextContent('List price₹1,599 50% off');
   expect(screen.getByLabelText('Payment price breakdown')).toHaveTextContent('Plan price₹799');
   expect(screen.getByLabelText('Payment price breakdown')).toHaveTextContent('GST (18%)₹143.82');
   expect(screen.getByLabelText('Payment price breakdown')).toHaveTextContent('Amount due today₹942.82');

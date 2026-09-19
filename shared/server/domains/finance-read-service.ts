@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db';
-import { ledgerRevenueEntries, sumLedgerRevenue } from '@/lib/finance/ledger-revenue';
+import { ledgerExpenseEntries, ledgerRevenueEntries, sumLedgerExpenses, sumLedgerRevenue } from '@/lib/finance/ledger-revenue';
 import { buildFinancialHistory, type FinancialTimeframe } from '@/lib/finance/financial-history';
 import type { RequestSecurityContext } from '@/server/security/request-security-context';
 
@@ -15,7 +15,6 @@ type RevenueTransaction = {
 
 function financeMetrics(
   invoices: Array<{ id: string; invoiceNumber: string; amount: number; paidAmount: number; status: string; documentType: string; issuedDate: Date; client: { id: string; name: string; domain: string | null } | null }>,
-  expenses: Array<{ amount: number; date: Date }>,
   transactions: RevenueTransaction[] = [],
   timeframe: FinancialTimeframe = 'Six Months',
   range?: { start: Date; end: Date },
@@ -23,7 +22,19 @@ function financeMetrics(
   const now = range?.end || new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-  const transactionRevenue = ledgerRevenueEntries(transactions);
+  const timeframeStart = range?.start || (() => {
+    const start = new Date(now);
+    if (timeframe === 'Monthly') start.setDate(start.getDate() - 30);
+    else if (timeframe === 'Quarterly') start.setDate(start.getDate() - 90);
+    else if (timeframe === 'Yearly') start.setDate(start.getDate() - 365);
+    else if (timeframe === 'Six Months') start.setDate(start.getDate() - 183);
+    else return null;
+    return start;
+  })();
+  const ledgerTransactions = timeframeStart
+    ? transactions.filter((transaction) => transaction.date >= timeframeStart && transaction.date <= now)
+    : transactions;
+  const transactionRevenue = ledgerRevenueEntries(ledgerTransactions);
   const revenueForMonth = (year: number, month: number) => transactionRevenue
     .filter((transaction) => transaction.date.getFullYear() === year && transaction.date.getMonth() === month)
     .reduce((sum, transaction) => sum + transaction.amount, 0);
@@ -56,8 +67,7 @@ function financeMetrics(
   const isPartiallyPaidInvoice = (invoice: typeof invoices[number]) => isOutstandingInvoice(invoice) && invoice.paidAmount > 0;
   const revenueHistory = buildFinancialHistory({
     invoices,
-    expenses,
-    transactions,
+    transactions: ledgerTransactions,
     timeframe: range ? 'All Time' : timeframe,
     now,
     startDate: range?.start,
@@ -80,7 +90,7 @@ function financeMetrics(
     outstandingAmount: invoices.filter(isOutstandingInvoice).reduce((sum, invoice) => sum + invoiceBalance(invoice), 0),
     pendingReceivablesAmount: invoices.filter(isPartiallyPaidInvoice).reduce((sum, invoice) => sum + invoiceBalance(invoice), 0),
     outstandingInvoices,
-    totalExpenses: expenses.reduce((sum, expense) => sum + expense.amount, 0),
+    totalExpenses: sumLedgerExpenses(ledgerTransactions),
     currentMonthRevenue,
     previousMonthRevenue,
     monthlyChangePercent,
@@ -103,14 +113,13 @@ export async function getDashboardMetrics(ctx: RequestSecurityContext, requested
     prisma.client.findMany({ where: { orgId: ctx.orgId, ...clientScope } }),
     prisma.project.findMany({ where: { orgId: ctx.orgId, ...projectScope }, include: { client: { select: { name: true } } } }),
   ]);
-  const [invoices, expenses] = await Promise.all([
+  const [invoices, transactions] = await Promise.all([
     prisma.invoice.findMany({ where: { orgId: ctx.orgId, ...revenueClientScope, ...(dateFilter ? { issuedDate: dateFilter } : {}) }, include: { client: true } }),
-    role === 'client' ? Promise.resolve([]) : prisma.expense.findMany({ where: { orgId: ctx.orgId, ...(dateFilter ? { date: dateFilter } : {}) } }),
+    prisma.transaction.findMany({
+      where: { orgId: ctx.orgId, ...revenueClientScope, ...(dateFilter ? { date: dateFilter } : {}) },
+      include: { client: true },
+    }),
   ]);
-  const transactions = await prisma.transaction.findMany({
-    where: { orgId: ctx.orgId, ...revenueClientScope, ...(dateFilter ? { date: dateFilter } : {}) },
-    include: { client: true },
-  });
 
   const allProjects = projects
     .sort((left, right) => left.name.localeCompare(right.name))
@@ -127,22 +136,30 @@ export async function getDashboardMetrics(ctx: RequestSecurityContext, requested
     projectRisks: projects
       .filter((project) => project.riskLevel === 'HIGH' || project.riskLevel === 'MEDIUM')
       .map((project) => ({ id: project.id, name: project.name, riskLevel: project.riskLevel, riskDescription: project.riskDescription || '' })),
-    ...financeMetrics(invoices, expenses, transactions, 'Six Months', range),
+    ...financeMetrics(invoices, transactions, 'Six Months', range),
   };
 }
 
 export async function getFinanceOverview(ctx: RequestSecurityContext, timeframe: FinancialTimeframe) {
   const role = ctx.role.toLowerCase();
   const revenueClientScope = role === 'client' && ctx.clientId ? { clientId: ctx.clientId } : {};
-  const [invoices, expenses] = await Promise.all([
+  const [invoices, transactions] = await Promise.all([
     prisma.invoice.findMany({ where: { orgId: ctx.orgId, ...revenueClientScope }, orderBy: { issuedDate: 'desc' }, include: { client: true } }),
-    role === 'client' ? Promise.resolve([]) : prisma.expense.findMany({ where: { orgId: ctx.orgId }, orderBy: { date: 'desc' } }),
+    prisma.transaction.findMany({
+      where: { orgId: ctx.orgId, ...revenueClientScope },
+      include: { client: true },
+    }),
   ]);
-  const transactions = await prisma.transaction.findMany({
-    where: { orgId: ctx.orgId, ...revenueClientScope },
-    include: { client: true },
+  const metrics = financeMetrics(invoices, transactions, timeframe);
+  const visibleExpenseTransactions = ledgerExpenseEntries(transactions).filter((transaction) => {
+    if (timeframe === 'All Time') return true;
+    const cutoff = new Date();
+    if (timeframe === 'Monthly') cutoff.setDate(cutoff.getDate() - 30);
+    else if (timeframe === 'Quarterly') cutoff.setDate(cutoff.getDate() - 90);
+    else if (timeframe === 'Yearly') cutoff.setDate(cutoff.getDate() - 365);
+    else cutoff.setDate(cutoff.getDate() - 183);
+    return transaction.date >= cutoff;
   });
-  const metrics = financeMetrics(invoices, expenses, transactions, timeframe);
   return {
     ...metrics,
     recentInvoices: invoices.slice(0, 10).map((invoice) => {
@@ -156,12 +173,12 @@ export async function getFinanceOverview(ctx: RequestSecurityContext, timeframe:
         status: invoice.status,
       };
     }),
-    expenses: expenses.map((expense) => ({
+    expenses: visibleExpenseTransactions.map((expense) => ({
       id: expense.id,
       category: expense.category,
-      amount: expense.amount,
+      amount: Math.abs(expense.amount),
       date: expense.date.toISOString(),
-      merchant: expense.merchant,
+      merchant: expense.details,
     })),
   };
 }

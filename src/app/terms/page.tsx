@@ -4,13 +4,13 @@ const sections: LegalSection[] = [
   {
     id: 'acceptance', title: 'Agreement and eligibility',
     paragraphs: [
-      'These Terms of Service (“Terms”) form a binding agreement between Shards Media, operating Iris OS (“Iris OS”, “we”, “us”, or “our”), and the person or organization accessing Iris OS (“Customer”, “you”, or “your”). By creating an account, accepting an invitation, purchasing a subscription, signing a document through Iris OS, or using the services, you accept these Terms and the Privacy Policy.',
+      'These Terms of Service (“Terms”) form a binding agreement between Iris OS (“Iris OS”, “we”, “us”, or “our”) and the person or organization accessing Iris OS (“Customer”, “you”, or “your”). By creating an account, accepting an invitation, purchasing a subscription, signing a document through Iris OS, or using the services, you accept these Terms and the Privacy Policy.',
       'You represent that you are legally capable of entering this agreement and, when acting for an organization, have authority to bind it. If you do not agree, do not use Iris OS. Additional order forms, data-processing terms, or enterprise terms control to the extent they expressly conflict with these Terms.',
     ],
   },
   {
     id: 'service', title: 'Iris OS services',
-    paragraphs: ['Iris OS provides agency operations, lead and client management, projects, tasks, financial records, reporting, messaging, document generation and electronic signatures, integrations, and Atlas AI features. Features, limits, and availability vary by plan, configuration, geography, and third-party service availability. We may improve or replace functionality while preserving the material value of a paid service. Preview, beta, or experimental features may change or be withdrawn.'],
+    paragraphs: ['Iris OS provides agency operations; lead, client, project, stage, and task management; financial records and billing; reporting, strategies, forecasts, daily briefings, and notifications; secure messaging and encrypted attachments; proposals, contracts, statements of work, document generation, approvals, and electronic signatures; team and client onboarding; Canva-powered Design Hub and publishing workflows; integrations; workspace personalization; and Atlas AI text, voice, transcription, and automation features. Features, limits, and availability vary by plan, configuration, geography, and third-party service availability. We may improve or replace functionality while preserving the material value of a paid service. Preview, beta, or experimental features may change or be withdrawn.'],
   },
   {
     id: 'accounts', title: 'Accounts, roles, and customer administration',
@@ -37,6 +37,7 @@ const sections: LegalSection[] = [
     paragraphs: [
       'Atlas AI can generate drafts, reports, strategies, proposals, contracts, statements of work, summaries, classifications, forecasts, recommendations, and customer-authorized workflow actions. Atlas may access a prompt and the workspace context selected by the user or permitted by organization settings. Optional access to live financial, lead, campaign, client, project, or other workspace data requires the applicable organization authorization or consent and can be disabled in settings.',
       'When AI workspace access is disabled, Atlas must not retrieve the disabled live datasets for new requests. Customer understands that a direct prompt, file upload, or explicit document-generation instruction may itself contain Customer Data and constitutes an instruction to process that submitted content for the requested output.',
+      'When a user starts Atlas voice or transcription, Customer instructs Iris OS to transmit microphone audio to contracted speech and AI infrastructure, create an English transcript, and return a spoken or text response. Iris OS may retain accepted transcripts and responses as workspace chat history but does not retain realtime microphone audio as a recording. Voice recognition can be incomplete or inaccurate, and users must verify consequential instructions and generated actions.',
     ],
     bullets: [
       'Outputs are probabilistic and may be inaccurate, incomplete, outdated, non-unique, or unsuitable. Customer must independently review outputs before relying on them, publishing them, sending them, signing them, or using them for financial, legal, employment, eligibility, safety, or other consequential purposes.',
@@ -62,6 +63,13 @@ const sections: LegalSection[] = [
     paragraphs: ['Customer may connect services such as advertising platforms, calendars, design tools, email, payment services, AI infrastructure, or electronic-signature providers. Enabling an integration authorizes Iris OS to exchange the data and permissions needed for the selected function. Third-party services are governed by their own terms and privacy practices. Customer is responsible for its accounts, licenses, permissions, and lawful use. Iris OS is not responsible for third-party outages, policy changes, data supplied by those services, or actions taken outside Iris OS. Disconnecting an integration stops new access but may not delete data already imported or records retained under law or Customer instructions.'],
   },
   {
+    id: 'messaging-design', title: 'Secure messaging, files, and Design Hub',
+    paragraphs: [
+      'Secure messaging is intended to protect message and attachment content using participant device keys and encrypted envelopes. Customer is responsible for authorized recipients, endpoint security, safe retention of device credentials, lawful file sharing, and independently backing up material it must retain. Encryption does not eliminate risks arising from compromised endpoints, authorized recipient actions, or files downloaded outside Iris OS.',
+      'Design Hub and publishing features may rely on Canva and other connected services. Customer remains responsible for source assets, brand permissions, licenses, approval decisions, publishing destinations, scheduled content, and compliance with platform rules and applicable advertising, intellectual-property, and consumer-protection law.',
+    ],
+  },
+  {
     id: 'privacy-security', title: 'Privacy, confidentiality, and security',
     paragraphs: ['Our processing of personal data is described in the Privacy Policy and any applicable data-processing agreement. Each party will protect the other party’s confidential information using reasonable care and use it only for the agreement, except for information lawfully public, independently developed, rightfully received without restriction, or required to be disclosed by law. We maintain safeguards designed for the service, but no internet service is completely secure. Customer is responsible for endpoint security, access management, lawful exports, and backups it requires outside Iris OS.'],
   },
@@ -77,7 +85,7 @@ const sections: LegalSection[] = [
   },
   {
     id: 'ownership', title: 'Intellectual property and feedback',
-    paragraphs: ['Iris OS and its software, interfaces, designs, documentation, trademarks, models, workflows, and underlying technology are owned by Shards Media or its licensors. Subject to payment and compliance, Customer receives a limited, non-exclusive, non-transferable right to use the service during the subscription. Customer owns Customer Data and, as between the parties and to the extent permitted by law, its generated outputs, excluding Iris OS technology, third-party material, and pre-existing content. Feedback may be used without restriction or identification, but does not authorize use of Customer Data for generalized model training.'],
+    paragraphs: ['Iris OS and its software, interfaces, designs, documentation, trademarks, models, workflows, and underlying technology are owned by Iris OS or its licensors. Subject to payment and compliance, Customer receives a limited, non-exclusive, non-transferable right to use the service during the subscription. Customer owns Customer Data and, as between the parties and to the extent permitted by law, its generated outputs, excluding Iris OS technology, third-party material, and pre-existing content. Feedback may be used without restriction or identification, but does not authorize use of Customer Data for generalized model training.'],
   },
   {
     id: 'suspension-termination', title: 'Suspension, termination, and data export',
@@ -93,18 +101,18 @@ const sections: LegalSection[] = [
   },
   {
     id: 'indemnity', title: 'Indemnity',
-    paragraphs: ['Customer will defend and indemnify Shards Media and its affiliates against third-party claims arising from Customer Data, unlawful Customer instructions, Customer’s breach of these Terms, or Customer’s use of outputs, integrations, automations, or documents in violation of law or third-party rights. We will provide reasonable notice and cooperation and permit Customer to control the defense, provided no settlement admits fault or imposes obligations on us without consent. This obligation does not apply to the extent a claim was caused by our breach or willful misconduct.'],
+    paragraphs: ['Customer will defend and indemnify Iris OS and its affiliates against third-party claims arising from Customer Data, unlawful Customer instructions, Customer’s breach of these Terms, or Customer’s use of outputs, integrations, automations, or documents in violation of law or third-party rights. We will provide reasonable notice and cooperation and permit Customer to control the defense, provided no settlement admits fault or imposes obligations on us without consent. This obligation does not apply to the extent a claim was caused by our breach or willful misconduct.'],
   },
   {
     id: 'law-disputes', title: 'Governing law and disputes',
-    paragraphs: ['Unless an order form states otherwise, these Terms are governed by the laws applicable to Shards Media’s principal place of business, without regard to conflict-of-law rules. The parties will first attempt good-faith informal resolution. Any mandatory consumer forum, privacy complaint right, small-claims right, or statutory jurisdiction remains available where it cannot lawfully be waived. Any arbitration or exclusive forum provision applies only to the extent enforceable and after any legally required notice or opt-out opportunity.'],
+    paragraphs: ['Unless an order form states otherwise, these Terms are governed by the laws applicable to Iris OS’s principal place of business, without regard to conflict-of-law rules. The parties will first attempt good-faith informal resolution. Any mandatory consumer forum, privacy complaint right, small-claims right, or statutory jurisdiction remains available where it cannot lawfully be waived. Any arbitration or exclusive forum provision applies only to the extent enforceable and after any legally required notice or opt-out opportunity.'],
   },
   {
     id: 'changes-contact', title: 'Changes and contact',
-    paragraphs: ['We may update these Terms for legal, security, provider, or product changes. Material changes will receive notice appropriate to the change and applicable law. Continued use after the effective date constitutes acceptance where permitted; if consent is legally required, we will request it. For legal questions, email studio@shardsmedia.com with the subject “LEGAL: IRIS OS TERMS”. Privacy requests should be sent to cto.admin@irisos.app.'],
+    paragraphs: ['We may update these Terms for legal, security, provider, or product changes. Material changes will receive notice appropriate to the change and applicable law. Continued use after the effective date constitutes acceptance where permitted; if consent is legally required, we will request it. To raise a legal, service, or privacy complaint, use the Get Help section or reach out to cto.admin@irisos.app.'],
   },
 ];
 
 export default function TermsPage() {
-  return <LegalPolicyPage title="Terms of Service" badge="Iris OS service agreement" updated="August 6, 2026" introduction="These terms govern use of Iris OS, Atlas AI, document and e-signature workflows, integrations, automations, and agency workspaces." sections={sections} />;
+  return <LegalPolicyPage title="Terms of Service" badge="Iris OS service agreement" updated="September 17, 2026" introduction="These terms govern use of Iris OS, Atlas AI text and voice features, secure messaging, Design Hub, document and e-signature workflows, integrations, automations, and agency workspaces." sections={sections} />;
 }

@@ -61,7 +61,7 @@ function halfLimits(limits: MessagingLimits): MessagingLimits {
 export const PLAN_ENTITLEMENTS = {
   BASIC: {
     specializationLimit: 10,
-    teamMemberLimit: 2,
+    teamMemberLimit: 0,
     clientLimit: 5,
     atlasCapabilities: [] as AtlasCapability[],
     dailyBriefing: false,

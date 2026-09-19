@@ -72,8 +72,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Choose any page or enable the deliverables checkbox to create a workspace for this user.' }, { status: 400 });
       }
       const plan = normalizePlan(requestingUser.organization.plan);
-      if (plan === 'BASIC' && accessPermissions.length > 0) {
-        return NextResponse.json({ error: 'Individual page access is available on the Pro and Advanced plans.' }, { status: 403 });
+      if (plan === 'BASIC') {
+        return NextResponse.json({
+          error: 'Team member onboarding is available on the Pro and Advanced plans.',
+          code: 'PLAN_UPGRADE_REQUIRED',
+          requiredPlan: 'PRO',
+        }, { status: 403 });
       }
       assertIrisEmailConfigured();
 
@@ -111,7 +115,7 @@ export async function POST(request: NextRequest) {
           data: {
             email: normalizedEmail,
             name,
-            role: plan === 'BASIC' ? 'member' : 'sub_admin',
+            role: 'sub_admin',
             phone: normalizedPhone,
             accessPermissions,
             handlesDeliverables,

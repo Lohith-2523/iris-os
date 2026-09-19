@@ -4,13 +4,15 @@ import { canRenderWorkspaceRoute, workspaceRouteRestriction } from './workspace-
 describe('workspace route authorization', () => {
   it('preserves client and member route restrictions', () => {
     expect(workspaceRouteRestriction({ role: 'client', plan: 'BASIC' }, '/finance')).toBe('client');
-    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'BASIC' }, '/client-dashboard')).toBe(true);
+    expect(workspaceRouteRestriction({ role: 'client', plan: 'BASIC' }, '/client-dashboard')).toBe('plan');
+    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'PRO' }, '/client-dashboard')).toBe(true);
     expect(workspaceRouteRestriction({ role: 'member', plan: 'BASIC' }, '/projects')).toBe('member');
     expect(canRenderWorkspaceRoute({ role: 'member', plan: 'BASIC' }, '/tasks')).toBe(true);
   });
 
-  it('keeps messaging behind plan access for clients and members', () => {
-    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'BASIC' }, '/messages')).toBe(false);
+  it('keeps messaging visible for free clients and members', () => {
+    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'BASIC' }, '/messages')).toBe(true);
+    expect(canRenderWorkspaceRoute({ role: 'member', plan: 'BASIC' }, '/messages')).toBe(true);
     expect(canRenderWorkspaceRoute({ role: 'member', plan: 'PRO' }, '/messages')).toBe(true);
   });
 

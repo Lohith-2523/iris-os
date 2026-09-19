@@ -15,58 +15,19 @@ import { RazorpayCheckout } from '@/components/billing/razorpay-checkout';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { formatPlanMoney } from '@/lib/plan-pricing';
 
-const PLAN_COPY = [
-  {
-    id: 'basic',
-    name: 'Free Plan',
-    tagline: 'Starter Workspace Clearance',
-    features: [
-      'All 10 Agency Specializations Included',
-      'Core Operational Ledger Console',
-      'Client Read-Only Portal Gate',
-      '2 Team Members and 5 Clients',
-      'No AI or Messaging Features'
-    ]
-  },
-  {
-    id: 'pro',
-    name: 'Pro Plan',
-    tagline: 'Professional Scale Workspace',
-    features: [
-      'All 10 Agency Specializations Included',
-      'Active Contractor Profit Leak Checks',
-      'Automated Executive Reports & SLAs',
-      'Full Canva & Meta Ad Portal Sync',
-      'Atlas AI Meeting & Invoice Creation',
-      'Secure Messaging · Unlimited Team · 15 Clients'
-    ]
-  },
-  {
-    id: 'advanced',
-    name: 'Advanced Plan',
-    tagline: 'Unlimited Enterprise Console',
-    features: [
-      'All 10 Agency Specializations Included',
-      'Unlimited API Call Operations Threshold',
-      'Custom Multi-Currency Financial Ledgers',
-      '24/7 Dedicated Support & Audit Gating',
-      'Full Atlas AI, Briefing & Strategies',
-      'Secure Messaging · Unlimited Team · 30 Clients'
-    ]
-  }
-];
-
 const FULL_PRIVACY_POLICY = [
+  ['Workspace Operations and New Features', 'Iris OS processes the workspace information needed for client and team onboarding, project stages and tasks, financial operations, reporting, daily briefings, notifications, profile pictures, workspace backgrounds, secure documents, approvals, electronic signatures, and connected design workflows. Access remains limited by workspace role and permissions.'],
+  ['Atlas Voice and Transcription', 'When you start Atlas voice features, microphone audio is transmitted to contracted speech and AI infrastructure to detect speech, create an English transcript, and return a spoken response. Realtime audio is not stored by Iris OS as a recording. Accepted transcripts and Atlas responses may be retained in workspace chat history; silence, ambient noise, and rejected non-speech turns are not treated as prompts.'],
   ['Meta Advertising Data and Atlas AI', 'Meta access requires a separate optional consent. When enabled, Iris OS may retrieve selected ad-account identifiers, campaigns, ads, forms, lead submissions, spend, impressions, reach and clicks. Atlas AI uses only aggregate Meta performance metrics, and only when both general Atlas data sharing and the separate Atlas Meta analytics consent are enabled. Atlas AI never receives Meta access tokens or raw Meta lead names, emails, phone numbers or form fields. Withdrawing Meta access stops future provider retrieval; withdrawing Atlas Meta consent stops future AI use of those metrics.'],
   ['Secure Messaging Data', 'Messaging is available on Pro and Advanced plans for direct agency-owner conversations with clients or team members. Iris OS stores participant identifiers, delivery metadata, OpenPGP public device keys, opaque signed and encrypted message envelopes, and encrypted attachment metadata. Message plaintext, OpenPGP private keys, attachment keys and plaintext filenames remain on participant devices and are not accepted by the messaging service.'],
-  ['1. Data Controller Identification', 'Shards Media ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
+  ['1. Data Controller Identification', 'Iris OS ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
   ['2. Categories of Personal Data We Collect', 'We process identity and account metadata (including corporate name, billing address, currency settings and administrator emails); financial data (internal ledgers, invoices, totals, expenses and merchant names); integration telemetry and OAuth access tokens for connected Canva, Meta, Google and Notion services; contractor allocation information; and system logs such as IP address, device headers and authentication timestamps.'],
   ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Atlas AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
   ['4. Google and Notion Authentication APIs & Data Scope', 'Google authentication uses your profile data, email address, profile picture and authorization tokens. Iris OS does not read emails, documents or photos unless you separately grant additional permissions. Notion access is limited to the databases you explicitly select for reporting. Integration tokens are encrypted with industry-standard AES-256 encryption and may be revoked from the relevant provider’s security console.'],
   ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Atlas AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
   ['6. GDPR & DPDP Act Data Subject Rights', 'You may request access to and portability of your data, correction of inaccurate data, withdrawal of consent, grievance redressal, and—where applicable under the DPDP Act—nomination of a person to exercise your rights in the event of death or incapacity.'],
   ['7. International Cross-Border Data Transfers', 'Personal data may be processed on secure servers in the United States, the EEA and India. EEA transfers use European Commission Standard Contractual Clauses where applicable. Transfers under the DPDP Act follow applicable Government of India cross-border requirements.'],
-  ['8. Contact Our Data Protection Officer', 'To exercise your rights, withdraw consent or raise a privacy concern, contact Shards Media’s Privacy Compliance Department at studio@shardsmedia.com with the subject line “PRIVACY: DATA RIGHTS EXERCISE”.'],
+  ['8. Requests and Complaints', 'To exercise your rights, withdraw consent, or raise a privacy concern, raise a complaint in the Get Help section or reach out to cto.admin@irisos.app.'],
 ] as const;
 
 const PRIVACY_TLDR = [
@@ -75,7 +36,7 @@ const PRIVACY_TLDR = [
   'Atlas AI access is optional. You can leave it off and change that choice later in Settings.',
   'Connected services only receive the permissions you authorize; you can revoke them at any time.',
   'You can request access, correction, deletion, or export of your personal data.',
-  'Contact studio@shardsmedia.com for privacy requests or concerns.',
+  'Raise a complaint in the Get Help section or reach out to cto.admin@irisos.app for privacy requests or concerns.',
 ];
 
 export default function OnboardingPage() {
@@ -108,10 +69,10 @@ export default function OnboardingPage() {
 
   const [email, setEmail] = React.useState('');
   const { region: pricingRegion, plans: regionalPlans, loading: pricingLoading } = usePlanPricing();
-  const PLANS = regionalPlans.map((price, index) => ({
-    ...PLAN_COPY[index],
+  const PLANS = regionalPlans.map((price) => ({
     ...price,
     id: price.id.toLowerCase() as 'basic' | 'pro' | 'advanced',
+    tagline: price.positioning,
   }));
   React.useEffect(() => {
     fetch('/api/workspace')
@@ -402,25 +363,25 @@ export default function OnboardingPage() {
                 type="button"
                 disabled={advancingStep !== null || pricingLoading}
                 onClick={() => setSelectedPlanId(ordered.left.id as any)}
-                className="min-w-0 overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[430px] flex-col justify-between cursor-pointer group"
+                className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
               >
                 <div>
                   <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">Iris / {ordered.left.name}</span>
-                  {ordered.left.baseAmount > 0 && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px]"><del className="text-zinc-500">{formatPlanMoney(ordered.left.listAmount, ordered.left.currency)}</del><b className="text-emerald-400">50% OFF</b></span>}
+                  {ordered.left.listAmount > ordered.left.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.left.listAmount, ordered.left.currency)}</del><b className="text-zinc-200">50% off</b></span>}
                   <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.left.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
                   <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.left.tagline}</span>
                 </div>
-                <div className="mt-7 min-h-0 space-y-3 overflow-hidden border-t border-white/[0.07] pt-6 text-sm text-white/65">
-                  {ordered.left.features.map((f, i) => (
-                    <span key={i} className="block">• {f}</span>
+                <div className="mt-7 min-h-0 space-y-3 border-t border-white/[0.07] pt-6 text-xs text-white/65">
+                  {ordered.left.features.map((feature) => (
+                    <span key={feature.label} className="flex items-start justify-between gap-3"><span>• {feature.label}</span><b className="shrink-0 font-mono text-white/85">{feature.value}</b></span>
                   ))}
                 </div>
                 <span className="mt-8 block shrink-0 rounded-xl border border-white/10 bg-[#151515] py-3.5 text-center text-sm font-semibold text-white/75 transition-colors group-hover:border-white/20 group-hover:text-white">Choose {ordered.left.name}</span>
               </button>
 
               {/* Center Column Plan (Selected & Highlighted Big) */}
-              <div className="relative flex min-h-[430px] flex-col justify-between rounded-[24px] border border-white/20 bg-white/[0.055] p-7 shadow-[8px_8px_24px_#040404,-8px_-8px_24px_#1e1e1e] transition-colors">
-                <div className="absolute top-5 right-5 rounded-full border border-white/15 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-white/70">
+              <div className="relative flex min-h-[720px] flex-col justify-between rounded-[24px] border border-white/20 bg-white/[0.055] p-7 shadow-[8px_8px_24px_#040404,-8px_-8px_24px_#1e1e1e] transition-colors">
+                <div className="absolute top-5 right-5 rounded-full border border-white/15 px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white/70">
                   Selected
                 </div>
                 <div className="space-y-4">
@@ -429,18 +390,17 @@ export default function OnboardingPage() {
                     <span className="block text-[9px] font-semibold text-zinc-400 mt-0.5 uppercase tracking-wide">{ordered.center.tagline}</span>
                   </div>
                   <div className="border-b border-zinc-800 pb-3">
-                    {ordered.center.baseAmount > 0 && <span className="mb-1 flex items-center gap-2 text-[9px]"><del className="text-zinc-500">{formatPlanMoney(ordered.center.listAmount, ordered.center.currency)}</del><b className="uppercase tracking-wide text-emerald-400">Early bird · 50% off</b></span>}
+                    {ordered.center.listAmount > ordered.center.baseAmount && <span className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.center.listAmount, ordered.center.currency)}</del><b className="text-zinc-200">50% off</b></span>}
                     <span className="font-mono text-4xl font-black text-white">{ordered.center.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.center.baseAmount, ordered.center.currency)}</span>
                     <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
-                    {ordered.center.baseAmount > 0 && <span className="mt-1 block text-[9px] text-zinc-500">+ 18% {ordered.center.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(ordered.center.totalAmount, ordered.center.currency)} due today</span>}
                   </div>
                   <div className="space-y-2">
                     <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Included Features:</span>
                     <ul className="space-y-2.5 font-mono text-[9px] text-zinc-300">
-                      {ordered.center.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
+                      {ordered.center.features.map((feature) => (
+                        <li key={feature.label} className="flex items-start gap-2">
                           <Check className="h-3.5 w-3.5 text-white/60 shrink-0 mt-0.5" />
-                          <span className="leading-tight">{feature}</span>
+                          <span className="flex min-w-0 flex-1 justify-between gap-3 leading-tight"><span>{feature.label}</span><b className="shrink-0 text-white">{feature.value}</b></span>
                         </li>
                       ))}
                     </ul>
@@ -464,17 +424,17 @@ export default function OnboardingPage() {
                 type="button"
                 disabled={advancingStep !== null || pricingLoading}
                 onClick={() => setSelectedPlanId(ordered.right.id as any)}
-                className="min-w-0 overflow-hidden rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[430px] flex-col justify-between cursor-pointer group"
+                className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
               >
                 <div>
                   <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">Iris / {ordered.right.name}</span>
-                  {ordered.right.baseAmount > 0 && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px]"><del className="text-zinc-500">{formatPlanMoney(ordered.right.listAmount, ordered.right.currency)}</del><b className="text-emerald-400">50% OFF</b></span>}
+                  {ordered.right.listAmount > ordered.right.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.right.listAmount, ordered.right.currency)}</del><b className="text-zinc-200">50% off</b></span>}
                   <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.right.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
                   <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.right.tagline}</span>
                 </div>
-                <div className="mt-7 min-h-0 space-y-3 overflow-hidden border-t border-white/[0.07] pt-6 text-sm text-white/65">
-                  {ordered.right.features.map((f, i) => (
-                    <span key={i} className="block">• {f}</span>
+                <div className="mt-7 min-h-0 space-y-3 border-t border-white/[0.07] pt-6 text-xs text-white/65">
+                  {ordered.right.features.map((feature) => (
+                    <span key={feature.label} className="flex items-start justify-between gap-3"><span>• {feature.label}</span><b className="shrink-0 font-mono text-white/85">{feature.value}</b></span>
                   ))}
                 </div>
                 <span className="mt-8 block shrink-0 rounded-xl border border-white/10 bg-[#151515] py-3.5 text-center text-sm font-semibold text-white/75 transition-colors group-hover:border-white/20 group-hover:text-white">Choose {ordered.right.name}</span>
@@ -496,7 +456,7 @@ export default function OnboardingPage() {
             <CardContent className="px-7 py-7 space-y-5">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="font-semibold text-zinc-300 block text-xs uppercase font-mono">Privacy Policy · Last updated June 27, 2026</span>
+                  <span className="font-semibold text-zinc-300 block text-xs uppercase font-mono">Privacy Policy · Last updated September 17, 2026</span>
                   <label className="flex items-center gap-2 text-sm font-semibold text-zinc-300 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -618,15 +578,10 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.baseAmount > 0 ? <span className="block text-[9px]"><del className="text-zinc-500">{formatPlanMoney(selected.listAmount, selected.currency)}</del> <b className="text-emerald-400">50% OFF</b></span> : null; })()}
+                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.listAmount > selected.baseAmount ? <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selected.listAmount, selected.currency)}</del> <b className="text-zinc-200">50% off</b></span> : null; })()}
                   <span className="font-mono text-xl font-bold text-white">{(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.baseAmount === 0 ? 'Free' : `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}</span>
                 </div>
               </div>
-
-              {selectedPlanId !== 'basic' && (() => {
-                const selected = PLANS.find(p => p.id === selectedPlanId)!;
-                return <p className="text-center text-[10px] text-zinc-500">18% {selected.currency === 'INR' ? 'GST' : 'Tax'} is added at checkout. Total due: {formatPlanMoney(selected.totalAmount, selected.currency)}.</p>;
-              })()}
 
               {isProcessing ? <div className="flex min-h-24 items-center justify-center gap-2 text-xs text-zinc-300"><Loader2 className="h-4 w-4 animate-spin" />Finishing workspace setup…</div> : selectedPlanId === 'basic' ? (
                 <Button type="button" onClick={() => void completeOnboarding()} className="w-full">Start with Free</Button>

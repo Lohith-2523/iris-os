@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import { Loader2, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { normalizePlan, planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import { formatPlanMoney, planDisplayName } from '@/lib/plan-pricing';
@@ -54,8 +54,8 @@ export function SubscriptionPlanDialog({ open, currentPlan, feature, requiredPla
         const disabled = pricingLoading || !canManage || isCurrent || !unlocksFeature || Boolean(busyPlan);
         return <section key={plan.id} className={`flex min-h-[350px] flex-col rounded-2xl border p-5 text-zinc-100 backdrop-blur-md ${plan.id === requiredPlan ? 'border-white/30 bg-white/[0.08] shadow-[0_0_28px_rgba(255,255,255,0.08)]' : 'border-white/10 bg-black/30'}`}>
           <div className="flex items-start justify-between gap-3"><div><h3 className="text-lg font-bold">{plan.name}</h3><p className="mt-1 text-sm text-muted-foreground">{plan.description}</p></div>{isCurrent && <span className="rounded-full border border-border bg-background/50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Current</span>}</div>
-          <div className="mt-5">{plan.baseAmount > 0 && <p className="mb-1 flex items-center gap-2 text-xs"><del className="text-muted-foreground">{formatPlanMoney(plan.listAmount, plan.currency)}</del><span className="font-bold uppercase tracking-wide text-emerald-400">Early bird · 50% off</span></p>}<span className="font-mono text-3xl font-black">{plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}</span><span className="ml-1 text-sm text-muted-foreground">/ month</span>{plan.baseAmount > 0 && <p className="mt-1 text-xs text-muted-foreground">+ 18% {plan.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(plan.totalAmount, plan.currency)} today</p>}</div>
-          <ul className="mt-6 flex-1 space-y-3 text-sm text-foreground">{plan.features.map(featureName => <li key={featureName} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />{featureName}</li>)}</ul>
+          <div className="mt-5">{plan.listAmount > plan.baseAmount && <p className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-muted-foreground">{formatPlanMoney(plan.listAmount, plan.currency)}</del><strong className="text-foreground">50% off</strong></p>}<span className="font-mono text-3xl font-black">{plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}</span><span className="ml-1 text-sm text-muted-foreground">/ month</span>{plan.baseAmount > 0 && <p className="mt-1 text-xs text-muted-foreground">+ 18% {plan.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(plan.totalAmount, plan.currency)} today</p>}</div>
+          <ul className="mt-6 flex-1 space-y-2 border-t border-white/10 pt-4 text-xs text-foreground">{plan.features.map(feature => <li key={feature.label} className="flex items-start justify-between gap-3"><span className="text-muted-foreground">{feature.label}</span><strong className="shrink-0 text-right font-mono font-medium">{feature.value}</strong></li>)}</ul>
           {plan.id === 'BASIC' ? <Button type="button" variant={plan.id === requiredPlan ? 'default' : 'outline'} disabled={disabled} onClick={() => void chooseFree()} className="mt-6 w-full">{busyPlan === 'BASIC' && <Loader2 className="h-4 w-4 animate-spin" />}{isCurrent ? 'Current plan' : !unlocksFeature ? `Requires ${planDisplayName(requiredPlan)}` : 'Choose Free'}</Button>
             : <div className="mt-6"><RazorpayCheckout plan={plan.id} price={plan} disabled={disabled} buttonLabel={isCurrent ? 'Current plan' : !unlocksFeature ? `Requires ${planDisplayName(requiredPlan)}` : `Choose ${plan.name}`} onVerified={finishPlanChange} /></div>}
         </section>;

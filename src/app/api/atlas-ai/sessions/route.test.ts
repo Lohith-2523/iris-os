@@ -67,6 +67,19 @@ describe('POST /api/atlas-ai/sessions', () => {
     });
   });
 
+  it('allows Free workspaces to persist Atlas chat history', async () => {
+    mocks.getRequestUser.mockResolvedValue({
+      id: 'user-1',
+      orgId: 'org-1',
+      organization: { plan: 'BASIC' },
+    });
+
+    const response = await POST(voiceTurn({ role: 'user', content: 'Hello Atlas' }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.createMessage).toHaveBeenCalledOnce();
+  });
+
   it('rejects appending a voice turn to another user session', async () => {
     mocks.findSession.mockResolvedValue(null);
 

@@ -15,8 +15,6 @@ type HistoryTransaction = {
   invoiceId?: string | null;
 };
 
-type HistoryExpense = { date: Date; amount: number };
-
 function subtractDays(date: Date, days: number) {
   return new Date(date.getTime() - days * 24 * 60 * 60 * 1_000);
 }
@@ -38,7 +36,6 @@ function dayKey(date: Date) {
 export function buildFinancialHistory(input: {
   invoices: HistoryInvoice[];
   transactions: HistoryTransaction[];
-  expenses: HistoryExpense[];
   timeframe: FinancialTimeframe;
   now?: Date;
   startDate?: Date;
@@ -48,7 +45,6 @@ export function buildFinancialHistory(input: {
   const relevantDates = [
     ...invoices.map((invoice) => invoice.issuedDate),
     ...input.transactions.map((transaction) => transaction.date),
-    ...input.expenses.map((expense) => expense.date),
   ].filter((date) => date <= now);
   const start = input.startDate || rangeStart(now, input.timeframe, relevantDates);
   const pointDates = new Map<string, Date>();
@@ -81,12 +77,9 @@ export function buildFinancialHistory(input: {
     const revenue = revenueTransactions
       .filter((transaction) => transaction.date >= start && transaction.date <= date)
       .reduce((sum, transaction) => sum + transaction.amount, 0);
-    const expenses = input.expenses
-      .filter((expense) => expense.date >= start && expense.date <= date)
-      .reduce((sum, expense) => sum + Math.abs(expense.amount), 0)
-      + expenseTransactions
-        .filter((transaction) => transaction.date >= start && transaction.date <= date)
-        .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
+    const expenses = expenseTransactions
+      .filter((transaction) => transaction.date >= start && transaction.date <= date)
+      .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
     const receivables = invoices
       .filter((invoice) => invoice.issuedDate <= date)
       .reduce((sum, invoice) => {

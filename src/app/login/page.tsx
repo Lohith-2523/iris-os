@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
 import styles from '@/components/auth/auth-shell.module.css';
+import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function LoginPage() {
         if (role === 'client') {
           setTimeout(() => {
             setIsLoading(false);
-            router.push('/client-dashboard');
+            router.push(teamMemberWorkspaceHome({ role, plan: userData.organization?.plan || 'BASIC' }));
           }, 100);
           return;
         } else if (role === 'member') {

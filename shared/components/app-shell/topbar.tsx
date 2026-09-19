@@ -189,7 +189,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
         </div>
 
         <div className="workspace-topbar-controls">
-        {/* Center: Ask Atlas Form */}
+        {/* Section 1: Ask Atlas */}
         {!isClient && atlasMenuEnabled && (
           <div className="workspace-topbar-atlas">
             <div className="workspace-topbar-search flex h-9 w-9 items-center justify-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 transition-colors focus-within:border-zinc-700 focus-within:bg-zinc-900/80 md:w-full md:justify-start md:pl-3">
@@ -210,7 +210,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
         )}
 
         {(!atlasMenuEnabled || isClient) && <div className="workspace-topbar-atlas"><div className="workspace-topbar-search flex h-9 items-center justify-center gap-2 rounded-full border border-zinc-800 px-3 text-xs text-zinc-500" title="Atlas AI is not enabled for this role" aria-label="Atlas AI unavailable for this role"><AtlasIcon className="h-4 w-4" /><span className="hidden md:inline">Atlas AI</span></div></div>}
-        {/* Controls stay beside Atlas at every workspace width. */}
+        {/* Section 2: Workspace controls */}
         <div className="workspace-topbar-actions">
           <NotificationCenter />
           <Button
@@ -226,25 +226,25 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
-            {!isClient && (
-              <button
-                type="button"
-                onClick={() => setIsCommandOpen(true)}
-                className="workspace-topbar-search-trigger flex h-9 w-40 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
-                aria-label="Open workspace search"
-              >
-                <div className="flex items-center gap-2">
-                  <Search className="h-3.5 w-3.5 text-zinc-500" />
-                  <span>Search...</span>
-                </div>
-                <div className="flex items-center gap-0.5 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] border border-zinc-800 text-zinc-400 font-mono">
-                  <Command className="h-2 w-2 mr-0.5" />
-                  <span>K</span>
-                </div>
-              </button>
-            )}
         </div>
+        {/* Section 3: Workspace search */}
+        <button
+          type="button"
+          onClick={() => setIsCommandOpen(true)}
+          className="workspace-topbar-search-trigger flex h-9 w-72 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
+          aria-label="Open workspace search"
+        >
+          <div className="flex items-center gap-2">
+            <Search className="h-3.5 w-3.5 text-zinc-500" />
+            <span>Search...</span>
+          </div>
+          <div className="flex items-center gap-0.5 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] border border-zinc-800 text-zinc-400 font-mono">
+            <Command className="h-2 w-2 mr-0.5" />
+            <span>K</span>
+          </div>
+        </button>
         </div>
+        {/* Section 4: Help remains anchored at the far right. */}
         <div id="workspace-help-slot" className="workspace-topbar-help" />
       </header>
 

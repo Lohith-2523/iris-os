@@ -4616,29 +4616,30 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   }
 }
 
-/* Shared header: Atlas stays centered; nearby controls and help have separate space. */
-.workspace-topbar.workspace-topbar-centered { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .75rem; }
-.workspace-topbar-navigation { grid-column: 1; grid-row: 1; justify-self: start; }
-.workspace-topbar-controls { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: minmax(6rem, 10rem) minmax(10rem, 24rem) minmax(6rem, 10rem); align-items: center; gap: .75rem; min-width: 0; }
-.workspace-topbar-atlas { grid-column: 2; grid-row: 1; min-width: 0; }
-.workspace-topbar-actions { display: contents; }
-.workspace-topbar-actions > :first-child { grid-column: 3; grid-row: 1; justify-self: start; }
-.workspace-topbar-actions > :nth-child(2) { grid-column: 3; grid-row: 1; justify-self: start; margin-left: 3rem; }
-.workspace-topbar-actions > .workspace-topbar-search-trigger { grid-column: 1; grid-row: 1; width: 100%; }
-.workspace-topbar-help { grid-column: 3; grid-row: 1; justify-self: end; }
+/* Shared header: four equal desktop sections — Atlas, controls, search, help. */
+.workspace-topbar.workspace-topbar-centered { position: relative; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(5.75rem, .16fr) minmax(0, 1.84fr) minmax(0, .8fr); align-items: center; gap: .6rem; }
+.workspace-topbar-navigation { position: absolute; inset-inline-start: max(clamp(1rem, 1vw + .75rem, 1.5rem), env(safe-area-inset-left)); top: 50%; z-index: 2; transform: translateY(-50%); }
+.workspace-topbar-controls { display: contents; }
+.workspace-topbar-atlas { grid-column: 1; grid-row: 1; width: min(100%, 20rem); min-width: 0; justify-self: start; }
+.workspace-topbar-actions { grid-column: 2; grid-row: 1; display: flex; align-items: center; justify-content: center; gap: .75rem; min-width: 0; }
+.workspace-topbar-search-trigger { grid-column: 3; grid-row: 1; width: min(18rem, 100%); justify-self: center; }
+.workspace-topbar-help { grid-column: 4; grid-row: 1; justify-self: end; }
 .workspace-topbar-help .iris-help-bubble { height: 2.25rem; min-height: 2.25rem; padding: .5rem .75rem; white-space: nowrap; }
 .iris-help-root-header { top: 4.75rem; bottom: auto; left: auto; }
 .iris-help-root-header .iris-help-panel { top: 0; bottom: auto; max-height: calc(100dvh - 6rem); overflow-y: auto; }
-@media (max-width: 1199px) {
-  .workspace-topbar-controls { grid-template-columns: 2.5rem minmax(9rem, 18rem) 5.5rem; gap: .5rem; }
-  .workspace-topbar-actions > .workspace-topbar-search-trigger { width: 2.5rem; padding: 0; justify-content: center; }
+@media (max-width: 1023px) {
+  .workspace-topbar-search-trigger { width: 2.5rem; padding: 0; justify-content: center; }
   .workspace-topbar-search-trigger span, .workspace-topbar-search-trigger .font-mono { display: none; }
 }
 @media (max-width: 767px) {
-  .workspace-topbar.workspace-topbar-centered { grid-template-columns: 2.25rem minmax(0, 1fr) 2.5rem; gap: .25rem; padding-inline: .5rem; }
-  .workspace-topbar-controls { display: flex; justify-content: center; gap: .35rem; }
-  .workspace-topbar-actions { display: flex; align-items: center; gap: .35rem; }
-  .workspace-topbar-actions > :nth-child(2) { margin-left: 0; }
+  .workspace-topbar.workspace-topbar-centered { grid-template-columns: 2.25rem repeat(4, minmax(0, 1fr)); gap: .2rem; padding-inline: .5rem; }
+  .workspace-topbar-navigation { position: static; grid-column: 1; grid-row: 1; transform: none; justify-self: start; }
+  .workspace-topbar-atlas { grid-column: 2; width: 2.5rem; justify-self: center; }
+  .workspace-topbar-actions { grid-column: 3; gap: .25rem; }
+  .workspace-topbar-actions > div > button,
+  .workspace-topbar-actions > button { width: 2.125rem; height: 2.125rem; }
+  .workspace-topbar-search-trigger { grid-column: 4; }
+  .workspace-topbar-help { grid-column: 5; }
   .workspace-topbar-help .iris-help-bubble { width: 2.5rem; padding: .5rem; justify-content: center; }
   .workspace-topbar-help .iris-help-bubble span { display: none; }
 }

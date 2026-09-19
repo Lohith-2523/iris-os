@@ -10,16 +10,16 @@ type Destination = { href: string; label: string; icon: typeof Gauge };
 
 function destinationsFor(role: string, plan: string): Destination[] {
   if (role === 'client') return [
-    { href: '/client-dashboard', label: 'Home', icon: Gauge },
+    ...(plan === 'BASIC' ? [] : [{ href: '/client-dashboard', label: 'Home', icon: Gauge }]),
     { href: '/client-leads', label: 'Leads', icon: Users },
     { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-    ...(plan === 'BASIC' ? [] : [{ href: '/messages', label: 'Messages', icon: MessageSquare }]),
+    { href: '/messages', label: 'Messages', icon: MessageSquare },
   ];
   if (role === 'member') return [
     { href: '/teams-dashboard', label: 'Home', icon: Gauge },
     { href: '/tasks', label: 'Tasks', icon: ListChecks },
     { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-    ...(plan === 'BASIC' ? [] : [{ href: '/messages', label: 'Messages', icon: MessageSquare }]),
+    { href: '/messages', label: 'Messages', icon: MessageSquare },
   ];
   return [
     { href: '/dashboard', label: 'Home', icon: Gauge },

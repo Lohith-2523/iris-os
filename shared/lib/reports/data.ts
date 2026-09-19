@@ -48,7 +48,7 @@ async function atlasNarrative(input: {
   }
 }
 
-export async function buildAtlasReportDocument(orgId: string, kind: ReportKind, clientId?: string): Promise<AtlasReportDocument> {
+export async function buildAtlasReportDocument(orgId: string, userId: string, userRole: string, kind: ReportKind, clientId?: string): Promise<AtlasReportDocument> {
   const organization = await prisma.organization.findUnique({ where: { id: orgId } });
   if (!organization) throw new Error('Organization not found.');
   const currency = organization.currency;
@@ -215,7 +215,7 @@ export async function buildAtlasReportDocument(orgId: string, kind: ReportKind, 
     context,
     metrics,
     highlights,
-    tokenBudget: { orgId, plan: normalizePlan(organization.plan) },
+    tokenBudget: { orgId, userId, userRole, plan: normalizePlan(organization.plan) },
   });
   const recommendations = highlights.slice(0, 3).map((item, index) => `${index + 1}. Review the supporting records for this signal: ${item}`);
   return {

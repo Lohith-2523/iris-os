@@ -3,10 +3,16 @@ import { normalizePlan, type PlanId } from './plan-entitlements';
 export const GST_RATE = 0.18;
 export type PricingRegion = 'INDIA' | 'INTERNATIONAL';
 
+export type PlanFeature = {
+  label: string;
+  value: string;
+};
+
 const PLAN_DETAILS: Record<PlanId, {
   name: string;
   description: string;
-  features: string[];
+  positioning: string;
+  features: PlanFeature[];
   indiaMinor: number;
   indiaListMinor: number;
   internationalMinor: number;
@@ -14,8 +20,25 @@ const PLAN_DETAILS: Record<PlanId, {
 }> = {
   BASIC: {
     name: 'Free',
-    description: 'Core agency operations',
-    features: ['Up to 5 clients', '2 team members', 'Core finance and delivery'],
+    description: 'Freelancers trying Iris',
+    positioning: 'Experience Iris — full product philosophy with clear scale limits',
+    features: [
+      { label: 'Clients', value: '5' },
+      { label: 'Projects', value: '5' },
+      { label: 'Active leads', value: '20' },
+      { label: 'Team members', value: '0' },
+      { label: 'Core team members', value: '—' },
+      { label: 'Data Transfer', value: '300 MB' },
+      { label: 'Atlas AI', value: '✓' },
+      { label: 'AI allowance', value: '20k' },
+      { label: 'Invoices', value: '3/mo' },
+      { label: 'Reports', value: 'Basic' },
+      { label: 'Client workspace', value: 'Limited' },
+      { label: 'Automations', value: 'Limited' },
+      { label: 'Business analytics', value: 'Basic' },
+      { label: 'Unlimited onboarding', value: '—' },
+      { label: 'Priority support', value: '—' },
+    ],
     indiaMinor: 0,
     indiaListMinor: 0,
     internationalMinor: 0,
@@ -23,8 +46,25 @@ const PLAN_DETAILS: Record<PlanId, {
   },
   PRO: {
     name: 'Pro',
-    description: 'AI-enabled collaboration',
-    features: ['Up to 15 clients', 'Unlimited team members', 'Atlas AI and secure messages'],
+    description: 'Growing agencies',
+    positioning: 'Run your growing agency — hero / most popular plan',
+    features: [
+      { label: 'Clients', value: '25' },
+      { label: 'Projects', value: '50' },
+      { label: 'Active leads', value: '150' },
+      { label: 'Team members', value: '5' },
+      { label: 'Core team members', value: '2' },
+      { label: 'Data Transfer', value: '5 GB' },
+      { label: 'Atlas AI', value: '✓✓' },
+      { label: 'AI allowance', value: '500k' },
+      { label: 'Invoices', value: 'Unlimited' },
+      { label: 'Reports', value: 'Advanced' },
+      { label: 'Client workspace', value: '✓' },
+      { label: 'Automations', value: '✓' },
+      { label: 'Business analytics', value: '✓' },
+      { label: 'Unlimited onboarding', value: '—' },
+      { label: 'Priority support', value: '—' },
+    ],
     indiaMinor: 79_900,
     indiaListMinor: 159_900,
     internationalMinor: 1_999,
@@ -32,8 +72,25 @@ const PLAN_DETAILS: Record<PlanId, {
   },
   ADVANCED: {
     name: 'Advanced',
-    description: 'Complete enterprise workspace',
-    features: ['Up to 30 clients', 'Unlimited team members', 'Full Atlas, Strategy and Briefing'],
+    description: 'Established agencies',
+    positioning: 'Scale your agency — for established agencies',
+    features: [
+      { label: 'Clients', value: 'Unlimited' },
+      { label: 'Projects', value: 'Unlimited' },
+      { label: 'Active leads', value: '500' },
+      { label: 'Team members', value: '15' },
+      { label: 'Core team members', value: '5' },
+      { label: 'Data Transfer', value: '25 GB' },
+      { label: 'Atlas AI', value: '✓✓✓' },
+      { label: 'AI allowance', value: '1M' },
+      { label: 'Invoices', value: 'Unlimited' },
+      { label: 'Reports', value: 'Advanced' },
+      { label: 'Client workspace', value: '✓' },
+      { label: 'Automations', value: '✓✓' },
+      { label: 'Business analytics', value: '✓✓' },
+      { label: 'Unlimited onboarding', value: '✓' },
+      { label: 'Priority support', value: '✓' },
+    ],
     indiaMinor: 159_900,
     indiaListMinor: 319_900,
     internationalMinor: 3_999,
@@ -59,6 +116,7 @@ export function planPrice(plan: unknown, region: PricingRegion) {
     id,
     name: details.name,
     description: details.description,
+    positioning: details.positioning,
     features: details.features,
     currency: region === 'INDIA' ? 'INR' as const : 'USD' as const,
     listAmount,

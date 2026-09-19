@@ -12,6 +12,11 @@ describe('team member workspace access', () => {
     expect(teamMemberWorkspaceHome({ role: 'sub_admin', plan: 'PRO', accessPermissions: ['finance', 'reporting'] })).toBe('/finance');
   });
 
+  it('keeps the client dashboard unavailable on the Free plan', () => {
+    expect(teamMemberWorkspaceHome({ role: 'client', plan: 'BASIC' })).toBe('/calendar');
+    expect(teamMemberWorkspaceHome({ role: 'client', plan: 'PRO' })).toBe('/client-dashboard');
+  });
+
   it('detects explicit, project, and active-task delivery responsibility', () => {
     expect(hasDeliveryWork({ handlesDeliverables: true })).toBe(true);
     expect(hasDeliveryWork({ projectCount: 1 })).toBe(true);

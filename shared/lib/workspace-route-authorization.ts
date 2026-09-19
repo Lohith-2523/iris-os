@@ -1,6 +1,6 @@
 import { isDeliveryTeamMember } from './team-member-access';
 
-export type WorkspaceRouteRestriction = 'admin' | 'sub_admin' | 'member' | 'client' | null;
+export type WorkspaceRouteRestriction = 'admin' | 'sub_admin' | 'member' | 'client' | 'plan' | null;
 
 type WorkspacePrincipal = {
   role: string;
@@ -14,15 +14,15 @@ export function workspaceRouteRestriction(
   pathname: string,
 ): WorkspaceRouteRestriction {
   const role = principal.role.toLowerCase();
-  const messagingAllowed = principal.plan !== 'BASIC';
 
   if (role === 'client') {
+    if (principal.plan === 'BASIC' && pathname === '/client-dashboard') return 'plan';
     const allowed = pathname === '/client-dashboard'
       || pathname === '/client-leads'
       || pathname === '/clients/onboard'
       || pathname === '/settings'
       || pathname === '/calendar'
-      || (messagingAllowed && pathname === '/messages');
+      || pathname === '/messages';
     return allowed ? null : 'client';
   }
 
@@ -31,7 +31,7 @@ export function workspaceRouteRestriction(
       || pathname === '/tasks'
       || pathname === '/settings'
       || pathname === '/calendar'
-      || (messagingAllowed && pathname === '/messages');
+      || pathname === '/messages';
     return allowed ? null : 'member';
   }
 
@@ -41,7 +41,7 @@ export function workspaceRouteRestriction(
       pathname === '/teams-dashboard'
       || pathname === '/tasks'
       || pathname === '/calendar'
-      || (messagingAllowed && pathname === '/messages')
+      || pathname === '/messages'
     );
     const assignedPage = (principal.accessPermissions || []).includes(routePermission);
     return pathname === '/settings' || teamWorkspacePage || assignedPage ? null : 'sub_admin';

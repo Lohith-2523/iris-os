@@ -4,7 +4,7 @@ const sections: LegalSection[] = [
   {
     id: 'scope-roles', title: 'Scope, entity, and privacy roles',
     paragraphs: [
-      'This Privacy Policy explains how Shards Media, operating Iris OS (“Iris OS”, “we”, “us”, or “our”), collects, uses, discloses, stores, and protects personal data when people visit our websites, create or use an Iris OS account, receive documents or communications through Iris OS, or interact with Atlas AI.',
+      'This Privacy Policy explains how Iris OS (“Iris OS”, “we”, “us”, or “our”) collects, uses, discloses, stores, and protects personal data when people visit our websites, create or use an Iris OS account, receive documents or communications through Iris OS, or interact with Atlas AI.',
       'For account, billing, product-usage, security, and direct marketing data, Iris OS generally acts as controller, business, responsible party, organization, or data fiduciary under applicable law. For leads, clients, team members, project records, documents, messages, and other content an agency customer submits or connects, the agency customer generally determines the purposes and means of processing and Iris OS acts as its processor, service provider, operator, data intermediary, or equivalent. Individuals should direct requests concerning customer-controlled workspace data to the relevant agency; we will assist that agency as required.',
     ],
   },
@@ -16,6 +16,9 @@ const sections: LegalSection[] = [
       'Commercial and document data: proposals, contracts, statements of work, invoices, payment terms, transaction and ledger entries, subscription information, document delivery status, electronic-signature names, timestamps, content hashes, and privacy-preserving request audit data.',
       'Integration data: authorization grants, account identifiers, configuration, sync status, advertising campaign and lead-form data, calendar data, and other information selected by the customer from connected services. Authentication secrets and tokens are handled as credentials and are not displayed publicly.',
       'Atlas AI data: prompts, instructions, selected workspace records, retrieved context, uploaded or generated documents, model inputs and outputs, summaries, recommendations, classifications, risk indicators, and feedback about responses.',
+      'Voice data: microphone audio transmitted when a user starts Atlas voice or transcription, English transcripts accepted as user input, spoken Atlas responses, and voice-session diagnostics. Iris OS does not retain realtime microphone audio as a recording; accepted transcripts and responses may be retained in workspace chat history.',
+      'Creative and customization data: Canva project and design references, campaign assets, brand kits, approval records, publishing schedules, profile pictures, invoice logos, and workspace background images and positioning.',
+      'Operational intelligence data: daily briefing inputs and outputs, notifications, forecasts, strategies, capacity indicators, profitability and health scores, churn and risk indicators, and automation history.',
       'Technical and usage data: IP address, device and browser information, timestamps, routes used, diagnostics, security events, cookies or similar identifiers, and product interaction data.',
       'Support and communications data: requests, correspondence, attachments, survey responses, and records needed to resolve an issue or enforce our terms.',
     ],
@@ -36,6 +39,7 @@ const sections: LegalSection[] = [
     bullets: [
       'Provide, authenticate, personalize, maintain, and support the Iris OS workspace and customer-requested workflows.',
       'Manage leads, clients, projects, tasks, communications, approvals, documents, e-signatures, billing, reporting, and integrations.',
+      'Provide client and team onboarding, stage-based project planning, encrypted file attachments, Design Hub workflows, content publishing, daily briefings, notifications, workspace personalization, and account-deletion workflows.',
       'Operate Atlas AI when enabled, retrieve selected workspace context, generate requested outputs, and automate actions expressly initiated or configured by an authorized user.',
       'Secure the service, detect fraud and abuse, investigate incidents, preserve audit trails, debug failures, and enforce agreements.',
       'Process subscriptions, send transactional communications, respond to requests, and satisfy accounting, tax, regulatory, and legal obligations.',
@@ -55,6 +59,17 @@ const sections: LegalSection[] = [
       'Sensitive data: customers must not intentionally submit special-category, biometric, health, government identifier, payment-card, children’s, or similarly sensitive data to Atlas unless the feature expressly supports it and a lawful basis and required safeguards are in place.',
       'Accuracy: AI output may be incomplete or incorrect and must be reviewed by an authorized person before it is relied on, sent externally, or used to take consequential action.',
     ],
+  },
+  {
+    id: 'voice-messaging', title: 'Atlas voice, transcription, and secure messaging',
+    paragraphs: [
+      'Atlas voice features transmit microphone audio to contracted speech and AI infrastructure only after the user starts a voice or transcription session. The service is configured to treat input as English, reject silence and non-speech turns, and return audio or text responses. Realtime microphone audio is not stored by Iris OS as a recording. Accepted transcripts and Atlas responses may be saved to workspace chat history for continuity and auditability.',
+      'Secure messaging uses participant and device identifiers, delivery receipts, public device keys, encrypted message envelopes, encrypted attachment metadata, and encrypted attachment ciphertext. Message plaintext, private keys, attachment keys, and plaintext attachment names are intended to remain on participant devices. Recipients may download and decrypt attachments they are authorized to access.',
+    ],
+  },
+  {
+    id: 'workspace-features', title: 'Documents, onboarding, design, and operational features',
+    paragraphs: ['Iris OS may process data used for client and team onboarding, project stages and tasks, proposals, contracts, statements of work, reports, invoices, electronic signatures, notifications, daily briefings, strategies, forecasts, Canva-powered design workflows, approvals, campaign assets, content scheduling, profile images, invoice branding, and workspace backgrounds. The information processed depends on the feature selected, the user’s role, workspace permissions, connected providers, and organization settings.'],
   },
   {
     id: 'automated-decisions', title: 'Automated decisions, profiling, and human review',
@@ -114,7 +129,7 @@ const sections: LegalSection[] = [
   },
   {
     id: 'requests-contact', title: 'Requests, complaints, and contact',
-    paragraphs: ['To exercise a right or raise a privacy concern, email cto.admin@irisos.app with the subject “PRIVACY REQUEST”. Describe the data, account, agency workspace, right, and jurisdiction involved. We may verify identity and authority proportionately before responding. If Iris OS processes the information only for an agency customer, we may refer the request to that customer and assist it. We will respond within the period required by applicable law and explain any lawful denial or appeal route.'],
+    paragraphs: ['To exercise a right, raise a complaint in the Get Help section or reach out to cto.admin@irisos.app. Describe the data, account, agency workspace, right, and jurisdiction involved. We may verify identity and authority proportionately before responding. If Iris OS processes the information only for an agency customer, we may refer the request to that customer and assist it. We will respond within the period required by applicable law and explain any lawful denial or appeal route.'],
   },
   {
     id: 'changes', title: 'Policy changes',
@@ -139,5 +154,5 @@ const sources = [
 ];
 
 export default function PrivacyPolicyPage() {
-  return <LegalPolicyPage title="Global Privacy & AI Data Policy" badge="Privacy, security, and responsible AI" updated="August 6, 2026" introduction="This policy describes Iris OS data practices across the website, agency workspaces, integrations, document workflows, electronic signatures, and Atlas AI." sections={sections} sources={sources} />;
+  return <LegalPolicyPage title="Global Privacy & AI Data Policy" badge="Privacy, security, and responsible AI" updated="September 17, 2026" introduction="This policy describes Iris OS data practices across the website, agency workspaces, integrations, document workflows, electronic signatures, secure messaging, Design Hub, and Atlas AI." sections={sections} sources={sources} />;
 }

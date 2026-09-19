@@ -9,7 +9,6 @@ describe('financial history', () => {
       now: new Date('2026-09-30T23:59:59.999Z'),
       invoices: [],
       transactions: [{ date: new Date('2026-08-12T00:00:00.000Z'), amount: 2_500, category: 'Revenue' }],
-      expenses: [],
     });
 
     expect(history[0]?.date.startsWith('2026-07-01')).toBe(true);
@@ -28,10 +27,24 @@ describe('financial history', () => {
         { date: new Date('2026-07-28T00:00:00.000Z'), amount: 20_000, category: 'Revenue', invoiceId: 'invoice-1' },
         { date: new Date('2026-08-02T00:00:00.000Z'), amount: 10_000, category: 'Revenue', invoiceId: 'invoice-1' },
       ],
-      expenses: [],
     });
 
     expect(history.find((point) => point.date.startsWith('2026-07-28'))?.receivables).toBe(30_000);
     expect(history.at(-1)?.receivables).toBe(20_000);
+  });
+
+  it('builds expense history exclusively from ledger transactions', () => {
+    const history = buildFinancialHistory({
+      timeframe: 'All Time',
+      now: new Date('2026-08-02T12:00:00.000Z'),
+      invoices: [],
+      transactions: [
+        { date: new Date('2026-07-28T00:00:00.000Z'), amount: -900, category: 'Expense' },
+        { date: new Date('2026-08-02T00:00:00.000Z'), amount: -100, category: 'AI Subscription' },
+      ],
+    });
+
+    expect(history.find((point) => point.date.startsWith('2026-07-28'))?.expenses).toBe(900);
+    expect(history.at(-1)?.expenses).toBe(1_000);
   });
 });

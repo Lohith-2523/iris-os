@@ -10,6 +10,7 @@ import { measureServerOperation } from '@/server/observability/performance';
 import { hasDeliveryWork } from '@/lib/team-member-access';
 import { EmailVerificationRequiredError } from '@/lib/email-verification';
 import { purgeWorkspaceUsers } from '@/server/domains/member-deletion-service';
+import { purgeOrganizationData } from '@/server/domains/account-deletion-service';
 
 const userWithWorkspace = {
   organization: {
@@ -98,6 +99,28 @@ async function purgeOrphanedClientForWorkspaceSignup(
     }]),
     { maxWait: 10_000, timeout: 60_000 },
   );
+  return true;
+}
+
+async function purgeRecreatedAdminWorkspaceForSignup(
+  user: { authUserId?: string | null; email: string; orgId: string; role: string },
+  identity: AuthenticatedIdentity,
+  normalizedEmail: string,
+  intent: ProvisioningIntent,
+) {
+  const isRecreatedAdmin = intent === 'workspace-signup'
+    && user.role.toLowerCase() === 'admin'
+    && Boolean(user.authUserId)
+    && user.authUserId !== identity.id;
+  if (!isRecreatedAdmin) return false;
+  if (!hasVerifiedEmail(identity) || user.email.trim().toLowerCase() !== normalizedEmail) {
+    throw new WorkspaceIdentityConflictError();
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await purgeOrganizationData(tx, user.orgId);
+    await tx.organization.delete({ where: { id: user.orgId } });
+  }, { maxWait: 10_000, timeout: 60_000 });
   return true;
 }
 
@@ -221,6 +244,9 @@ export async function provisionAuthenticatedUser(
     if (!hasVerifiedEmail(identity)) throw new WorkspaceIdentityConflictError();
     if (intent === 'workspace-signup' && await purgeOrphanedClientForWorkspaceSignup(existingByEmail, identity, normalizedEmail)) {
       // The former client has no client workspace. Provision a clean admin below.
+    } else if (await purgeRecreatedAdminWorkspaceForSignup(existingByEmail, identity, normalizedEmail, intent)) {
+      // A newly created verified auth identity must not inherit a deleted
+      // administrator's organization profile or onboarding draft.
     } else {
       if (isOrphanedClient(existingByEmail)) throw new DeletedClientWorkspaceError();
       rejectInvitedRoleDuringWorkspaceSignup(existingByEmail, intent);
