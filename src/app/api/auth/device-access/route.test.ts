@@ -9,12 +9,14 @@ import {
 const mocks = vi.hoisted(() => ({
   getRequestUser: vi.fn(),
   ensureDeviceAccessForUser: vi.fn(),
+  isAdminDirectAccessGrant: vi.fn(),
   validateDeviceAccess: vi.fn(),
 }));
 
 vi.mock('@/lib/org', () => ({ getRequestUser: mocks.getRequestUser }));
 vi.mock('@/lib/auth-access', () => ({
   ensureDeviceAccessForUser: mocks.ensureDeviceAccessForUser,
+  isAdminDirectAccessGrant: mocks.isAdminDirectAccessGrant,
   validateDeviceAccess: mocks.validateDeviceAccess,
 }));
 
@@ -39,6 +41,7 @@ describe('/api/auth/device-access', () => {
     vi.clearAllMocks();
     vi.stubEnv('AUTH_ACCESS_SECRET', 'test-auth-access-secret-that-is-long-enough');
     vi.setSystemTime(now);
+    mocks.isAdminDirectAccessGrant.mockResolvedValue(false);
   });
 
   it('recognizes a valid browser and reads its signed landing choice', async () => {
@@ -48,7 +51,17 @@ describe('/api/auth/device-access', () => {
     const response = await GET(request('GET', cookieValue));
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ knownDevice: true, landingPreference: 'LOGIN' });
+    await expect(response.json()).resolves.toEqual({ knownDevice: true, directAccess: false, landingPreference: 'LOGIN' });
+  });
+
+  it('identifies a superadmin-generated direct-access browser', async () => {
+    const cookieValue = createDeviceAccessCookieValue('grant-1', 'random-token', expiresAt, 'HOME');
+    mocks.validateDeviceAccess.mockResolvedValue({ id: 'grant-1', sourceTokenId: 'token-1' });
+    mocks.isAdminDirectAccessGrant.mockResolvedValue(true);
+
+    const response = await GET(request('GET', cookieValue));
+
+    await expect(response.json()).resolves.toEqual({ knownDevice: true, directAccess: true, landingPreference: 'HOME' });
   });
 
   it('creates a persistent grant for an authenticated workspace user', async () => {
@@ -77,7 +90,7 @@ describe('/api/auth/device-access', () => {
   it('clears an invalid device cookie instead of recognizing the browser', async () => {
     const response = await GET(request('GET', 'tampered-token'));
 
-    await expect(response.json()).resolves.toEqual({ knownDevice: false, landingPreference: 'ASK' });
+    await expect(response.json()).resolves.toEqual({ knownDevice: false, directAccess: false, landingPreference: 'ASK' });
     expect(response.cookies.get(DEVICE_ACCESS_COOKIE)?.value).toBe('');
     expect(mocks.validateDeviceAccess).not.toHaveBeenCalled();
   });

@@ -15,8 +15,9 @@ export function ReturningDevicePrompt() {
     const controller = new AbortController();
     void fetch('/api/auth/device-access', { cache: 'no-store', signal: controller.signal })
       .then(async (response) => response.ok ? response.json() : null)
-      .then((device: { knownDevice?: boolean; landingPreference?: 'ASK' | LandingChoice } | null) => {
+      .then((device: { knownDevice?: boolean; directAccess?: boolean; landingPreference?: 'ASK' | LandingChoice } | null) => {
         if (!device?.knownDevice) return;
+        if (device.directAccess) return;
         if (device.landingPreference === 'LOGIN') {
           window.location.replace('/login');
           return;

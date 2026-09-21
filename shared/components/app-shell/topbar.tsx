@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Command, Menu, X, Sun, Moon, MessageSquare, CalendarDays } from 'lucide-react';
+import { Search, Command, Menu, X, Sun, Moon, CircleDollarSign, FolderKanban } from 'lucide-react';
 import { Button } from '../ui/button';
 import { AtlasIcon } from '../ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
@@ -143,9 +143,9 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
   };
 
   const quickAccess = [
-    { name: 'Messages', description: 'Open secure team and client conversations', href: '/messages', icon: MessageSquare },
-    { name: 'Calendar', description: 'Review meetings, deadlines, and reminders', href: '/calendar', icon: CalendarDays },
-    { name: 'Atlas', description: 'Ask Atlas or run an intelligence workflow', href: '/atlas', icon: AtlasIcon },
+    { name: 'Financial Ledger', description: 'Review revenue, expenses, receivables, and transactions', href: '/finance', icon: CircleDollarSign },
+    { name: 'Project Overview', description: 'Review delivery, milestones, timelines, and budgets', href: '/projects', icon: FolderKanban },
+    { name: 'Atlas AI', description: 'Ask Atlas or run an intelligence workflow', href: '/atlas', icon: AtlasIcon },
   ];
 
   const commandResults = React.useMemo(() => {
@@ -189,62 +189,63 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
         </div>
 
         <div className="workspace-topbar-controls">
-        {/* Section 1: Ask Atlas */}
-        {!isClient && atlasMenuEnabled && (
-          <div className="workspace-topbar-atlas">
-            <div className="workspace-topbar-search flex h-9 w-9 items-center justify-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 transition-colors focus-within:border-zinc-700 focus-within:bg-zinc-900/80 md:w-full md:justify-start md:pl-3">
-              <AtlasTopbarMenu workspacePlan={workspacePlan} canManagePlan={canManagePlan} />
-              <form onSubmit={handleAtlasSubmit} className="hidden h-full min-w-0 flex-1 md:flex">
-                <input
-                  type="text"
-                  aria-label="Ask Atlas AI"
-                  placeholder="Ask Atlas AI"
-                  value={atlasQuery}
-                  onChange={(e) => setAtlasQuery(e.target.value)}
-                  className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
-                />
-                <button type="submit" className="hidden" />
-              </form>
+          {/* Left: Workspace search */}
+          {!isClient && (
+            <button
+              type="button"
+              onClick={() => setIsCommandOpen(true)}
+              className="workspace-topbar-search-trigger flex h-9 w-40 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
+              aria-label="Open workspace search"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-3.5 w-3.5 text-zinc-500" />
+                <span>Search...</span>
+              </div>
+              <div className="flex items-center gap-0.5 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] border border-zinc-800 text-zinc-400 font-mono">
+                <Command className="h-2 w-2 mr-0.5" />
+                <span>K</span>
+              </div>
+            </button>
+          )}
+
+          {/* Center: Ask Atlas Form */}
+          {!isClient && atlasMenuEnabled && (
+            <div className="workspace-topbar-atlas">
+              <div className="workspace-topbar-search flex h-9 w-9 items-center justify-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 transition-colors focus-within:border-zinc-700 focus-within:bg-zinc-900/80 md:w-full md:justify-start md:pl-3">
+                <AtlasTopbarMenu workspacePlan={workspacePlan} canManagePlan={canManagePlan} />
+                <form onSubmit={handleAtlasSubmit} className="hidden h-full min-w-0 flex-1 md:flex">
+                  <input
+                    type="text"
+                    aria-label="Ask Atlas AI"
+                    placeholder="Ask Atlas AI"
+                    value={atlasQuery}
+                    onChange={(e) => setAtlasQuery(e.target.value)}
+                    className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
+                  />
+                  <button type="submit" className="hidden" />
+                </form>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {(!atlasMenuEnabled || isClient) && <div className="workspace-topbar-atlas"><div className="workspace-topbar-search flex h-9 items-center justify-center gap-2 rounded-full border border-zinc-800 px-3 text-xs text-zinc-500" title="Atlas AI is not enabled for this role" aria-label="Atlas AI unavailable for this role"><AtlasIcon className="h-4 w-4" /><span className="hidden md:inline">Atlas AI</span></div></div>}
-        {/* Section 2: Workspace controls */}
-        <div className="workspace-topbar-actions">
-          <NotificationCenter />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9 text-zinc-400 hover:text-white border border-zinc-800 bg-zinc-950 flex items-center justify-center cursor-pointer transition-colors"
-            title="Toggle theme profile"
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-            aria-pressed={theme === 'light'}
-            data-skip-async-feedback
-          >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-
-        </div>
-        {/* Section 3: Workspace search */}
-        <button
-          type="button"
-          onClick={() => setIsCommandOpen(true)}
-          className="workspace-topbar-search-trigger flex h-9 w-72 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
-          aria-label="Open workspace search"
-        >
-          <div className="flex items-center gap-2">
-            <Search className="h-3.5 w-3.5 text-zinc-500" />
-            <span>Search...</span>
+          {(!atlasMenuEnabled || isClient) && <div className="workspace-topbar-atlas"><div className="workspace-topbar-search flex h-9 items-center justify-center gap-2 rounded-full border border-zinc-800 px-3 text-xs text-zinc-500" title="Atlas AI is not enabled for this role" aria-label="Atlas AI unavailable for this role"><AtlasIcon className="h-4 w-4" /><span className="hidden md:inline">Atlas AI</span></div></div>}
+          {/* Right: Workspace controls */}
+          <div className="workspace-topbar-actions">
+            <NotificationCenter />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9 text-zinc-400 hover:text-white border border-zinc-800 bg-zinc-950 flex items-center justify-center cursor-pointer transition-colors"
+              title="Toggle theme profile"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+              aria-pressed={theme === 'light'}
+              data-skip-async-feedback
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
           </div>
-          <div className="flex items-center gap-0.5 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] border border-zinc-800 text-zinc-400 font-mono">
-            <Command className="h-2 w-2 mr-0.5" />
-            <span>K</span>
-          </div>
-        </button>
         </div>
-        {/* Section 4: Help remains anchored at the far right. */}
         <div id="workspace-help-slot" className="workspace-topbar-help" />
       </header>
 
@@ -262,13 +263,14 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
 
           {/* Dialog Container */}
           <div
-            className="workspace-command-dialog relative z-50 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-800 bg-[#0d0e12] shadow-2xl"
+            className="workspace-command-dialog workspace-search-menu relative z-50 w-full max-w-[38.4rem] overflow-hidden rounded-2xl bg-[#0d0e12] shadow-2xl sm:min-h-[16.5rem]"
             role="dialog"
             aria-modal="true"
             aria-label="Workspace command menu"
           >
-            <div className="workspace-command-search-field flex h-14 min-w-0 items-center border-b border-zinc-800 px-4" role="search">
-                <Search className="mr-3 h-4 w-4 shrink-0 text-zinc-500" />
+            <div className="my-3 flex h-[2.8rem] w-full min-w-0 items-center gap-3 px-4">
+              <div className="workspace-command-search-control relative h-full min-w-0 flex-1" role="search">
+                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                 <input
                   type="text"
                   autoFocus
@@ -286,8 +288,9 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
                       setSearchQuery('');
                     }
                   }}
-                  className="workspace-command-search-input !min-h-0 h-full min-w-0 flex-1 bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
+                  className="workspace-command-search-input !min-h-0 h-full w-full min-w-0 text-sm text-white placeholder-zinc-500 focus:outline-none"
                 />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -295,7 +298,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
                   setIsCommandOpen(false);
                   setSearchQuery('');
                 }}
-                className="h-8 w-8 shrink-0 text-zinc-500 hover:text-white"
+                className="h-[2.8rem] w-[2.8rem] shrink-0 rounded-xl border border-zinc-800 bg-zinc-950/60 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white"
                 aria-label="Close workspace search"
               >
                 <X className="h-4 w-4" />
@@ -303,7 +306,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
             </div>
 
             {/* List Results */}
-            <div className="max-h-[440px] overflow-y-auto p-2">
+            <div className="max-h-[528px] overflow-y-auto p-2">
               {searchQuery && commandResults.length === 0 ? (
                 <div className="p-4 text-center text-xs text-zinc-500">
                   No matching commands found.
@@ -338,7 +341,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
                           type="button"
                           key={item.href}
                           onClick={() => executeCommand(item)}
-                          className="workspace-command-item group flex min-h-28 flex-col items-start rounded-xl border border-zinc-850 bg-zinc-950/60 p-3 text-left text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-white"
+                          className="workspace-command-item group flex min-h-[8.4rem] flex-col items-start rounded-xl border border-zinc-850 bg-zinc-950/60 p-3 text-left text-zinc-300 transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-white"
                         >
                           <span className="grid h-8 w-8 place-items-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 group-hover:text-white"><Icon className="h-4 w-4" /></span>
                           <span className="mt-3 text-xs font-bold">{item.name}</span>

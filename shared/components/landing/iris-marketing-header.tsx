@@ -13,6 +13,7 @@ export function IrisMarketingHeader() {
   const isHome = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasDirectAccess, setHasDirectAccess] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -29,6 +30,20 @@ export function IrisMarketingHeader() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch('/api/auth/device-access', { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((device: { directAccess?: boolean } | null) => setHasDirectAccess(device?.directAccess === true))
+      .catch((error) => {
+        if ((error as Error).name !== 'AbortError') console.error('Unable to check direct access:', error);
+      });
+    return () => controller.abort();
+  }, []);
+
+  const accessHref = hasDirectAccess ? '/login' : '/waitlist';
+  const accessLabel = hasDirectAccess ? 'Login / Sign up' : 'Join the Waitlist';
 
   const navLinks = [
     { label: 'Preview', href: isHome ? '#video' : '/#video' },
@@ -96,7 +111,7 @@ export function IrisMarketingHeader() {
 
         <div className="hidden items-center gap-2 md:flex">
           <Link
-            href="/signup"
+            href={accessHref}
             prefetch={false}
             className="neo-button-accent inline-block"
             style={{
@@ -111,7 +126,7 @@ export function IrisMarketingHeader() {
               color: '#0a0a0a',
             }}
           >
-            Join the Waitlist
+            {accessLabel}
           </Link>
         </div>
 
@@ -177,13 +192,13 @@ export function IrisMarketingHeader() {
 
         <div className="flex flex-col gap-2 border-t border-zinc-900 pt-6">
           <Link
-            href="/signup"
+            href={accessHref}
             prefetch={false}
             onClick={() => setIsMobileMenuOpen(false)}
             className="neo-button-accent block w-full cursor-pointer py-3.5 text-center text-sm font-semibold"
             style={{ fontFamily: BODY, textDecoration: 'none', color: '#0a0a0a' }}
           >
-            Join the Waitlist
+            {accessLabel}
           </Link>
         </div>
       </div>

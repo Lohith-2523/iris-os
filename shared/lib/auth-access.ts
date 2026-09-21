@@ -8,6 +8,7 @@ import { createDeviceAccessCookieValue, verifyDeviceAccessCookieValue } from '@/
 
 export const WAITLIST_SIGNUP_PURPOSE = 'WAITLIST_SIGNUP';
 export const ACCOUNT_LOGIN_PURPOSE = 'ACCOUNT_LOGIN';
+export const ADMIN_DIRECT_ACCESS_PURPOSE = 'ADMIN_DIRECT_ACCESS';
 const INVITE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const DEVICE_LIFETIME_MS = 180 * 24 * 60 * 60 * 1000;
 const STALE_LOCK_MS = 15 * 60 * 1000;
@@ -22,6 +23,31 @@ function rawToken() {
 
 export function configuredAppUrl() {
   return (process.env.APP_URL || 'https://irisos.app').trim().replace(/\/+$/, '');
+}
+
+export async function createAdminDirectAccessLink(
+  email: string,
+  expiresInDays: number,
+  baseUrl = configuredAppUrl(),
+  now = new Date(),
+) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const token = rawToken();
+  const expiresAt = new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
+  const record = await prisma.authAccessToken.create({
+    data: {
+      email: normalizedEmail,
+      purpose: ADMIN_DIRECT_ACCESS_PURPOSE,
+      status: 'SENT',
+      tokenHash: hashToken(token),
+      scheduledAt: now,
+      expiresAt,
+      sentAt: now,
+    },
+  });
+  const accessUrl = new URL('/access', baseUrl);
+  accessUrl.searchParams.set('token', token);
+  return { id: record.id, email: normalizedEmail, accessUrl: accessUrl.toString(), expiresAt };
 }
 
 export async function scheduleWaitlistInvitation(waitlistEntry: { id: string; email: string }, now = new Date()) {
@@ -158,8 +184,21 @@ export async function redeemAuthAccessToken(token: string, now = new Date()) {
   return {
     email: record.email,
     purpose: record.purpose,
-    cookieValue: createDeviceAccessCookieValue(result.id, grantToken, expiresAt),
+    cookieValue: createDeviceAccessCookieValue(
+      result.id,
+      grantToken,
+      expiresAt,
+      record.purpose === ADMIN_DIRECT_ACCESS_PURPOSE ? 'HOME' : 'ASK',
+    ),
   };
+}
+
+export async function isAdminDirectAccessGrant(grant: { sourceTokenId?: string | null }) {
+  if (!grant.sourceTokenId) return false;
+  return Boolean(await prisma.authAccessToken.findFirst({
+    where: { id: grant.sourceTokenId, purpose: ADMIN_DIRECT_ACCESS_PURPOSE },
+    select: { id: true },
+  }));
 }
 
 export async function validateDeviceAccess(cookieValue: string | null | undefined, email?: string, now = new Date()) {

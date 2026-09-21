@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestUser } from '@/lib/org';
-import { ensureDeviceAccessForUser, validateDeviceAccess } from '@/lib/auth-access';
+import { ensureDeviceAccessForUser, isAdminDirectAccessGrant, validateDeviceAccess } from '@/lib/auth-access';
 import {
   createDeviceAccessCookieValue,
   DEVICE_ACCESS_COOKIE,
@@ -21,12 +21,14 @@ function remainingLifetimeSeconds(expiresAt: Date, now = new Date()) {
 export async function GET(request: NextRequest) {
   const cookieValue = request.cookies.get(DEVICE_ACCESS_COOKIE)?.value;
   const parsed = verifyDeviceAccessCookieValue(cookieValue);
-  if (!parsed || !await validateDeviceAccess(cookieValue)) {
-    return clearDeviceCookie(NextResponse.json({ knownDevice: false, landingPreference: 'ASK' }));
+  const grant = parsed ? await validateDeviceAccess(cookieValue) : null;
+  if (!parsed || !grant) {
+    return clearDeviceCookie(NextResponse.json({ knownDevice: false, directAccess: false, landingPreference: 'ASK' }));
   }
 
   return NextResponse.json({
     knownDevice: true,
+    directAccess: await isAdminDirectAccessGrant(grant),
     landingPreference: parsed.landingPreference,
   });
 }

@@ -6,10 +6,12 @@ import { hashManagedCoupon } from '@/server/admin/managed-coupons';
 import { isIrisAdminEmail, SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
 import { validateProfileAvatarDataUrl } from '@/lib/profile-avatar';
 import { createClient } from '@/lib/server';
+import { createAdminDirectAccessLink } from '@/lib/auth-access';
 
 const requestSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('invite'), email: z.string().email(), role: z.enum(['VIEWER', 'EDITOR']), expiresInDays: z.number().int().min(1).max(30) }),
   z.object({ action: z.literal('revoke-admin'), email: z.string().email() }),
+  z.object({ action: z.literal('create-user-access-link'), email: z.string().email().max(254), expiresInDays: z.number().int().min(1).max(30) }),
   z.object({ action: z.literal('create-coupon'), code: z.string().trim().min(4).max(64), label: z.string().trim().min(2).max(80), plan: z.enum(['ANY', 'PRO', 'ADVANCED']), startsAt: z.string().datetime(), endsAt: z.string().datetime().nullable(), maxUses: z.number().int().positive().nullable() }),
   z.object({ action: z.literal('update-coupon'), id: z.string().min(1).max(80), enabled: z.boolean(), label: z.string().trim().min(2).max(80), plan: z.enum(['ANY', 'PRO', 'ADVANCED']), startsAt: z.string().datetime(), endsAt: z.string().datetime().nullable(), maxUses: z.number().int().positive().nullable(), code: z.string().trim().min(4).max(64).optional() }),
   z.object({ action: z.literal('support-status'), id: z.string(), status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED']) }),
@@ -25,7 +27,10 @@ export async function POST(request: Request) {
   const input = parsed.data;
   if (admin.role === 'VIEWER' && input.action !== 'update-profile') return NextResponse.json({ error: 'Read-only access' }, { status: 403 });
 
-  if (input.action === 'update-profile') {
+  if (input.action === 'create-user-access-link') {
+    const link = await createAdminDirectAccessLink(input.email, input.expiresInDays);
+    return NextResponse.json({ ok: true, email: link.email, accessUrl: link.accessUrl, expiresAt: link.expiresAt.toISOString() });
+  } else if (input.action === 'update-profile') {
     const avatarResult = input.avatarDataUrl === admin.avatarUrl
       ? { value: admin.avatarUrl }
       : validateProfileAvatarDataUrl(input.avatarDataUrl);

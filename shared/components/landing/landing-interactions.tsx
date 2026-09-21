@@ -39,12 +39,12 @@ export function LandingNavigation() {
     <div className={styles.navInner}>
       <Link className={styles.wordmark} href="#top" aria-label="Iris OS home" onClick={() => setOpen(false)}><Image className={styles.brandLogo} src="/iris-logo-white-transparent.svg" alt="" width={28} height={28} priority /><span>IRIS <b>OS</b></span></Link>
       <nav className={styles.navLinks} aria-label="Primary navigation">{links.map(([label, href]) => <Link href={href} key={label}>{label}</Link>)}</nav>
-      <div className={styles.navActions}><Link className={styles.primaryButton} href="/signup">Join the Waitlist <ArrowRight aria-hidden="true" /></Link></div>
+      <div className={styles.navActions}><Link className={styles.primaryButton} href="/waitlist">Join the Waitlist <ArrowRight aria-hidden="true" /></Link></div>
       <button className={styles.menuButton} type="button" aria-expanded={open} aria-controls="landing-mobile-nav" aria-label={open ? 'Close navigation' : 'Open navigation'} onClick={() => setOpen((value) => !value)}>{open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
     </div>
     <nav id="landing-mobile-nav" className={`${styles.mobileNav} ${open ? styles.mobileNavOpen : ''}`} aria-label="Mobile navigation">
       {links.map(([label, href]) => <Link href={href} key={label} onClick={() => setOpen(false)}>{label}<ChevronRight aria-hidden="true" /></Link>)}
-      <Link href="/signup" onClick={() => setOpen(false)}>Join the Waitlist<ArrowRight aria-hidden="true" /></Link>
+      <Link href="/waitlist" onClick={() => setOpen(false)}>Join the Waitlist<ArrowRight aria-hidden="true" /></Link>
     </nav>
   </header>;
 }

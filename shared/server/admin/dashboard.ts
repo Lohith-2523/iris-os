@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
 import { ensureLegacyManagedCoupons } from '@/server/admin/managed-coupons';
 import { buildAdminCreditAnalytics } from '@/lib/admin-credit-analytics';
+import { ADMIN_DIRECT_ACCESS_PURPOSE } from '@/lib/auth-access';
 
 export async function getAdminDashboardData() {
   await ensureLegacyManagedCoupons();
@@ -28,6 +29,7 @@ export async function getAdminDashboardData() {
     couponUses,
     grants,
     creditUsage,
+    directAccessTokens,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { offboardedAt: null, accessRevokedAt: null } }),
@@ -46,6 +48,12 @@ export async function getAdminDashboardData() {
       where: { createdAt: { gte: creditPeriodStart, lt: creditPeriodEnd } },
       _sum: { inputCredits: true, outputCredits: true, totalCredits: true },
       _count: { _all: true },
+    }),
+    prisma.authAccessToken.findMany({
+      where: { purpose: ADMIN_DIRECT_ACCESS_PURPOSE },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: { id: true, email: true, status: true, createdAt: true, expiresAt: true, redeemedAt: true },
     }),
   ]);
 
@@ -91,6 +99,13 @@ export async function getAdminDashboardData() {
       { email: SUPERADMIN_OWNER_EMAIL, role: 'OWNER', status: 'ACTIVE', expiresAt: null, createdAt: null },
       ...grants.map((grant) => ({ email: grant.email, role: grant.role, status: grant.revokedAt ? 'REVOKED' : grant.acceptedAt ? 'ACTIVE' : grant.expiresAt > new Date() ? 'INVITED' : 'EXPIRED', expiresAt: grant.expiresAt.toISOString(), createdAt: grant.createdAt.toISOString() })),
     ],
+    directAccessLinks: directAccessTokens.map((token) => ({
+      id: token.id,
+      email: token.email,
+      status: token.redeemedAt ? 'REDEEMED' : token.expiresAt && token.expiresAt <= now ? 'EXPIRED' : token.status,
+      createdAt: token.createdAt.toISOString(),
+      expiresAt: token.expiresAt?.toISOString() ?? null,
+    })),
   };
 }
 

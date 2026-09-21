@@ -230,7 +230,7 @@ function Hero() {
         style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}
       >
         <Link
-          href="/signup"
+          href="/waitlist"
           prefetch={false}
           className="neo-button-accent"
           style={{
@@ -1279,7 +1279,7 @@ function Waitlist() {
 
         <div className="neo-raised" style={{ padding: 'clamp(28px, 6vw, 48px) clamp(20px, 6vw, 40px)', display: 'flex', justifyContent: 'center' }}>
           <Link
-            href="/signup"
+            href="/waitlist"
             prefetch={false}
             className="neo-button-accent"
             style={{

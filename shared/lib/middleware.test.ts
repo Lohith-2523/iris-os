@@ -36,11 +36,11 @@ describe('authentication proxy responses', () => {
     expect(response.headers.get('location')).toBe('http://localhost:3000/login');
   });
 
-  it('allows direct login and signup visits without a device grant', async () => {
+  it('sends direct login and signup visits without a device grant to the waitlist', async () => {
     for (const path of ['/login', '/signup']) {
       const response = await updateSession(new NextRequest(`http://localhost:3000${path}`));
-      expect(response.status).toBe(200);
-      expect(response.headers.get('location')).toBeNull();
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(`http://localhost:3000/waitlist?access=required`);
     }
   });
 
@@ -51,14 +51,15 @@ describe('authentication proxy responses', () => {
     expect(response.status).toBe(200);
   });
 
-  it('redirects old waitlist links to signup', async () => {
+  it('keeps waitlist registration public', async () => {
     const response = await updateSession(new NextRequest('https://irisos.app/waitlist?access=required'));
-    expect(response.headers.get('location')).toBe('https://irisos.app/signup');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
   });
 
-  it('disables public waitlist registration', async () => {
+  it('allows public waitlist registration to reach its route handler', async () => {
     const response = await updateSession(new NextRequest('https://irisos.app/api/waitlist', { method: 'POST' }));
-    expect(response.status).toBe(410);
+    expect(response.status).toBe(200);
   });
 
   it('keeps superadmin sign-in and recovery request pages public', async () => {

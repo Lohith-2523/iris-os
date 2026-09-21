@@ -94,11 +94,11 @@ SMTP_PASSWORD="your-google-app-password"
 APP_URL="https://irisos.app"
 ```
 
-The waitlist is temporarily paused by `WAITLIST_ENABLED = false` in
-`shared/lib/waitlist-config.ts`. Login and signup are public, old waitlist links
-redirect to signup, registration returns 410, and the daily cron skips reports
-and invitations. Existing waitlist records and device grants are preserved.
-Email verification remains required for signup.
+The waitlist is enabled by `WAITLIST_ENABLED = true` in
+`shared/lib/waitlist-config.ts`. Public login and signup require a signed device
+grant from a waitlist invitation or a single-use link generated in the
+superadmin User access links page. Email verification remains required for
+signup.
 
 `AUTH_ACCESS_SECRET` signs first-party device grants. Keep it stable across
 deployments; rotating it revokes existing grants. The daily waitlist cron
