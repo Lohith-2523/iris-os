@@ -22,6 +22,7 @@ import { clientHasMetaEnabledProject, isSelectedAgencyServiceLine } from '@/lib/
 import { normalizeRequiredPhone } from '@/lib/phone';
 import { purgeClientData } from '@/server/domains/client-deletion-service';
 import { createAuthenticationUserDeleter } from '@/server/domains/auth-user-deletion';
+import { parseInitialProjectTasks } from '@/server/domains/initial-project-tasks';
 
 class ClientPlanLimitError extends Error {}
 
@@ -268,6 +269,14 @@ export async function POST(request: NextRequest) {
     if (projectCommercials.error) {
       return NextResponse.json({ error: projectCommercials.error }, { status: 400 });
     }
+    const legacyDeliverables = Array.isArray(initialProject?.deliverables)
+      ? initialProject.deliverables.map((title: unknown) => ({ title, stagePosition: 0 }))
+      : [];
+    const initialTasksResult = parseInitialProjectTasks(initialProject?.tasks ?? legacyDeliverables);
+    if (initialTasksResult.error) {
+      return NextResponse.json({ error: initialTasksResult.error }, { status: 400 });
+    }
+    const initialTasks = initialTasksResult.tasks ?? [];
     assertIrisEmailConfigured();
 
     const token = crypto.randomUUID();
@@ -377,18 +386,11 @@ export async function POST(request: NextRequest) {
         const validStages = stageItems.filter((stage: unknown) =>
           typeof stage === 'string' ? stage.trim().length > 0 : Boolean((stage as { name?: string })?.name?.trim())
         );
-        const schedulableStages = projectEnd
-          ? validStages
-          : validStages.filter((stage: unknown) => (
-              typeof stage === 'object'
-              && Boolean((stage as { startDate?: string }).startDate)
-              && Boolean((stage as { endDate?: string }).endDate)
-            ));
         const createdStages = [] as { id: string }[];
-        if (schedulableStages.length > 0) {
-          const scheduleEnd = projectEnd || projectStart;
-          const msPerStage = (scheduleEnd.getTime() - projectStart.getTime()) / schedulableStages.length;
-          for (const [position, item] of schedulableStages.entries()) {
+        if (validStages.length > 0) {
+          const scheduleEnd = projectEnd || new Date(projectStart.getTime() + 90 * 24 * 60 * 60 * 1000);
+          const msPerStage = (scheduleEnd.getTime() - projectStart.getTime()) / validStages.length;
+          for (const [position, item] of validStages.entries()) {
             const stage = typeof item === 'string' ? { name: item } : item as { name: string; startDate?: string; endDate?: string };
             const createdStage = await tx.projectStage.create({
               data: {
@@ -403,19 +405,17 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const deliverables = Array.isArray(initialProject.deliverables)
-          ? initialProject.deliverables.filter((item: unknown) => typeof item === 'string' && item.trim().length > 0)
-          : [];
-        if (deliverables.length > 0) {
+        if (initialTasks.length > 0) {
           await tx.clientTask.createMany({
-            data: deliverables.map((title: string) => ({
-              title: title.trim(),
-              description: `Initial deliverable for project: ${project!.name}`,
+            data: initialTasks.map((task) => ({
+              title: task.title,
+              description: `Initial task for project: ${project!.name}`,
               status: 'TODO',
               progress: 0,
               clientId: newClient.id,
               projectId: project!.id,
-              stageId: createdStages[0]?.id ?? null,
+              stageId: createdStages[task.stagePosition]?.id ?? createdStages[0]?.id ?? null,
+              deadline: task.deadline,
             })),
           });
         }

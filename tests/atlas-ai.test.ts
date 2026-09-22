@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AtlasAIService } from '../src/lib/atlas-ai/service';
+import { AtlasAIService } from '../shared/lib/atlas-ai/service';
 
 describe('AtlasAIService safe server fallbacks', () => {
   it('does not substitute a synthetic agency health score', async () => {

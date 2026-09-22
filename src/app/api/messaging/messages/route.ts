@@ -121,6 +121,13 @@ export async function POST(request: NextRequest) {
   const parsed = messageSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: 'Invalid encrypted message envelope.' }, { status: 400 });
   const { user, entitlements } = authorization;
+  if (!entitlements.messaging || !entitlements.messagingLimits) {
+    return NextResponse.json({
+      error: 'Sending messages is available on the Pro and Advanced plans.',
+      code: 'PLAN_UPGRADE_REQUIRED',
+      requiredPlan: 'PRO',
+    }, { status: 403 });
+  }
   const limits = entitlements.messagingLimits!;
   const input = parsed.data;
   const envelopeBytes = new TextEncoder().encode(input.encryptedEnvelope).byteLength;

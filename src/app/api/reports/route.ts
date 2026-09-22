@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Marketing reports require both Meta access consent and Atlas Meta analytics consent.' }, { status: 403 });
     }
     try {
-      const document = await buildAtlasReportDocument(user.orgId, generation.data.kind, generation.data.clientId);
+      const document = await buildAtlasReportDocument(user.orgId, user.id, user.role, generation.data.kind, generation.data.clientId);
       const report = await prisma.report.create({
         data: {
           title: document.title,

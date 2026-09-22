@@ -30,6 +30,8 @@ import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import type { TeamReadModel } from '@/server/read-models/workspace-pages';
 import { SECURITY_PAGE_OPTIONS } from '@/lib/security-pages';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
+import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
+import { normalizePlan, type PlanId } from '@/lib/plan-entitlements';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
@@ -38,6 +40,8 @@ const teamRoleLabel = (role?: string) => workspaceRoleLabel(role) || 'Team membe
 
 export default function TeamClient({ initialData }: { initialData: TeamReadModel }) {
   const [canManageTeam] = React.useState(initialData.workspace.user.role.toLowerCase() === 'admin');
+  const [plan, setPlan] = React.useState<PlanId>(normalizePlan(initialData.workspace.organization.plan));
+  const [teamUpgradePromptOpen, setTeamUpgradePromptOpen] = React.useState(false);
   // Main stateful active team list
   const [teamList, setTeamList] = React.useState<any[]>(initialData.team);
   const [isLoadingTeam] = React.useState(false);
@@ -177,46 +181,45 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
     });
   }, [teamList, roleFilter]);
 
-  // Reset modal state variables on close
-  const closeModal = () => {
-    setIsAddModalOpen(false);
-    setActiveTab('single');
+  const clearSingleOnboardingDraft = () => {
     setSingleForm({ name: '', email: '', phone: '', role: 'Member Specialist', projects: '' });
     setSelectedPageAccess([]);
     setHandlesDeliverables(false);
     setSelectedProjects([]);
     setOnboardSuccessData(null);
+    setSingleFormError('');
+  };
+
+  // Reset modal state variables on close
+  const closeModal = () => {
+    setIsAddModalOpen(false);
+    setActiveTab('single');
+    clearSingleOnboardingDraft();
     setSelectedExistingId('');
     setExistingForm({ role: '', projects: '' });
     setStagedUsers([]);
     setIsTemplateAligned(null);
     setUploadStatus('idle');
     setErrorMsg('');
-    setSingleFormError('');
     setExistingError('');
   };
 
-  // --- ADD SINGLE MEMBER HANDLER ---
-  const handleAddSingle = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateSingleOnboarding = () => {
     setSingleFormError('');
-    
     if (!singleForm.name || !singleForm.email) {
-      setSingleFormError('Name and Email ID are mandatory parameters.');
-      return;
+      return 'Name and Email ID are mandatory parameters.';
     }
-    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(singleForm.email)) {
-      setSingleFormError('Please enter a valid Email address.');
-      return;
+      return 'Please enter a valid Email address.';
     }
-
     if (selectedPageAccess.length === 0 && !handlesDeliverables && selectedProjects.length === 0) {
-      setSingleFormError('Choose any page or enable the deliverables checkbox to create a workspace for this user.');
-      return;
+      return 'Choose any page or enable the deliverables checkbox to create a workspace for this user.';
     }
+    return null;
+  };
 
+  const inviteSingleMember = async () => {
     try {
       const res = await fetch('/api/member', {
         method: 'POST',
@@ -262,6 +265,21 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
       console.error(e);
       setSingleFormError('Network communication error.');
     }
+  };
+
+  // --- ADD SINGLE MEMBER HANDLER ---
+  const handleAddSingle = (e: React.FormEvent) => {
+    e.preventDefault();
+    const validationError = validateSingleOnboarding();
+    if (validationError) {
+      setSingleFormError(validationError);
+      return;
+    }
+    if (plan === 'BASIC') {
+      setTeamUpgradePromptOpen(true);
+      return;
+    }
+    void inviteSingleMember();
   };
 
   // --- REASSIGN EXISTING MEMBER HANDLER ---
@@ -1412,7 +1430,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
             </div>
             {canManageTeam && selectedMember.role?.toLowerCase() !== 'admin' && (
               <div className="mt-5 space-y-4 border-t border-zinc-900 pt-4">
-                {['PRO', 'ADVANCED'].includes(initialData.workspace.organization.plan) && (
+                {plan !== 'BASIC' && (
                   <div className="space-y-3 rounded-md border border-zinc-850 bg-zinc-950/40 p-4">
                     <div><h4 className="text-xs font-semibold text-white">Workspace access</h4><p className="mt-1 text-[10px] text-zinc-500">Delivery work opens the team workspace. Otherwise, this member sees an agency workspace containing only selected pages.</p></div>
                     <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-zinc-200"><input type="checkbox" checked={memberHandlesDeliverables} onChange={(event) => setMemberHandlesDeliverables(event.target.checked)} className="h-4 w-4 accent-white" />Handles Deliverables</label>
@@ -1463,6 +1481,22 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
           </Card>
         </div>
       )}
+      <SubscriptionPlanDialog
+        open={teamUpgradePromptOpen}
+        currentPlan={plan}
+        feature="team member onboarding"
+        requiredPlan="PRO"
+        canManage={canManageTeam}
+        onClose={() => {
+          setTeamUpgradePromptOpen(false);
+          closeModal();
+        }}
+        onPlanChanged={(nextPlan) => {
+          setPlan(nextPlan);
+          setTeamUpgradePromptOpen(false);
+          void inviteSingleMember();
+        }}
+      />
     </div>
   );
 }

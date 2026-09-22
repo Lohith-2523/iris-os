@@ -4,7 +4,9 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
-import { formatPlanMoney } from '@/lib/plan-pricing';
+import { IrisMarketingHeader } from '@/components/landing/iris-marketing-header';
+import { IrisPricingComparison } from '@/components/landing/iris-pricing-comparison';
+import { ReturningDevicePrompt } from '@/components/marketing/returning-device-prompt';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -61,172 +63,6 @@ function ScrollReveal({ children, delay = '0s', className = '', id = '', style =
   );
 }
 // â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function Header() {
-  const [scrolled, setScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', handler)
-    return () => window.removeEventListener('scroll', handler)
-  }, [])
-
-  const navLinks = [
-    { label: 'Preview',  href: '#video'    },
-    { label: 'About',    href: '#about'    },
-    { label: 'Features', href: '#features' },
-    { label: 'Pricing',  href: '#pricing'  },
-  ]
-
-  return (
-    <header
-      className="fixed top-0 left-0 right-0 z-50 px-3 py-3 sm:px-5 md:px-6 md:py-5 transition-all duration-300 ease-in-out flex justify-center"
-    >
-      <div
-        className="mx-auto flex items-center justify-between px-3 py-2 sm:px-5 sm:py-3 md:px-7 md:py-4 transition-all duration-300 ease-in-out w-[350px] max-w-[calc(100vw-24px)] sm:w-[min(92vw,760px)] md:w-[min(92vw,1080px)] lg:w-[min(90vw,1240px)] xl:w-[1240px]"
-        style={{
-          background: scrolled ? '#111111' : 'rgba(17,17,17,0.6)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: '999px',
-          boxShadow: scrolled
-            ? '8px 8px 18px #040404, -8px -8px 18px #1e1e1e, 0 0 0 1px rgba(255,255,255,0.05)'
-            : '0 0 0 1px rgba(255,255,255,0.05)',
-        }}
-      >
-        {/* Logo â€” imported PNG wordmark */}
-        <a href="#" className="flex items-center no-underline">
-          <Image
-            src={irisLogo}
-            alt="Iris OS"
-            width={105}
-            height={40}
-            priority
-            className="h-7 sm:h-8 md:h-10 w-auto object-contain block"
-            style={{ width: 'auto' }}
-          />
-        </a>
-
-        {/* Nav */}
-        <nav className="hidden md:flex" style={{ gap: '8px' }}>
-          {navLinks.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              style={{
-                fontFamily: BODY,
-                fontWeight: 500,
-                fontSize: '15px',
-                color: 'rgba(232,232,232,0.6)',
-                textDecoration: 'none',
-                padding: '10px 22px',
-                borderRadius: '50px',
-                transition: 'color 0.2s ease, background 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#e8e8e8'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(232,232,232,0.6)'
-                e.currentTarget.style.background = 'transparent'
-              }}
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        {/* Actions */}
-        <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/waitlist"
-            prefetch={false}
-            className="neo-button-accent inline-block"
-            style={{
-              fontFamily: BODY,
-              fontWeight: 600,
-              fontSize: '14px',
-              padding: '12px 26px',
-              border: 'none',
-              cursor: 'pointer',
-              letterSpacing: '0.01em',
-              textDecoration: 'none',
-              color: '#0a0a0a',
-            }}
-          >
-            Join the Waitlist
-          </Link>
-        </div>
-
-        {/* Mobile Menu Hamburger Button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className="flex md:hidden text-zinc-300 hover:text-white p-2 rounded-full hover:bg-white/5 cursor-pointer"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile Drawer Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden cursor-pointer"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Mobile Drawer Panel */}
-      <div
-        className={`fixed top-0 right-0 bottom-0 z-50 w-64 bg-[#111] p-6 border-l border-zinc-800 transition-transform duration-300 ease-in-out md:hidden flex flex-col justify-between ${
-          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div>
-          <div className="flex justify-between items-center mb-8 pb-4 border-b border-zinc-900">
-            <Image src={irisLogo} alt="Iris OS" width={84} height={32} className="h-8 w-auto object-contain" style={{ width: 'auto' }} />
-            <button
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/5 cursor-pointer"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <nav className="flex flex-col gap-2">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-zinc-300 hover:text-white hover:bg-white/5 px-4 py-2.5 rounded-lg text-base font-semibold transition-colors"
-                style={{ fontFamily: BODY }}
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex flex-col gap-2 border-t border-zinc-900 pt-6">
-          <Link
-            href="/waitlist"
-            prefetch={false}
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="neo-button-accent w-full text-center py-3.5 block font-semibold text-sm cursor-pointer"
-            style={{ fontFamily: BODY, textDecoration: 'none', color: '#0a0a0a' }}
-          >
-            Join the Waitlist
-          </Link>
-        </div>
-      </div>
-    </header>
-  )
-}
 
 // â”€â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Hero() {
@@ -409,7 +245,7 @@ function Hero() {
             textAlign: 'center',
           }}
         >
-          Request Early Access
+          Join the Waitlist
         </Link>
         <a
           href="#video"
@@ -1396,49 +1232,12 @@ function Pricing() {
   const { region, plans, loading } = usePlanPricing();
 
   return (
-    <section id="pricing" className="scroll-mt-24 px-4 py-24 sm:px-6 sm:py-32">
-      <div className="mx-auto max-w-[1200px]">
-        <ScrollReveal>
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="section-divider mx-auto mb-6" />
-            <span className="mb-5 block text-[11px] uppercase tracking-[0.14em] text-white/40" style={{ fontFamily: JBMONO }}>Simple monthly pricing</span>
-            <h2 className="gradient-text text-4xl font-bold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: DISPLAY }}>Choose how far Atlas can take you.</h2>
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/45 sm:text-base" style={{ fontFamily: BODY }}>
-              {loading ? 'Detecting pricing for your region…' : `${region === 'INDIA' ? 'India' : 'International'} pricing selected from your location. Early-bird prices exclude applicable taxes.`}
-            </p>
-          </div>
-        </ScrollReveal>
-
-        <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {plans.map((plan, index) => (
-            <ScrollReveal key={plan.id} delay={`${index * 0.1}s`} className="h-full">
-              <article className={`flex h-full min-h-[430px] flex-col rounded-[24px] border p-7 ${plan.id === 'PRO' ? 'border-white/20 bg-white/[0.055] shadow-[8px_8px_24px_#040404,-8px_-8px_24px_#1e1e1e]' : 'border-white/[0.07] bg-[#111111] shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919]'}`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div><span className="text-[10px] uppercase tracking-[0.15em] text-white/35" style={{ fontFamily: JBMONO }}>Iris / {plan.name}</span><h3 className="mt-2 text-xl font-bold text-white" style={{ fontFamily: DISPLAY }}>{plan.name}</h3></div>
-                  {plan.id === 'PRO' && <span className="rounded-full border border-white/15 px-3 py-1 text-[9px] font-bold uppercase tracking-wider text-white/70">Popular</span>}
-                </div>
-
-                <div className="mt-7 min-h-[86px]">
-                  {plan.baseAmount > 0 && <div className="mb-1 flex items-center gap-2 text-xs"><del className="text-white/35">{formatPlanMoney(plan.listAmount, plan.currency)}</del><span className="font-bold uppercase tracking-wide text-emerald-400">Early bird · 50% off</span></div>}
-                  <span className="font-mono text-4xl font-black tabular-nums text-white">{plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}</span>
-                  <span className="ml-1 text-xs text-white/35">/ month</span>
-                </div>
-
-                <p className="mt-3 text-sm leading-6 text-white/45">{plan.description}</p>
-                <ul className="mt-7 flex-1 space-y-3 border-t border-white/[0.07] pt-6 text-sm text-white/65">
-                  {plan.features.map((feature) => <li key={feature} className="flex items-start gap-3"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-white/50" />{feature}</li>)}
-                </ul>
-                <Link href="/waitlist" prefetch={false} className={plan.id === 'PRO' ? 'neo-button-accent mt-8 block py-3.5 text-center text-sm font-semibold text-[#0a0a0a] no-underline' : 'neo-button mt-8 block py-3.5 text-center text-sm font-semibold text-white/75 no-underline'}>
-                  {plan.id === 'BASIC' ? 'Start for free' : `Choose ${plan.name}`}
-                </Link>
-              </article>
-            </ScrollReveal>
-          ))}
-        </div>
-
-        <div className="mt-8 text-center"><Link href="/pricing" prefetch={false} className="text-sm font-semibold text-white/55 underline decoration-white/20 underline-offset-4 transition-colors hover:text-white">View the full pricing page</Link></div>
-      </div>
-    </section>
+    <IrisPricingComparison
+      plans={plans}
+      region={region}
+      loading={loading}
+      showFullPricingLink
+    />
   );
 }
 
@@ -1459,7 +1258,7 @@ function Waitlist() {
             marginBottom: '24px',
           }}
         >
-          Early Access
+          Get started
         </span>
         <h2
           style={{
@@ -1475,7 +1274,7 @@ function Waitlist() {
           Ready to clarify your agency&apos;s vision?
         </h2>
         <p style={{ fontFamily: BODY, fontSize: '17px', color: 'rgba(232,232,232,0.45)', lineHeight: 1.7, marginBottom: '56px' }}>
-          Consolidate your tools and focus your operations. Join the waitlist for the definitive all-in-one agency workspace.
+          Consolidate your tools and focus your operations. Create your all-in-one agency workspace.
         </p>
 
         <div className="neo-raised" style={{ padding: 'clamp(28px, 6vw, 48px) clamp(20px, 6vw, 40px)', display: 'flex', justifyContent: 'center' }}>
@@ -1501,7 +1300,7 @@ function Waitlist() {
 
         {/* Social proof */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', marginTop: '40px', flexWrap: 'wrap' }}>
-          {['1,200+ on waitlist', 'Ships Q3 2026', 'Invite-only beta'].map((item, i) => (
+          {['Client management', 'Project delivery', 'Team collaboration'].map((item, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
               <span style={{ fontFamily: JBMONO, fontSize: '11px', color: 'rgba(232,232,232,0.32)', letterSpacing: '0.04em' }}>{item}</span>
@@ -1534,34 +1333,20 @@ function Footer() {
         Â© 2026 Iris OS, Inc. All rights reserved.
       </span>
       <div style={{ display: 'flex', gap: '24px' }}>
-        {['Privacy', 'Terms', 'Security'].map((item) => {
-          const href = item === 'Privacy' ? '/privacy' : item === 'Terms' ? '/terms' : '#';
-          if (href !== '#') {
-            return (
-              <Link
-                key={item}
-                href={href}
-                prefetch={false}
-                style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
-              >
-                {item}
-              </Link>
-            )
-          }
-          return (
-            <a
-              key={item}
-              href="#"
-              style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
-            >
-              {item}
-            </a>
-          )
-        })}
+        {[
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Terms', href: '/terms' },
+          { label: 'Cancellations & Refunds', href: '/cancellation-refund-policy' },
+        ].map((item) => <Link
+          key={item.href}
+          href={item.href}
+          prefetch={false}
+          style={{ fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.3)', textDecoration: 'none', transition: 'color 0.2s ease' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.65)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(232,232,232,0.3)' }}
+        >
+          {item.label}
+        </Link>)}
       </div>
     </footer>
   )
@@ -1571,6 +1356,7 @@ function Footer() {
 export default function App() {
   return (
     <div
+      id="top"
       style={{
         minHeight: '100vh',
         background: `
@@ -1581,7 +1367,8 @@ export default function App() {
         `,
       }}
     >
-      <Header />
+      <ReturningDevicePrompt />
+      <IrisMarketingHeader />
       <Hero />
       <VideoSection />
       <About />

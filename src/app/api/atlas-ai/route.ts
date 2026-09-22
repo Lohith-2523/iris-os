@@ -514,7 +514,7 @@ Please reply in general terms. Advise them politely that they have disabled "Atl
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    const tokenBudget = { orgId: user.orgId, plan };
+    const tokenBudget = { orgId: user.orgId, userId: user.id, userRole: user.role, plan };
 
     // Helper functions 
     const callGemini = async (prompt: string, customFallback?: string, streamOutput = false) => {

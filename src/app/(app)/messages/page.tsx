@@ -14,5 +14,5 @@ export default async function MessagesPage() {
     role: ctx.role,
     limits: ctx.entitlements.messagingLimits,
   });
-  return <MessagesClient initialInbox={inbox} />;
+  return <MessagesClient initialInbox={{ ...inbox, plan: ctx.plan }} />;
 }

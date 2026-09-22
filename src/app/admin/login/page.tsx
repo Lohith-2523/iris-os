@@ -65,7 +65,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <AuthShell title="Superadmin sign in" description="Use an invited Iris OS account to enter the administration workspace.">
+    <AuthShell title="Superadmin sign in" description="Use an invited Iris OS account to enter the administration workspace." appearance="dark">
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}
         <form onSubmit={handleLogin} className={styles.form} aria-busy={isLoading}>

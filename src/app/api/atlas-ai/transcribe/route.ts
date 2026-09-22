@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestUser } from '@/lib/org';
 import { normalizePlan } from '@/lib/plan-entitlements';
+import { hasMeaningfulEnglishSpeech } from '@/lib/atlas-ai/voice-input';
 
 export const runtime = 'nodejs';
 
@@ -44,6 +45,8 @@ export async function POST(request: NextRequest) {
   const providerForm = new FormData();
   providerForm.append('file', file, file.name || 'atlas-recording.webm');
   providerForm.append('model', model);
+  providerForm.append('language', 'en');
+  providerForm.append('prompt', 'Transcribe spoken English only. Preserve English words as English and do not translate them into another language. Return no text for silence, ambient noise, or audio without intelligible English speech.');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
@@ -57,5 +60,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: providerMessage }, { status: response.status || 502 });
   }
 
-  return NextResponse.json({ text: result.text.trim(), model });
+  const transcript = result.text.trim();
+  return NextResponse.json({ text: hasMeaningfulEnglishSpeech(transcript) ? transcript : '', model });
 }

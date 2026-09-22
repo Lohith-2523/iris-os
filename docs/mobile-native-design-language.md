@@ -84,4 +84,4 @@ The root shell owns viewport locking only to keep navigation stationary. `.works
 
 ## Reversion
 
-Remove the labelled **Touch-first Workbench** block from `src/app/globals.css`, remove `MobileBottomNavigation` from the shared app layout, and restore the previous mode union in `src/lib/workspace-layout-mode.ts`. The pre-redesign visual language and broader rollback recipe remain in `docs/design-language-original-2026-08-25.md`.
+Remove the labelled **Touch-first Workbench** block from `src/app/globals.css`, remove `MobileBottomNavigation` from the shared app layout, and restore the previous mode union in `shared/lib/workspace-layout-mode.ts`. The pre-redesign visual language and broader rollback recipe remain in `docs/design-language-original-2026-08-25.md`.

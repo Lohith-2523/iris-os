@@ -199,3 +199,6 @@
 [0913/222032.917:ERROR:gpu\command_buffer\service\gl_utils.cc:430] [.WebGL-0x1b5c031aea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
 [0913/222032.939:ERROR:gpu\command_buffer\service\gl_utils.cc:430] [.WebGL-0x1b5c031aea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
 [0913/222032.953:ERROR:gpu\command_buffer\service\gl_utils.cc:430] [.WebGL-0x1b5c031aea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[0919/204713.556:ERROR:gpu\ipc\client\command_buffer_proxy_impl.cc:285] ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer.
+[0919/204713.556:ERROR:gpu\ipc\client\command_buffer_proxy_impl.cc:285] ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer.
+[0919/204713.556:ERROR:gpu\ipc\client\command_buffer_proxy_impl.cc:285] ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer.

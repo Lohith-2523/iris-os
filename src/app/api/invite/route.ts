@@ -2,6 +2,7 @@ import { validateProfileAvatarDataUrl } from '@/lib/profile-avatar';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getAuthenticatedIdentity } from '@/lib/org';
+import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
 export async function GET(request: NextRequest) {
   try {
@@ -109,6 +110,11 @@ export async function POST(request: NextRequest) {
       data: { used: true }
     });
 
+    const organization = await prisma.organization.findUniqueOrThrow({
+      where: { id: invite.client.orgId },
+      select: { plan: true },
+    });
+
     return NextResponse.json({
       success: true,
       user: {
@@ -116,7 +122,8 @@ export async function POST(request: NextRequest) {
         name: dbUser.name,
         role: dbUser.role,
         clientId: dbUser.clientId
-      }
+      },
+      destination: teamMemberWorkspaceHome({ role: 'client', plan: organization.plan }),
     });
   } catch (error: any) {
     console.error('Error processing client invite sign-up:', error);

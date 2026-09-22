@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
   exchange: vi.fn(),
   signOut: vi.fn(),
   adminFind: vi.fn(),
+  provision: vi.fn(),
+  hasApprovedSignup: vi.fn(),
+  validateDeviceAccess: vi.fn(),
 }));
 
 vi.mock('@supabase/ssr', () => ({
@@ -16,9 +19,16 @@ vi.mock('@/lib/db', () => ({ prisma: {
   clientInvite: { findUnique: vi.fn() },
   memberInvite: { findUnique: vi.fn() },
 } }));
-vi.mock('@/lib/org', () => ({ provisionAuthenticatedUser: vi.fn() }));
-vi.mock('@/lib/database-resilience', () => ({ isTransientDatabaseConnectionError: vi.fn(() => false), withDatabaseConnectionRetry: vi.fn() }));
-vi.mock('@/lib/auth-access', () => ({ hasApprovedSignup: vi.fn(), validateDeviceAccess: vi.fn() }));
+vi.mock('@/lib/org', () => ({
+  provisionAuthenticatedUser: mocks.provision,
+  WorkspaceSignupRoleConflictError: class WorkspaceSignupRoleConflictError extends Error {},
+  DeletedClientWorkspaceError: class DeletedClientWorkspaceError extends Error {},
+}));
+vi.mock('@/lib/database-resilience', () => ({ isTransientDatabaseConnectionError: vi.fn(() => false), withDatabaseConnectionRetry: (operation: () => unknown) => operation() }));
+vi.mock('@/lib/auth-access', () => ({
+  hasApprovedSignup: mocks.hasApprovedSignup,
+  validateDeviceAccess: mocks.validateDeviceAccess,
+}));
 
 import { GET } from './route';
 
@@ -32,6 +42,8 @@ describe('superadmin OAuth callback', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'publishable-key');
     mocks.signOut.mockResolvedValue({ error: null });
+    mocks.hasApprovedSignup.mockResolvedValue(false);
+    mocks.validateDeviceAccess.mockResolvedValue(false);
   });
 
   it('sends the verified owner directly to the superadmin workspace', async () => {
@@ -39,6 +51,28 @@ describe('superadmin OAuth callback', () => {
     const response = await GET(new Request('http://localhost:3000/auth/callback?code=valid&next=/admin'));
     expect(response.headers.get('location')).toBe('http://localhost:3000/admin');
     expect(mocks.adminFind).not.toHaveBeenCalled();
+  });
+
+  it('allows an approved new account to finish authentication', async () => {
+    session('new@example.com');
+    mocks.validateDeviceAccess.mockResolvedValue(true);
+    mocks.provision.mockResolvedValue({ role: 'ADMIN', organization: { onboardingState: { needsOnboarding: true } } });
+    const response = await GET(new Request('https://irisos.app/auth/callback?code=valid&next=/onboarding'));
+    expect(response.headers.get('location')).toBe('https://irisos.app/onboarding');
+    expect(mocks.provision).toHaveBeenCalledWith(expect.anything(), { intent: 'workspace-signup' });
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not route a client identity through top-level workspace signup', async () => {
+    session('former-client@example.com');
+    mocks.validateDeviceAccess.mockResolvedValue(true);
+    const { WorkspaceSignupRoleConflictError } = await import('@/lib/org');
+    mocks.provision.mockRejectedValue(new WorkspaceSignupRoleConflictError());
+
+    const response = await GET(new Request('https://irisos.app/auth/callback?code=valid&next=/onboarding'));
+
+    expect(response.headers.get('location')).toBe('https://irisos.app/login?auth_error=account_already_exists');
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
   it('rejects a Google identity without an active superadmin invitation', async () => {

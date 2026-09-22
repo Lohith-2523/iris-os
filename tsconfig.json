@@ -19,6 +19,10 @@
       }
     ],
     "paths": {
+      "@/components/*": ["./shared/components/*"],
+      "@/config/*": ["./shared/config/*"],
+      "@/lib/*": ["./shared/lib/*"],
+      "@/server/*": ["./shared/server/*"],
       "@/*": ["./src/*"]
     }
   },

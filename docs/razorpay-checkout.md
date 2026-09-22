@@ -34,7 +34,7 @@ The Checkout options use the Iris OS square logo from `/icons/iris-512.png`, the
 2. Open `/onboarding?step=pricing`, a feature upgrade dialog, or `/checkout`.
 3. Choose Pro or Advanced and complete the Razorpay test modal. The plan changes only after server-side verification succeeds.
 4. Choose Free to activate the no-cost tier without opening Razorpay.
-5. Run `npx vitest run src/lib/plan-pricing.test.ts src/lib/razorpay.test.ts src/components/billing/razorpay-checkout.test.tsx`.
+5. Run `npx vitest run shared/lib/plan-pricing.test.ts shared/lib/razorpay.test.ts shared/components/billing/razorpay-checkout.test.tsx`.
 
 For a deployed location test, visit from an Indian IP and a non-Indian IP and confirm INR and USD respectively. For live payments, configure live keys and enable international payments/currencies in Razorpay as needed.
 

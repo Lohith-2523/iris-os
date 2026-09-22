@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Activity, BadgeDollarSign, Bug, Headphones, LayoutDashboard, LogOut, Settings, ShieldCheck, TicketPercent, Users } from 'lucide-react';
+import { Activity, BadgeDollarSign, BarChart3, Bug, Check, Coins, Copy, Headphones, KeyRound, LayoutDashboard, LogOut, Settings, ShieldCheck, TicketPercent, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
@@ -12,14 +12,17 @@ import type { AdminDashboardData } from '@/server/admin/dashboard';
 import type { SuperadminIdentity } from '@/server/admin/auth';
 import { createClient } from '@/lib/client';
 
-export type AdminSection = 'overview' | 'users' | 'revenue' | 'support' | 'incidents' | 'coupons' | 'access' | 'settings';
+export type AdminSection = 'overview' | 'users' | 'credits' | 'credit-analytics' | 'revenue' | 'support' | 'incidents' | 'coupons' | 'user-access' | 'access' | 'settings';
 const sections: Array<{ id: AdminSection; label: string; icon: typeof Activity }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'users', label: 'Users', icon: Users },
+  { id: 'credits', label: 'User credits', icon: Coins },
+  { id: 'credit-analytics', label: 'Credit analytics', icon: BarChart3 },
   { id: 'revenue', label: 'Revenue', icon: BadgeDollarSign },
   { id: 'support', label: 'Support', icon: Headphones },
   { id: 'incidents', label: 'Errors & bugs', icon: Bug },
   { id: 'coupons', label: 'Coupons', icon: TicketPercent },
+  { id: 'user-access', label: 'User access links', icon: KeyRound },
   { id: 'access', label: 'Admin access', icon: ShieldCheck },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -40,6 +43,8 @@ function bytes(value: number) {
 function date(value: string | null) {
   return value ? new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Never';
 }
+function credits(value: number) { return new Intl.NumberFormat('en', { notation: value >= 100_000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value); }
+function percent(value: number) { return new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 }).format(value); }
 
 function Pill({ children }: { children: React.ReactNode }) {
   return <span className="inline-flex rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[11px] font-medium text-zinc-300">{children}</span>;
@@ -83,10 +88,13 @@ export function AdminWorkspace({ section, data, admin }: { section: AdminSection
       <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
         {section === 'overview' && <Overview data={data} />}
         {section === 'users' && <UsersView data={data} />}
+        {section === 'credits' && <CreditUsageView data={data} view="users" />}
+        {section === 'credit-analytics' && <CreditUsageView data={data} view="analytics" />}
         {section === 'revenue' && <RevenueView data={data} />}
         {section === 'support' && <SupportView data={data} mutate={mutate} busy={busy} />}
         {section === 'incidents' && <IncidentsView data={data} mutate={mutate} busy={busy} />}
         {section === 'coupons' && <CouponsView data={data} mutate={mutate} busy={busy} />}
+        {section === 'user-access' && <UserAccessView data={data} admin={admin} />}
         {section === 'access' && <AccessView data={data} admin={admin} mutate={mutate} busy={busy} />}
         {section === 'settings' && <SettingsView admin={admin} mutate={mutate} busy={busy} />}
       </div>
@@ -134,6 +142,63 @@ function UsersView({ data }: { data: AdminDashboardData }) {
     </div>
     <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm"><thead className="text-xs text-zinc-500"><tr>{['User', 'Status', 'Workspace', 'Plan', 'Role', 'Last active', 'Traffic', 'Storage', 'Joined'].map(h => <th className="px-4 py-3 font-medium" key={h}>{h}</th>)}</tr></thead><tbody className="divide-y divide-zinc-800">{users.map(user => <tr key={user.id}><td className="px-4 py-3"><div className="flex items-center gap-3"><div className="h-8 w-8 shrink-0 overflow-hidden rounded-full"><ProfileAvatar src={user.avatarUrl} name={user.name} /></div><div><p className="font-medium">{user.name}</p><p className="text-xs text-zinc-500">{user.email}</p></div></div></td><td className="px-4 py-3"><Pill>{user.isActiveAccount ? 'ACTIVE' : user.accessRevokedAt ? 'REVOKED' : 'OFFBOARDED'}</Pill></td><td className="px-4 py-3 text-zinc-400">{user.organization.name}</td><td className="px-4 py-3"><Pill>{user.organization.plan}</Pill></td><td className="px-4 py-3 text-zinc-400">{user.role}</td><td className="px-4 py-3 text-zinc-400">{date(user.lastActiveAt)}</td><td className="px-4 py-3">{user.traffic.toLocaleString()} views</td><td className="px-4 py-3"><p>{bytes(user.storageBytes)}</p><p className="text-xs text-zinc-500">{user.storedFiles} files</p></td><td className="px-4 py-3 text-zinc-400">{date(user.createdAt)}</td></tr>)}</tbody></table>{!users.length && <Empty>No users match these filters.</Empty>}</div>
   </Panel>;
+}
+
+function CreditUsageView({ data, view }: { data: AdminDashboardData; view: 'users' | 'analytics' }) {
+  const analytics = data.creditAnalytics;
+  const [query, setQuery] = useState('');
+  const [plan, setPlan] = useState('ALL');
+  const [role, setRole] = useState('ALL');
+  const [sort, setSort] = useState<'highest' | 'lowest' | 'name'>('highest');
+  const roles = Array.from(new Set(analytics.users.map((user) => user.role))).sort();
+  const visibleUsers = analytics.users.filter((user) => {
+    if (plan !== 'ALL' && user.plan !== plan) return false;
+    if (role !== 'ALL' && user.role !== role) return false;
+    const needle = query.trim().toLowerCase();
+    return !needle || [user.name, user.email, user.organization].some((value) => value.toLowerCase().includes(needle));
+  }).sort((a, b) => sort === 'highest' ? b.total - a.total : sort === 'lowest' ? a.total - b.total : a.name.localeCompare(b.name));
+  const periodLabel = `${new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(analytics.periodStart))} · resets ${new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(analytics.resetsAt))}`;
+  const cards = [
+    ['Credits spent', credits(analytics.totals.total), `${credits(analytics.totals.input)} input · ${credits(analytics.totals.output)} output`],
+    ['Average per user', credits(analytics.totals.averagePerUser), `Across all ${analytics.totals.users.toLocaleString()} accounts`],
+    ['Average active user', credits(analytics.totals.averagePerActiveUser), `${analytics.totals.activeUsers.toLocaleString()} users spent credits`],
+    ['Highest spender', analytics.topUser ? credits(analytics.topUser.total) : '0', analytics.topUser ? `${analytics.topUser.name} · ${analytics.topUser.plan}` : 'No usage this month'],
+  ];
+
+  return <div className="space-y-6">
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div><p className="text-sm text-zinc-300">Current monthly usage</p><p className="mt-1 text-xs text-zinc-500">{periodLabel}</p></div>
+      <Pill>{analytics.totals.requests.toLocaleString()} metered requests</Pill>
+    </div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, note]) => <div key={label} className="rounded-xl border border-zinc-800 bg-zinc-950 p-5"><p className="text-xs text-zinc-500">{label}</p><p className="mt-3 text-3xl font-semibold tracking-tight">{value}</p><p className="mt-2 truncate text-xs text-zinc-600">{note}</p></div>)}</div>
+
+    {view === 'analytics' && <><Panel title="Spend by user base" description="Plan-level totals and averages include every provisioned account, including users with zero usage.">
+      <div className="grid gap-px bg-zinc-800 lg:grid-cols-3">{analytics.plans.map((item) => <article key={item.plan} className="bg-zinc-950 p-5">
+        <div className="flex items-center justify-between"><Pill>{item.plan}</Pill><span className="text-xs text-zinc-500">{percent(item.share)} of spend</span></div>
+        <p className="mt-5 text-3xl font-semibold">{credits(item.total)}</p><p className="mt-1 text-xs text-zinc-500">total credits</p>
+        <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-zinc-800"><div className="h-full rounded-full bg-zinc-300" style={{ width: `${Math.max(item.share * 100, item.total ? 2 : 0)}%` }} /></div>
+        <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-xs"><div><dt className="text-zinc-600">Users</dt><dd className="mt-1 text-zinc-300">{item.users} total · {item.activeUsers} active</dd></div><div><dt className="text-zinc-600">Avg / user</dt><dd className="mt-1 text-zinc-300">{credits(item.averagePerUser)}</dd></div><div><dt className="text-zinc-600">Avg / active</dt><dd className="mt-1 text-zinc-300">{credits(item.averagePerActiveUser)}</dd></div><div><dt className="text-zinc-600">Most spent</dt><dd className="mt-1 text-zinc-300">{credits(item.mostSpent)}</dd></div></dl>
+      </article>)}</div>
+    </Panel>
+
+    <div className="grid gap-6 xl:grid-cols-2">
+      <Panel title="Provider distribution" description="Credits reconciled from provider-reported usage."><div className="divide-y divide-zinc-800">{analytics.providers.map((item) => <div className="px-5 py-4" key={item.provider}><div className="flex items-center justify-between text-sm"><span>{item.provider}</span><span className="font-mono text-zinc-300">{credits(item.total)} <span className="ml-2 text-xs text-zinc-600">{percent(item.share)}</span></span></div><div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-800"><div className="h-full bg-zinc-400" style={{ width: `${item.share * 100}%` }} /></div></div>)}</div></Panel>
+      <Panel title="Role distribution" description="Compare workspace administrators and member usage."><div className="divide-y divide-zinc-800">{analytics.roles.map((item) => <div className="flex items-center justify-between px-5 py-4" key={item.role}><div><p className="text-sm font-medium capitalize">{item.role}</p><p className="mt-1 text-xs text-zinc-600">{item.users} users · {credits(item.averagePerUser)} average</p></div><p className="font-mono text-sm text-zinc-300">{credits(item.total)}</p></div>)}{!analytics.roles.length && <Empty>No roles found.</Empty>}</div></Panel>
+    </div></>}
+
+    {view === 'users' && <Panel title="Credits by admin and user" description="Every customer account is listed; zero-use accounts remain visible for adoption analysis.">
+      <div className="grid gap-3 border-b border-zinc-800 p-5 md:grid-cols-[minmax(220px,1fr)_150px_150px_170px]">
+        <label className={labelClass}>Search<input className={inputClass} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, email, or workspace" /></label>
+        <label className={labelClass}>Plan<select className={inputClass} value={plan} onChange={(event) => setPlan(event.target.value)}><option value="ALL">All plans</option><option>BASIC</option><option>PRO</option><option>ADVANCED</option></select></label>
+        <label className={labelClass}>Role<select className={inputClass} value={role} onChange={(event) => setRole(event.target.value)}><option value="ALL">All roles</option>{roles.map((value) => <option key={value}>{value}</option>)}</select></label>
+        <label className={labelClass}>Sort<select className={inputClass} value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}><option value="highest">Highest spend</option><option value="lowest">Lowest spend</option><option value="name">Name</option></select></label>
+      </div>
+      <div className="overflow-x-auto"><table className="w-full min-w-[1100px] text-left text-sm"><thead className="text-xs text-zinc-500"><tr>{['User', 'Workspace', 'Plan', 'Role', 'Requests', 'Input', 'Output', 'Total', 'Top provider'].map((heading) => <th className="px-4 py-3 font-medium" key={heading}>{heading}</th>)}</tr></thead><tbody className="divide-y divide-zinc-800">{visibleUsers.map((user) => {
+        const topProvider = Object.entries(user.providers).sort((a, b) => b[1] - a[1])[0];
+        return <tr key={user.id}><td className="px-4 py-3"><p className="font-medium">{user.name}</p><p className="text-xs text-zinc-500">{user.email}</p></td><td className="px-4 py-3 text-zinc-400">{user.organization}</td><td className="px-4 py-3"><Pill>{user.plan}</Pill></td><td className="px-4 py-3 capitalize text-zinc-400">{user.role}</td><td className="px-4 py-3 font-mono text-xs">{user.requests.toLocaleString()}</td><td className="px-4 py-3 font-mono text-xs text-zinc-400">{credits(user.input)}</td><td className="px-4 py-3 font-mono text-xs text-zinc-400">{credits(user.output)}</td><td className="px-4 py-3 font-mono font-medium">{credits(user.total)}</td><td className="px-4 py-3 text-zinc-400">{topProvider && topProvider[1] > 0 ? `${topProvider[0]} · ${credits(topProvider[1])}` : '—'}</td></tr>;
+      })}</tbody></table>{!visibleUsers.length && <Empty>No users match these filters.</Empty>}</div>
+    </Panel>}
+  </div>;
 }
 
 function RevenueView({ data }: { data: AdminDashboardData }) {
@@ -187,6 +252,61 @@ function CouponsView({ data, mutate, busy }: { data: AdminDashboardData; mutate:
           <div className="self-end pt-1"><Button loading={busy} type="submit">Save changes</Button></div>
         </form>
       </details>)}</div> : <Empty>No managed coupons.</Empty>}
+    </Panel>
+  </div>;
+}
+
+function UserAccessView({ data, admin }: { data: AdminDashboardData; admin: SuperadminIdentity }) {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [expiresInDays, setExpiresInDays] = useState(7);
+  const [accessUrl, setAccessUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const generate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true);
+    setCopied(false);
+    setMessage('');
+    const response = await fetch('/api/admin/manage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create-user-access-link', email, expiresInDays }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) {
+      setMessage(result.error || 'Unable to generate an access link.');
+      return;
+    }
+    setAccessUrl(result.accessUrl);
+    setMessage(`Single-use access created for ${result.email}.`);
+    router.refresh();
+  };
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(accessUrl);
+    setCopied(true);
+  };
+
+  return <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+    <Panel title="Generate user access link" description="Bypass the waitlist for one approved email address">
+      {admin.role === 'VIEWER' ? <Empty>Editor access is required to generate user links.</Empty> : <form className={formClass} onSubmit={generate}>
+        <label className={labelClass}>Approved user email<input className={inputClass} name="email" type="email" value={email} onChange={event => setEmail(event.target.value)} required /></label>
+        <label className={labelClass}>Link expires in (Days)<input className={inputClass} name="days" type="number" min="1" max="30" value={expiresInDays} onChange={event => setExpiresInDays(Number(event.target.value))} required /></label>
+        <p className="text-xs leading-5 text-zinc-500">The link is single-use. Once opened, that browser can reach login and signup while the public waitlist remains active. Signup stays restricted to this email address.</p>
+        <Button type="submit" loading={busy}>Generate secure link</Button>
+        {accessUrl && <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+          <label className={labelClass}>Share this link<input className={inputClass} value={accessUrl} readOnly /></label>
+          <Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}>{copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}{copied ? 'Copied' : 'Copy link'}</Button>
+        </div>}
+        {message && <p role="status" className="text-xs text-zinc-300">{message}</p>}
+      </form>}
+    </Panel>
+    <Panel title="Recent user access links" description="Raw links are shown only once when generated">
+      {data.directAccessLinks.length ? <div className="divide-y divide-zinc-800">{data.directAccessLinks.map(item => <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium">{item.email}</p><p className="mt-1 text-xs text-zinc-500">Created {date(item.createdAt)} · Expires {date(item.expiresAt)}</p></div><Pill>{item.status}</Pill></div>)}</div> : <Empty>No direct-access links have been generated.</Empty>}
     </Panel>
   </div>;
 }

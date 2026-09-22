@@ -113,7 +113,7 @@ These boundaries remain mandatory:
 
 ## Proxy
 
-`src/proxy.ts` remains lightweight. It handles the coming-soon gate and delegates Supabase session refresh/route protection to `src/lib/middleware.ts`. It performs no Prisma domain query, organization hydration, page read, or provider request.
+`src/proxy.ts` remains lightweight. It handles the coming-soon gate and delegates Supabase session refresh/route protection to `shared/lib/middleware.ts`. It performs no Prisma domain query, organization hydration, page read, or provider request.
 
 ## Caching
 

@@ -52,15 +52,6 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
   const [integrations, setIntegrations] = React.useState<any[]>(initialData.workspace.integrations);
   const [loadingIntegrations, setLoadingIntegrations] = React.useState(false);
 
-  const [stripeData, setStripeData] = React.useState<any>(null);
-  const [loadingStripe, setLoadingStripe] = React.useState(false);
-
-  const [paypalData, setPaypalData] = React.useState<any>(null);
-  const [loadingPaypal, setLoadingPaypal] = React.useState(false);
-
-  const [razorpayData, setRazorpayData] = React.useState<any>(null);
-  const [loadingRazorpay, setLoadingRazorpay] = React.useState(false);
-
   const [dbData, setDbData] = React.useState<any>(initialData.finance);
   const [loadingFinanceTimeframe, setLoadingFinanceTimeframe] = React.useState(false);
   const [leakData, setLeakData] = React.useState<any>(null);
@@ -274,6 +265,14 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     return true;
   }, [timeFrame]);
 
+  const refreshFinanceOverview = React.useCallback(async () => {
+    const response = await fetch(`/api/data?domain=finance&timeframe=${encodeURIComponent(timeFrame)}`, {
+      cache: 'no-store',
+      headers: { 'X-Workspace-Cache-Background': '1' },
+    });
+    if (response.ok) setDbData(await response.json());
+  }, [timeFrame]);
+
 
   const fetchManualTransactions = React.useCallback(async () => {
     setLoadingManual(true);
@@ -395,7 +394,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
         setFormAmount('');
         setFormComments('');
         setFormClientId('');
-        fetchOutstandingInvoices();
+        void Promise.all([fetchOutstandingInvoices(), refreshFinanceOverview()]);
       } else {
         const err = await res.json();
         alert(err.error || 'Failed to save transaction.');
@@ -417,7 +416,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
         throw new Error(error.error || 'Failed to remove transaction.');
       }
       setManualTransactions((current) => current.filter((transaction) => transaction.id !== transactionId));
-      fetchOutstandingInvoices();
+      void Promise.all([fetchOutstandingInvoices(), refreshFinanceOverview()]);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to remove transaction.');
     }
@@ -665,6 +664,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                 .sort((left, right) => new Date(right.date).getTime() - new Date(left.date).getTime());
             });
           }
+          void refreshFinanceOverview();
           const skippedMessage = result.rejectedCount
             ? ` ${result.rejectedCount} row${result.rejectedCount === 1 ? '' : 's'} skipped: ${result.rejected?.map((item: { row: number | null; reason: string }) => `Row ${item.row ?? 'unknown'}: ${item.reason}`).join(' ')}`
             : '';
@@ -697,51 +697,6 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       console.error('Error fetching integrations:', e);
     } finally {
       setLoadingIntegrations(false);
-    }
-  }, []);
-
-  const fetchStripeData = React.useCallback(async () => {
-    setLoadingStripe(true);
-    try {
-      const res = await fetch('/api/stripe');
-      if (res.ok) {
-        const data = await res.json();
-        setStripeData(data);
-      }
-    } catch (e) {
-      console.error('Error loading Stripe data:', e);
-    } finally {
-      setLoadingStripe(false);
-    }
-  }, []);
-
-  const fetchPaypalData = React.useCallback(async () => {
-    setLoadingPaypal(true);
-    try {
-      const res = await fetch('/api/paypal');
-      if (res.ok) {
-        const data = await res.json();
-        setPaypalData(data);
-      }
-    } catch (e) {
-      console.error('Error loading PayPal data:', e);
-    } finally {
-      setLoadingPaypal(false);
-    }
-  }, []);
-
-  const fetchRazorpayData = React.useCallback(async () => {
-    setLoadingRazorpay(true);
-    try {
-      const res = await fetch('/api/razorpay');
-      if (res.ok) {
-        const data = await res.json();
-        setRazorpayData(data);
-      }
-    } catch (e) {
-      console.error('Error loading Razorpay data:', e);
-    } finally {
-      setLoadingRazorpay(false);
     }
   }, []);
 
@@ -788,36 +743,6 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     return () => { isCurrent = false; };
   }, [timeFrame]);
 
-  const isStripeConnected = React.useMemo(() => {
-    return integrations.some((i) => i.provider === 'STRIPE' && i.status === 'CONNECTED');
-  }, [integrations]);
-
-  const isRazorpayConnected = React.useMemo(() => {
-    return integrations.some((i) => i.provider === 'RAZORPAY' && i.status === 'CONNECTED');
-  }, [integrations]);
-
-  const isPaypalConnected = React.useMemo(() => {
-    return integrations.some((i) => i.provider === 'PAYPAL' && i.status === 'CONNECTED');
-  }, [integrations]);
-
-  React.useEffect(() => {
-    if (isStripeConnected) {
-      fetchStripeData();
-    }
-  }, [isStripeConnected, fetchStripeData]);
-
-  React.useEffect(() => {
-    if (isPaypalConnected) {
-      fetchPaypalData();
-    }
-  }, [isPaypalConnected, fetchPaypalData]);
-
-  React.useEffect(() => {
-    if (isRazorpayConnected) {
-      fetchRazorpayData();
-    }
-  }, [isRazorpayConnected, fetchRazorpayData]);
-
   const aiLeakText = React.useMemo(() => {
     if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Atlas AI...');
     return formatUserMessage(`Lohith, Atlas AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
@@ -826,31 +751,12 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
   const combinedMetrics = React.useMemo(() => {
     const baseOutstanding = dbData?.outstandingAmount ?? 0;
     const baseExpenses = dbData?.totalExpenses ?? 0;
-
-    let manualGross = 0;
-    let manualExpenses = 0;
-    let aiSubscriptionCosts = 0;
-    manualTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach(tx => {
-      if (tx.amount > 0 && tx.category === 'Revenue') {
-        manualGross += tx.amount;
-      } else if (tx.amount < 0) {
-        manualExpenses += Math.abs(tx.amount);
-        if (tx.category === 'AI Subscription') {
-          aiSubscriptionCosts += Math.abs(tx.amount);
-        }
-      }
-    });
-
-    subscriptionTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach(tx => {
-      const amt = Math.abs(tx.amountUSD);
-      manualExpenses += amt;
-      if (tx.source === 'Recurring Ledger' && tx.details?.includes('(AI subscriptions)')) {
-        aiSubscriptionCosts += amt;
-      }
-    });
-    // Revenue is recognized exclusively from positive Revenue entries in the ledger.
-    const totalGross = manualGross;
-    const totalExpenses = baseExpenses + manualExpenses;
+    const aiSubscriptionCosts = (dbData?.expenses ?? [])
+      .filter((expense: any) => expense.category === 'AI Subscription')
+      .reduce((sum: number, expense: any) => sum + Math.abs(Number(expense.amount) || 0), 0);
+    // Revenue and expenses are recognized exclusively from persisted ledger transactions.
+    const totalGross = dbData?.grossBillings ?? 0;
+    const totalExpenses = baseExpenses;
     const liveOutstanding = outstandingInvoices.reduce(
       (sum, invoice) => sum + Math.max(0, Number(invoice.amount || 0) - Number(invoice.paidAmount || 0)),
       0,
@@ -865,7 +771,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       netProfitMargin: profitMargin,
       aiSubscriptionCosts
     };
-  }, [dbData, manualTransactions, subscriptionTransactions, outstandingInvoices, isInTimeFrame, timeFrame]);
+  }, [dbData, outstandingInvoices]);
 
   const expenseBreakdownData = React.useMemo(() => {
     const aiCosts = combinedMetrics.aiSubscriptionCosts;
@@ -879,19 +785,15 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
 
   const aiSpendSplitData = React.useMemo(() => {
     const map = new Map<string, number>();
-    manualTransactions.filter((tx: any) => isInTimeFrame(tx.date) && tx.category === 'AI Subscription' && tx.amount < 0).forEach(tx => {
-      const name = tx.details || 'Unknown AI Tool';
-      map.set(name, (map.get(name) || 0) + Math.abs(tx.amount));
-    });
-    subscriptionTransactions.filter((tx: any) => isInTimeFrame(tx.date) && tx.details?.includes('(AI subscriptions)')).forEach(tx => {
-      const name = tx.details.split(' (')[0] || 'Unknown AI Tool';
-      map.set(name, (map.get(name) || 0) + Math.abs(tx.amountUSD));
+    (dbData?.expenses ?? []).filter((expense: any) => expense.category === 'AI Subscription').forEach((expense: any) => {
+      const name = expense.merchant || 'Unknown AI Tool';
+      map.set(name, (map.get(name) || 0) + Math.abs(Number(expense.amount) || 0));
     });
     const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
     return Array.from(map.entries()).map(([name, value], i) => ({
       name, value, color: colors[i % colors.length]
     }));
-  }, [manualTransactions, subscriptionTransactions, isInTimeFrame]);
+  }, [dbData?.expenses]);
 
 
   const combinedTransactions = React.useMemo(() => {
@@ -936,74 +838,19 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
   ), [dbData?.revenueHistory, isInTimeFrame]);
 
   const expensesByCategory = React.useMemo(() => {
-    let scale = 1;
-    if (timeFrame === 'Monthly') scale = 1/12;
-    if (timeFrame === 'Quarterly') scale = 3/12;
-
     const map = new Map<string, number>();
 
-    // 1. Database expenses (from dbData.expenses)
+    // Expense charts use the same persisted ledger transactions as the summary cards.
     if (dbData?.expenses) {
       dbData.expenses.forEach((exp: any) => {
         if (isInTimeFrame(exp.date)) {
-          const category = exp.category || 'General Overhead';
-          map.set(category, (map.get(category) || 0) + exp.amount * scale);
+          const category = exp.category === 'AI Subscription'
+            ? 'AI Subscriptions'
+            : exp.merchant || 'Other Overhead';
+          map.set(category, (map.get(category) || 0) + Math.abs(Number(exp.amount) || 0));
         }
       });
-    } else {
-      // Fallback/Mock base expenses if dbData is not loaded yet
     }
-
-    // 2. Gateway fees
-    let stripeGross = 0;
-    if (isStripeConnected && stripeData?.payments) {
-      stripeData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
-        stripeGross += p.amount;
-      });
-    }
-    const stripeFees = stripeGross * 0.029;
-    if (stripeFees > 0) {
-      map.set('Stripe Gateway Fees', (map.get('Stripe Gateway Fees') || 0) + stripeFees);
-    }
-
-    let paypalGross = 0;
-    if (isPaypalConnected && paypalData?.payments) {
-      paypalData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
-        paypalGross += p.amount;
-      });
-    }
-    const paypalFees = paypalGross * 0.033;
-    if (paypalFees > 0) {
-      map.set('PayPal Gateway Fees', (map.get('PayPal Gateway Fees') || 0) + paypalFees);
-    }
-
-    let razorpayGross = 0;
-    if (isRazorpayConnected && razorpayData?.payments) {
-      razorpayData.payments.filter((p: any) => isInTimeFrame(p.createdAt)).forEach((p: any) => {
-        razorpayGross += p.amount / 83.5;
-      });
-    }
-    const razorpayFees = razorpayGross * 0.02;
-    if (razorpayFees > 0) {
-      map.set('Razorpay Gateway Fees', (map.get('Razorpay Gateway Fees') || 0) + razorpayFees);
-    }
-
-    // 3. Manual expenses & AI subscriptions
-    manualTransactions.filter((tx: any) => isInTimeFrame(tx.date) && tx.amount < 0).forEach(tx => {
-      const amt = Math.abs(tx.amount);
-      const category = tx.category === 'AI Subscription' ? 'AI Subscriptions' : (tx.details || 'Other Overhead');
-      map.set(category, (map.get(category) || 0) + amt);
-    });
-
-    // 4. Recurring subscriptions
-    subscriptionTransactions.filter((tx: any) => isInTimeFrame(tx.date)).forEach(tx => {
-      const amt = Math.abs(tx.amountUSD);
-      let category = 'Other Overhead';
-      if (tx.details?.includes('(')) {
-        category = tx.details.split('(')[1].split(')')[0];
-      }
-      map.set(category, (map.get(category) || 0) + amt);
-    });
 
     const totalExp = Array.from(map.values()).reduce((sum, val) => sum + val, 0) || 1;
     const list = Array.from(map.entries()).map(([name, value]) => ({
@@ -1013,7 +860,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     }));
 
     return list.sort((a, b) => b.amount - a.amount);
-  }, [dbData, manualTransactions, subscriptionTransactions, isStripeConnected, stripeData, isPaypalConnected, paypalData, isRazorpayConnected, razorpayData, isInTimeFrame, timeFrame, isSkippedAll]);
+  }, [dbData, isInTimeFrame]);
 
   const clientProfitability = React.useMemo(() => {
     const revenueMap = new Map<string, number>();

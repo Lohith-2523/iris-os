@@ -73,6 +73,7 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
 
   emit('input_audio_buffer.speech_started', { item_id: 'user-hi' });
   emit('conversation.item.input_audio_transcription.completed', { item_id: 'user-hi', transcript: 'Hi' });
+  expect(peer.channel.send).toHaveBeenCalledWith(expect.stringContaining('atlas-turn:user-hi'));
   emit('response.created', { response: { id: 'response-hi' } });
   emit('response.output_audio_transcript.delta', { item_id: 'atlas-hi', delta: 'Hello! ' });
   emit('response.output_audio_transcript.done', { item_id: 'atlas-hi', transcript: 'Hello! How can I help?' });
@@ -178,6 +179,20 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   expect(play).toHaveBeenCalled();
   emit('response.done', { response: { status: 'failed', status_details: { error: { message: 'Voice quota exhausted' } } } });
   expect(screen.getByRole('alert')).toHaveTextContent('Voice quota exhausted');
+});
+
+it('ignores ambient noise transcripts without asking Atlas to respond', async () => {
+  render(<AtlasClient initialData={initialData} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Start voice conversation' }));
+  await waitFor(() => expect(peer.setRemoteDescription).toHaveBeenCalled());
+  act(() => peer.channel.onopen?.());
+
+  emit('input_audio_buffer.speech_started', { item_id: 'noise-1' });
+  emit('conversation.item.input_audio_transcription.completed', { item_id: 'noise-1', transcript: '[background noise]' });
+
+  expect(screen.queryByText('[background noise]')).not.toBeInTheDocument();
+  expect(peer.channel.send).not.toHaveBeenCalledWith(expect.stringContaining('atlas-turn:noise-1'));
+  expect(AtlasAIService.persistVoiceTurn).not.toHaveBeenCalled();
 });
 
 it('reports a failed confirmed action to realtime voice instead of stalling silently', async () => {

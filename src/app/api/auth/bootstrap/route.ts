@@ -1,15 +1,28 @@
 import { NextResponse } from 'next/server';
 import { EmailVerificationRequiredError } from '@/lib/email-verification';
-import { getOrCreateRequestUser, WorkspaceIdentityConflictError } from '@/lib/org';
+import { createClient } from '@/lib/server';
+import {
+  DeletedClientWorkspaceError,
+  getAuthenticatedIdentity,
+  getOrCreateRequestUser,
+  provisionAuthenticatedUser,
+  WorkspaceIdentityConflictError,
+  WorkspaceSignupRoleConflictError,
+} from '@/lib/org';
 import {
   isTransientDatabaseConnectionError,
   withDatabaseConnectionRetry,
 } from '@/lib/database-resilience';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const isWorkspaceSignup = new URL(request.url).searchParams.get('intent') === 'workspace-signup';
     const user = await withDatabaseConnectionRetry(
-      () => getOrCreateRequestUser(),
+      async () => {
+        if (!isWorkspaceSignup) return getOrCreateRequestUser();
+        const identity = await getAuthenticatedIdentity();
+        return identity ? provisionAuthenticatedUser(identity, { intent: 'workspace-signup' }) : null;
+      },
       {
         onRetry: (_error, nextAttempt) => {
           console.warn(`Workspace bootstrap is waiting for a database connection (attempt ${nextAttempt}).`);
@@ -34,6 +47,14 @@ export async function POST() {
     }
     if (error instanceof WorkspaceIdentityConflictError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    if (error instanceof WorkspaceSignupRoleConflictError) {
+      await (await createClient()).auth.signOut({ scope: 'local' });
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    if (error instanceof DeletedClientWorkspaceError) {
+      await (await createClient()).auth.signOut({ scope: 'local' });
+      return NextResponse.json({ error: error.message }, { status: 410 });
     }
     if (isTransientDatabaseConnectionError(error)) {
       return NextResponse.json(

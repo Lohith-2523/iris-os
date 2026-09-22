@@ -88,8 +88,24 @@ const projectStatusLabel = (status?: string) => status === 'TODO'
     .toLowerCase()
     .replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 
-type QuickTaskDraft = { id: string; title: string; description: string; deadline: string; expanded: boolean };
-const newQuickTaskDraft = (): QuickTaskDraft => ({ id: crypto.randomUUID(), title: '', description: '', deadline: '', expanded: true });
+type QuickTaskDraft = {
+  id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  stageId: string;
+  assignedToId: string;
+  expanded: boolean;
+};
+const newQuickTaskDraft = (stageId = ''): QuickTaskDraft => ({
+  id: crypto.randomUUID(),
+  title: '',
+  description: '',
+  deadline: '',
+  stageId,
+  assignedToId: '',
+  expanded: true,
+});
 
 export default function ProjectsPage({ initialData }: { initialData: ProjectsReadModel }) {
   const router = useRouter();
@@ -461,7 +477,8 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
 
   const openQuickTaskCreation = () => {
     if (!expandedClientId || !quickTaskProjectId) return;
-    setQuickTaskDrafts([newQuickTaskDraft()]);
+    const project = projects.find((item) => item.id === quickTaskProjectId);
+    setQuickTaskDrafts([newQuickTaskDraft(project?.stages?.[0]?.id || '')]);
     setQuickTaskError('');
     setQuickTaskModalOpen(true);
   };
@@ -471,6 +488,10 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
     const validDrafts = quickTaskDrafts.filter((task) => task.title.trim());
     if (!validDrafts.length) {
       setQuickTaskError('Add at least one task title.');
+      return;
+    }
+    if (quickTaskStages.length > 0 && validDrafts.some((task) => !task.stageId)) {
+      setQuickTaskError('Choose a stage for every task.');
       return;
     }
     setCreatingQuickTasks(true);
@@ -487,6 +508,8 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
             title: task.title.trim(),
             description: task.description.trim() || null,
             deadline: task.deadline || null,
+            stageId: task.stageId || null,
+            assignedToId: task.assignedToId || null,
             status: 'TODO',
             progress: 0,
           }),
@@ -567,6 +590,12 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
     const rest = clients.filter(c => c.id !== expandedClientId);
     return [expanded, ...rest];
   }, [clients, expandedClientId]);
+
+  const quickTaskProject = React.useMemo(
+    () => projects.find((project) => project.id === quickTaskProjectId),
+    [projects, quickTaskProjectId],
+  );
+  const quickTaskStages = quickTaskProject?.stages || [];
 
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -881,6 +910,8 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   </button>
                   {task.expanded && <div className="grid gap-3 border-t border-zinc-800 p-4 sm:grid-cols-2">
                     <label className="space-y-1.5 sm:col-span-2"><span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Task name</span><input required value={task.title} onChange={(event) => setQuickTaskDrafts((current) => current.map((draft) => draft.id === task.id ? { ...draft, title: event.target.value } : draft))} className="h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 text-white" /></label>
+                    <label className="space-y-1.5"><span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Stage</span><select required={quickTaskStages.length > 0} value={task.stageId} disabled={quickTaskStages.length === 0} onChange={(event) => setQuickTaskDrafts((current) => current.map((draft) => draft.id === task.id ? { ...draft, stageId: event.target.value } : draft))} className="h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 text-white disabled:cursor-not-allowed disabled:text-zinc-600"><option value="">{quickTaskStages.length > 0 ? 'Select stage' : 'No stages available'}</option>{quickTaskStages.map((stage: any) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}</select></label>
+                    <label className="space-y-1.5"><span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Assignee</span><select value={task.assignedToId} onChange={(event) => setQuickTaskDrafts((current) => current.map((draft) => draft.id === task.id ? { ...draft, assignedToId: event.target.value } : draft))} className="h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 text-white"><option value="">Unassigned</option>{teamMembers.map((member) => <option key={member.id} value={member.id}>{member.name} · {workspaceRoleLabel(member.role)}</option>)}</select></label>
                     <label className="space-y-1.5"><span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Deadline</span><DateInput value={task.deadline} onChange={(value) => setQuickTaskDrafts((current) => current.map((draft) => draft.id === task.id ? { ...draft, deadline: value } : draft))} className="h-10 rounded-md border border-zinc-800 bg-zinc-950 px-3 text-white" /></label>
                     <label className="space-y-1.5 sm:col-span-2"><span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Description <span className="font-normal">(optional)</span></span><textarea rows={2} value={task.description} onChange={(event) => setQuickTaskDrafts((current) => current.map((draft) => draft.id === task.id ? { ...draft, description: event.target.value } : draft))} className="w-full resize-none rounded-md border border-zinc-800 bg-zinc-950 p-3 text-white" /></label>
                     {quickTaskDrafts.length > 1 && <Button type="button" variant="ghost" className="w-fit text-rose-400" onClick={() => setQuickTaskDrafts((current) => current.filter((draft) => draft.id !== task.id))}>Remove task</Button>}
@@ -888,7 +919,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 </section>
               ))}
               {quickTaskError && <p role="alert" className="rounded-md border border-rose-900/50 bg-rose-950/20 p-3 text-sm text-rose-300">{quickTaskError}</p>}
-              <Button type="button" variant="outline" onClick={() => setQuickTaskDrafts((current) => [...current.map((task) => ({ ...task, expanded: false })), newQuickTaskDraft()])}><Plus className="h-4 w-4" />Add another task</Button>
+              <Button type="button" variant="outline" onClick={() => setQuickTaskDrafts((current) => [...current.map((task) => ({ ...task, expanded: false })), newQuickTaskDraft(quickTaskStages[0]?.id || '')])}><Plus className="h-4 w-4" />Add another task</Button>
             </CardContent>
             <div className="flex justify-end gap-2 border-t border-zinc-800 p-5">
               <Button type="button" variant="ghost" onClick={() => setQuickTaskModalOpen(false)} disabled={creatingQuickTasks}>Cancel</Button>

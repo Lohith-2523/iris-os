@@ -8,6 +8,7 @@
 - [Pricing](/pricing): Public plan information.
 - [Privacy policy](/privacy): Privacy and data-handling information.
 - [Terms](/terms): Public terms of service.
+- [Cancellation, suspension and refund policy](/cancellation-refund-policy): Subscription cancellation, suspension, payment, and refund terms.
 - [Waitlist](/waitlist): Public early-access information. Do not submit the form.
 
 ## Access scope

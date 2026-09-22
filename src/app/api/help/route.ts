@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 const HELP_SHEET_ID = '19rb4gmwSMOvM3p26zHWNgjJmVUmJm1I3oonB72qbLVQ';
 const schema = z.object({
   requestId: z.string().uuid(),
-  type: z.enum(['FEATURE', 'COMPLAINT', 'ISSUE']),
+  type: z.enum(['FEEDBACK', 'FEATURE', 'COMPLAINT', 'ISSUE']),
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(320),
   subject: z.string().trim().min(3).max(160),

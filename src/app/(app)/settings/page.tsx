@@ -248,6 +248,9 @@ export default function SettingsPage() {
   const [hasFinancialData, setHasFinancialData] = React.useState(false);
   const [plan, setPlan] = React.useState<'BASIC' | 'PRO' | 'ADVANCED'>('PRO');
   const [planDialog, setPlanDialog] = React.useState<{ feature: string; requiredPlan: PlanId } | null>(null);
+  const [showCancelPlanModal, setShowCancelPlanModal] = React.useState(false);
+  const [cancelPlanStatus, setCancelPlanStatus] = React.useState<'idle' | 'saving' | 'error'>('idle');
+  const [cancelPlanError, setCancelPlanError] = React.useState('');
   const { region: pricingRegion, plans: settingsPlans, loading: pricingLoading } = usePlanPricing();
   const [hasAddon, setHasAddon] = React.useState(false);
   const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, teamMembers: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
@@ -691,6 +694,33 @@ export default function SettingsPage() {
 
   const removeSpecialization = (specialization: string) => {
     setSelectedTypes((current) => current.filter((item) => item !== specialization));
+  };
+
+  const cancelCurrentPlan = async () => {
+    if (plan === 'BASIC' || currentUser?.role.toLowerCase() !== 'admin' || cancelPlanStatus === 'saving') return;
+
+    setCancelPlanStatus('saving');
+    setCancelPlanError('');
+
+    try {
+      const response = await fetch('/api/organization', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'BASIC' }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(data?.error || 'Unable to cancel the plan.');
+
+      setPlan('BASIC');
+      setAiSharingConsent(false);
+      setCancelPlanStatus('idle');
+      setShowCancelPlanModal(false);
+      invalidateWorkspaceDataTags(['workspace']);
+      window.dispatchEvent(new Event('organization-updated'));
+    } catch (error) {
+      setCancelPlanStatus('error');
+      setCancelPlanError(formatUserMessage(error instanceof Error ? error.message : 'Unable to cancel the plan.'));
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -1455,10 +1485,10 @@ export default function SettingsPage() {
                 return <Card key={tier.id} className={`flex min-h-[290px] flex-col ${isCurrent ? 'border-zinc-500 bg-zinc-900/45' : 'border-zinc-850'}`}>
                   <CardHeader className="flex-1">
                     <div className="flex items-start justify-between gap-3"><div><CardTitle className="text-base font-bold text-white">{tier.name}</CardTitle><CardDescription className="mt-1">{tier.description}</CardDescription></div>{isCurrent && <Badge variant="outline" className="whitespace-nowrap border-zinc-600 text-[9px] uppercase text-zinc-300">Current plan</Badge>}</div>
-                    <div className="mt-5">{tier.baseAmount > 0 && <p className="mb-1 flex items-center gap-2 text-[10px]"><del className="text-zinc-500">{formatPlanMoney(tier.listAmount, tier.currency)}</del><span className="font-bold uppercase tracking-wide text-emerald-400">Early bird · 50% off</span></p>}<span className="font-mono text-3xl font-black tabular-nums text-white">{tier.baseAmount === 0 ? 'Free' : formatPlanMoney(tier.baseAmount, tier.currency)}</span><span className="ml-1 text-xs text-zinc-500">/ month</span>{tier.baseAmount > 0 && <p className="mt-1 text-[10px] text-zinc-500">+ 18% {tier.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(tier.totalAmount, tier.currency)} due at checkout</p>}</div>
+                    <div className="mt-5">{tier.listAmount > tier.baseAmount && <p className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(tier.listAmount, tier.currency)}</del><strong className="text-zinc-200">50% off</strong></p>}<span className="font-mono text-3xl font-black tabular-nums text-white">{tier.baseAmount === 0 ? 'Free' : formatPlanMoney(tier.baseAmount, tier.currency)}</span><span className="ml-1 text-xs text-zinc-500">/ month</span>{tier.baseAmount > 0 && <p className="mt-1 text-[10px] text-zinc-500">+ 18% {tier.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(tier.totalAmount, tier.currency)} due at checkout</p>}</div>
                   </CardHeader>
                   <CardContent>
-                    <ul className="space-y-2 border-t border-zinc-850 pt-4 text-xs text-zinc-300">{tier.features.map((feature) => <li key={feature} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />{feature}</li>)}</ul>
+                    <ul className="space-y-2 border-t border-zinc-850 pt-4 text-xs text-zinc-300">{tier.features.map((feature) => <li key={feature.label} className="flex items-start justify-between gap-3"><span className="flex min-w-0 gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />{feature.label}</span><strong className="shrink-0 text-right font-mono font-medium text-white">{feature.value}</strong></li>)}</ul>
                     <Button type="button" variant={isCurrent ? 'outline' : 'default'} disabled={isCurrent} onClick={() => setPlanDialog({ feature: 'your workspace', requiredPlan: tier.id })} className="mt-5 h-10 w-full whitespace-nowrap text-xs font-bold">{isCurrent ? 'Current plan' : `Choose ${tier.name}`}</Button>
                   </CardContent>
                 </Card>;
@@ -1512,8 +1542,8 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Upgrade/Change Button */}
-                  <div className="pt-2 flex justify-start">
+                  {/* Plan actions */}
+                  <div className="pt-2 flex flex-wrap justify-start gap-3">
                     <Button
                       type="button"
                       onClick={() => setPlanDialog({ feature: 'your workspace', requiredPlan: 'BASIC' })}
@@ -1522,6 +1552,21 @@ export default function SettingsPage() {
                       <RefreshCw className="h-4 w-4" />
                       <span>Change / Upgrade Billing Plan</span>
                     </Button>
+                    {plan !== 'BASIC' && currentUser?.role.toLowerCase() === 'admin' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setCancelPlanError('');
+                          setCancelPlanStatus('idle');
+                          setShowCancelPlanModal(true);
+                        }}
+                        className="h-10 gap-2 border-rose-900/70 px-6 text-xs font-bold text-rose-300 hover:border-rose-700 hover:bg-rose-950/40 hover:text-rose-200"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        <span>Cancel plan</span>
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1968,6 +2013,63 @@ export default function SettingsPage() {
           setPlanDialog(null);
         }}
       />
+
+      {showCancelPlanModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-plan-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && cancelPlanStatus !== 'saving') setShowCancelPlanModal(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-[#0d0e12] p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full border border-rose-900/60 bg-rose-950/40 p-2 text-rose-300">
+                <XCircle className="h-5 w-5" />
+              </div>
+              <div className="space-y-2">
+                <h2 id="cancel-plan-title" className="text-base font-bold text-white">Cancel your {planDisplayName(plan)} plan?</h2>
+                <p className="text-xs leading-5 text-zinc-400">
+                  Your workspace will switch to the Free plan immediately. Free plan limits will apply to your workspace after cancellation.
+                </p>
+              </div>
+            </div>
+
+            {cancelPlanError && (
+              <div className="mt-4 rounded-lg border border-rose-900/60 bg-rose-950/30 px-3 py-2 text-xs text-rose-300" role="alert">
+                {cancelPlanError}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={cancelPlanStatus === 'saving'}
+                onClick={() => setShowCancelPlanModal(false)}
+                className="border-zinc-700 text-zinc-200 hover:bg-zinc-800 hover:text-white"
+              >
+                Keep current plan
+              </Button>
+              <Button
+                type="button"
+                disabled={cancelPlanStatus === 'saving'}
+                onClick={cancelCurrentPlan}
+                className="bg-rose-600 text-white hover:bg-rose-500"
+              >
+                {cancelPlanStatus === 'saving' ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <XCircle className="mr-1.5 h-4 w-4" />
+                )}
+                Cancel plan and switch to Free
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3-Step destructive-action confirmation modal */}
       {showWipeModal && (

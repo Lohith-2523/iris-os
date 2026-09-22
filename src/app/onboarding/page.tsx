@@ -8,63 +8,26 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Check, ArrowRight, ShieldCheck, Building, User, Loader2 } from 'lucide-react';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
+import { CountrySelect } from '@/components/ui/country-select';
+import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
 import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
 import { RazorpayCheckout } from '@/components/billing/razorpay-checkout';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { formatPlanMoney } from '@/lib/plan-pricing';
 
-const PLAN_COPY = [
-  {
-    id: 'basic',
-    name: 'Free Plan',
-    tagline: 'Starter Workspace Clearance',
-    features: [
-      'All 10 Agency Specializations Included',
-      'Core Operational Ledger Console',
-      'Client Read-Only Portal Gate',
-      '2 Team Members and 5 Clients',
-      'No AI or Messaging Features'
-    ]
-  },
-  {
-    id: 'pro',
-    name: 'Pro Plan',
-    tagline: 'Professional Scale Workspace',
-    features: [
-      'All 10 Agency Specializations Included',
-      'Active Contractor Profit Leak Checks',
-      'Automated Executive Reports & SLAs',
-      'Full Canva & Meta Ad Portal Sync',
-      'Atlas AI Meeting & Invoice Creation',
-      'Secure Messaging · Unlimited Team · 15 Clients'
-    ]
-  },
-  {
-    id: 'advanced',
-    name: 'Advanced Plan',
-    tagline: 'Unlimited Enterprise Console',
-    features: [
-      'All 10 Agency Specializations Included',
-      'Unlimited API Call Operations Threshold',
-      'Custom Multi-Currency Financial Ledgers',
-      '24/7 Dedicated Support & Audit Gating',
-      'Full Atlas AI, Briefing & Strategies',
-      'Secure Messaging · Unlimited Team · 30 Clients'
-    ]
-  }
-];
-
 const FULL_PRIVACY_POLICY = [
+  ['Workspace Operations and New Features', 'Iris OS processes the workspace information needed for client and team onboarding, project stages and tasks, financial operations, reporting, daily briefings, notifications, profile pictures, workspace backgrounds, secure documents, approvals, electronic signatures, and connected design workflows. Access remains limited by workspace role and permissions.'],
+  ['Atlas Voice and Transcription', 'When you start Atlas voice features, microphone audio is transmitted to contracted speech and AI infrastructure to detect speech, create an English transcript, and return a spoken response. Realtime audio is not stored by Iris OS as a recording. Accepted transcripts and Atlas responses may be retained in workspace chat history; silence, ambient noise, and rejected non-speech turns are not treated as prompts.'],
   ['Meta Advertising Data and Atlas AI', 'Meta access requires a separate optional consent. When enabled, Iris OS may retrieve selected ad-account identifiers, campaigns, ads, forms, lead submissions, spend, impressions, reach and clicks. Atlas AI uses only aggregate Meta performance metrics, and only when both general Atlas data sharing and the separate Atlas Meta analytics consent are enabled. Atlas AI never receives Meta access tokens or raw Meta lead names, emails, phone numbers or form fields. Withdrawing Meta access stops future provider retrieval; withdrawing Atlas Meta consent stops future AI use of those metrics.'],
   ['Secure Messaging Data', 'Messaging is available on Pro and Advanced plans for direct agency-owner conversations with clients or team members. Iris OS stores participant identifiers, delivery metadata, OpenPGP public device keys, opaque signed and encrypted message envelopes, and encrypted attachment metadata. Message plaintext, OpenPGP private keys, attachment keys and plaintext filenames remain on participant devices and are not accepted by the messaging service.'],
-  ['1. Data Controller Identification', 'Shards Media ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
+  ['1. Data Controller Identification', 'Iris OS ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
   ['2. Categories of Personal Data We Collect', 'We process identity and account metadata (including corporate name, billing address, currency settings and administrator emails); financial data (internal ledgers, invoices, totals, expenses and merchant names); integration telemetry and OAuth access tokens for connected Canva, Meta, Google and Notion services; contractor allocation information; and system logs such as IP address, device headers and authentication timestamps.'],
   ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Atlas AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
   ['4. Google and Notion Authentication APIs & Data Scope', 'Google authentication uses your profile data, email address, profile picture and authorization tokens. Iris OS does not read emails, documents or photos unless you separately grant additional permissions. Notion access is limited to the databases you explicitly select for reporting. Integration tokens are encrypted with industry-standard AES-256 encryption and may be revoked from the relevant provider’s security console.'],
   ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Atlas AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
   ['6. GDPR & DPDP Act Data Subject Rights', 'You may request access to and portability of your data, correction of inaccurate data, withdrawal of consent, grievance redressal, and—where applicable under the DPDP Act—nomination of a person to exercise your rights in the event of death or incapacity.'],
   ['7. International Cross-Border Data Transfers', 'Personal data may be processed on secure servers in the United States, the EEA and India. EEA transfers use European Commission Standard Contractual Clauses where applicable. Transfers under the DPDP Act follow applicable Government of India cross-border requirements.'],
-  ['8. Contact Our Data Protection Officer', 'To exercise your rights, withdraw consent or raise a privacy concern, contact Shards Media’s Privacy Compliance Department at studio@shardsmedia.com with the subject line “PRIVACY: DATA RIGHTS EXERCISE”.'],
+  ['8. Requests and Complaints', 'To exercise your rights, withdraw consent, or raise a privacy concern, raise a complaint in the Get Help section or reach out to cto.admin@irisos.app.'],
 ] as const;
 
 const PRIVACY_TLDR = [
@@ -73,7 +36,7 @@ const PRIVACY_TLDR = [
   'Atlas AI access is optional. You can leave it off and change that choice later in Settings.',
   'Connected services only receive the permissions you authorize; you can revoke them at any time.',
   'You can request access, correction, deletion, or export of your personal data.',
-  'Contact studio@shardsmedia.com for privacy requests or concerns.',
+  'Raise a complaint in the Get Help section or reach out to cto.admin@irisos.app for privacy requests or concerns.',
 ];
 
 export default function OnboardingPage() {
@@ -86,7 +49,7 @@ export default function OnboardingPage() {
   const [agencyName, setAgencyName] = React.useState('');
   const [username, setUsername] = React.useState('');
   const [currency, setCurrency] = React.useState('USD');
-  const [agencyDetails, setAgencyDetails] = React.useState({ legalEntityName: '', billingEmail: '', phone: '', website: '', addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', country: '', taxNumber: '', specialization: 'Digital Marketing Agency', bankName: '' });
+  const [agencyDetails, setAgencyDetails] = React.useState({ legalEntityName: '', billingEmail: '', phone: '', website: '', addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', country: '', taxNumber: '', specialization: 'Digital Marketing Agency' });
   
   // Pricing state
   const [selectedPlanId, setSelectedPlanId] = React.useState<'basic' | 'pro' | 'advanced'>('pro');
@@ -96,6 +59,8 @@ export default function OnboardingPage() {
   const [aiSharingConsent, setAiSharingConsent] = React.useState(false);
   const [metaAccessConsent, setMetaAccessConsent] = React.useState(false);
   const [showPrivacyTldr, setShowPrivacyTldr] = React.useState(false);
+  const [avatar, setAvatar] = React.useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = React.useState(false);
 
   // Payment state
   const [isProcessing, setIsProcessing] = React.useState(false);
@@ -104,10 +69,10 @@ export default function OnboardingPage() {
 
   const [email, setEmail] = React.useState('');
   const { region: pricingRegion, plans: regionalPlans, loading: pricingLoading } = usePlanPricing();
-  const PLANS = regionalPlans.map((price, index) => ({
-    ...PLAN_COPY[index],
+  const PLANS = regionalPlans.map((price) => ({
     ...price,
     id: price.id.toLowerCase() as 'basic' | 'pro' | 'advanced',
+    tagline: price.positioning,
   }));
   React.useEffect(() => {
     fetch('/api/workspace')
@@ -119,10 +84,11 @@ export default function OnboardingPage() {
         const draft = workspace.onboarding?.draft || {};
         const steps = ['agency', 'pricing', 'consent', 'payment'] as const;
         setEmail(workspace.user.email);
+        setAvatar(workspace.user.avatarUrl || null);
         setAgencyName(draft.agencyName || workspace.organization.name || '');
         setUsername(draft.username || workspace.user.username || workspace.user.name || '');
         setCurrency(draft.currency || workspace.organization.currency || 'USD');
-        setAgencyDetails({ legalEntityName: draft.legalEntityName || workspace.organization.legalEntityName || '', billingEmail: draft.billingEmail || workspace.organization.billingEmail || workspace.user.email || '', phone: draft.phone || workspace.user.phone || '', website: draft.website || workspace.organization.preferences?.website || '', addressLine1: draft.addressLine1 || workspace.organization.billingAddressLine1 || '', addressLine2: draft.addressLine2 || workspace.organization.billingAddressLine2 || '', city: draft.city || workspace.organization.billingCity || '', state: draft.state || workspace.organization.billingState || '', postalCode: draft.postalCode || workspace.organization.billingPostalCode || '', country: draft.country || workspace.organization.billingCountry || '', taxNumber: draft.taxNumber || workspace.organization.gstNumber || '', specialization: draft.specialization || workspace.organization.agencyTypes?.[0] || 'Digital Marketing Agency', bankName: draft.bankName || workspace.organization.bankNames?.[0] || '' });
+        setAgencyDetails({ legalEntityName: draft.legalEntityName || workspace.organization.legalEntityName || '', billingEmail: draft.billingEmail || workspace.organization.billingEmail || workspace.user.email || '', phone: draft.phone || workspace.user.phone || '', website: draft.website || workspace.organization.preferences?.website || '', addressLine1: draft.addressLine1 || workspace.organization.billingAddressLine1 || '', addressLine2: draft.addressLine2 || workspace.organization.billingAddressLine2 || '', city: draft.city || workspace.organization.billingCity || '', state: draft.state || workspace.organization.billingState || '', postalCode: draft.postalCode || workspace.organization.billingPostalCode || '', country: draft.country || workspace.organization.billingCountry || '', taxNumber: draft.taxNumber || workspace.organization.gstNumber || '', specialization: draft.specialization || workspace.organization.agencyTypes?.[0] || 'Digital Marketing Agency' });
         setSelectedPlanId(draft.selectedPlanId || 'pro');
         setTermsAgreed(Boolean(draft.termsAgreed));
         setAiSharingConsent(Boolean(draft.aiSharingConsent));
@@ -142,14 +108,15 @@ export default function OnboardingPage() {
     }
   }, [router]);
 
-  const saveProgress = async (currentStep: number) => {
+  const saveProgress = async (currentStep: number, completed = false) => {
     const response = await fetch('/api/workspace', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         onboarding: {
-          needsOnboarding: true,
+          needsOnboarding: !completed,
           currentStep,
+          completed,
           draft: { agencyName, username, currency, selectedPlanId, termsAgreed, aiSharingConsent, metaAccessConsent, ...agencyDetails },
         },
       }),
@@ -175,12 +142,21 @@ export default function OnboardingPage() {
   const handleAgencySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (transitionLockRef.current) return;
-    if (!agencyName || !username || !agencyDetails.legalEntityName || !agencyDetails.billingEmail || !agencyDetails.phone || !agencyDetails.addressLine1 || !agencyDetails.city || !agencyDetails.country || !agencyDetails.specialization || !agencyDetails.bankName) {
+    if (!agencyName || !username || !agencyDetails.legalEntityName || !agencyDetails.billingEmail || !agencyDetails.phone || !agencyDetails.addressLine1 || !agencyDetails.city || !agencyDetails.country || !agencyDetails.specialization) {
       alert('Please fill out all agency profile fields.');
       return;
     }
     if (!beginTransition('agency')) return;
     try {
+      const profileResponse = await fetch('/api/user', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarDataUrl: avatar }),
+      });
+      if (!profileResponse.ok) {
+        const payload = await profileResponse.json().catch(() => ({}));
+        throw new Error(payload.error || 'Unable to save your profile picture.');
+      }
       await saveProgress(1);
       setStep('pricing');
     } catch (error) {
@@ -246,7 +222,6 @@ export default function OnboardingPage() {
           billingCountry: agencyDetails.country,
           gstNumber: agencyDetails.taxNumber,
           agencyTypes: parseAgencyIndustryList(agencyDetails.specialization),
-          bankNames: [agencyDetails.bankName],
           preferences: { website: agencyDetails.website, agencyPhone: agencyDetails.phone },
         }),
       });
@@ -254,9 +229,9 @@ export default function OnboardingPage() {
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || 'Unable to finish workspace setup.');
       }
-      await saveProgress(4);
+      await saveProgress(4, true);
       const params = new URLSearchParams(window.location.search);
-      router.push(params.get('redirect') || '/dashboard');
+      window.location.replace(params.get('redirect') || '/dashboard');
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Unable to finish workspace setup.');
       throw error;
@@ -266,17 +241,10 @@ export default function OnboardingPage() {
     }
   };
 
-  // Swapping cards positioning logic:
-  // Center is always the SELECTED plan.
-  // Left and Right columns represent the remaining two plans.
   const getOrderedPlans = () => {
-    const selectedPlan = PLANS.find(p => p.id === selectedPlanId)!;
-    const otherPlans = PLANS.filter(p => p.id !== selectedPlanId);
-    return {
-      left: otherPlans[0],
-      center: selectedPlan,
-      right: otherPlans[1]
-    };
+    const selectedPlan = PLANS.find((plan) => plan.id === selectedPlanId)!;
+    const otherPlans = PLANS.filter((plan) => plan.id !== selectedPlanId);
+    return { left: otherPlans[0], center: selectedPlan, right: otherPlans[1] };
   };
 
   const ordered = getOrderedPlans();
@@ -293,7 +261,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Main container */}
-      <div className="max-w-5xl mx-auto w-full flex-grow flex items-center justify-center relative z-10 my-4">
+      <div className="max-w-[1200px] mx-auto w-full flex-grow flex items-center justify-center relative z-10 my-4">
         {step === 'agency' && (
           <Card className="w-full max-w-3xl bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
             <CardHeader className="text-center pt-6 pb-4 border-b border-zinc-800">
@@ -306,7 +274,7 @@ export default function OnboardingPage() {
             <CardContent className="px-6 py-6">
               <form onSubmit={handleAgencySubmit} className="onboarding-agency-form space-y-4">
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Agency Workspace Name</label>
+                  <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Business Name</label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                       <Building className="h-3.5 w-3.5 text-zinc-500" />
@@ -337,6 +305,8 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
+                <ProfilePicturePicker value={avatar} onChange={setAvatar} name={username || 'Your'} disabled={advancingStep !== null || avatarBusy} onBusyChange={setAvatarBusy} />
+
                 <div>
                   <div className="space-y-1.5">
                     <label className="font-semibold text-zinc-400 block text-[10px] uppercase font-mono">Currency Ledger</label>
@@ -363,12 +333,11 @@ export default function OnboardingPage() {
                   <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">City <span className="text-rose-500" aria-hidden="true">*</span></span><input required value={agencyDetails.city} onChange={(event) => setAgencyDetails({ ...agencyDetails, city: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
                   <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">State / region</span><input value={agencyDetails.state} onChange={(event) => setAgencyDetails({ ...agencyDetails, state: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
                   <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Postal code</span><input value={agencyDetails.postalCode} onChange={(event) => setAgencyDetails({ ...agencyDetails, postalCode: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
-                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Country <span className="text-rose-500" aria-hidden="true">*</span></span><input required value={agencyDetails.country} onChange={(event) => setAgencyDetails({ ...agencyDetails, country: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
+                  <div className="space-y-1.5"><span className="block font-semibold text-zinc-400">Country <span className="text-rose-500" aria-hidden="true">*</span></span><CountrySelect required value={agencyDetails.country} onChange={(country) => setAgencyDetails({ ...agencyDetails, country })} /></div>
                   <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Tax / GST number</span><input value={agencyDetails.taxNumber} onChange={(event) => setAgencyDetails({ ...agencyDetails, taxNumber: event.target.value })} className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
-                  <label className="space-y-1.5"><span className="block font-semibold text-zinc-400">Primary bank account <span className="text-rose-500" aria-hidden="true">*</span></span><input required value={agencyDetails.bankName} onChange={(event) => setAgencyDetails({ ...agencyDetails, bankName: event.target.value })} placeholder="Bank name or account label" className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-white" /></label>
                 </div>
 
-                <Button type="submit" disabled={advancingStep !== null} aria-busy={advancingStep === 'agency'} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-black hover:bg-zinc-250 cursor-pointer pt-1 mt-4">
+                <Button type="submit" disabled={advancingStep !== null || avatarBusy} aria-busy={advancingStep === 'agency'} className="w-full h-10 font-bold text-xs flex items-center justify-center gap-1.5 bg-white text-black hover:bg-zinc-250 cursor-pointer pt-1 mt-4">
                   {advancingStep === 'agency' ? <><Loader2 className="h-4 w-4 animate-spin text-black" /><span className="text-black">Saving agency details...</span></> : <><span className="text-black">Continue to Plan Selection</span><ArrowRight className="h-4 w-4 text-black" /></>}
                 </Button>
               </form>
@@ -386,53 +355,52 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* Dynamic Swapping Cards Layout */}
-            <div className="grid gap-6 md:grid-cols-12 items-center w-full max-w-4xl relative">
+            {/* Landing-page pricing card treatment */}
+            <div className="grid w-full max-w-[1200px] items-stretch gap-5 lg:grid-cols-3">
               
               {/* Left Column Plan (Unselected) */}
               <button
                 type="button"
                 disabled={advancingStep !== null || pricingLoading}
                 onClick={() => setSelectedPlanId(ordered.left.id as any)}
-                className="onboarding-plan-card-compact md:col-span-3 min-w-0 overflow-hidden text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
+                className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
               >
                 <div>
-                  <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.left.name}</span>
-                  {ordered.left.baseAmount > 0 && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px]"><del className="text-zinc-500">{formatPlanMoney(ordered.left.listAmount, ordered.left.currency)}</del><b className="text-emerald-400">50% OFF</b></span>}
-                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{ordered.left.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
-                  <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.left.tagline}</span>
+                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">Iris / {ordered.left.name}</span>
+                  {ordered.left.listAmount > ordered.left.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.left.listAmount, ordered.left.currency)}</del><b className="text-zinc-200">50% off</b></span>}
+                  <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.left.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
+                  <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.left.tagline}</span>
                 </div>
-                <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
-                  {ordered.left.features.slice(0, 3).map((f, i) => (
-                    <span key={i} className="block">• {f}</span>
+                <div className="mt-7 min-h-0 space-y-3 border-t border-white/[0.07] pt-6 text-xs text-white/65">
+                  {ordered.left.features.map((feature) => (
+                    <span key={feature.label} className="flex items-start justify-between gap-3"><span>• {feature.label}</span><b className="shrink-0 font-mono text-white/85">{feature.value}</b></span>
                   ))}
                 </div>
-                <span className="block shrink-0 text-[9px] font-bold uppercase text-red-500 group-hover:underline mt-4">Select Plan</span>
+                <span className="mt-8 block shrink-0 rounded-xl border border-white/10 bg-[#151515] py-3.5 text-center text-sm font-semibold text-white/75 transition-colors group-hover:border-white/20 group-hover:text-white">Choose {ordered.left.name}</span>
               </button>
 
               {/* Center Column Plan (Selected & Highlighted Big) */}
-              <div className="md:col-span-6 bg-[#0d0e12] border-[3px] border-red-650 p-6 shadow-[0px_0px_20px_0px_rgba(220,38,38,0.15)] flex flex-col justify-between min-h-[380px] relative z-10 transition-all">
-                <div className="absolute top-4 right-4 bg-red-600 text-white text-[8px] font-mono font-bold px-2 py-0.5 uppercase">
+              <div className="relative flex min-h-[720px] flex-col justify-between rounded-[24px] border border-white/20 bg-white/[0.055] p-7 shadow-[8px_8px_24px_#040404,-8px_-8px_24px_#1e1e1e] transition-colors">
+                <div className="absolute top-5 right-5 rounded-full border border-white/15 px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white/70">
                   Selected
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <span className="block text-xs font-bold text-red-500 uppercase tracking-widest">{ordered.center.name}</span>
+                    <span className="block text-xs font-bold text-white uppercase tracking-widest">{ordered.center.name}</span>
                     <span className="block text-[9px] font-semibold text-zinc-400 mt-0.5 uppercase tracking-wide">{ordered.center.tagline}</span>
                   </div>
                   <div className="border-b border-zinc-800 pb-3">
-                    {ordered.center.baseAmount > 0 && <span className="mb-1 flex items-center gap-2 text-[9px]"><del className="text-zinc-500">{formatPlanMoney(ordered.center.listAmount, ordered.center.currency)}</del><b className="uppercase tracking-wide text-emerald-400">Early bird · 50% off</b></span>}
+                    {ordered.center.listAmount > ordered.center.baseAmount && <span className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.center.listAmount, ordered.center.currency)}</del><b className="text-zinc-200">50% off</b></span>}
                     <span className="font-mono text-4xl font-black text-white">{ordered.center.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.center.baseAmount, ordered.center.currency)}</span>
                     <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
-                    {ordered.center.baseAmount > 0 && <span className="mt-1 block text-[9px] text-zinc-500">+ 18% {ordered.center.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(ordered.center.totalAmount, ordered.center.currency)} due today</span>}
                   </div>
                   <div className="space-y-2">
                     <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Included Features:</span>
                     <ul className="space-y-2.5 font-mono text-[9px] text-zinc-300">
-                      {ordered.center.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <Check className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
-                          <span className="leading-tight">{feature}</span>
+                      {ordered.center.features.map((feature) => (
+                        <li key={feature.label} className="flex items-start gap-2">
+                          <Check className="h-3.5 w-3.5 text-white/60 shrink-0 mt-0.5" />
+                          <span className="flex min-w-0 flex-1 justify-between gap-3 leading-tight"><span>{feature.label}</span><b className="shrink-0 text-white">{feature.value}</b></span>
                         </li>
                       ))}
                     </ul>
@@ -456,20 +424,20 @@ export default function OnboardingPage() {
                 type="button"
                 disabled={advancingStep !== null || pricingLoading}
                 onClick={() => setSelectedPlanId(ordered.right.id as any)}
-                className="onboarding-plan-card-compact md:col-span-3 min-w-0 overflow-hidden text-left bg-zinc-900/50 hover:bg-zinc-900 border-[2px] border-zinc-800/80 p-4 opacity-50 hover:opacity-85 transition-all flex flex-col justify-between h-[280px] rounded-none cursor-pointer group"
+                className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
               >
                 <div>
-                  <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{ordered.right.name}</span>
-                  {ordered.right.baseAmount > 0 && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px]"><del className="text-zinc-500">{formatPlanMoney(ordered.right.listAmount, ordered.right.currency)}</del><b className="text-emerald-400">50% OFF</b></span>}
-                  <span className="block font-mono text-xs font-extrabold mt-1 text-white">{ordered.right.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
-                  <span className="block text-[8px] font-semibold text-zinc-500 uppercase mt-1 tracking-tight">{ordered.right.tagline}</span>
+                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">Iris / {ordered.right.name}</span>
+                  {ordered.right.listAmount > ordered.right.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.right.listAmount, ordered.right.currency)}</del><b className="text-zinc-200">50% off</b></span>}
+                  <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.right.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
+                  <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.right.tagline}</span>
                 </div>
-                <div className="onboarding-plan-card-features min-h-0 overflow-hidden font-mono text-[8px] text-zinc-450 space-y-1.5 mt-4 border-t border-zinc-800 pt-3">
-                  {ordered.right.features.slice(0, 3).map((f, i) => (
-                    <span key={i} className="block">• {f}</span>
+                <div className="mt-7 min-h-0 space-y-3 border-t border-white/[0.07] pt-6 text-xs text-white/65">
+                  {ordered.right.features.map((feature) => (
+                    <span key={feature.label} className="flex items-start justify-between gap-3"><span>• {feature.label}</span><b className="shrink-0 font-mono text-white/85">{feature.value}</b></span>
                   ))}
                 </div>
-                <span className="block shrink-0 text-[9px] font-bold uppercase text-red-500 group-hover:underline mt-4">Select Plan</span>
+                <span className="mt-8 block shrink-0 rounded-xl border border-white/10 bg-[#151515] py-3.5 text-center text-sm font-semibold text-white/75 transition-colors group-hover:border-white/20 group-hover:text-white">Choose {ordered.right.name}</span>
               </button>
 
             </div>
@@ -477,7 +445,7 @@ export default function OnboardingPage() {
         )}
 
         {step === 'consent' && (
-          <Card className="w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
+          <Card className="w-full max-w-2xl bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl">
             <CardHeader className="text-center pt-6 pb-4 border-b border-zinc-800">
               <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Step 3 of 4</span>
               <CardTitle className="text-xl font-bold uppercase tracking-tight mt-1 text-white">Privacy & AI Data Consent</CardTitle>
@@ -488,7 +456,7 @@ export default function OnboardingPage() {
             <CardContent className="px-7 py-7 space-y-5">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="font-semibold text-zinc-300 block text-xs uppercase font-mono">Privacy Policy · Last updated June 27, 2026</span>
+                  <span className="font-semibold text-zinc-300 block text-xs uppercase font-mono">Privacy Policy · Last updated September 17, 2026</span>
                   <label className="flex items-center gap-2 text-sm font-semibold text-zinc-300 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -610,15 +578,10 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.baseAmount > 0 ? <span className="block text-[9px]"><del className="text-zinc-500">{formatPlanMoney(selected.listAmount, selected.currency)}</del> <b className="text-emerald-400">50% OFF</b></span> : null; })()}
+                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.listAmount > selected.baseAmount ? <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selected.listAmount, selected.currency)}</del> <b className="text-zinc-200">50% off</b></span> : null; })()}
                   <span className="font-mono text-xl font-bold text-white">{(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.baseAmount === 0 ? 'Free' : `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}</span>
                 </div>
               </div>
-
-              {selectedPlanId !== 'basic' && (() => {
-                const selected = PLANS.find(p => p.id === selectedPlanId)!;
-                return <p className="text-center text-[10px] text-zinc-500">18% {selected.currency === 'INR' ? 'GST' : 'Tax'} is added at checkout. Total due: {formatPlanMoney(selected.totalAmount, selected.currency)}.</p>;
-              })()}
 
               {isProcessing ? <div className="flex min-h-24 items-center justify-center gap-2 text-xs text-zinc-300"><Loader2 className="h-4 w-4 animate-spin" />Finishing workspace setup…</div> : selectedPlanId === 'basic' ? (
                 <Button type="button" onClick={() => void completeOnboarding()} className="w-full">Start with Free</Button>

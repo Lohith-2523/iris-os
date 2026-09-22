@@ -8,6 +8,11 @@ import {
 } from '@/lib/meta-business';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
+import { normalizePlan } from '@/lib/plan-entitlements';
+
+function freeClientDashboardBlocked(user: { role: string; organization: { plan: string } }) {
+  return user.role.toLowerCase() === 'client' && normalizePlan(user.organization.plan) === 'BASIC';
+}
 
 async function syncMetaPerformanceForClient(orgId: string, clientId: string, adAccountId: string) {
   const [client, connection, organization] = await Promise.all([
@@ -116,6 +121,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (freeClientDashboardBlocked(user)) return NextResponse.json({ error: 'Client Dashboard is available on the Pro and Advanced plans.', code: 'PLAN_UPGRADE_REQUIRED' }, { status: 403 });
 
     const isClient = user.role === 'client';
     const clientAdAccountId = user?.client?.adAccountId || '';
@@ -212,6 +218,7 @@ export async function POST(request: NextRequest) {
 
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (freeClientDashboardBlocked(user)) return NextResponse.json({ error: 'Client Dashboard is available on the Pro and Advanced plans.', code: 'PLAN_UPGRADE_REQUIRED' }, { status: 403 });
 
     const org = await getOrganization(request);
     if (!org) {

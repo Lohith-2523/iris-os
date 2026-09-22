@@ -37,6 +37,7 @@ model Organization {
   atlasGeminiTokensUsed       Int       @default(0)
   atlasGptTokensUsed          Int       @default(0)
   atlasClaudeTokensUsed       Int       @default(0)
+  atlasUsagePeriodStart       DateTime  @default(dbgenerated("date_trunc('month', CURRENT_TIMESTAMP)"))
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
 
@@ -64,6 +65,7 @@ model Organization {
   atlasInsights             AtlasInsight[]
   atlasChatSessions         AtlasChatSession[]
   atlasMessages             AskAtlasMessage[]
+  atlasCreditUsageEvents    AtlasCreditUsageEvent[]
   financialForecasts        FinancialForecast[]
   memberInvites             MemberInvite[]
   onboardingState           OrganizationOnboardingState?
@@ -351,6 +353,7 @@ model User {
   taskComments                  TaskComment[]
   createdEvents                 CalendarEvent[]               @relation("CreatedEvents")
   atlasChatSessions             AtlasChatSession[]
+  atlasCreditUsageEvents        AtlasCreditUsageEvent[]
   preferences                   UserPreference?
   googleCalendarConnection      GoogleCalendarConnection?
   strategiesCreated             Strategy[]
@@ -851,6 +854,26 @@ model AskAtlasMessage {
   @@index([orgId, createdAt], map: "AskPrismMessage_orgId_createdAt_idx")
   @@index([sessionId], map: "AskPrismMessage_sessionId_idx")
   @@map("AskPrismMessage")
+}
+
+model AtlasCreditUsageEvent {
+  id           String       @id @default(uuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan         String
+  userRole     String
+  provider     String
+  inputCredits Int
+  outputCredits Int
+  totalCredits Int
+  createdAt    DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([orgId, createdAt])
+  @@index([plan, createdAt])
 }
 
 model MetaCampaign {

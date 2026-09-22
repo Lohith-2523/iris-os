@@ -1,0 +1,62 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · genre: modern-minimal · tone: technical premium · palette: graphite/silver · macrostructure: shared Iris pricing comparison · restored neomorphism */
+.pricingPage {
+  min-height: 100svh;
+  color: var(--color-landing-ink);
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 10%, rgba(255, 255, 255, 0.055) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 90% 15%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 60% at 50% 95%, rgba(255, 255, 255, 0.025) 0%, transparent 55%),
+    #0a0a0a;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+.pricingPageFooter {
+  display: flex;
+  width: min(100% - 2rem, 75rem);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-inline: auto;
+  padding-block: 2.25rem;
+  border-top: 1px solid var(--color-landing-rule);
+  color: var(--color-landing-quiet);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.pricingPageFooter img {
+  width: auto;
+  height: 1.75rem;
+  object-fit: contain;
+  opacity: 0.65;
+}
+
+.pricingPageFooter nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.pricingPageFooter a {
+  color: var(--color-landing-muted);
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pricingPageFooter a:focus-visible {
+  outline: 2px solid var(--color-landing-accent);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pricingPageFooter a:hover { color: var(--color-landing-ink); }
+}
+
+@media (min-width: 48rem) {
+  .pricingPageFooter { width: min(100% - 3rem, 75rem); }
+}

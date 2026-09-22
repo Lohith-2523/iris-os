@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { generateAtlasReportPdf } from '../src/lib/reports/pdf';
-import type { AtlasReportDocument } from '../src/lib/reports/types';
+import { generateAtlasReportPdf } from '../shared/lib/reports/pdf';
+import type { AtlasReportDocument } from '../shared/lib/reports/types';
 
 const sample: AtlasReportDocument = {
   version: 1,

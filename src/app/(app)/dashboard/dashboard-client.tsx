@@ -73,6 +73,7 @@ const DEFAULT_LEAD_STAGES: LeadStage[] = [
 ];
 
 const CANVA_BANNER_DESIGN_URL = '/api/canva/designs/banner';
+const DASHBOARD_ONBOARDING_ENABLED = false;
 
 function resolveBannerPosition(value: unknown): BannerPosition {
   if (!value || typeof value !== 'object') return { x: 50, y: 50 };
@@ -193,7 +194,9 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   }, [initialData, range.end, range.start]);
 
   // Onboarding states
-  const [needsOnboarding, setNeedsOnboarding] = React.useState(initialData.workspace.onboarding.needsOnboarding);
+  const [needsOnboarding, setNeedsOnboarding] = React.useState(
+    DASHBOARD_ONBOARDING_ENABLED && initialData.workspace.onboarding.needsOnboarding,
+  );
   const [onboardingState, setOnboardingState] = React.useState<{
     google: 'not_started' | 'connected' | 'skipped';
     meta: 'not_started' | 'connected' | 'skipped';

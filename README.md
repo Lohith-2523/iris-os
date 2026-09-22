@@ -42,6 +42,17 @@ Iris OS is an enterprise-grade SaaS operating system designed for creative agenc
 
 ---
 
+## Source layout
+
+* `src/app` contains the customer-facing Next.js application deployed to production.
+* `src/admin` is reserved for the future Iris OS super-admin application and its internal-only entrypoints.
+* `shared/components`, `shared/config`, `shared/lib`, and `shared/server` contain reusable code for both applications.
+* `src/proxy.ts` is the required Next.js proxy entrypoint and delegates authentication policy to shared server code.
+
+Keep customer-facing routes out of `src/admin`. The admin application must use a separate Iris OS super-admin authorization boundary before it is exposed or deployed.
+
+---
+
 ## ⚙️ Getting Started
 
 ### 1. Prerequisites
@@ -83,11 +94,16 @@ SMTP_PASSWORD="your-google-app-password"
 APP_URL="https://irisos.app"
 ```
 
-`AUTH_ACCESS_SECRET` signs the first-party device grant that permits the login
-and signup pages to open. Keep it stable across deployments; rotating it revokes
-all existing device grants. The single daily waitlist cron uses `CRON_SECRET`,
-sends each signup invitation 24–48 hours after registration, and delivers the
-daily waitlist report.
+The waitlist is enabled by `WAITLIST_ENABLED = true` in
+`shared/lib/waitlist-config.ts`. Public login and signup require a signed device
+grant from a waitlist invitation or a single-use link generated in the
+superadmin User access links page. Email verification remains required for
+signup.
+
+`AUTH_ACCESS_SECRET` signs first-party device grants. Keep it stable across
+deployments; rotating it revokes existing grants. The daily waitlist cron
+uses `CRON_SECRET`, sends each signup invitation 24–48 hours after registration,
+and delivers the daily waitlist report.
 
 `MESSAGING_ENCRYPTION_KEY` encrypts account-scoped messaging private keys at rest. Keep it stable across deployments; changing or losing it makes stored message keyrings unreadable. When omitted, the app falls back to `INTEGRATION_ENCRYPTION_KEY` and then `AUTH_SECRET` for compatibility.
 

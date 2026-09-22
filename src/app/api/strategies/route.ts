@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       currency: user.organization.currency,
       clients: context.clients,
       projects: context.projects,
-      tokenBudget: { orgId: user.orgId, plan: normalizePlan(user.organization.plan) },
+      tokenBudget: { orgId: user.orgId, userId: user.id, userRole: user.role, plan: normalizePlan(user.organization.plan) },
     });
     const inputSnapshot = {
       type,

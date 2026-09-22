@@ -1,7 +1,12 @@
+import { WAITLIST_ENABLED } from '@/lib/waitlist-config';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
-import { provisionAuthenticatedUser } from '@/lib/org';
+import {
+  DeletedClientWorkspaceError,
+  provisionAuthenticatedUser,
+  WorkspaceSignupRoleConflictError,
+} from '@/lib/org';
 import {
   isTransientDatabaseConnectionError,
   withDatabaseConnectionRetry,
@@ -18,6 +23,7 @@ import {
 import { hasApprovedSignup, validateDeviceAccess } from '@/lib/auth-access';
 import { DEVICE_ACCESS_COOKIE } from '@/lib/auth-access-cookie';
 import { hasSuperadminAccess, SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
+import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -119,37 +125,56 @@ export async function GET(request: Request) {
       return response;
     }
 
-    const existingWorkspaceUser = await prisma.user.findFirst({
-      where: { OR: [{ authUserId: session.user.id }, { email: email.toLowerCase() }] },
-      select: { id: true },
-    });
-    const deviceCookie = request.headers.get('cookie')
-      ?.split(';')
-      .map(value => value.trim())
-      .find(value => value.startsWith(`${DEVICE_ACCESS_COOKIE}=`))
-      ?.slice(DEVICE_ACCESS_COOKIE.length + 1);
-    const approvedDevice = existingWorkspaceUser
-      || await validateDeviceAccess(deviceCookie ? decodeURIComponent(deviceCookie) : null, email)
-      || await hasApprovedSignup(session.user.id, email);
-    if (!approvedDevice) {
-      await supabase.auth.signOut();
-      return NextResponse.redirect(`${origin}/waitlist?access=required`);
+    if (WAITLIST_ENABLED) {
+      const existingWorkspaceUser = await prisma.user.findFirst({
+        where: { OR: [{ authUserId: session.user.id }, { email: email.toLowerCase() }] },
+        select: { id: true },
+      });
+      const deviceCookie = request.headers.get('cookie')
+        ?.split(';')
+        .map(value => value.trim())
+        .find(value => value.startsWith(`${DEVICE_ACCESS_COOKIE}=`))
+        ?.slice(DEVICE_ACCESS_COOKIE.length + 1);
+      const approvedDevice = existingWorkspaceUser
+        || await validateDeviceAccess(deviceCookie ? decodeURIComponent(deviceCookie) : null, email)
+        || await hasApprovedSignup(session.user.id, email);
+      if (!approvedDevice) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/waitlist?access=required`);
+      }
     }
 
-    const dbUser = await withDatabaseConnectionRetry(
-      () => provisionAuthenticatedUser(session.user),
-      {
-        onRetry: (_error, nextAttempt) => {
-          console.warn(`Workspace initialization is waiting for a database connection (attempt ${nextAttempt}).`);
+    let dbUser;
+    try {
+      dbUser = await withDatabaseConnectionRetry(
+        () => provisionAuthenticatedUser(session.user, {
+          intent: next === '/onboarding' ? 'workspace-signup' : 'sign-in',
+        }),
+        {
+          onRetry: (_error, nextAttempt) => {
+            console.warn(`Workspace initialization is waiting for a database connection (attempt ${nextAttempt}).`);
+          },
         },
-      },
-    );
+      );
+    } catch (error) {
+      if (error instanceof WorkspaceSignupRoleConflictError) {
+        await supabase.auth.signOut({ scope: 'local' });
+        response.headers.set('Location', new URL('/login?auth_error=account_already_exists', origin).toString());
+        return response;
+      }
+      if (error instanceof DeletedClientWorkspaceError) {
+        await supabase.auth.signOut({ scope: 'local' });
+        response.headers.set('Location', new URL('/login?auth_error=workspace_deleted', origin).toString());
+        return response;
+      }
+      throw error;
+    }
     const role = dbUser.role?.toLowerCase() || 'admin';
 
     // First-time users and users with unfinished onboarding resume the saved
     // wizard state. Completed workspaces return to their requested page/dashboard.
     const redirectUrl = role === 'client'
-        ? '/client-dashboard'
+        ? teamMemberWorkspaceHome({ role, plan: dbUser.organization.plan })
         : role === 'member'
           ? '/teams-dashboard'
           : dbUser.organization.onboardingState?.needsOnboarding

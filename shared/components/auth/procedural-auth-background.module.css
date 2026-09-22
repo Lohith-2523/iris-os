@@ -1,0 +1,21 @@
+/* Hallmark: procedural auth background; modern-minimal; Iris porcelain.
+ * States: ambient, reduced motion, and WebGL fallback. */
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-auth-canvas);
+  pointer-events: none;
+}
+
+.root canvas { display: block; }
+
+/* Keep the fade separate from the live WebGL canvas so browser-edge repaints
+ * do not have to composite a mask on every animation frame. */
+.root::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, var(--color-auth-canvas) 0%, var(--color-auth-canvas) 10%, transparent 70%, transparent 100%);
+}

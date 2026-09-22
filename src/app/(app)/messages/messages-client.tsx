@@ -11,6 +11,8 @@ import styles from './messages.module.css';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { ChatFilePreview, type LoadedChatFile } from '@/components/ui/chat-file-preview';
+import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
+import { normalizePlan, type PlanId } from '@/lib/plan-entitlements';
 
 type Person = { id: string; name: string; email: string; role: string; avatarUrl?: string | null };
 type Conversation = {
@@ -64,6 +66,7 @@ type InboxPayload = {
   directory: Person[];
   conversations: Conversation[];
   limits: MessagingLimits | null;
+  plan?: string;
 };
 
 const shortTime = (value: string) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -210,6 +213,8 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   const [protocolError, setProtocolError] = React.useState('');
   const [attachments, setAttachments] = React.useState<File[]>([]);
   const [limits, setLimits] = React.useState<MessagingLimits | null>(initialInbox.limits);
+  const [plan, setPlan] = React.useState<PlanId>(normalizePlan(initialInbox.plan));
+  const [upgradePromptOpen, setUpgradePromptOpen] = React.useState(false);
   const [pageReady, setPageReady] = React.useState(false);
   const [conversationLoading, setConversationLoading] = React.useState(false);
   const [composerMenuOpen, setComposerMenuOpen] = React.useState(false);
@@ -246,6 +251,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     currentUserIdRef.current = payload.currentUserId;
     setCurrentUserRole(payload.currentUserRole || '');
     setLimits(payload.limits);
+    if (payload.plan) setPlan(normalizePlan(payload.plan));
   }, []);
 
   const loadInbox = React.useCallback(async () => applyInbox(await requestInbox()), [applyInbox, requestInbox]);
@@ -485,6 +491,10 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     const plaintext = messageOverride ?? (draft.trim() || 'Sent an encrypted attachment.');
     const queuedAttachments = attachmentOverride ?? [...attachments];
     if (!selected?.participant || !protocolReady || (!plaintext.trim() && queuedAttachments.length === 0)) return;
+    if (plan === 'BASIC') {
+      setUpgradePromptOpen(true);
+      return;
+    }
     const conversation = selected;
     const recipient = selected.participant;
     const clientMessageId = crypto.randomUUID();
@@ -584,6 +594,11 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
 
   async function createMeeting(input: { title: string; description: string; location: string; meetingLink: string; startTime: string; endTime: string; timeZone: string; createGoogleMeet: boolean }) {
     if (!selected?.participant) throw new Error('Select a conversation before creating a meeting.');
+    if (plan === 'BASIC') {
+      setMeetingDialogOpen(false);
+      setUpgradePromptOpen(true);
+      return;
+    }
     const response = await fetch('/api/calendar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -826,6 +841,19 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
         </main>
       </div>
       {meetingDialogOpen && selected?.participant && <CreateMeetingDialog participant={selected.participant} onClose={() => setMeetingDialogOpen(false)} onCreate={createMeeting} />}
+      <SubscriptionPlanDialog
+        open={upgradePromptOpen}
+        currentPlan={plan}
+        feature="sending messages"
+        requiredPlan="PRO"
+        canManage={isAdmin}
+        onClose={() => setUpgradePromptOpen(false)}
+        onPlanChanged={(nextPlan) => {
+          setPlan(nextPlan);
+          setUpgradePromptOpen(false);
+          void loadInbox();
+        }}
+      />
     </section>
   );
 }

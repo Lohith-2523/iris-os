@@ -54,7 +54,7 @@ interface ClosedLeadOption {
   convertedClient?: { id: string; name: string } | null;
 }
 
-const CLIENT_ONBOARDING_DRAFT_VERSION = 1;
+const CLIENT_ONBOARDING_DRAFT_VERSION = 2;
 
 const createInitialFormData = () => ({
   // Step 1: Universal details
@@ -114,7 +114,9 @@ const createInitialFormData = () => ({
   projectMetaIntegrationEnabled: false,
   projectStartDate: new Date().toISOString().split('T')[0],
   projectDeadline: '',
-  projectDeliverables: 'Design banner ads, Launch campaign, Optimize conversion metrics',
+  projectTaskName: '',
+  projectTaskStagePosition: 0,
+  projectTaskDeadline: '',
   projectMemberIds: [] as string[],
   projectStages: [
     { name: 'Initial Stage', startDate: '', endDate: '' },
@@ -448,8 +450,12 @@ export default function ClientOnboardPage() {
           startDate: formData.projectStartDate,
           endDate: formData.projectDeadline || null,
           memberIds: formData.projectMemberIds,
-          deliverables: formData.projectDeliverables
-            ? formData.projectDeliverables.split(',').map((deliverable: string) => deliverable.trim()).filter(Boolean)
+          tasks: formData.projectTaskName.trim()
+            ? [{
+                title: formData.projectTaskName.trim(),
+                stagePosition: formData.projectTaskStagePosition,
+                deadline: formData.projectTaskDeadline || null,
+              }]
             : [],
           stages: formData.projectStages,
         } : null,
@@ -1366,7 +1372,8 @@ export default function ClientOnboardPage() {
                                     const newStages = prev.projectStages.filter((_, sIdx) => sIdx !== idx);
                                     return {
                                       ...prev,
-                                      projectStages: recalculateStages(newStages, prev.projectStartDate, prev.projectDeadline)
+                                      projectStages: recalculateStages(newStages, prev.projectStartDate, prev.projectDeadline),
+                                      projectTaskStagePosition: Math.min(prev.projectTaskStagePosition, newStages.length - 1),
                                     };
                                   });
                                 }}
@@ -1380,16 +1387,14 @@ export default function ClientOnboardPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="font-semibold text-zinc-400 block">Initial Deliverables Checklist (Comma-separated)</label>
-                        <textarea
-                          name="projectDeliverables"
-                          rows={2}
-                          placeholder="e.g. Design creatives, Launch campaign, A/B testing"
-                          value={formData.projectDeliverables}
-                          onChange={handleInputChange}
-                          className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none"
-                        />
+                      <div className="space-y-2 border-t border-zinc-900/60 pt-3">
+                        <span className="font-semibold text-zinc-350 block">Initial Project Task</span>
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                          <label className="space-y-1.5"><span className="font-semibold text-zinc-400 block">Task name</span><input name="projectTaskName" value={formData.projectTaskName} onChange={handleInputChange} placeholder="e.g. Prepare campaign brief" className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none" /></label>
+                          <label className="space-y-1.5"><span className="font-semibold text-zinc-400 block">Stage</span><select name="projectTaskStagePosition" value={formData.projectTaskStagePosition} onChange={(event) => setFormData((current) => ({ ...current, projectTaskStagePosition: Number(event.target.value) }))} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none">{formData.projectStages.map((stage, index) => <option key={index} value={index}>{index + 1}. {stage.name || `Stage ${index + 1}`}</option>)}</select></label>
+                          <label className="space-y-1.5"><span className="font-semibold text-zinc-400 block">Due date</span><DateInput value={formData.projectTaskDeadline} onChange={(value) => setFormData((current) => ({ ...current, projectTaskDeadline: value }))} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none font-mono" /></label>
+                        </div>
+                        <p className="text-xs text-zinc-500">The task defaults to Stage 1 and can be assigned to any stage defined above.</p>
                       </div>
 
                       {/* Members Multi-select Grid */}
@@ -1519,6 +1524,13 @@ export default function ClientOnboardPage() {
                           </div>
                         ))}
                       </div>
+                      {formData.projectTaskName.trim() && <div className="mt-2 border-t border-zinc-900/65 pt-2">
+                        <span className="block text-[8px] text-zinc-500 uppercase font-bold">Initial task:</span>
+                        <div className="mt-1 flex flex-wrap justify-between gap-2 text-[10px]">
+                          <span className="text-zinc-300">{formData.projectTaskName}</span>
+                          <span className="text-zinc-500">{formData.projectStages[formData.projectTaskStagePosition]?.name || 'Stage 1'}{formData.projectTaskDeadline ? ` Â· ${formData.projectTaskDeadline}` : ''}</span>
+                        </div>
+                      </div>}
                     </div>
                   )}
 
