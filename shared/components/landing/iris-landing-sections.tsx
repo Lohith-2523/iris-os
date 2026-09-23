@@ -52,6 +52,7 @@ const milesCards = [
   {
     title: 'Understand the whole business',
     description: 'Ask questions across finance, clients, projects and campaign performance. Miles surfaces summaries, forecasts, risks, profit leaks and opportunities from the workspace context you permit.',
+    mobileDescription: 'Ask across finance, clients, projects and campaigns. Miles surfaces forecasts, risks, profit leaks and opportunities.',
     bgColor: 'var(--color-landing-surface)',
     textColor: 'var(--color-landing-ink)',
     icon: <ChartNoAxesCombined aria-hidden="true" />,
@@ -59,6 +60,7 @@ const milesCards = [
   {
     title: 'Create decision-ready work',
     description: 'Draft proposals, contracts, statements of work, reports, strategies, meeting plans and executive summaries while keeping review and approval in the loop.',
+    mobileDescription: 'Draft proposals, contracts, reports, strategies and executive summaries with review and approval built in.',
     bgColor: 'var(--color-landing-surface-raised)',
     textColor: 'var(--color-landing-ink)',
     icon: <FileCheck2 aria-hidden="true" />,
@@ -66,6 +68,7 @@ const milesCards = [
   {
     title: 'Act with control',
     description: 'Create projects, tasks, invoices, reports and meetings; coordinate automations; use text or voice; and require confirmation before consequential workspace changes.',
+    mobileDescription: 'Create projects, tasks, invoices, reports and meetings—with confirmation before consequential changes.',
     bgColor: 'var(--color-landing-surface-inset)',
     textColor: 'var(--color-landing-ink)',
     icon: <Workflow aria-hidden="true" />,

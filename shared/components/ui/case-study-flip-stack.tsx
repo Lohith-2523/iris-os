@@ -4,6 +4,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/lib/use-media-query";
 import {
   motion,
   useMotionTemplate,
@@ -89,6 +90,7 @@ function FlipCard({
   scrollSegments,
   progress,
   reduceMotion,
+  compactMotion,
 }: {
   item: CaseStudyFlipItem;
   index: number;
@@ -96,6 +98,7 @@ function FlipCard({
   scrollSegments: number;
   progress: MotionValue<number>;
   reduceMotion: boolean;
+  compactMotion: boolean;
 }) {
   const segment = 1 / Math.max(scrollSegments, 0.1);
   const start = index * segment;
@@ -127,7 +130,7 @@ function FlipCard({
   const rotateX = useTransform(
     progress,
     [exitStart, exitEnd],
-    reduceMotion || isLast ? [0, 0] : [0, 22],
+    reduceMotion || compactMotion || isLast ? [0, 0] : [0, 22],
   );
   const opacity = useTransform(
     progress,
@@ -154,7 +157,7 @@ function FlipCard({
         opacity,
         zIndex: total - index,
         transformOrigin: "50% 50%",
-        transformStyle: "preserve-3d",
+        transformStyle: compactMotion ? "flat" : "preserve-3d",
         backfaceVisibility: "hidden",
       }}
     >
@@ -179,7 +182,7 @@ function FlipCard({
             <p className="mb-[clamp(10px,1.5vw,22px)] text-[10px] font-semibold uppercase tracking-[0.16em] opacity-70 sm:text-xs">
               {item.eyebrow}
             </p>
-            <h2 className="max-w-[16ch] text-balance text-[clamp(28px,3.25vw,48px)] font-semibold leading-[0.96] tracking-[-0.05em]">
+            <h2 data-flip-card-title className="max-w-[16ch] text-balance text-[clamp(28px,3.25vw,48px)] font-semibold leading-[0.96] tracking-[-0.05em]">
               {item.title}
             </h2>
             <p className="mt-[clamp(16px,1.8vw,24px)] max-w-[42rem] text-[clamp(13px,1.1vw,16px)] leading-[1.5] opacity-82">
@@ -212,6 +215,7 @@ export function CaseStudyFlipStack({
 }: CaseStudyFlipStackProps) {
   const stackRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
+  const compactMotion = useMediaQuery("(max-width: 47.99rem)");
   const safeItems = items.length > 0 ? items : DEFAULT_ITEMS;
   // The final card needs only a short release runway before the next section.
   // Earlier cards keep their full scroll interval, while the old empty tail is cut by 90%.
@@ -266,9 +270,9 @@ export function CaseStudyFlipStack({
       <div
         ref={stackRef}
         className="relative"
-        style={{ height: `${100 + scrollSegments * scrollVhPerCard}vh` }}
+        style={{ height: `calc(${100 + scrollSegments * scrollVhPerCard} * 1svh)` }}
       >
-        <div className="sticky top-[6.5rem] flex h-[calc(100vh-6.5rem)] flex-col justify-center overflow-hidden px-[clamp(14px,4vw,64px)] pb-[6.5rem]">
+        <div className="sticky top-[6.5rem] flex h-[calc(100svh-6.5rem)] flex-col justify-center overflow-hidden px-[clamp(14px,4vw,64px)] pb-[6.5rem]">
           <div className="relative mx-auto aspect-[3/4] w-full max-w-[860px] [perspective:800px] sm:aspect-[1.76/1]">
             {[...safeItems].reverse().map((item, reverseIndex) => {
               const index = safeItems.length - reverseIndex - 1;
@@ -281,6 +285,7 @@ export function CaseStudyFlipStack({
                   scrollSegments={scrollSegments}
                   progress={cardProgress}
                   reduceMotion={reduceMotion}
+                  compactMotion={compactMotion}
                 />
               );
             })}

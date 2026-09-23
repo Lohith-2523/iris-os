@@ -16,7 +16,7 @@ export function IrisPricing({ region }: { region: PricingRegion }) {
 
       <footer className={pageStyles.pricingPageFooter}>
         <Image src="/iris-logo-black-bg.png" alt="IrisOS" width={74} height={28} />
-        <span>© 2026 IrisOS, Inc. All rights reserved.</span>
+        <span>© 2026 IrisOS. All rights reserved.</span>
         <nav aria-label="Pricing footer navigation">
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>

@@ -4636,3 +4636,9 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   .workspace-topbar-help .iris-help-bubble { width: 2.5rem; padding: .5rem; justify-content: center; }
   .workspace-topbar-help .iris-help-bubble span { display: none; }
 }
+
+/* Full wordmark artwork currently includes a registered mark; hide that edge until branding is registered. */
+img[src*="iris-logo-black-bg.png"],
+img[src*="iris-logo-white-bg.png"] {
+  clip-path: inset(0 4.5% 0 0);
+}

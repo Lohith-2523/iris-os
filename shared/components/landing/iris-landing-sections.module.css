@@ -73,6 +73,13 @@
   box-shadow: inset 0 1px var(--color-landing-highlight), 0 2rem 5rem var(--color-landing-shadow) !important;
 }
 
+.consoleStack [data-flip-card-title] {
+  max-width: none;
+  font-size: clamp(1.125rem, 1.8vw, 1.75rem) !important;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
 .milesSection {
   padding-top: clamp(6rem, 11vw, 10rem);
   background: transparent;
@@ -164,8 +171,15 @@
 
 @media (max-width: 47.99rem) {
   .milesHeading { grid-template-columns: minmax(0, 1fr); }
-  .capabilityRail { grid-template-columns: minmax(0, 1fr); margin-top: -10vh; }
+  .capabilityRail {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: clamp(2rem, 6svh, 3rem);
+  }
   .capabilityRail > div { min-height: 7rem; padding: 1.375rem; }
+  .consoleStack article { will-change: auto !important; }
+  .consoleStack article > div {
+    box-shadow: inset 0 1px var(--color-landing-highlight), 0 1rem 2.5rem var(--color-landing-shadow) !important;
+  }
   .sectionHeading h2,
   .milesHeading h2 { max-width: 100%; }
 }

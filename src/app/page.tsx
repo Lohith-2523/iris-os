@@ -110,73 +110,6 @@ function Hero() {
           }}
         />
 
-      {/* Floating logo */}
-      <ScrollReveal eager className="float-anim" style={{ marginBottom: '44px' }}>
-        <div
-          style={{
-            borderRadius: '28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: '#111111',
-            boxShadow: '10px 10px 24px #040404, -10px -10px 24px #1e1e1e',
-            padding: '20px 28px',
-          }}
-        >
-          <Image
-            src={irisLogo}
-            alt="IrisOS"
-            width={136}
-            height={52}
-            priority
-            style={{ height: '52px', width: 'auto', objectFit: 'contain', display: 'block' }}
-          />
-        </div>
-      </ScrollReveal>
-
-      {/* Badge */}
-      <ScrollReveal
-        eager
-        delay="0.15s"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '6px 16px',
-          background: '#111111',
-          boxShadow: '4px 4px 10px #040404, -4px -4px 10px #1e1e1e',
-          borderRadius: '50px',
-          marginBottom: '32px',
-          maxWidth: 'min(100%, 720px)',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-        }}
-      >
-        <div
-          style={{
-            width: '6px',
-            height: '6px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.6)',
-            boxShadow: '0 0 8px rgba(255,255,255,0.4)',
-          }}
-        />
-        <span
-          style={{
-            fontFamily: JBMONO,
-            fontWeight: 400,
-            fontSize: '11px',
-            color: 'rgba(232,232,232,0.55)',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            lineHeight: 1.45,
-            textAlign: 'center',
-          }}
-        >
-          Introducing IrisOS — The Unified Agency Workspace
-        </span>
-      </ScrollReveal>
-
       {/* Headline */}
       <ScrollReveal
         eager
@@ -1376,7 +1309,7 @@ function Footer() {
     >
       <Image src={irisLogo} alt="IrisOS" width={74} height={28} style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
       <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
-        © 2026 IrisOS, Inc. All rights reserved.
+        © 2026 IrisOS. All rights reserved.
       </span>
       <div style={{ display: 'flex', gap: '24px' }}>
         {[

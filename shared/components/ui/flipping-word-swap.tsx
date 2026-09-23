@@ -60,11 +60,26 @@ export function FlippingWordSwap({
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const activeIndexRef = useRef(0);
   const pausedRef = useRef(false);
+  const visibleRef = useRef(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const phrases = useMemo(
     () => [word1, word2, word3].filter((phrase): phrase is string => Boolean(phrase)),
     [word1, word2, word3],
   );
+
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      visibleRef.current = entry.isIntersecting;
+      if (!entry.isIntersecting) timelineRef.current?.pause();
+      else timelineRef.current?.resume();
+    }, { rootMargin: "120px 0px" });
+
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const context = gsap.context(() => {
@@ -98,11 +113,13 @@ export function FlippingWordSwap({
     const nextCharacters = root.querySelectorAll(`[data-flip-index="${nextIndex}"]`);
 
     timelineRef.current?.kill();
+    gsap.set([currentCharacters, nextCharacters], { willChange: "transform,opacity" });
     gsap.set(nextCharacters, { rotationX: -82, opacity: 0, transformOrigin: "center bottom" });
     timelineRef.current = gsap.timeline({
       onComplete: () => {
         activeIndexRef.current = nextIndex;
         setActiveIndex(nextIndex);
+        gsap.set([currentCharacters, nextCharacters], { clearProps: "willChange" });
       },
     })
       .to(currentCharacters, {
@@ -124,7 +141,7 @@ export function FlippingWordSwap({
   useEffect(() => {
     if (!autoPlay || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const timer = window.setInterval(() => {
-      if (!pausedRef.current) showPhrase((activeIndexRef.current + 1) % phrases.length);
+      if (!pausedRef.current && visibleRef.current) showPhrase((activeIndexRef.current + 1) % phrases.length);
     }, Math.max(1400, interval));
     return () => window.clearInterval(timer);
   }, [autoPlay, interval, phrases.length, showPhrase]);
@@ -136,7 +153,7 @@ export function FlippingWordSwap({
       <span
         key={`${layer}-${index}-${character}`}
         data-flip-index={layer}
-        className="inline-block whitespace-pre [backface-visibility:hidden] [will-change:transform,opacity]"
+        className="inline-block whitespace-pre [backface-visibility:hidden]"
       >
         {character === " " ? "\u00a0" : character}
       </span>

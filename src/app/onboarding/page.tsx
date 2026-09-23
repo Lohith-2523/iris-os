@@ -610,7 +610,7 @@ export default function OnboardingPage() {
 
       {/* Footer */}
       <div className="max-w-6xl mx-auto w-full flex items-center justify-between text-zinc-600 text-[10px] font-mono border-t border-zinc-900 pt-6 relative z-10 shrink-0">
-        <span>© 2026 IrisOS Inc.</span>
+        <span>© 2026 IrisOS.</span>
         <div className="flex gap-4">
           <Link href="/terms" className="hover:text-zinc-450">Terms</Link>
           <Link href="/privacy" className="hover:text-zinc-450">Privacy</Link>

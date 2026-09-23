@@ -1,12 +1,18 @@
 "use client";
 
+/* The split face needs a native image so its intrinsic ratio survives the mobile rotation. */
+/* eslint-disable @next/next/no-img-element */
+
 import { cn } from "@/lib/utils";
-import { motion, useMotionTemplate, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import { useMediaQuery } from "@/lib/use-media-query";
+import { motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
+import { useRef, useState, type CSSProperties } from "react";
+import styles from "./scroll-split-card.module.css";
 
 interface ScrollSplitCardItem {
   title: string;
   description: string;
+  mobileDescription?: string;
   bgColor: string;
   textColor: string;
   icon?: React.ReactNode;
@@ -34,6 +40,7 @@ export function ScrollSplitCard({
 }: ScrollSplitCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion() ?? false;
+  const phoneViewport = useMediaQuery("(max-width: 47.99rem)");
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -41,55 +48,64 @@ export function ScrollSplitCard({
     offset: ["start start", "end end"],
   });
   const [startLabelDismissed, setStartLabelDismissed] = useState(false);
+  const startLabelDismissedRef = useRef(false);
   const previousScrollProgress = useRef(0);
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
     const delta = latest - previousScrollProgress.current;
     previousScrollProgress.current = latest;
 
-    if (delta > 0.002) {
+    if (delta > 0.002 && !startLabelDismissedRef.current) {
+      startLabelDismissedRef.current = true;
       setStartLabelDismissed(true);
-    } else if (delta < -0.002) {
+    } else if (delta < -0.002 && startLabelDismissedRef.current) {
+      startLabelDismissedRef.current = false;
       setStartLabelDismissed(false);
     }
   });
 
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: phoneViewport ? 150 : 180,
+    damping: phoneViewport ? 32 : 30,
+    mass: 0.45,
+    restDelta: 0.001,
+  });
+  const progress = reduceMotion ? scrollYProgress : smoothProgress;
+
   // Stage 1 to 2: Separation (0 to 0.4), then Stage 2 to 3: Overlap closer (0.4 to 0.8)
-  const leftX = useTransform(scrollYProgress, [0, 0.4, 0.8], reduceMotion ? [0, 0, 0] : [0, -48, -24]);
-  const rightX = useTransform(scrollYProgress, [0, 0.4, 0.8], reduceMotion ? [0, 0, 0] : [0, 48, 24]);
-  const scale = useTransform(scrollYProgress, [0, 0.4], reduceMotion ? [1, 1] : [1, 0.9]);
+  const firstOffset = useTransform(progress, [0, 0.4, 0.8], reduceMotion ? [0, 0, 0] : [0, -48, -24]);
+  const lastOffset = useTransform(progress, [0, 0.4, 0.8], reduceMotion ? [0, 0, 0] : [0, 48, 24]);
+  const scale = useTransform(progress, [0, 0.4], reduceMotion ? [1, 1] : [1, phoneViewport ? 0.96 : 0.9]);
 
   // Stage 2 to 3: Flip (0.4 to 0.8)
-  const rotateY = useTransform(scrollYProgress, [0.4, 0.8], reduceMotion ? [180, 180] : [0, 180]);
+  const flipRotation = useTransform(progress, [0.4, 0.8], reduceMotion ? [180, 180] : [0, 180]);
   // Due to 180deg Y flip, positive Z becomes visual counter-clockwise, negative Z becomes visual clockwise
-  const rotateZLeft = useTransform(scrollYProgress, [0.4, 0.8], reduceMotion ? [0, 0] : [0, 6]);
-  const rotateZRight = useTransform(scrollYProgress, [0.4, 0.8], reduceMotion ? [0, 0] : [0, -6]);
+  const rotateZLeft = useTransform(progress, [0.4, 0.8], reduceMotion || phoneViewport ? [0, 0] : [0, 6]);
+  const rotateZRight = useTransform(progress, [0.4, 0.8], reduceMotion || phoneViewport ? [0, 0] : [0, -6]);
 
   // Dynamic borders/radii so it looks like ONE flat image initially
-  const borderRadiusLeft = useTransform(scrollYProgress, [0, 0.2], ["16px 0px 0px 16px", "16px 16px 16px 16px"]);
-  const borderRadiusMiddle = useTransform(scrollYProgress, [0, 0.2], ["0px 0px 0px 0px", "16px 16px 16px 16px"]);
-  const borderRadiusRight = useTransform(scrollYProgress, [0, 0.2], ["0px 16px 16px 0px", "16px 16px 16px 16px"]);
-  const borderOpacity = useTransform(scrollYProgress, [0, 0.2], [0, 0.2]);
-  const shadowOpacity = useTransform(scrollYProgress, [0, 0.2], [0, 0.4]);
-  const boxShadow = useMotionTemplate`inset 0 1px 1px rgba(255, 255, 255, ${borderOpacity}), inset 0 -24px 48px rgba(0, 0, 0, ${shadowOpacity}), 0 25px 50px -12px rgba(0, 0, 0, ${shadowOpacity})`;
+  const borderRadiusFirst = useTransform(progress, [0, 0.2], [phoneViewport ? "16px 16px 0px 0px" : "16px 0px 0px 16px", "16px"]);
+  const borderRadiusMiddle = useTransform(progress, [0, 0.2], ["0px", "16px"]);
+  const borderRadiusLast = useTransform(progress, [0, 0.2], [phoneViewport ? "0px 0px 16px 16px" : "0px 16px 16px 0px", "16px"]);
 
   // Cards move up in the last viewport
-  const cardsY = useTransform(scrollYProgress, [0.8, 1], reduceMotion ? [0, 0] : [0, -240]);
+  const cardsY = useTransform(progress, [0.8, 1], reduceMotion ? [0, 0] : [0, phoneViewport ? -120 : -240]);
 
   // Text appearance at the end in the sticky viewport
-  const textOpacity = useTransform(scrollYProgress, [0.8, 1], reduceMotion ? [1, 1] : [0, 1]);
-  const textY = useTransform(scrollYProgress, [0.8, 1], reduceMotion ? [0, 0] : [40, 0]);
+  const textOpacity = useTransform(progress, [0.8, 1], reduceMotion ? [1, 1] : [0, 1]);
+  const textY = useTransform(progress, [0.8, 1], reduceMotion ? [0, 0] : [40, 0]);
 
   return (
     <div
       ref={containerRef}
+      data-split-card-root
       className={cn("relative w-full", className)}
-      style={{ height: reduceMotion ? "100vh" : `${scrollLengthVh}vh` }}
+      style={{ height: reduceMotion ? "100svh" : `calc(${scrollLengthVh} * 1svh)` }}
     >
-      <div className="sticky top-[6.5rem] flex h-[calc(100vh-6.5rem)] w-full items-center justify-center overflow-hidden [perspective:1200px]">
+      <div className={cn("sticky top-[6.5rem] flex w-full items-center justify-center overflow-hidden [perspective:1200px]", styles.stage)}>
         {/* Starting Text indicator */}
         <motion.div
-          className="absolute top-[20%] left-0 right-0 text-center"
+          className={cn("absolute top-[20%] left-0 right-0 text-center", styles.startLabel)}
           initial={false}
           animate={{ opacity: reduceMotion || startLabelDismissed ? 0 : 1 }}
           transition={reduceMotion ? { duration: 0 } : { duration: 1.4, ease: "easeOut" }}
@@ -100,16 +116,20 @@ export function ScrollSplitCard({
         </motion.div>
 
         <motion.div
+          data-split-card-group
           style={{ scale, y: cardsY, transformStyle: "preserve-3d" }}
-          className="relative flex h-[420px] w-full max-w-7xl px-4 sm:h-[min(560px,68vh)]"
+          className={cn("relative", styles.cardGroup)}
         >
           {cards.slice(0, 3).map((card, i) => (
             <motion.div
               key={i}
-              className="relative h-full flex-1"
+              data-split-card-panel
+              className={styles.panel}
               style={{
-                x: i === 0 ? leftX : i === 2 ? rightX : 0,
-                rotateY,
+                x: phoneViewport ? 0 : i === 0 ? firstOffset : i === 2 ? lastOffset : 0,
+                y: phoneViewport ? (i === 0 ? firstOffset : i === 2 ? lastOffset : 0) : 0,
+                rotateX: phoneViewport ? flipRotation : 0,
+                rotateY: phoneViewport ? 0 : flipRotation,
                 rotateZ: i === 0 ? rotateZLeft : i === 2 ? rotateZRight : 0,
                 zIndex: i, // Ensures Left is under Middle, and Right is above Middle
                 transformStyle: "preserve-3d",
@@ -120,19 +140,24 @@ export function ScrollSplitCard({
                 className="absolute inset-0 overflow-hidden [backface-visibility:hidden]"
                 style={{
                   zIndex: 2, // Ensure front stays above initially
-                  borderRadius: i === 0 ? borderRadiusLeft : i === 2 ? borderRadiusRight : borderRadiusMiddle,
-                  boxShadow,
+                  borderRadius: i === 0 ? borderRadiusFirst : i === 2 ? borderRadiusLast : borderRadiusMiddle,
                 }}
               >
                 <div
-                  className="absolute inset-0 h-full w-[300%]"
+                  className={styles.imageSlice}
                   style={{
-                    left: `${-100 * i}%`,
+                    "--split-index": i,
                     backgroundImage: `url(${imageSrc})`,
-                    backgroundSize: "100% 100%",
-                    backgroundPosition: "center",
-                  }}
-                />
+                  } as CSSProperties}
+                >
+                  <img
+                    aria-hidden="true"
+                    alt=""
+                    className={styles.rotatedImage}
+                    draggable={false}
+                    src={imageSrc}
+                  />
+                </div>
               </motion.div>
 
               {/* Back Side: New Content Card */}
@@ -140,20 +165,20 @@ export function ScrollSplitCard({
                 className={cn(
                   "absolute inset-0 flex flex-col justify-end overflow-hidden p-4 [backface-visibility:hidden] will-change-transform sm:p-8 lg:p-10",
                   "border border-white/5 bg-gradient-to-br from-white/10 to-transparent",
-                  "shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),inset_0_-24px_48px_rgba(0,0,0,0.2)]"
+                  "shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),inset_0_-24px_48px_rgba(0,0,0,0.2)]",
+                  styles.cardBack,
                 )}
                 style={{
                   backgroundColor: card.bgColor,
                   color: card.textColor,
-                  transform: "rotateY(180deg)",
+                  transform: phoneViewport ? "rotateX(180deg)" : "rotateY(180deg)",
                   zIndex: 1, // Ensure back is behind before flip
-                  borderRadius: i === 0 ? borderRadiusLeft : i === 2 ? borderRadiusRight : borderRadiusMiddle,
-                  boxShadow,
+                  borderRadius: i === 0 ? borderRadiusFirst : i === 2 ? borderRadiusLast : borderRadiusMiddle,
                 }}
               >
                 {/* Grainy Noise Overlay */}
                 <div
-                  className="pointer-events-none absolute inset-0 opacity-20 mix-blend-overlay"
+                  className={cn("pointer-events-none absolute inset-0 opacity-20 mix-blend-overlay", styles.noise)}
                   style={{
                     backgroundImage: `url("https://framerusercontent.com/images/6mcf62RlDfRfU61Yg5vb2pefpi4.png?width=256&height=256")`,
                     backgroundRepeat: "repeat",
@@ -164,7 +189,10 @@ export function ScrollSplitCard({
                 <h3 data-split-card-title className="relative z-10 mb-4 text-[clamp(1.15rem,2vw,2rem)] font-medium leading-tight">
                   {card.title}
                 </h3>
-                <p data-split-card-description className="relative z-10 text-[clamp(0.7rem,1vw,0.95rem)] leading-relaxed opacity-80">{card.description}</p>
+                <p data-split-card-description className="relative z-10 text-[clamp(0.7rem,1vw,0.95rem)] leading-relaxed opacity-80">
+                  <span className={styles.desktopDescription}>{card.description}</span>
+                  <span className={styles.mobileDescription}>{card.mobileDescription ?? card.description}</span>
+                </p>
               </motion.div>
             </motion.div>
           ))}
@@ -172,7 +200,7 @@ export function ScrollSplitCard({
 
         {/* Ending Text fixed in the sticky viewport */}
         <motion.div
-          className="absolute bottom-[32%] left-0 right-0 text-center"
+          className={cn("absolute bottom-[32%] left-0 right-0 text-center", styles.endLabel)}
           style={{
             opacity: textOpacity,
             y: textY,
