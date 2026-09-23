@@ -65,12 +65,12 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <AuthShell title="Superadmin sign in" description="Use an invited IrisOS account to enter the administration workspace." appearance="dark">
+    <AuthShell title="Superadmin sign in" description="Use an invited Iris OS account to enter the administration workspace." appearance="dark">
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}
         <form onSubmit={handleLogin} className={styles.form} aria-busy={isLoading}>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="admin-login-email">IrisOS email</label>
+            <label className={styles.label} htmlFor="admin-login-email">Iris OS email</label>
             <div className={styles.inputWrap}>
               <User className={styles.inputIcon} aria-hidden="true" />
               <input id="admin-login-email" type="email" placeholder="name@irisos.app" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" pattern="[^@]+@irisos\.app" disabled={isLoading} required className={styles.input} />

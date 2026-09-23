@@ -38,12 +38,12 @@ export default function AdminForgotPasswordPage() {
   };
 
   return (
-    <AuthShell title="Reset superadmin password" description="Request a secure password reset link for your invited IrisOS account.">
+    <AuthShell title="Reset superadmin password" description="Request a secure password reset link for your invited Iris OS account.">
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}
         {isSent ? <div className={styles.success} role="status">If an invited account exists for <strong>{email.trim()}</strong>, a reset link is on its way.</div> : (
           <form onSubmit={handleSubmit} className={styles.form} aria-busy={isLoading}>
-            <div className={styles.field}><label className={styles.label} htmlFor="admin-forgot-email">IrisOS email</label><div className={styles.inputWrap}><Mail className={styles.inputIcon} aria-hidden="true" /><input id="admin-forgot-email" type="email" placeholder="name@irisos.app" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" pattern="[^@]+@irisos\.app" disabled={isLoading} required className={styles.input} /></div></div>
+            <div className={styles.field}><label className={styles.label} htmlFor="admin-forgot-email">Iris OS email</label><div className={styles.inputWrap}><Mail className={styles.inputIcon} aria-hidden="true" /><input id="admin-forgot-email" type="email" placeholder="name@irisos.app" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" pattern="[^@]+@irisos\.app" disabled={isLoading} required className={styles.input} /></div></div>
             <button type="submit" disabled={isLoading} className={styles.primaryButton}><span>{isLoading ? 'Sending reset link…' : 'Send reset link'}</span><ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
           </form>
         )}

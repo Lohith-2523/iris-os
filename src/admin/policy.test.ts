@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { hasSuperadminAccess, isIrisAdminEmail } from './policy';
 
 describe('superadmin policy', () => {
-  it('allows only the exact IrisOS domain', () => {
+  it('allows only the exact Iris domain', () => {
     expect(isIrisAdminEmail('ops@irisos.app')).toBe(true);
     expect(isIrisAdminEmail('ops@sub.irisos.app')).toBe(false);
     expect(isIrisAdminEmail('ops@irisos.app.example.com')).toBe(false);

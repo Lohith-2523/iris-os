@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { prisma } from '@/lib/db';
 import { sendIrisEmail } from '@/lib/email/iris-email';
 import { authAccessEmail } from '@/lib/email/iris-templates';
@@ -21,64 +21,33 @@ function rawToken() {
   return randomBytes(32).toString('base64url');
 }
 
-function directAccessEncryptionKey() {
-  const secret = process.env.AUTH_ACCESS_SECRET;
-  if (!secret || secret.length < 24) throw new Error('AUTH_ACCESS_SECRET must contain at least 24 characters.');
-  return createHash('sha256').update(`admin-direct-access:${secret}`).digest();
-}
-
-function encryptDirectAccessToken(token: string) {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', directAccessEncryptionKey(), iv);
-  const ciphertext = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);
-  return [iv, cipher.getAuthTag(), ciphertext].map((value) => value.toString('base64url')).join('.');
-}
-
-function decryptDirectAccessToken(value: string) {
-  const [ivValue, tagValue, ciphertextValue] = value.split('.');
-  if (!ivValue || !tagValue || !ciphertextValue) return null;
-  try {
-    const decipher = createDecipheriv('aes-256-gcm', directAccessEncryptionKey(), Buffer.from(ivValue, 'base64url'));
-    decipher.setAuthTag(Buffer.from(tagValue, 'base64url'));
-    return Buffer.concat([decipher.update(Buffer.from(ciphertextValue, 'base64url')), decipher.final()]).toString('utf8');
-  } catch {
-    return null;
-  }
-}
-
 export function configuredAppUrl() {
   return (process.env.APP_URL || 'https://irisos.app').trim().replace(/\/+$/, '');
 }
 
 export async function createAdminDirectAccessLink(
+  email: string,
+  expiresInDays: number,
   baseUrl = configuredAppUrl(),
   now = new Date(),
 ) {
+  const normalizedEmail = email.trim().toLowerCase();
   const token = rawToken();
+  const expiresAt = new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
   const record = await prisma.authAccessToken.create({
     data: {
-      email: null,
+      email: normalizedEmail,
       purpose: ADMIN_DIRECT_ACCESS_PURPOSE,
       status: 'SENT',
       tokenHash: hashToken(token),
-      tokenCiphertext: encryptDirectAccessToken(token),
       scheduledAt: now,
-      expiresAt: null,
+      expiresAt,
       sentAt: now,
     },
   });
   const accessUrl = new URL('/access', baseUrl);
   accessUrl.searchParams.set('token', token);
-  return { id: record.id, accessUrl: accessUrl.toString() };
-}
-
-export function adminDirectAccessUrl(tokenCiphertext: string | null | undefined, baseUrl = configuredAppUrl()) {
-  if (!tokenCiphertext) return null;
-  const token = decryptDirectAccessToken(tokenCiphertext);
-  if (!token) return null;
-  const accessUrl = new URL('/access', baseUrl);
-  accessUrl.searchParams.set('token', token);
-  return accessUrl.toString();
+  return { id: record.id, email: normalizedEmail, accessUrl: accessUrl.toString(), expiresAt };
 }
 
 export async function scheduleWaitlistInvitation(waitlistEntry: { id: string; email: string }, now = new Date()) {
@@ -114,7 +83,6 @@ export async function deliverAuthAccessToken(id: string, baseUrl = configuredApp
   if (claimed.count === 0) return { sent: false as const };
 
   const record = await prisma.authAccessToken.findUniqueOrThrow({ where: { id } });
-  if (!record.email) throw new Error('Email-bound access token is missing its recipient.');
   const token = rawToken();
   const expiresAt = new Date(now.getTime() + INVITE_LIFETIME_MS);
   await prisma.authAccessToken.update({ where: { id }, data: { tokenHash: hashToken(token), expiresAt } });
@@ -199,15 +167,10 @@ export async function requestExistingAccountAccess(email: string, now = new Date
 
 export async function redeemAuthAccessToken(token: string, now = new Date()) {
   const record = await prisma.authAccessToken.findUnique({ where: { tokenHash: hashToken(token) } });
-  const isDirectAccess = record?.purpose === ADMIN_DIRECT_ACCESS_PURPOSE;
-  if (!record || record.status !== 'SENT' || (!isDirectAccess && (!record.expiresAt || record.expiresAt <= now || record.redeemedAt))) return null;
+  if (!record || record.status !== 'SENT' || !record.expiresAt || record.expiresAt <= now || record.redeemedAt) return null;
   const grantToken = rawToken();
   const expiresAt = new Date(now.getTime() + DEVICE_LIFETIME_MS);
-  const result = isDirectAccess
-    ? await prisma.deviceAccessGrant.create({
-        data: { tokenHash: hashToken(grantToken), email: record.email, authUserId: record.authUserId, expiresAt, sourceTokenId: record.id },
-      })
-    : await prisma.$transaction(async tx => {
+  const result = await prisma.$transaction(async tx => {
     const consumed = await tx.authAccessToken.updateMany({
       where: { id: record.id, status: 'SENT', redeemedAt: null, expiresAt: { gt: now } },
       data: { status: 'REDEEMED', redeemedAt: now },
@@ -243,7 +206,7 @@ export async function validateDeviceAccess(cookieValue: string | null | undefine
   if (!parsed) return null;
   const grant = await prisma.deviceAccessGrant.findUnique({ where: { id: parsed.grantId } });
   if (!grant || grant.revokedAt || grant.expiresAt <= now || grant.tokenHash !== hashToken(parsed.rawToken)) return null;
-  if (email && grant.email && grant.email !== email.trim().toLowerCase()) return null;
+  if (email && grant.email !== email.trim().toLowerCase()) return null;
   await prisma.deviceAccessGrant.update({ where: { id: grant.id }, data: { lastUsedAt: now } });
   return grant;
 }
@@ -293,44 +256,8 @@ export async function ensureDeviceAccessForUser(
 export async function bindDeviceGrantToAuthUser(cookieValue: string | null | undefined, authUserId: string, email: string) {
   const grant = await validateDeviceAccess(cookieValue, email);
   if (!grant) return false;
-  const normalizedEmail = email.trim().toLowerCase();
-  if (grant.sourceTokenId) {
-    const token = await prisma.authAccessToken.findFirst({ where: { id: grant.sourceTokenId, purpose: ADMIN_DIRECT_ACCESS_PURPOSE } });
-    if (token?.authUserId && token.authUserId !== authUserId) return false;
-    if (token) {
-      const bound = await prisma.authAccessToken.updateMany({
-        where: { id: token.id, OR: [{ authUserId: null }, { authUserId }] },
-        data: { authUserId, email: normalizedEmail },
-      });
-      if (bound.count !== 1) return false;
-      await prisma.deviceAccessGrant.updateMany({
-        where: { sourceTokenId: token.id, id: { not: grant.id }, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-    }
-  }
-  await prisma.deviceAccessGrant.update({ where: { id: grant.id }, data: { authUserId, email: normalizedEmail } });
+  await prisma.deviceAccessGrant.update({ where: { id: grant.id }, data: { authUserId } });
   return true;
-}
-
-export async function completeAdminDirectAccessForAuthUser(authUserId: string | null | undefined, now = new Date()) {
-  if (!authUserId) return;
-  const tokens = await prisma.authAccessToken.findMany({
-    where: { authUserId, purpose: ADMIN_DIRECT_ACCESS_PURPOSE, status: 'SENT' },
-    select: { id: true },
-  });
-  if (!tokens.length) return;
-  const tokenIds = tokens.map((token) => token.id);
-  await prisma.$transaction([
-    prisma.authAccessToken.updateMany({
-      where: { id: { in: tokenIds } },
-      data: { status: 'COMPLETED', tokenCiphertext: null, redeemedAt: now },
-    }),
-    prisma.deviceAccessGrant.updateMany({
-      where: { sourceTokenId: { in: tokenIds }, revokedAt: null },
-      data: { revokedAt: now },
-    }),
-  ]);
 }
 
 export async function hasApprovedSignup(authUserId: string, email: string) {

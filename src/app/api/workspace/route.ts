@@ -7,7 +7,6 @@ import { isTransientDatabaseConnectionError } from '@/lib/database-resilience';
 import { getRequestSecurityContext } from '@/server/security/request-security-context';
 import { getWorkspaceReadModel } from '@/server/workspace/workspace-service';
 import { MAJOR_CURRENCY_CODES } from '@/lib/currencies';
-import { completeAdminDirectAccessForAuthUser } from '@/lib/auth-access';
 
 function validateWelcomeBackground(value: unknown) {
   if (value === null || value === undefined || value === '') return true;
@@ -122,9 +121,6 @@ export async function PATCH(request: Request) {
         });
       }
     });
-    if (update.onboarding?.completed === true) {
-      await completeAdminDirectAccessForAuthUser(user.authUserId);
-    }
 
     const response = NextResponse.json({ success: true });
     if (update.user?.preferences?.theme) {

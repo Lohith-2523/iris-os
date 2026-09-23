@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
-import { completeAdminDirectAccessForAuthUser } from '@/lib/auth-access';
 
 const schema = z.object({
   google: z.string().optional(),
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
         completedAt: new Date(),
       },
     });
-    await completeAdminDirectAccessForAuthUser(user.authUserId);
 
     // Skipping an onboarding step changes only progress state. It never deletes
     // organization data that may already have been imported or created.

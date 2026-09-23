@@ -146,13 +146,11 @@ model WaitlistEntry {
 
 model AuthAccessToken {
   id              String         @id @default(uuid())
-  email           String?
-  authUserId      String?
+  email           String
   purpose         String
   status          String         @default("PENDING")
   dedupeKey       String?        @unique
   tokenHash       String?        @unique
-  tokenCiphertext String?
   scheduledAt     DateTime
   expiresAt       DateTime?
   sentAt          DateTime?
@@ -167,14 +165,13 @@ model AuthAccessToken {
 
   @@index([status, scheduledAt])
   @@index([email, purpose, createdAt])
-  @@index([authUserId, purpose])
   @@index([waitlistEntryId])
 }
 
 model DeviceAccessGrant {
   id            String    @id @default(uuid())
   tokenHash     String    @unique
-  email         String?
+  email         String
   authUserId    String?
   expiresAt     DateTime
   lastUsedAt    DateTime  @default(now())
