@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Iris OS Shell Smoke Navigation', () => {
+test.describe('IrisOS Shell Smoke Navigation', () => {
   test('logs in and visits all core modules', async ({ page }) => {
     // Go to login page
     await page.goto('/login');
     
     // Assert title
-    await expect(page).toHaveTitle(/Iris OS/);
+    await expect(page).toHaveTitle(/IrisOS/);
     
     // Submit login form
     await page.click('button:has-text("Sign In as Demo Executive")');
@@ -24,7 +24,7 @@ test.describe('Iris OS Shell Smoke Navigation', () => {
       { name: 'Reporting', url: 'reporting', header: 'Executive Reporting' },
       { name: 'Analytics', url: 'analytics', header: 'Business Intelligence' },
       { name: 'Design Hub', url: 'design-hub', header: 'Design Hub' },
-      { name: 'Atlas AI', url: 'atlas', header: 'Atlas Command Center' },
+      { name: 'Miles AI', url: 'atlas', header: 'Miles Command Center' },
       { name: 'Settings', url: 'settings', header: 'Settings Console' },
     ];
     

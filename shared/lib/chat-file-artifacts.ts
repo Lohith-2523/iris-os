@@ -35,7 +35,7 @@ function fallbackFileName(href: string, label: string) {
     .replace(/\b(?:open|or|download|the|file|document|pdf|docx|zip)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  return `${usefulLabel || 'Atlas document'}.${extension}`;
+  return `${usefulLabel || 'Miles document'}.${extension}`;
 }
 
 export function extractChatFileArtifacts(markdown: string) {

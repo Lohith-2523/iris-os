@@ -61,7 +61,7 @@
   --radius-briefing-round: 999px;
 }
 
-/* Iris OS public landing — metallic workbench */
+/* IrisOS public landing — metallic workbench */
 :root {
   --color-landing-paper: oklch(0.105 0.006 255);
   --color-landing-surface: oklch(0.145 0.007 255);
@@ -98,7 +98,7 @@
   --shadow-landing-raised: 0 2rem 5rem oklch(0.015 0 0 / 0.48), inset 0 1px 0 oklch(1 0 0 / 0.075);
 }
 
-/* Iris OS authentication surface */
+/* IrisOS authentication surface */
 :root {
   --color-auth-canvas: #ffffff;
   --color-auth-frost: rgb(255 255 255 / 0.7);

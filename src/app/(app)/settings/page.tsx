@@ -68,7 +68,12 @@ import {
 
 type WorkspaceUsage = {
   clients: number;
+  projects: number;
+  activeLeads: number;
   teamMembers: number;
+  coreTeamMembers: number;
+  dataTransferBytes: number;
+  monthlyInvoices: number;
   atlasTokensUsed: number;
   atlasTokenLimit: number | null;
 };
@@ -139,9 +144,11 @@ type ProfileIdentityUser = {
   avatarUrl?: string | null;
 };
 
-function formatImageBytes(bytes: number) {
-  return bytes >= 1024 * 1024
-    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+function formatDataBytes(bytes: number) {
+  return bytes >= 1024 * 1024 * 1024
+    ? `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`
+    : bytes >= 1024 * 1024
+      ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
     : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
@@ -166,10 +173,10 @@ function ProfileIdentity({
   return (
     <div className="flex min-w-0 items-start gap-4">
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-800">
-        <ProfileAvatar src={user?.avatarUrl} name={user?.name || 'Iris OS user'} seed={user?.email} />
+        <ProfileAvatar src={user?.avatarUrl} name={user?.name || 'IrisOS user'} seed={user?.email} />
       </div>
       <div className="min-w-0">
-        <p className="truncate font-semibold text-white">{user?.name || 'Iris OS user'}</p>
+        <p className="truncate font-semibold text-white">{user?.name || 'IrisOS user'}</p>
         <p className="truncate text-sm text-zinc-500">{user?.email}</p>
         <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">{workspaceRoleLabel(user?.role)}</p>
         {canEditAvatar && (
@@ -253,7 +260,7 @@ export default function SettingsPage() {
   const [cancelPlanError, setCancelPlanError] = React.useState('');
   const { region: pricingRegion, plans: settingsPlans, loading: pricingLoading } = usePlanPricing();
   const [hasAddon, setHasAddon] = React.useState(false);
-  const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, teamMembers: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
+  const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, projects: 0, activeLeads: 0, teamMembers: 0, coreTeamMembers: 0, dataTransferBytes: 0, monthlyInvoices: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
   const [specializationInput, setSpecializationInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
@@ -515,20 +522,22 @@ export default function SettingsPage() {
           setCurrentUser(userData);
           setBillingEmail(organizationBillingEmail || userData.email);
         }
-        const [clientsRes, teamRes, atlasUsageRes] = await Promise.all([
-          fetch('/api/data?domain=clients'),
-          fetch('/api/data?domain=team'),
+        const [planUsageRes, atlasUsageRes] = await Promise.all([
+          fetch('/api/plan-usage'),
           fetch('/api/atlas-ai/usage'),
         ]);
-        const [clients, team, atlasUsage] = await Promise.all([
-          clientsRes.ok ? clientsRes.json() : [],
-          teamRes.ok ? teamRes.json() : [],
+        const [planUsage, atlasUsage] = await Promise.all([
+          planUsageRes.ok ? planUsageRes.json() : null,
           atlasUsageRes.ok ? atlasUsageRes.json() : null,
         ]);
-        const activeTeam = Array.isArray(team) ? team : [];
         setWorkspaceUsage({
-          clients: Array.isArray(clients) ? clients.length : 0,
-          teamMembers: activeTeam.filter((member: { role?: string }) => ['member', 'sub_admin'].includes(member.role?.toLowerCase() || '')).length,
+          clients: Number(planUsage?.clients || 0),
+          projects: Number(planUsage?.projects || 0),
+          activeLeads: Number(planUsage?.activeLeads || 0),
+          teamMembers: Number(planUsage?.teamMembers || 0),
+          coreTeamMembers: Number(planUsage?.coreTeamMembers || 0),
+          dataTransferBytes: Number(planUsage?.dataTransferBytes || 0),
+          monthlyInvoices: Number(planUsage?.monthlyInvoices || 0),
           atlasTokensUsed: Number(atlasUsage?.usage?.total || 0),
           atlasTokenLimit: typeof atlasUsage?.limits?.total === 'number' ? atlasUsage.limits.total : null,
         });
@@ -780,7 +789,12 @@ export default function SettingsPage() {
   const activeEntitlements = entitlementsFor(plan);
   const usageRows = [
     { label: 'Clients onboarded', value: workspaceUsage.clients, limit: activeEntitlements.clientLimit, icon: UsersRound },
+    { label: 'Projects', value: workspaceUsage.projects, limit: activeEntitlements.projectLimit, icon: Activity },
+    { label: 'Active leads', value: workspaceUsage.activeLeads, limit: activeEntitlements.activeLeadLimit, icon: TrendingUp },
     { label: 'Team members', value: workspaceUsage.teamMembers, limit: activeEntitlements.teamMemberLimit, icon: UserRoundCog },
+    { label: 'Core team members', value: workspaceUsage.coreTeamMembers, limit: activeEntitlements.coreTeamMemberLimit, icon: UsersRound },
+    { label: 'Data transfer', value: workspaceUsage.dataTransferBytes, limit: activeEntitlements.dataTransferBytes, icon: Gauge, format: formatDataBytes },
+    { label: 'Invoices this month', value: workspaceUsage.monthlyInvoices, limit: activeEntitlements.monthlyInvoiceLimit, icon: FileText },
     { label: 'Specializations', value: selectedTypes.length, limit: activeEntitlements.specializationLimit, icon: Target },
   ];
 
@@ -797,7 +811,7 @@ export default function SettingsPage() {
       <div className="mx-auto w-full max-w-3xl space-y-6">
         <div className="border-b border-zinc-800/60 pb-5">
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Profile Settings</h1>
-          <p className="mt-1 text-xs text-zinc-500">Review your Iris OS account and manage your session.</p>
+          <p className="mt-1 text-xs text-zinc-500">Review your IrisOS account and manage your session.</p>
         </div>
         {errorMessage && <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 px-4 py-3 text-rose-300">{errorMessage}</div>}
         <Card>
@@ -899,7 +913,7 @@ export default function SettingsPage() {
                     <div>
                       <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Agency invoice identity</span>
                       <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
-                        Legal entity and address fields are required before Iris OS can create a project invoice. GSTIN is optional.
+                        Legal entity and address fields are required before IrisOS can create a project invoice. GSTIN is optional.
                       </span>
                     </div>
                     <div className="space-y-1.5">
@@ -1255,7 +1269,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-white">AI Settings & Data Privacy</CardTitle>
-                  <CardDescription>Configure Atlas AI and Meta data-access permissions for your workspace.</CardDescription>
+                  <CardDescription>Configure Miles AI and Meta data-access permissions for your workspace.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 font-sans text-xs">
                   <div className="flex items-start justify-between gap-3 p-3 rounded border border-zinc-850 bg-zinc-900/10">
@@ -1263,19 +1277,16 @@ export default function SettingsPage() {
                       <input
                         type="checkbox"
                         id="settingsAiConsentCheckbox"
-                        checked={plan !== 'BASIC' && aiSharingConsent}
+                        checked={aiSharingConsent}
                         onChange={(e) => setAiSharingConsent(e.target.checked)}
-                        disabled={plan === 'BASIC'}
-                        className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-600 focus:ring-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 h-3.5 w-3.5"
+                        className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-600 focus:ring-0 cursor-pointer h-3.5 w-3.5"
                       />
                       <div className="cursor-pointer select-none">
                         <label htmlFor="settingsAiConsentCheckbox" className="block font-bold text-zinc-300">
-                          Enable Atlas AI Analysis
+                          Enable Miles AI Analysis
                         </label>
                         <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
-                          {plan === 'BASIC'
-                            ? 'AI analysis is not included with the Free plan. Upgrade to Pro or Advanced to enable it.'
-                            : 'Allow Atlas AI models to analyze your financial transactions, invoices, expenses, and lead pipelines to deliver custom insights. If unchecked, AI data sharing will be immediately revoked.'}
+                          Allow Miles AI models to analyze your financial transactions, invoices, expenses, and lead pipelines within your plan allowance. If unchecked, AI data sharing will be immediately revoked.
                         </span>
                       </div>
                     </div>
@@ -1291,10 +1302,10 @@ export default function SettingsPage() {
                       />
                       <div className="cursor-pointer select-none">
                         <label htmlFor="settingsMetaAccessConsentCheckbox" className="block font-bold text-zinc-300">
-                          Allow Iris OS to Access Meta
+                          Allow IrisOS to Access Meta
                         </label>
                         <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
-                          Allow Iris OS to retrieve selected ad-account performance and lead-form submissions from Meta. This access can be withdrawn at any time.
+                          Allow IrisOS to retrieve selected ad-account performance and lead-form submissions from Meta. This access can be withdrawn at any time.
                         </span>
                       </div>
                     </div>
@@ -1310,10 +1321,10 @@ export default function SettingsPage() {
                       />
                       <div className="cursor-pointer select-none">
                         <label htmlFor="settingsAtlasMetaAnalyticsConsentCheckbox" className="settings-atlas-meta-consent-title block font-bold text-violet-200">
-                          Use Aggregate Meta Data with Atlas AI
+                          Use Aggregate Meta Data with Miles AI
                         </label>
                         <span className="block text-[10px] text-zinc-500 mt-1 leading-normal">
-                          Allow Atlas AI to use Meta-derived spend, impressions, reach, clicks, and lead totals. Atlas never receives Meta tokens or raw lead contact and form data, and analysis runs only while general Atlas data sharing is enabled.
+                          Allow Miles AI to use Meta-derived spend, impressions, reach, clicks, and lead totals. Miles never receives Meta tokens or raw lead contact and form data, and analysis runs only while general Miles data sharing is enabled.
                         </span>
                       </div>
                     </div>
@@ -1462,16 +1473,16 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="grid gap-x-8 gap-y-5 md:grid-cols-2">
-                {usageRows.map(({ label, value, limit, icon: Icon }) => {
+                {usageRows.map(({ label, value, limit, icon: Icon, format }) => {
                   const percent = limit === null ? 0 : Math.min(100, limit > 0 ? (value / limit) * 100 : 0);
                   return <div key={label} className="min-w-0">
-                    <div className="mb-2 flex items-center justify-between gap-3 text-xs"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Icon className="h-4 w-4 shrink-0 text-zinc-500" />{label}</span><span className="shrink-0 font-mono font-bold tabular-nums text-white">{value} / {limit === null ? 'Unlimited' : limit}</span></div>
+                    <div className="mb-2 flex items-center justify-between gap-3 text-xs"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Icon className="h-4 w-4 shrink-0 text-zinc-500" />{label}</span><span className="shrink-0 font-mono font-bold tabular-nums text-white">{format ? format(value) : value.toLocaleString()} / {limit === null ? 'Unlimited' : format ? format(limit) : limit.toLocaleString()}</span></div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={limit ?? Math.max(value, 1)} aria-valuenow={value}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${percent}%` }} /></div>
                   </div>;
                 })}
                 <div className="min-w-0">
-                  <div className="mb-2 flex flex-col items-start gap-2 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Bot className="h-4 w-4 shrink-0 text-zinc-500" />Atlas credits used</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.atlasTokensUsed.toLocaleString()} / {workspaceUsage.atlasTokenLimit?.toLocaleString() || 'Not included'}</span></div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label="Atlas credits used" aria-valuemin={0} aria-valuemax={workspaceUsage.atlasTokenLimit || 1} aria-valuenow={workspaceUsage.atlasTokensUsed}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${workspaceUsage.atlasTokenLimit ? Math.min(100, (workspaceUsage.atlasTokensUsed / workspaceUsage.atlasTokenLimit) * 100) : 0}%` }} /></div>
+                  <div className="mb-2 flex flex-col items-start gap-2 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Bot className="h-4 w-4 shrink-0 text-zinc-500" />Miles credits used</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.atlasTokensUsed.toLocaleString()} / {workspaceUsage.atlasTokenLimit?.toLocaleString() || 'Not included'}</span></div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label="Miles credits used" aria-valuemin={0} aria-valuemax={workspaceUsage.atlasTokenLimit || 1} aria-valuenow={workspaceUsage.atlasTokensUsed}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${workspaceUsage.atlasTokenLimit ? Math.min(100, (workspaceUsage.atlasTokensUsed / workspaceUsage.atlasTokenLimit) * 100) : 0}%` }} /></div>
                 </div>
               </div>
             </CardContent>
@@ -1485,7 +1496,7 @@ export default function SettingsPage() {
                 return <Card key={tier.id} className={`flex min-h-[290px] flex-col ${isCurrent ? 'border-zinc-500 bg-zinc-900/45' : 'border-zinc-850'}`}>
                   <CardHeader className="flex-1">
                     <div className="flex items-start justify-between gap-3"><div><CardTitle className="text-base font-bold text-white">{tier.name}</CardTitle><CardDescription className="mt-1">{tier.description}</CardDescription></div>{isCurrent && <Badge variant="outline" className="whitespace-nowrap border-zinc-600 text-[9px] uppercase text-zinc-300">Current plan</Badge>}</div>
-                    <div className="mt-5">{tier.listAmount > tier.baseAmount && <p className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(tier.listAmount, tier.currency)}</del><strong className="text-zinc-200">50% off</strong></p>}<span className="font-mono text-3xl font-black tabular-nums text-white">{tier.baseAmount === 0 ? 'Free' : formatPlanMoney(tier.baseAmount, tier.currency)}</span><span className="ml-1 text-xs text-zinc-500">/ month</span>{tier.baseAmount > 0 && <p className="mt-1 text-[10px] text-zinc-500">+ 18% {tier.currency === 'INR' ? 'GST' : 'Tax'} · {formatPlanMoney(tier.totalAmount, tier.currency)} due at checkout</p>}</div>
+                    <div className="mt-5">{tier.listAmount > tier.baseAmount && <p className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(tier.listAmount, tier.currency)}</del><strong className="text-zinc-200">50% off</strong></p>}<span className="font-mono text-3xl font-black tabular-nums text-white">{tier.baseAmount === 0 ? 'Free' : formatPlanMoney(tier.baseAmount, tier.currency)}</span><span className="ml-1 text-xs text-zinc-500">/ month</span>{tier.baseAmount > 0 && <p className="mt-1 text-[10px] text-zinc-500">+ 18% {tier.currency === 'INR' ? 'GST' : 'Tax'}</p>}</div>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 border-t border-zinc-850 pt-4 text-xs text-zinc-300">{tier.features.map((feature) => <li key={feature.label} className="flex items-start justify-between gap-3"><span className="flex min-w-0 gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />{feature.label}</span><strong className="shrink-0 text-right font-mono font-medium text-white">{feature.value}</strong></li>)}</ul>
@@ -1538,7 +1549,7 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-white font-medium">Razorpay Checkout</span>
                       </div>
-                      <span className="text-zinc-500 text-[10px] block mt-1">No card details stored by Iris OS</span>
+                      <span className="text-zinc-500 text-[10px] block mt-1">No card details stored by IrisOS</span>
                     </div>
                   </div>
 

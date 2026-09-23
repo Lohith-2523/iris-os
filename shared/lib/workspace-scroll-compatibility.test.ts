@@ -23,7 +23,7 @@ describe('workspace scroll compatibility', () => {
 
   it('keeps the primary vertical scroller on legacy-compatible overflow values', () => {
     const recoveryBlock = globalsCss.match(
-      /\/\* Scroll recovery \+ Atlas topbar menu\.[\s\S]*?(?=\.atlas-topbar-menu-trigger)/,
+      /\/\* Scroll recovery \+ Miles topbar menu\.[\s\S]*?(?=\.atlas-topbar-menu-trigger)/,
     )?.[0];
 
     expect(recoveryBlock).toBeDefined();

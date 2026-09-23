@@ -90,7 +90,7 @@ export default function LoginPage() {
   return (
     <AuthShell
       title="Sign in"
-      description="Enter your Iris OS workspace and continue where your team left off."
+      description="Enter your IrisOS workspace and continue where your team left off."
       appearance="dark"
     >
       <div className={styles.content}>
@@ -141,7 +141,7 @@ export default function LoginPage() {
           </div>
 
           <button type="submit" disabled={isLoading} className={styles.primaryButton}>
-            <span>{isLoading ? 'Authenticating…' : 'Sign in to Iris OS'}</span>
+            <span>{isLoading ? 'Authenticating…' : 'Sign in to IrisOS'}</span>
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
         </form>

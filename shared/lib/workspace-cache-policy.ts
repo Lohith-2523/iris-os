@@ -128,7 +128,7 @@ export function workspaceMutationPlan(
     return { invalidateTags: [], skip: true };
   }
   if (pathname.startsWith('/api/atlas-ai')) {
-    // Ask Atlas writes the session and its messages in the same request. Refresh
+    // Ask Miles writes the session and its messages in the same request. Refresh
     // the history list and any open conversation immediately after that write.
     return { invalidateTags: ['atlas'] };
   }

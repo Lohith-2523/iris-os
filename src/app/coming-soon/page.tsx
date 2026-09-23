@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 export const metadata = {
-  title: 'Coming Soon - Iris OS',
-  description: 'Iris OS is coming soon. The enterprise command center for marketing operations and agency delivery.',
+  title: 'Coming Soon - IrisOS',
+  description: 'IrisOS is coming soon. The enterprise command center for marketing operations and agency delivery.',
   robots: {
     index: false,
     follow: false,
@@ -21,7 +21,7 @@ export default function ComingSoonPage() {
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white font-bold text-zinc-950 shadow-md border border-zinc-200 text-sm">
           I
         </div>
-        <span className="font-bold tracking-wider text-xs uppercase text-zinc-300">Iris OS</span>
+        <span className="font-bold tracking-wider text-xs uppercase text-zinc-300">IrisOS</span>
       </header>
 
       {/* Main Content */}
@@ -34,7 +34,7 @@ export default function ComingSoonPage() {
             Coming Soon
           </h1>
           <p className="text-zinc-400 text-xs md:text-sm leading-relaxed max-w-lg mx-auto font-medium font-sans">
-            Iris OS is a state-of-the-art enterprise management monolith designed to consolidate creative design, marketing analytics, ad account monitoring, and operational delivery workflows into a single system of record.
+            IrisOS is a state-of-the-art enterprise management monolith designed to consolidate creative design, marketing analytics, ad account monitoring, and operational delivery workflows into a single system of record.
           </p>
         </div>
 
@@ -47,7 +47,7 @@ export default function ComingSoonPage() {
 
       {/* Footer */}
       <footer className="text-center text-[10px] text-zinc-600 font-mono relative z-10">
-        © {new Date().getFullYear()} Iris OS Monolith. All rights secured.
+        © {new Date().getFullYear()} IrisOS Monolith. All rights secured.
       </footer>
     </div>
   );

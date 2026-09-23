@@ -131,12 +131,12 @@ model GeneratedDocument {
 }
 
 model WaitlistEntry {
-  id             String   @id @default(uuid())
+  id             String            @id @default(uuid())
   name           String?
-  email          String   @unique
+  email          String            @unique
   specialization String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
   sheetSyncedAt  DateTime?
   sheetSyncError String?
   accessTokens   AuthAccessToken[]
@@ -146,11 +146,13 @@ model WaitlistEntry {
 
 model AuthAccessToken {
   id              String         @id @default(uuid())
-  email           String
+  email           String?
+  authUserId      String?
   purpose         String
   status          String         @default("PENDING")
   dedupeKey       String?        @unique
   tokenHash       String?        @unique
+  tokenCiphertext String?
   scheduledAt     DateTime
   expiresAt       DateTime?
   sentAt          DateTime?
@@ -165,20 +167,21 @@ model AuthAccessToken {
 
   @@index([status, scheduledAt])
   @@index([email, purpose, createdAt])
+  @@index([authUserId, purpose])
   @@index([waitlistEntryId])
 }
 
 model DeviceAccessGrant {
-  id           String   @id @default(uuid())
-  tokenHash    String   @unique
-  email        String
-  authUserId   String?
-  expiresAt    DateTime
-  lastUsedAt   DateTime @default(now())
-  revokedAt    DateTime?
+  id            String    @id @default(uuid())
+  tokenHash     String    @unique
+  email         String?
+  authUserId    String?
+  expiresAt     DateTime
+  lastUsedAt    DateTime  @default(now())
+  revokedAt     DateTime?
   sourceTokenId String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([email, expiresAt])
   @@index([authUserId])
@@ -186,8 +189,8 @@ model DeviceAccessGrant {
 }
 
 model HelpRequest {
-  id             String   @id
-  status         String   @default("OPEN")
+  id             String    @id
+  status         String    @default("OPEN")
   type           String
   name           String
   email          String
@@ -198,8 +201,8 @@ model HelpRequest {
   sheetSyncError String?
   emailSentAt    DateTime?
   emailError     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([createdAt])
   @@index([type, createdAt])
@@ -219,18 +222,19 @@ model AdminAccess {
 }
 
 model ManagedCoupon {
-  id         String   @id @default(uuid())
-  label      String
-  codeSalt   String
-  codeDigest String   @unique
-  codeHint   String
-  plan       String   @default("ANY")
-  enabled    Boolean  @default(true)
-  startsAt   DateTime @default(now())
-  endsAt     DateTime?
-  maxUses    Int?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id              String    @id @default(uuid())
+  label           String
+  codeSalt        String
+  codeDigest      String    @unique
+  codeHint        String
+  plan            String    @default("ANY")
+  discountPercent Int       @default(100)
+  enabled         Boolean   @default(true)
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+  maxUses         Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([enabled, startsAt, endsAt])
 }
@@ -857,18 +861,18 @@ model AskAtlasMessage {
 }
 
 model AtlasCreditUsageEvent {
-  id           String       @id @default(uuid())
-  userId       String
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orgId        String
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  plan         String
-  userRole     String
-  provider     String
-  inputCredits Int
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgId         String
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  plan          String
+  userRole      String
+  provider      String
+  inputCredits  Int
   outputCredits Int
-  totalCredits Int
-  createdAt    DateTime     @default(now())
+  totalCredits  Int
+  createdAt     DateTime     @default(now())
 
   @@index([createdAt])
   @@index([userId, createdAt])

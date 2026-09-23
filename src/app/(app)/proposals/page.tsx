@@ -36,7 +36,7 @@ const initialProposal: ProposalInput = {
   termination: 'Either party may terminate with 30 days written notice. Fees for work completed and committed third-party costs remain payable.',
   governingLaw: '',
   additionalTerms: '',
-  nextSteps: 'Confirm the selected scope and commercial terms; approve the proposal in Iris OS; schedule the project kickoff; provide the required access and materials.',
+  nextSteps: 'Confirm the selected scope and commercial terms; approve the proposal in IrisOS; schedule the project kickoff; provide the required access and materials.',
 };
 
 function Field({ label, children, span = false }: { label: string; children: React.ReactNode; span?: boolean }) {
@@ -318,7 +318,7 @@ export default function ProposalsPage() {
 
   if (loading) return <PageSkeleton variant="reporting" />;
 
-  return <DocumentWorkspace family="PROPOSAL" title="Proposals" description="Create, manage, and send agency-branded proposals with Atlas AI or the complete native editor."><><form onSubmit={generate} className="space-y-6">
+  return <DocumentWorkspace family="PROPOSAL" title="Proposals" description="Create, manage, and send agency-branded proposals with Miles AI or the complete native editor."><><form onSubmit={generate} className="space-y-6">
     <div className="flex justify-end border-b border-border pb-5">
       <div className="flex gap-2"><Button type="button" variant="outline" disabled={!pdfBlob} onClick={download} className="gap-2"><Download className="h-4 w-4" />Download PDF</Button><Button type="submit" disabled={generating} className="min-w-44 gap-2">{generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}{generating ? 'Generating...' : 'Generate proposal'}</Button></div>
     </div>

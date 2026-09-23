@@ -60,7 +60,7 @@ function organizationUser(role = 'admin') {
     role,
     organization: {
       id: 'org-1',
-      name: 'Atlas Studio',
+      name: 'Miles Studio',
       plan: 'ADVANCED',
       hasAddon: true,
       agencyTypes: ['Design'],

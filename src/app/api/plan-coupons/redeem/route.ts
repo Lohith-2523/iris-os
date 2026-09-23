@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { normalizePlan } from '@/lib/plan-entitlements';
 import { matchManagedCoupon } from '@/server/admin/managed-coupons';
+import { planPriceWithCoupon } from '@/lib/plan-pricing';
+import { pricingLocation } from '@/lib/request-country';
 
 export const runtime = 'nodejs';
 
@@ -54,8 +56,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: { ...noStoreHeaders, 'Retry-After': String(seconds) } });
   }
 
-  const couponId = await matchManagedCoupon(input.data.coupon, input.data.plan);
-  if (!couponId) {
+  const coupon = await matchManagedCoupon(input.data.coupon, input.data.plan);
+  if (!coupon) {
     const lockedUntil = await registerFailure(user.id);
     const status = lockedUntil ? 429 : 400;
     return NextResponse.json(
@@ -73,32 +75,48 @@ export async function POST(request: NextRequest) {
       return true;
     });
     if (!allowed) return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: noStoreHeaders });
-    return NextResponse.json({ success: true, valid: true }, { headers: noStoreHeaders });
+    const price = planPriceWithCoupon(input.data.plan, pricingLocation(request.headers).region, coupon.discountPercent);
+    return NextResponse.json({
+      success: true,
+      valid: true,
+      discountPercent: coupon.discountPercent,
+      listAmount: price.listAmount,
+      baseAmount: price.baseAmount,
+      discountAmount: price.discountAmount,
+      taxAmount: price.taxAmount,
+      totalAmount: price.totalAmount,
+      currency: price.currency,
+    }, { headers: noStoreHeaders });
+  }
+
+  if (coupon.discountPercent !== 100) {
+    return NextResponse.json({ error: 'Complete payment to redeem this coupon.' }, { status: 400, headers: noStoreHeaders });
   }
 
   const activatedPlan = await prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`plan-coupon:${user.id}`}, 0::bigint))::text AS "lockAcquired"`;
     const currentSecurityState = await tx.planCouponSecurityState.findUnique({ where: { userId: user.id } });
     if (currentSecurityState?.lockedUntil && currentSecurityState.lockedUntil > new Date()) return null;
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`managed-coupon:${couponId}`}, 0::bigint))::text AS "lockAcquired"`;
-    const managedCoupon = await tx.managedCoupon.findUnique({ where: { id: couponId } });
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`managed-coupon:${coupon.id}`}, 0::bigint))::text AS "lockAcquired"`;
+    const managedCoupon = await tx.managedCoupon.findUnique({ where: { id: coupon.id } });
     const now = new Date();
     if (!managedCoupon || !managedCoupon.enabled || managedCoupon.startsAt > now
       || (managedCoupon.endsAt && managedCoupon.endsAt <= now)
+      || managedCoupon.discountPercent !== 100
       || (managedCoupon.plan !== 'ANY' && managedCoupon.plan !== input.data.plan)) return null;
-    const totalUses = await tx.planCouponRedemption.count({ where: { couponId } });
+    const totalUses = await tx.planCouponRedemption.count({ where: { couponId: coupon.id } });
     if (managedCoupon.maxUses !== null && totalUses >= managedCoupon.maxUses) return null;
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`plan-coupon-org:${user.orgId}`}, 0::bigint))::text AS "lockAcquired"`;
     const organization = await tx.organization.findUniqueOrThrow({ where: { id: user.orgId }, select: { plan: true } });
     const currentPlan = normalizePlan(organization.plan);
     const nextPlan = input.data.plan;
     if (nextPlan !== currentPlan) await tx.organization.update({ where: { id: user.orgId }, data: { plan: nextPlan } });
-    const previousRedemption = await tx.planCouponRedemption.findFirst({ where: { orgId: user.orgId, couponId, requestedPlan: input.data.plan }, select: { id: true } });
+    const previousRedemption = await tx.planCouponRedemption.findFirst({ where: { orgId: user.orgId, couponId: coupon.id, requestedPlan: input.data.plan }, select: { id: true } });
     if (!previousRedemption) {
       await tx.planCouponRedemption.create({ data: {
         orgId: user.orgId,
         redeemedById: user.id,
-        couponId,
+        couponId: coupon.id,
         requestedPlan: input.data.plan,
         activatedPlan: nextPlan,
       } });

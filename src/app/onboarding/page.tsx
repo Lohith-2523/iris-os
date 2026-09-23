@@ -16,24 +16,24 @@ import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { formatPlanMoney } from '@/lib/plan-pricing';
 
 const FULL_PRIVACY_POLICY = [
-  ['Workspace Operations and New Features', 'Iris OS processes the workspace information needed for client and team onboarding, project stages and tasks, financial operations, reporting, daily briefings, notifications, profile pictures, workspace backgrounds, secure documents, approvals, electronic signatures, and connected design workflows. Access remains limited by workspace role and permissions.'],
-  ['Atlas Voice and Transcription', 'When you start Atlas voice features, microphone audio is transmitted to contracted speech and AI infrastructure to detect speech, create an English transcript, and return a spoken response. Realtime audio is not stored by Iris OS as a recording. Accepted transcripts and Atlas responses may be retained in workspace chat history; silence, ambient noise, and rejected non-speech turns are not treated as prompts.'],
-  ['Meta Advertising Data and Atlas AI', 'Meta access requires a separate optional consent. When enabled, Iris OS may retrieve selected ad-account identifiers, campaigns, ads, forms, lead submissions, spend, impressions, reach and clicks. Atlas AI uses only aggregate Meta performance metrics, and only when both general Atlas data sharing and the separate Atlas Meta analytics consent are enabled. Atlas AI never receives Meta access tokens or raw Meta lead names, emails, phone numbers or form fields. Withdrawing Meta access stops future provider retrieval; withdrawing Atlas Meta consent stops future AI use of those metrics.'],
-  ['Secure Messaging Data', 'Messaging is available on Pro and Advanced plans for direct agency-owner conversations with clients or team members. Iris OS stores participant identifiers, delivery metadata, OpenPGP public device keys, opaque signed and encrypted message envelopes, and encrypted attachment metadata. Message plaintext, OpenPGP private keys, attachment keys and plaintext filenames remain on participant devices and are not accepted by the messaging service.'],
-  ['1. Data Controller Identification', 'Iris OS ("we", "us", or "our") is the Data Controller responsible for processing personal data on the Iris OS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
+  ['Workspace Operations and New Features', 'IrisOS processes the workspace information needed for client and team onboarding, project stages and tasks, financial operations, reporting, daily briefings, notifications, profile pictures, workspace backgrounds, secure documents, approvals, electronic signatures, and connected design workflows. Access remains limited by workspace role and permissions.'],
+  ['Miles Voice and Transcription', 'When you start Miles voice features, microphone audio is transmitted to contracted speech and AI infrastructure to detect speech, create an English transcript, and return a spoken response. Realtime audio is not stored by IrisOS as a recording. Accepted transcripts and Miles responses may be retained in workspace chat history; silence, ambient noise, and rejected non-speech turns are not treated as prompts.'],
+  ['Meta Advertising Data and Miles AI', 'Meta access requires a separate optional consent. When enabled, IrisOS may retrieve selected ad-account identifiers, campaigns, ads, forms, lead submissions, spend, impressions, reach and clicks. Miles AI uses only aggregate Meta performance metrics, and only when both general Miles data sharing and the separate Miles Meta analytics consent are enabled. Miles AI never receives Meta access tokens or raw Meta lead names, emails, phone numbers or form fields. Withdrawing Meta access stops future provider retrieval; withdrawing Miles Meta consent stops future AI use of those metrics.'],
+  ['Secure Messaging Data', 'Messaging is available on Pro and Advanced plans for direct agency-owner conversations with clients or team members. IrisOS stores participant identifiers, delivery metadata, OpenPGP public device keys, opaque signed and encrypted message envelopes, and encrypted attachment metadata. Message plaintext, OpenPGP private keys, attachment keys and plaintext filenames remain on participant devices and are not accepted by the messaging service.'],
+  ['1. Data Controller Identification', 'IrisOS ("we", "us", or "our") is the Data Controller responsible for processing personal data on the IrisOS Platform under Article 4(7) of the EU General Data Protection Regulation (GDPR), and the Data Fiduciary under Section 3 of India’s Digital Personal Data Protection (DPDP) Act.'],
   ['2. Categories of Personal Data We Collect', 'We process identity and account metadata (including corporate name, billing address, currency settings and administrator emails); financial data (internal ledgers, invoices, totals, expenses and merchant names); integration telemetry and OAuth access tokens for connected Canva, Meta, Google and Notion services; contractor allocation information; and system logs such as IP address, device headers and authentication timestamps.'],
-  ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Atlas AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
-  ['4. Google and Notion Authentication APIs & Data Scope', 'Google authentication uses your profile data, email address, profile picture and authorization tokens. Iris OS does not read emails, documents or photos unless you separately grant additional permissions. Notion access is limited to the databases you explicitly select for reporting. Integration tokens are encrypted with industry-standard AES-256 encryption and may be revoked from the relevant provider’s security console.'],
-  ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Atlas AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
+  ['3. Purpose and Legal Basis of Processing', 'We process data to provide the workspace, calculate invoices, synchronize project milestones and authorize access. Connected integrations and Miles AI analysis rely on your explicit consent and can be declined or revoked in Settings. We may also process limited data for legitimate interests such as security monitoring and operational heuristics. Under the DPDP Act, processing is limited to specified, lawful purposes supported by affirmative consent.'],
+  ['4. Google and Notion Authentication APIs & Data Scope', 'Google authentication uses your profile data, email address, profile picture and authorization tokens. IrisOS does not read emails, documents or photos unless you separately grant additional permissions. Notion access is limited to the databases you explicitly select for reporting. Integration tokens are encrypted with industry-standard AES-256 encryption and may be revoked from the relevant provider’s security console.'],
+  ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Miles AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
   ['6. GDPR & DPDP Act Data Subject Rights', 'You may request access to and portability of your data, correction of inaccurate data, withdrawal of consent, grievance redressal, and—where applicable under the DPDP Act—nomination of a person to exercise your rights in the event of death or incapacity.'],
   ['7. International Cross-Border Data Transfers', 'Personal data may be processed on secure servers in the United States, the EEA and India. EEA transfers use European Commission Standard Contractual Clauses where applicable. Transfers under the DPDP Act follow applicable Government of India cross-border requirements.'],
   ['8. Requests and Complaints', 'To exercise your rights, withdraw consent, or raise a privacy concern, raise a complaint in the Get Help section or reach out to cto.admin@irisos.app.'],
 ] as const;
 
 const PRIVACY_TLDR = [
-  'Meta access is separately optional. Atlas uses Meta metrics only under an additional consent and never receives raw Meta lead contact data.',
-  'Your workspace data is used to operate Iris OS and stays scoped to your organization.',
-  'Atlas AI access is optional. You can leave it off and change that choice later in Settings.',
+  'Meta access is separately optional. Miles uses Meta metrics only under an additional consent and never receives raw Meta lead contact data.',
+  'Your workspace data is used to operate IrisOS and stays scoped to your organization.',
+  'Miles AI access is optional. You can leave it off and change that choice later in Settings.',
   'Connected services only receive the permissions you authorize; you can revoke them at any time.',
   'You can request access, correction, deletion, or export of your personal data.',
   'Raise a complaint in the Get Help section or reach out to cto.admin@irisos.app for privacy requests or concerns.',
@@ -256,7 +256,7 @@ export default function OnboardingPage() {
 
       {/* Top logo */}
       <div className="max-w-6xl mx-auto w-full flex items-center gap-2 mb-8 relative z-10 shrink-0">
-        <img src="/iris-logo-black-bg.png" alt="Iris OS Logo" className="h-8 object-contain" />
+        <img src="/iris-logo-black-bg.png" alt="IrisOS Logo" className="h-8 object-contain" />
         <span className="text-md font-bold font-heading tracking-tight text-zinc-400">Onboarding</span>
       </div>
 
@@ -366,7 +366,7 @@ export default function OnboardingPage() {
                 className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
               >
                 <div>
-                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">Iris / {ordered.left.name}</span>
+                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">IrisOS / {ordered.left.name}</span>
                   {ordered.left.listAmount > ordered.left.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.left.listAmount, ordered.left.currency)}</del><b className="text-zinc-200">50% off</b></span>}
                   <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.left.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
                   <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.left.tagline}</span>
@@ -427,7 +427,7 @@ export default function OnboardingPage() {
                 className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
               >
                 <div>
-                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">Iris / {ordered.right.name}</span>
+                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">IrisOS / {ordered.right.name}</span>
                   {ordered.right.listAmount > ordered.right.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.right.listAmount, ordered.right.currency)}</del><b className="text-zinc-200">50% off</b></span>}
                   <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.right.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
                   <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.right.tagline}</span>
@@ -513,7 +513,7 @@ export default function OnboardingPage() {
                   />
                   <div className="cursor-pointer select-none">
                     <label htmlFor="aiConsentCheckbox" className="block text-sm font-bold text-zinc-300">
-                      Enable Atlas AI Analysis (Recommended)
+                      Enable Miles AI Analysis (Recommended)
                     </label>
                     <span className="block text-sm text-zinc-500 mt-1 leading-relaxed">
                       Allow the AI models to read your transaction records and lead pipeline data to automatically identify leaks and calculate campaign performance metrics. You can revoke this in settings at any time.
@@ -531,7 +531,7 @@ export default function OnboardingPage() {
                   />
                   <div className="cursor-pointer select-none">
                     <label htmlFor="metaAccessConsentCheckbox" className="block text-sm font-bold text-zinc-300">Allow access to Meta (Optional)</label>
-                    <span className="block text-sm text-zinc-500 mt-1 leading-relaxed">Allow Iris OS to connect selected Meta ad accounts and retrieve campaign performance and lead-form submissions. This does not consent to Atlas AI analysis and can be withdrawn later.</span>
+                    <span className="block text-sm text-zinc-500 mt-1 leading-relaxed">Allow IrisOS to connect selected Meta ad accounts and retrieve campaign performance and lead-form submissions. This does not consent to Miles AI analysis and can be withdrawn later.</span>
                   </div>
                 </div>
 
@@ -599,7 +599,7 @@ export default function OnboardingPage() {
                 <div>
                   <span className="block font-semibold text-zinc-300">Secure Razorpay Checkout</span>
                   <span className="block text-[10px] text-zinc-500 mt-1 leading-relaxed">
-                    Payment details are entered in Razorpay&apos;s checkout and are never collected by Iris OS.
+                    Payment details are entered in Razorpay&apos;s checkout and are never collected by IrisOS.
                   </span>
                 </div>
               </div>
@@ -610,7 +610,7 @@ export default function OnboardingPage() {
 
       {/* Footer */}
       <div className="max-w-6xl mx-auto w-full flex items-center justify-between text-zinc-600 text-[10px] font-mono border-t border-zinc-900 pt-6 relative z-10 shrink-0">
-        <span>© 2026 Iris OS Inc.</span>
+        <span>© 2026 IrisOS Inc.</span>
         <div className="flex gap-4">
           <Link href="/terms" className="hover:text-zinc-450">Terms</Link>
           <Link href="/privacy" className="hover:text-zinc-450">Privacy</Link>

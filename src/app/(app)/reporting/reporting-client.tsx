@@ -33,7 +33,7 @@ const REPORT_OPTIONS: Array<{
   detail: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { kind: 'EXECUTIVE', title: 'Executive summary', description: 'Agency-wide leadership brief', detail: 'Clients, delivery, pipeline, commercial value, risks, and Atlas recommendations.', icon: BriefcaseBusiness },
+  { kind: 'EXECUTIVE', title: 'Executive summary', description: 'Agency-wide leadership brief', detail: 'Clients, delivery, pipeline, commercial value, risks, and Miles recommendations.', icon: BriefcaseBusiness },
   { kind: 'LEADS', title: 'Leads breakdown', description: 'Granular pipeline register', detail: 'Lead-level records, stages, sources, estimated value, conversion, and acquisition timing.', icon: BarChart3 },
   { kind: 'MARKETING', title: 'Marketing breakdown', description: 'Campaign and ad performance', detail: 'Spend, impressions, clicks, CTR, cost per lead, campaigns, and individual ads.', icon: Megaphone },
   { kind: 'CLIENTS', title: 'Client breakdown', description: 'Portfolio or account detail', detail: 'Health, churn, ROI, contacts, invoices, projects, and tasks. Meta metrics are excluded.', icon: Building2 },
@@ -107,9 +107,9 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
     <div className="space-y-6">
       <div className="flex flex-col gap-3 border-b border-zinc-800/60 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Atlas Reports</span>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Miles Reports</span>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white silver-text-gradient">Executive Reporting Studio</h1>
-          <p className="mt-1 max-w-2xl text-xs text-zinc-500">Generate polished, agency-branded PDF reports with verified workspace data, granular breakdowns, and Atlas analysis.</p>
+          <p className="mt-1 max-w-2xl text-xs text-zinc-500">Generate polished, agency-branded PDF reports with verified workspace data, granular breakdowns, and Miles analysis.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => void loadData()} disabled={loading} className="h-9 gap-1.5 border-zinc-800 text-zinc-300">
@@ -146,7 +146,7 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
         <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="text-sm font-semibold text-white">{selectedOption.title}</div>
-            <div className="mt-1 text-xs text-zinc-500">Every generated document contains three designed pages: Atlas overview, primary granular table, and secondary detail with recommended actions.</div>
+            <div className="mt-1 text-xs text-zinc-500">Every generated document contains three designed pages: Miles overview, primary granular table, and secondary detail with recommended actions.</div>
           </div>
           {selectedKind === 'CLIENTS' && (
             <label className="flex min-w-72 flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">

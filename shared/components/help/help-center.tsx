@@ -35,7 +35,7 @@ export function HelpCenter() {
   const [busy, setBusy] = React.useState(false);
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState<ChatMessage[]>([
-    { role: 'assistant', text: 'Ask me how anything in Iris OS works.' },
+    { role: 'assistant', text: 'Ask me how anything in IrisOS works.' },
   ]);
 
   const isAuthenticationSurface = ['/login', '/signup', '/invite', '/forgot-password', '/reset-password'].includes(pathname)
@@ -103,10 +103,10 @@ export function HelpCenter() {
   return (
     <div className={`iris-help-root ${headerSlot ? 'iris-help-root-header' : pathname === '/atlas' ? 'iris-help-root-atlas' : ''}`}>
       {open && (
-        <section className="iris-help-panel" aria-label="Iris help">
+        <section className="iris-help-panel" aria-label="IrisOS help">
           <header>
             {mode !== 'menu' ? <button type="button" onClick={() => { setMode('menu'); setStatus(''); }} aria-label="Back"><ChevronLeft /></button> : <span />}
-            <div><strong>{mode === 'menu' ? 'How can we help?' : mode === 'QUESTION' ? 'Ask Atlas' : choices.find((item) => item.mode === mode)?.label}</strong><small>{mode === 'QUESTION' ? 'Iris OS product guide' : 'Iris support'}</small></div>
+            <div><strong>{mode === 'menu' ? 'How can we help?' : mode === 'QUESTION' ? 'Ask Miles' : choices.find((item) => item.mode === mode)?.label}</strong><small>{mode === 'QUESTION' ? 'IrisOS product guide' : 'IrisOS support'}</small></div>
             <button type="button" onClick={close} aria-label="Close help"><X /></button>
           </header>
           {mode === 'menu' ? (
@@ -119,9 +119,9 @@ export function HelpCenter() {
             <div className="iris-help-chat">
               <div className="iris-help-messages">
                 {messages.map((message, index) => <p key={index} data-role={message.role}>{message.role === 'assistant' && <Bot />}{message.text}</p>)}
-                {busy && <p data-role="assistant"><Bot />Atlas is thinking…</p>}
+                {busy && <p data-role="assistant"><Bot />Miles is thinking…</p>}
               </div>
-              <form onSubmit={askAtlas}><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about Iris OS…" /><button disabled={!question.trim() || busy} aria-label="Send question"><Send /></button></form>
+              <form onSubmit={askAtlas}><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder="Ask about IrisOS…" /><button disabled={!question.trim() || busy} aria-label="Send question"><Send /></button></form>
             </div>
           ) : (
             <form className="iris-help-form" onSubmit={submitRequest}>
@@ -129,7 +129,7 @@ export function HelpCenter() {
               <input name="email" required type="email" maxLength={320} placeholder="Work email" />
               <input name="subject" required minLength={3} maxLength={160} placeholder="Subject" />
               <textarea name="details" required minLength={10} maxLength={8000} rows={6} placeholder="Tell us what happened or what you need…" />
-              <button type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send to Iris'}</button>
+              <button type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send to IrisOS'}</button>
               {status && <p role="status">{status}</p>}
             </form>
           )}

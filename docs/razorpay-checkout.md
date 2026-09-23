@@ -1,6 +1,6 @@
 # Razorpay plan checkout
 
-Iris OS uses Razorpay Standard Checkout for paid plan activation. `POST /api/create-order` accepts only `PRO` or `ADVANCED`; the server calculates the price, currency, 18% GST, and order ownership. `POST /api/verify-payment` verifies the signature and the canonical order amount before updating the organization plan. The internal `BASIC` plan ID remains unchanged and is displayed as **Free**.
+IrisOS uses Razorpay Standard Checkout for paid plan activation. `POST /api/create-order` accepts only `PRO` or `ADVANCED`; the server calculates the price, currency, 18% GST, and order ownership. `POST /api/verify-payment` verifies the signature and the canonical order amount before updating the organization plan. The internal `BASIC` plan ID remains unchanged and is displayed as **Free**.
 
 ## Regional prices
 
@@ -26,7 +26,7 @@ NEXT_PUBLIC_RAZORPAY_KEY_ID=<same key ID, optional>
 
 Checkout uses the public key ID returned with the server-created order. The secret remains server-only.
 
-The Checkout options use the Iris OS square logo from `/icons/iris-512.png`, the Iris near-black `#09090B` for Razorpay controls, and a black `#000000` modal backdrop. Razorpay controls the payment form's remaining surfaces. Deeper Checkout background, font, border, and sidebar styling can be configured in Razorpay Dashboard under **Accounts & Settings → Checkout Styling**.
+The Checkout options use the IrisOS square logo from `/icons/iris-512.png`, the IrisOS near-black `#09090B` for Razorpay controls, and a black `#000000` modal backdrop. Razorpay controls the payment form's remaining surfaces. Deeper Checkout background, font, border, and sidebar styling can be configured in Razorpay Dashboard under **Accounts & Settings → Checkout Styling**.
 
 ## Test
 

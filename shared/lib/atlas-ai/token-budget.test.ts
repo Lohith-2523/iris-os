@@ -4,7 +4,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/lib/db', () => ({ prisma: { organization: {} } }));
 import { atlasUsagePeriod } from './token-budget';
 
-describe('Atlas monthly credit periods', () => {
+describe('Miles monthly credit periods', () => {
   it('uses UTC calendar months', () => {
     expect(atlasUsagePeriod(new Date('2026-09-30T23:59:59.999Z'))).toEqual({
       periodStart: new Date('2026-09-01T00:00:00.000Z'),

@@ -1,4 +1,4 @@
-# Iris OS design language — pre-redesign snapshot
+# IrisOS design language — pre-redesign snapshot
 
 Captured on 2026-08-25 before the geometry-aware workspace, landing, and
 authentication redesign. This is the rollback reference for the visual layer;
@@ -48,7 +48,7 @@ part of the redesign.
   large screens. Cards and controls scale proportionally, but route composition
   is predominantly one responsive desktop layout.
 - Landing page macrostructure is a dark metallic Workbench: navigation, hero
-  product scene, sequential operating-system story, Atlas, governance, FAQ,
+  product scene, sequential operating-system story, Miles, governance, FAQ,
   final CTA, and statement footer.
 - Login and signup share the Split Studio auth shell: supplied full-height video
   on the left and a porcelain orbit containing the form on the right. Mobile
@@ -82,7 +82,7 @@ The geometry-aware redesign is intentionally isolated behind
 
 1. Restore `src/app/(app)/layout.tsx` to the version before the layout-mode
    attribute was added.
-2. Remove the final `Iris geometry-aware composition system` block from
+2. Remove the final `IrisOS geometry-aware composition system` block from
    `src/app/globals.css`.
 3. Remove the final matching geometry-aware blocks from the landing and auth CSS
    modules.

@@ -126,7 +126,7 @@ export default function WaitlistPage() {
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             <Image
               src="/iris-logo-black-bg.png"
-              alt="Iris OS"
+              alt="IrisOS"
               width={95}
               height={36}
               priority
@@ -485,7 +485,7 @@ export default function WaitlistPage() {
                 </form>
               </div>
               <div style={{ marginTop: '28px', paddingTop: '28px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <p style={{ margin: '0 0 12px', fontFamily: BODY, fontSize: '14px', color: 'rgba(232,232,232,0.5)' }}>Already have an Iris OS account?</p>
+                <p style={{ margin: '0 0 12px', fontFamily: BODY, fontSize: '14px', color: 'rgba(232,232,232,0.5)' }}>Already have an IrisOS account?</p>
                 <form onSubmit={handleAccountAccess} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <input type="email" required value={accountEmail} onChange={event => setAccountEmail(event.target.value)} placeholder="Your account email" className="neo-input" style={{ flex: '1 1 240px', minWidth: 0, padding: '12px 18px', fontFamily: BODY, fontSize: '14px' }} />
                   <button type="submit" disabled={accountAccessBusy} className="neo-button" style={{ padding: '12px 18px', fontFamily: BODY, fontSize: '13px', color: 'rgba(232,232,232,0.78)' }}>{accountAccessBusy ? 'Sending…' : 'Email me an access link'}</button>

@@ -1,4 +1,4 @@
--- Store explicit, revocable consent separately for Meta access and Atlas Meta analytics.
+-- Store explicit, revocable consent separately for Meta access and Miles Meta analytics.
 ALTER TABLE "public"."Organization"
 ADD COLUMN "metaAccessConsent" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN "metaAccessConsentAt" TIMESTAMP(3),

@@ -7,6 +7,9 @@ import { teamOffboardingEmail } from '@/lib/email/iris-templates';
 import { SECURITY_ALLOWED_PAGES } from '@/lib/security-pages';
 import { purgeWorkspaceUsers } from '@/server/domains/member-deletion-service';
 import { createAuthenticationUserDeleter } from '@/server/domains/auth-user-deletion';
+import { entitlementsFor, normalizePlan, planLimitMessage } from '@/lib/plan-entitlements';
+
+class CoreTeamPlanLimitError extends Error {}
 
 const schema = z.object({
   action: z.enum(['make_sub_admin', 'update_permissions', 'update_access', 'offboard']),
@@ -44,7 +47,14 @@ export async function POST(request: NextRequest) {
     if (body.action === 'make_sub_admin') {
       if (!['PRO', 'ADVANCED'].includes(admin.organization.plan)) return NextResponse.json({ error: 'Individual team member page access is available on the Pro and Advanced plans.' }, { status: 403 });
       if (target.role.toLowerCase() !== 'member') return NextResponse.json({ error: 'Individual access can only be enabled for active team members.' }, { status: 400 });
-      const updated = await prisma.user.update({ where: { id: target.id }, data: { role: 'sub_admin', accessPermissions: body.permissions || [], handlesDeliverables: body.handlesDeliverables ?? true } });
+      const updated = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`core-team-capacity:${admin.orgId}`}))`;
+        const plan = normalizePlan(admin.organization.plan);
+        const limit = entitlementsFor(plan).coreTeamMemberLimit;
+        const count = await tx.user.count({ where: { orgId: admin.orgId, role: 'sub_admin', accessRevokedAt: null } });
+        if (count >= limit) throw new CoreTeamPlanLimitError(planLimitMessage('core team members', limit, plan));
+        return tx.user.update({ where: { id: target.id }, data: { role: 'sub_admin', accessPermissions: body.permissions || [], handlesDeliverables: body.handlesDeliverables ?? true } });
+      });
       return NextResponse.json({ success: true, user: updated });
     }
 
@@ -62,13 +72,23 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Choose any page or enable the deliverables checkbox to create a workspace for this user.' }, { status: 400 });
         }
       }
-      const updated = await prisma.user.update({
-        where: { id: target.id },
-        data: {
-          role: 'sub_admin',
-          accessPermissions: permissions,
-          ...(body.action === 'update_access' ? { handlesDeliverables: body.handlesDeliverables ?? false } : {}),
-        },
+      const nextRole = permissions.length > 0 ? 'sub_admin' : 'member';
+      const updated = await prisma.$transaction(async (tx) => {
+        if (nextRole === 'sub_admin' && target.role.toLowerCase() !== 'sub_admin') {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`core-team-capacity:${admin.orgId}`}))`;
+          const plan = normalizePlan(admin.organization.plan);
+          const limit = entitlementsFor(plan).coreTeamMemberLimit;
+          const count = await tx.user.count({ where: { orgId: admin.orgId, role: 'sub_admin', accessRevokedAt: null } });
+          if (count >= limit) throw new CoreTeamPlanLimitError(planLimitMessage('core team members', limit, plan));
+        }
+        return tx.user.update({
+          where: { id: target.id },
+          data: {
+            role: nextRole,
+            accessPermissions: permissions,
+            ...(body.action === 'update_access' ? { handlesDeliverables: body.handlesDeliverables ?? false } : {}),
+          },
+        });
       });
       return NextResponse.json({ success: true, user: updated });
     }
@@ -105,6 +125,9 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ success: true, emailSent });
   } catch (error) {
+    if (error instanceof CoreTeamPlanLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
     console.error('Unable to update workspace security:', error);
     return NextResponse.json({ error: 'Unable to update workspace security' }, { status: 500 });
   }

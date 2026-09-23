@@ -62,20 +62,30 @@ export const PLAN_ENTITLEMENTS = {
   BASIC: {
     specializationLimit: 10,
     teamMemberLimit: 0,
+    coreTeamMemberLimit: 0,
     clientLimit: 5,
+    projectLimit: 5,
+    activeLeadLimit: 20,
+    dataTransferBytes: 300 * 1024 * 1024,
+    monthlyInvoiceLimit: 3,
     atlasCapabilities: [] as AtlasCapability[],
     dailyBriefing: false,
     signedDocumentAutomation: false,
     strategyGeneration: false,
-    aiFeatures: false,
-    atlasTokenLimits: null,
+    aiFeatures: true,
+    atlasTokenLimits: atlasTokenLimits(20_000),
     messaging: false,
     messagingLimits: null,
   },
   PRO: {
     specializationLimit: 10,
-    teamMemberLimit: null,
-    clientLimit: 15,
+    teamMemberLimit: 5,
+    coreTeamMemberLimit: 2,
+    clientLimit: 25,
+    projectLimit: 50,
+    activeLeadLimit: 150,
+    dataTransferBytes: 5 * 1024 * 1024 * 1024,
+    monthlyInvoiceLimit: null,
     atlasCapabilities: ['MEETING', 'INVOICE'] as AtlasCapability[],
     dailyBriefing: false,
     signedDocumentAutomation: false,
@@ -87,8 +97,13 @@ export const PLAN_ENTITLEMENTS = {
   },
   ADVANCED: {
     specializationLimit: 10,
-    teamMemberLimit: null,
-    clientLimit: 30,
+    teamMemberLimit: 15,
+    coreTeamMemberLimit: 5,
+    clientLimit: null,
+    projectLimit: null,
+    activeLeadLimit: 500,
+    dataTransferBytes: 25 * 1024 * 1024 * 1024,
+    monthlyInvoiceLimit: null,
     atlasCapabilities: ['ALL'] as AtlasCapability[],
     dailyBriefing: true,
     signedDocumentAutomation: true,
@@ -119,7 +134,7 @@ export function canUseAtlasCapability(plan: unknown, capability: Exclude<AtlasCa
   return capabilities.includes('ALL') || capabilities.includes(capability);
 }
 
-export function planLimitMessage(resource: 'clients' | 'team members', limit: number, plan: unknown) {
+export function planLimitMessage(resource: 'clients' | 'projects' | 'active leads' | 'team members' | 'core team members' | 'monthly invoices' | 'data transfer', limit: number, plan: unknown) {
   const normalized = normalizePlan(plan);
   const label = normalized === 'BASIC' ? 'Free' : normalized === 'PRO' ? 'Pro' : 'Advanced';
   return `The ${label} plan supports up to ${limit} ${resource}. Upgrade the workspace plan to add more.`;

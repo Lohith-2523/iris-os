@@ -1,6 +1,6 @@
-# Iris OS Admin
+# IrisOS Admin
 
-This directory owns the private Iris OS superadmin application. Thin Next.js route entries in `src/app/admin` expose it at `/admin` while keeping its policy, data views, and client workspace separate from customer-facing modules.
+This directory owns the private IrisOS superadmin application. Thin Next.js route entries in `src/app/admin` expose it at `/admin` while keeping its policy, data views, and client workspace separate from customer-facing modules.
 
 The admin application will provide:
 
@@ -10,4 +10,4 @@ The admin application will provide:
 - Bugs, feature requests, feedback, and help requests from the existing support workflow
 - Invite-only superadmin access for verified `@irisos.app` identities
 
-The admin surface uses a distinct Iris OS superadmin authorization boundary. Customer workspace roles, including organization administrators, never grant access to it. Provider access and aggregation live in `shared/server`, with secrets and coupon digests kept out of browser bundles.
+The admin surface uses a distinct IrisOS superadmin authorization boundary. Customer workspace roles, including organization administrators, never grant access to it. Provider access and aggregation live in `shared/server`, with secrets and coupon digests kept out of browser bundles.

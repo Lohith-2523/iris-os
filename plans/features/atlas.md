@@ -1,13 +1,13 @@
-# Feature Plan: Atlas
+# Feature Plan: Miles
 
 ## Goal
 
-Build Atlas as CrystalOS's flagship proprietary intelligence layer and command center.
+Build Miles as CrystalOS's flagship proprietary intelligence layer and command center.
 
 ## Screens
 
-- Atlas Command Center
-- Ask Atlas chat
+- Miles Command Center
+- Ask Miles chat
 - Insights feed
 - Forecasting and recommendations
 - Executive summaries
@@ -15,7 +15,7 @@ Build Atlas as CrystalOS's flagship proprietary intelligence layer and command c
 
 ## Build
 
-- Create Ask Atlas with deterministic contextual responses from seeded data.
+- Create Ask Miles with deterministic contextual responses from seeded data.
 - Show finance, client, team, project, creative, and executive insight categories.
 - Include Agency Health Score, Client Profitability Score, churn risk, capacity forecast, profit leak detection, and strategic recommendations.
 - Add insight detail drawers with evidence, confidence, impact, and recommended action.
@@ -27,8 +27,8 @@ Use PrismaInsight, PrismaRecommendation, PrismaForecast, PrismaScore, and AskPri
 
 ## Acceptance Checks
 
-- Ask Atlas works without external AI credentials.
+- Ask Miles works without external AI credentials.
 - Insights reference real seeded entities.
 - Recommendations include actionable next steps.
-- Atlas also appears in other modules through shared insight components.
+- Miles also appears in other modules through shared insight components.
 

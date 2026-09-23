@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       email: input.email,
       subject: input.subject,
       details: input.details,
-      page: input.page || 'Iris OS',
+      page: input.page || 'IrisOS',
     });
     const emailPromise = stored.emailSentAt ? Promise.resolve() : sendIrisEmail({
       to: ['cto.admin@irisos.app'],

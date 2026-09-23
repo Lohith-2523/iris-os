@@ -5,7 +5,7 @@ import {
   normalizeInvoiceBrandColor,
   validateInvoiceLogoDataUrl,
 } from '@/lib/invoices/branding';
-import { normalizePlan } from '@/lib/plan-entitlements';
+import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
 import { purgeOrganizationData } from '@/server/domains/account-deletion-service';
 
 export async function GET(request: NextRequest) {
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
           agencyTypes: agencyTypes !== undefined ? agencyTypes : org.agencyTypes,
           bankNames: bankNames !== undefined ? bankNames : org.bankNames,
           currency: currency !== undefined ? currency : org.currency,
-          aiSharingConsent: planToCheck === 'BASIC'
+          aiSharingConsent: !entitlementsFor(planToCheck).aiFeatures
             ? false
             : aiSharingConsent !== undefined ? aiSharingConsent : org.aiSharingConsent,
           metaAccessConsent: typeof metaAccessConsent === 'boolean' ? metaAccessConsent : org.metaAccessConsent,

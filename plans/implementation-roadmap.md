@@ -1,4 +1,4 @@
-# Iris OS Implementation Roadmap
+# IrisOS Implementation Roadmap
 
 ## Phase 1: Foundation
 
@@ -12,7 +12,7 @@ Create the application foundation before feature work:
 - Add Auth.js structure with mocked demo login.
 - Add shared table, chart, metric card, score badge, insight panel, empty state, drawer, modal, tabs, and filter components.
 - Add deterministic seed data for all main domains.
-- Add Atlas AI mock service.
+- Add Miles AI mock service.
 - Add Vitest and Playwright setup.
 
 Acceptance:
@@ -27,7 +27,7 @@ Acceptance:
 Build the product's decision-making center:
 
 - Dashboard
-- Atlas
+- Miles
 - Finance
 - Clients
 - Forecasting
@@ -35,7 +35,7 @@ Build the product's decision-making center:
 Acceptance:
 
 - Agency Command Center shows health, revenue, churn, profit leaks, capacity, and executive recommendations.
-- Ask Atlas returns deterministic contextual answers.
+- Ask Miles returns deterministic contextual answers.
 - Finance and client pages share real seeded metrics.
 - Forecasting uses the same data model as finance, clients, team, and projects.
 
@@ -68,7 +68,7 @@ Build Design Hub as a first-class module:
 Acceptance:
 
 - Design Hub includes dashboard, library, publishing center, content calendar, brand center, approval queue, creative analytics, asset manager, governance, automation builder, and design API console.
-- Canva is represented as the workflow provider without making Iris OS feel secondary.
+- Canva is represented as the workflow provider without making IrisOS feel secondary.
 
 ## Phase 5: Automation, Integrations, And Settings
 
@@ -93,7 +93,7 @@ Finish the MVP with product-grade consistency:
 - Audit every route for visual consistency.
 - Check desktop and mobile layouts.
 - Verify no prohibited colors or visual styles dominate.
-- Ensure Atlas insights appear across major modules.
+- Ensure Miles insights appear across major modules.
 - Run Playwright navigation and workflow tests.
 - Run unit tests for seed data, forecasts, scoring, and adapters.
 

@@ -1,4 +1,4 @@
-/* Hallmark · pre-emit critique: P5 H5 E4 S5 R4 V5 · genre: modern-minimal · macrostructure: Workbench · theme: Iris OS graphite/silver · H2 knobs: ratio=5/7, proof=product-workbench, divider=negative-space · F2 knobs: pinned=left, content=live-ui, steps=5 · nav: N1b links=5, dropdowns=none, scroll=frost-on-scroll · footer: Ft5 width=38ch · audience: agency operators, teams and clients · use: understand Iris and start · tone: technical premium austere · contrast: pass (40–41) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: static pass (49–57), browser unavailable */
+/* Hallmark · pre-emit critique: P5 H5 E4 S5 R4 V5 · genre: modern-minimal · macrostructure: Workbench · theme: IrisOS graphite/silver · H2 knobs: ratio=5/7, proof=product-workbench, divider=negative-space · F2 knobs: pinned=left, content=live-ui, steps=5 · nav: N1b links=5, dropdowns=none, scroll=frost-on-scroll · footer: Ft5 width=38ch · audience: agency operators, teams and clients · use: understand IrisOS and start · tone: technical premium austere · contrast: pass (40–41) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: static pass (49–57), browser unavailable */
 .landing {
   --paper: var(--color-landing-paper);
   --surface: var(--color-landing-surface);
@@ -330,7 +330,7 @@
   .sceneTransition { opacity: 1 !important; transform: none !important; will-change: auto; }
 }
 
-/* Product previews mirror the real Iris workspace shell and surface system. */
+/* Product previews mirror the real IrisOS workspace shell and surface system. */
 .workspacePreview {
   display: grid;
   grid-template-columns: 10.5rem minmax(0, 1fr);
@@ -490,7 +490,7 @@
 }
 
 /* Hallmark · geometry-aware Workbench · design-system: design.md
- * Iris geometry-aware composition system — additive and independently revertible. */
+ * IrisOS geometry-aware composition system — additive and independently revertible. */
 @media (min-width: 75rem) and (max-width: 99.99rem) and (max-height: 56rem) {
   .hero {
     display: grid;

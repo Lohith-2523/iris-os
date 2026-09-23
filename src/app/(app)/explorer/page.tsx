@@ -860,10 +860,10 @@ function ExplorerContent() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4.5 w-4.5 text-zinc-400" />
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Atlas AI Graph Assistant</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Miles AI Graph Assistant</CardTitle>
                 </div>
                 <Badge variant="default" className="text-[9px] bg-zinc-900 text-zinc-400 uppercase tracking-wider border-zinc-800 px-2 py-0.5 rounded-md">
-                  Atlas AI Model
+                  Miles AI Model
                 </Badge>
               </div>
             </CardHeader>

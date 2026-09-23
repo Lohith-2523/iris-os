@@ -20,7 +20,7 @@ export function InsightPanel({
   type = 'general',
   score,
   scoreLabel,
-  actionLabel = 'Optimize with Atlas',
+  actionLabel = 'Optimize with Miles',
   onActionClick,
   riskLevel = 'LOW',
   children,
@@ -61,7 +61,7 @@ export function InsightPanel({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">Atlas AI Intelligence</span>
+              <span className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">Miles AI Intelligence</span>
               {riskLevel !== 'LOW' && (
                 <span className={cn(
                   'text-[10px] px-1.5 py-0.2 rounded-none font-medium border uppercase tracking-wider',

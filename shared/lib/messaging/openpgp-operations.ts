@@ -3,7 +3,7 @@ import * as openpgp from 'openpgp';
 export async function generateOpenPgpDeviceKeyPair() {
   const keyPair = await openpgp.generateKey({
     type: 'curve25519',
-    userIDs: [{ name: 'Iris OS secure messaging device' }],
+    userIDs: [{ name: 'IrisOS secure messaging device' }],
     format: 'armored',
   });
   const publicKey = await openpgp.readKey({ armoredKey: keyPair.publicKey });

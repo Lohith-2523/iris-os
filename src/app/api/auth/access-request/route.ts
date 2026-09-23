@@ -12,5 +12,5 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Account access email request failed:', error);
   }
-  return NextResponse.json({ ok: true, message: 'If an Iris OS account exists for that email, an access link is on its way.' });
+  return NextResponse.json({ ok: true, message: 'If an IrisOS account exists for that email, an access link is on its way.' });
 }

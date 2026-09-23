@@ -76,7 +76,7 @@ export function createDocumentDraft(kind: DocumentKind, prompt: string, recipien
       termination: 'Either party may terminate with 30 days written notice. Completed work and committed third-party costs remain payable.',
       governingLaw,
       additionalTerms: '',
-      nextSteps: 'Approve the proposal in Iris OS, confirm commercial terms, schedule kickoff, and provide required access and materials.',
+      nextSteps: 'Approve the proposal in IrisOS, confirm commercial terms, schedule kickoff, and provide required access and materials.',
     };
   }
 
@@ -109,12 +109,12 @@ export function createDocumentDraft(kind: DocumentKind, prompt: string, recipien
     kind, ...common, title: 'Statement of Work', projectName: `Engagement for ${recipient.company}`, engagementType: 'Professional Services', startDate: iso(), endDate: plusDays(90),
     introduction: `This statement of work defines the delivery framework for ${recipient.company}.`, objectives: request, scope: request,
     executionProcess: 'Discovery and planning\nProduction and internal quality review\nClient review and approval\nDelivery, measurement, and reporting',
-    deliverables: [{ name: 'Agreed engagement deliverables', scope: request, cadence: 'As scheduled', acceptance: 'Accepted when delivered in the agreed format and approved through Iris OS.' }],
+    deliverables: [{ name: 'Agreed engagement deliverables', scope: request, cadence: 'As scheduled', acceptance: 'Accepted when delivered in the agreed format and approved through IrisOS.' }],
     milestones: [{ name: 'Kickoff and discovery', targetDate: 'Week 1', output: 'Approved brief, access checklist, and delivery calendar.' }],
     currency: organization.currency || 'USD', fee: 0, taxRate: 0, pricingNotes: 'The fee includes only the services and deliverables stated in this SOW.', paymentTerms: 'Fees are payable according to the agreed invoice schedule.',
     expensesAndAdSpend: 'Media spend, production expenses, travel, and third-party subscriptions are separate and require approval.', revisions: 'Reasonable revisions within scope are included; new directions follow change control.', reporting: 'Progress, risks, and results will be communicated through agreed reporting checkpoints.',
     assumptions: 'Required access and materials are supplied on time\nFeedback is consolidated and returned within agreed windows', dependencies: 'Platform availability\nTimely approvals\nApproved third-party budgets', exclusions: 'Unlisted deliverables\nThird-party fees unless included\nWork requested after acceptance',
-    governance: 'Each party will nominate a project owner. Decisions and approvals will be recorded in Iris OS.', changeManagement: 'Scope changes will document effects on fees, deliverables, and schedule before approval.',
+    governance: 'Each party will nominate a project owner. Decisions and approvals will be recorded in IrisOS.', changeManagement: 'Scope changes will document effects on fees, deliverables, and schedule before approval.',
     confidentiality: 'Each party will protect confidential information and use it only for the engagement.', intellectualProperty: 'Rights in final deliverables transfer as described in the governing agreement after full payment.', termination: 'Termination follows the governing agreement; completed work and committed costs remain payable.', closingNote: `This SOW provides a measurable delivery framework and is governed by: ${governingLaw}`,
     additionalTerms: '',
     agencySignatoryName: 'Authorized representative', agencySignatoryTitle: 'Authorized signatory', clientSignatoryName: recipient.name, clientSignatoryTitle: 'Authorized signatory',
@@ -162,7 +162,7 @@ export function createSimpleDocumentDraft(kind: DocumentKind, details: SimpleDoc
     ...sow,
     objectives: workProvided,
     scope: workProvided,
-    deliverables: [{ name: 'Agreed engagement deliverables', scope: workProvided, cadence: timeline, acceptance: 'Accepted when delivered in the agreed format and approved through Iris OS.' }],
+    deliverables: [{ name: 'Agreed engagement deliverables', scope: workProvided, cadence: timeline, acceptance: 'Accepted when delivered in the agreed format and approved through IrisOS.' }],
     milestones: [{ name: 'Delivery timeline', targetDate: timeline, output: workProvided }],
     pricingNotes: paymentTerms,
     paymentTerms,

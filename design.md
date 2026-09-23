@@ -1,6 +1,6 @@
-# Design — Iris OS
+# Design — IrisOS
 
-This file records the locked Iris OS system and its geometry-aware composition rules. The visual identity remains unchanged; only spatial composition and information density vary by viewport family.
+This file records the locked IrisOS system and its geometry-aware composition rules. The visual identity remains unchanged; only spatial composition and information density vary by viewport family.
 
 ## Genre
 

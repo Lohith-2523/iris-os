@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import nodemailer, { type Transporter } from 'nodemailer';
 
 export const IRIS_EMAIL_ADDRESS = 'noreply@irisos.app';
-export const IRIS_EMAIL_FROM = `Iris OS <${IRIS_EMAIL_ADDRESS}>`;
+export const IRIS_EMAIL_FROM = `IrisOS <${IRIS_EMAIL_ADDRESS}>`;
 
 export class IrisEmailDeliveryError extends Error {
   constructor(message: string, readonly status = 502) {
@@ -159,7 +159,7 @@ export async function sendIrisEmail(input: SendIrisEmailInput) {
       command?: string;
     };
     console.error(
-      'Iris SMTP delivery failed:',
+      'IrisOS SMTP delivery failed:',
       smtpError.code || 'SMTP_ERROR',
       smtpError.responseCode || '',
       smtpError.command || '',

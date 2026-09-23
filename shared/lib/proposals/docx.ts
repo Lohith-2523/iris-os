@@ -183,7 +183,7 @@ export async function generateProposalDocx(input: ProposalInput) {
   children.push(heading('Next steps'), ...bulletParagraphs(input.nextSteps));
 
   const document = new Document({
-    creator: 'Iris OS',
+    creator: 'IrisOS',
     title: input.title,
     subject: `Business proposal for ${input.clientCompany}`,
     description: `Proposal ${input.proposalNumber}`,

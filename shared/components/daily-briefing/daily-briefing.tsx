@@ -98,7 +98,7 @@ export function DailyBriefing() {
       const response = await fetch(`/api/daily-briefing?intent=briefing&timeZone=${encodeURIComponent(timeZone)}`, {
         cache: 'no-store',
       });
-      if (!response.ok) throw new Error('Atlas could not prepare today’s briefing.');
+      if (!response.ok) throw new Error('Miles could not prepare today’s briefing.');
       const data = await response.json() as BriefingResponse;
       setBriefing(data);
       setReadCount(Math.min(data.readCount, data.payload.items.length));
@@ -110,7 +110,7 @@ export function DailyBriefing() {
         if (openResponse.ok) window.dispatchEvent(new Event('daily-briefing-opened'));
       });
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Atlas could not prepare today’s briefing.');
+      setError(loadError instanceof Error ? loadError.message : 'Miles could not prepare today’s briefing.');
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +180,7 @@ export function DailyBriefing() {
       <header className={styles.header}>
         <div className={styles.brandLine}>
           <span className={styles.liveDot} />
-          <span>Atlas daily briefing</span>
+          <span>Miles daily briefing</span>
         </div>
         <span className={styles.progress}>
           {isComplete ? 'Review complete' : `${currentNumber} / ${payload.items.length}`}

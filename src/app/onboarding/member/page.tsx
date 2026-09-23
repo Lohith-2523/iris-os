@@ -180,7 +180,7 @@ function MemberOnboardingContent() {
           <CheckCircle2 className="h-8 w-8 text-emerald-450 mx-auto animate-bounce" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Account Activated</h2>
           <p className="text-zinc-500 leading-relaxed">
-            Welcome aboard, {invite?.name}! Your Iris OS workspace is active. Redirecting to your assigned workspace...
+            Welcome aboard, {invite?.name}! Your IrisOS workspace is active. Redirecting to your assigned workspace...
           </p>
         </div>
       </div>
@@ -192,7 +192,7 @@ function MemberOnboardingContent() {
       <div className="w-full max-w-2xl space-y-6">
         {/* Header brand */}
         <div className="text-center space-y-2 flex flex-col items-center">
-          <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={84} height={32} priority className="h-8 w-auto object-contain" />
+          <Image src="/iris-logo-black-bg.png" alt="IrisOS Logo" width={84} height={32} priority className="h-8 w-auto object-contain" />
           <h1 className="text-xl font-bold text-white tracking-tight mt-1">Team Member Onboarding</h1>
           <p className="text-zinc-555 text-[11px]">Configure credentials to unlock your assigned workspace.</p>
         </div>

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Command, Menu, X, Sun, Moon, CircleDollarSign, FolderKanban } from 'lucide-react';
+import { Search, Menu, X, Sun, Moon, CircleDollarSign, FolderKanban } from 'lucide-react';
 import { Button } from '../ui/button';
 import { AtlasIcon } from '../ui/atlas-icon';
 import { prepareWorkspaceDataCacheForRouteChange } from '@/lib/workspace-data-cache';
@@ -53,7 +53,7 @@ const workspaceCommands: CommandItem[] = [
   { name: 'Strategy Studio', category: 'Intelligence', description: 'Build strategies with client and project intelligence.', href: '/strategy', keywords: ['analytics', 'planning', 'forecast', 'recommendations', 'client scope', 'project scope'] },
   { name: 'Analytics', category: 'Intelligence', description: 'Open the analytics entry point for strategic intelligence.', href: '/analytics', keywords: ['strategy', 'analysis', 'metrics', 'performance', 'insights'] },
   { name: 'Data Explorer', category: 'Intelligence', description: 'Explore operational capacity, billings, overhead, and trends.', href: '/explorer', keywords: ['analytics', 'charts', 'datasets', 'capacity', 'billings', 'overhead', 'margin', 'data'] },
-  { name: 'Atlas AI', category: 'Intelligence', description: 'Ask Atlas and run workspace-aware intelligence workflows.', href: '/atlas', keywords: ['ai', 'assistant', 'ask atlas', 'analysis', 'forecast', 'insights', 'recommendations', 'command center'] },
+  { name: 'Miles AI', category: 'Intelligence', description: 'Ask Miles and run workspace-aware intelligence workflows.', href: '/atlas', keywords: ['ai', 'assistant', 'ask atlas', 'analysis', 'forecast', 'insights', 'recommendations', 'command center'] },
   { name: 'Settings', category: 'Administration', description: 'Manage profile, organization, preferences, and integrations.', href: '/settings', keywords: ['profile', 'organization', 'preferences', 'theme', 'integrations', 'account', 'workspace'] },
   { name: 'Security & Roles', category: 'Administration', description: 'Manage roles, page access, permissions, and offboarding.', href: '/settings/security', keywords: ['security', 'roles', 'permissions', 'access', 'core member', 'offboarding', 'users'] },
   { name: 'Team Dashboard', category: 'Workspace', description: 'Open the specialist team-member command center.', href: '/teams-dashboard', keywords: ['member dashboard', 'specialist', 'assigned work', 'team workspace'] },
@@ -145,7 +145,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
   const quickAccess = [
     { name: 'Financial Ledger', description: 'Review revenue, expenses, receivables, and transactions', href: '/finance', icon: CircleDollarSign },
     { name: 'Project Overview', description: 'Review delivery, milestones, timelines, and budgets', href: '/projects', icon: FolderKanban },
-    { name: 'Atlas AI', description: 'Ask Atlas or run an intelligence workflow', href: '/atlas', icon: AtlasIcon },
+    { name: 'Miles AI', description: 'Ask Miles or run an intelligence workflow', href: '/atlas', icon: AtlasIcon },
   ];
 
   const commandResults = React.useMemo(() => {
@@ -189,26 +189,6 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
         </div>
 
         <div className="workspace-topbar-controls">
-          {/* Left: Workspace search */}
-          {!isClient && (
-            <button
-              type="button"
-              onClick={() => setIsCommandOpen(true)}
-              className="workspace-topbar-search-trigger flex h-9 w-40 items-center justify-between rounded-full border border-zinc-800 bg-zinc-950 px-3 text-xs text-zinc-500 hover:border-zinc-700 cursor-pointer transition-colors"
-              aria-label="Open workspace search"
-            >
-              <div className="flex items-center gap-2">
-                <Search className="h-3.5 w-3.5 text-zinc-500" />
-                <span>Search...</span>
-              </div>
-              <div className="flex items-center gap-0.5 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] border border-zinc-800 text-zinc-400 font-mono">
-                <Command className="h-2 w-2 mr-0.5" />
-                <span>K</span>
-              </div>
-            </button>
-          )}
-
-          {/* Center: Ask Atlas Form */}
           {!isClient && atlasMenuEnabled && (
             <div className="workspace-topbar-atlas">
               <div className="workspace-topbar-search flex h-9 w-9 items-center justify-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 transition-colors focus-within:border-zinc-700 focus-within:bg-zinc-900/80 md:w-full md:justify-start md:pl-3">
@@ -216,8 +196,8 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
                 <form onSubmit={handleAtlasSubmit} className="hidden h-full min-w-0 flex-1 md:flex">
                   <input
                     type="text"
-                    aria-label="Ask Atlas AI"
-                    placeholder="Ask Atlas AI"
+                    aria-label="Ask Miles AI"
+                    placeholder="Ask Miles AI"
                     value={atlasQuery}
                     onChange={(e) => setAtlasQuery(e.target.value)}
                     className="!min-h-0 h-full min-w-0 flex-1 bg-transparent py-0 pr-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-0 font-sans"
@@ -228,22 +208,32 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
             </div>
           )}
 
-          {(!atlasMenuEnabled || isClient) && <div className="workspace-topbar-atlas"><div className="workspace-topbar-search flex h-9 items-center justify-center gap-2 rounded-full border border-zinc-800 px-3 text-xs text-zinc-500" title="Atlas AI is not enabled for this role" aria-label="Atlas AI unavailable for this role"><AtlasIcon className="h-4 w-4" /><span className="hidden md:inline">Atlas AI</span></div></div>}
-          {/* Right: Workspace controls */}
+          {(!atlasMenuEnabled || isClient) && <div className="workspace-topbar-atlas"><div className="workspace-topbar-search flex h-9 items-center justify-center gap-2 rounded-full border border-zinc-800 px-3 text-xs text-zinc-500" title="Miles AI is not enabled for this role" aria-label="Miles AI unavailable for this role"><AtlasIcon className="h-4 w-4" /><span className="hidden md:inline">Miles AI</span></div></div>}
           <div className="workspace-topbar-actions">
             <NotificationCenter />
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="h-9 w-9 text-zinc-400 hover:text-white border border-zinc-800 bg-zinc-950 flex items-center justify-center cursor-pointer transition-colors"
+              className="h-11 w-11 rounded-xl text-zinc-400 hover:text-white border border-zinc-800 bg-zinc-950 flex items-center justify-center cursor-pointer transition-colors"
               title="Toggle theme profile"
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
               aria-pressed={theme === 'light'}
               data-skip-async-feedback
             >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
+            {!isClient && (
+              <button
+                type="button"
+                onClick={() => setIsCommandOpen(true)}
+                className="workspace-topbar-search-trigger grid h-11 w-11 place-items-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 transition-colors hover:text-white"
+                aria-label="Open workspace search"
+                title="Search workspace (Ctrl+K)"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
         <div id="workspace-help-slot" className="workspace-topbar-help" />

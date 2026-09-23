@@ -76,18 +76,18 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
 
   const createLeadDocumentWithAtlas = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedAtlasLead) return setMessage('Select a lead for Atlas AI.');
-    if (atlasPrompt.trim().length < 10) return setMessage('Enter a clear instruction for Atlas AI.');
+    if (!selectedAtlasLead) return setMessage('Select a lead for Miles AI.');
+    if (atlasPrompt.trim().length < 10) return setMessage('Enter a clear instruction for Miles AI.');
     setBusy('atlas-create'); setMessage('');
     try {
       const response = await fetch('/api/generated-documents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'atlas_create', kind, recipientType: 'LEAD', recipientId: selectedAtlasLead.id, prompt: atlasPrompt }) });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Atlas AI could not create the document.');
+      if (!response.ok) throw new Error(data.error || 'Miles AI could not create the document.');
       await load();
       setAtlasPrompt('');
       setTab('list');
-      setMessage(data.pendingApproval ? `${kind.toLowerCase()} created by Atlas AI and queued for approval.` : data.sent ? `SOW created by Atlas AI and sent to ${selectedAtlasLead.email}.` : `Document created, but delivery needs attention: ${data.warning || 'email was not sent.'}`);
-    } catch (error) { setMessage(formatUserMessage(error instanceof Error ? error.message : 'Unable to create document with Atlas AI.')); }
+      setMessage(data.pendingApproval ? `${kind.toLowerCase()} created by Miles AI and queued for approval.` : data.sent ? `SOW created by Miles AI and sent to ${selectedAtlasLead.email}.` : `Document created, but delivery needs attention: ${data.warning || 'email was not sent.'}`);
+    } catch (error) { setMessage(formatUserMessage(error instanceof Error ? error.message : 'Unable to create document with Miles AI.')); }
     finally { setBusy(''); }
   };
 
@@ -133,14 +133,14 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
   };
 
   const agencySign = async (id: string) => {
-    if (!window.confirm('Countersign this document using your authenticated Iris OS identity? This signature makes the document non-editable.')) return;
+    if (!window.confirm('Countersign this document using your authenticated IrisOS identity? This signature makes the document non-editable.')) return;
     setBusy(id); setMessage('');
     try {
       const response = await fetch('/api/generated-documents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'agency_sign', id }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to countersign the document.');
       await load();
-      setMessage(data.document?.fullySignedAt ? 'Document fully executed. Atlas onboarding has started.' : 'Agency signature recorded. The recipient signature is still pending.');
+      setMessage(data.document?.fullySignedAt ? 'Document fully executed. Miles onboarding has started.' : 'Agency signature recorded. The recipient signature is still pending.');
     } catch (error) { setMessage(formatUserMessage(error instanceof Error ? error.message : 'Unable to countersign the document.')); }
     finally { setBusy(''); }
   };
@@ -163,7 +163,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
     return <tr key={document.id} className="border-b border-border text-foreground">
       <td className="px-3 py-4"><div className="font-semibold">{document.title}</div><div className="text-muted-foreground">{document.kind === 'SOW' ? 'SOW' : document.kind} · {document.documentNumber}</div></td>
       <td className="px-3 py-4"><div>{document.recipientName}</div><div className="text-muted-foreground">{document.recipientEmail}</div></td>
-      <td className="px-3 py-4"><span className={`rounded-full border px-2 py-1 text-sm font-medium ${document.approvedAt && !document.sentAt ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : needsApproval ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-border bg-muted/40 text-foreground'}`}>{document.status.replaceAll('_', ' ')}</span>{document.approvedAt && <div className="mt-2 text-sm text-muted-foreground">Approved by {document.approvedByName || 'team member'}</div>}{document.kind !== 'PROPOSAL' && <div className="mt-1 text-sm text-muted-foreground">Recipient: {document.recipientSignedAt ? 'signed' : 'pending'} · Agency: {document.agencySignedAt ? 'signed' : 'pending'}</div>}{document.automationStatus === 'NEEDS_REVIEW' && <div className="mt-1 text-sm text-amber-500">Atlas review required</div>}</td>
+      <td className="px-3 py-4"><span className={`rounded-full border px-2 py-1 text-sm font-medium ${document.approvedAt && !document.sentAt ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : needsApproval ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-border bg-muted/40 text-foreground'}`}>{document.status.replaceAll('_', ' ')}</span>{document.approvedAt && <div className="mt-2 text-sm text-muted-foreground">Approved by {document.approvedByName || 'team member'}</div>}{document.kind !== 'PROPOSAL' && <div className="mt-1 text-sm text-muted-foreground">Recipient: {document.recipientSignedAt ? 'signed' : 'pending'} · Agency: {document.agencySignedAt ? 'signed' : 'pending'}</div>}{document.automationStatus === 'NEEDS_REVIEW' && <div className="mt-1 text-sm text-amber-500">Miles review required</div>}</td>
       <td className="px-3 py-4 text-muted-foreground">{new Date(document.createdAt).toLocaleDateString()}</td>
       <td className="px-3 py-4"><div className="flex justify-end gap-2">
         <Button type="button" variant="outline" size="icon" title="View document" aria-label="View document" onClick={() => window.open(`/api/generated-documents/${document.id}/pdf`, '_blank', 'noopener,noreferrer')}><Eye className="h-4 w-4" /></Button>
@@ -178,7 +178,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
 
   return <div className="document-workspace space-y-6 text-foreground">
     <header className="border-b border-border pb-5">
-      <span className="font-mono font-bold uppercase tracking-[0.2em] text-muted-foreground">Iris Documents</span>
+      <span className="font-mono font-bold uppercase tracking-[0.2em] text-muted-foreground">IrisOS Documents</span>
       <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">{title}</h1>
       <p className="mt-1 max-w-3xl text-muted-foreground">{description}</p>
     </header>
@@ -199,13 +199,13 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
         <button type="button" role="tab" aria-selected={mode === 'simple'} onClick={() => setMode('simple')} className={`workspace-segmented-trigger cursor-pointer px-3 py-1.5 text-sm font-semibold transition-all ${mode === 'simple' ? 'bg-white font-bold text-zinc-950' : 'text-zinc-400 hover:text-white'}`}><span>Simple</span></button>
         <button type="button" role="tab" aria-selected={mode === 'advanced'} onClick={() => setMode('advanced')} className={`workspace-segmented-trigger cursor-pointer px-3 py-1.5 text-sm font-semibold transition-all ${mode === 'advanced' ? 'bg-white font-bold text-zinc-950' : 'text-zinc-400 hover:text-white'}`}><span>Edit everything</span></button>
       </div><TranscribeButton /></div>
-      {mode === 'simple' ? <div className="space-y-6"><Card className="overflow-hidden border-foreground/20"><CardHeader className="border-b border-border bg-muted/35"><div className="flex items-center gap-2"><AtlasIcon className="h-5 w-5" /><CardTitle>Create from a lead with Atlas AI</CardTitle></div><CardDescription>Select an existing lead and tell Atlas what the document should accomplish. Atlas prepares it for your review and approval.</CardDescription></CardHeader><CardContent className="pt-6">
+      {mode === 'simple' ? <div className="space-y-6"><Card className="overflow-hidden border-foreground/20"><CardHeader className="border-b border-border bg-muted/35"><div className="flex items-center gap-2"><AtlasIcon className="h-5 w-5" /><CardTitle>Create from a lead with Miles AI</CardTitle></div><CardDescription>Select an existing lead and tell Miles what the document should accomplish. Miles prepares it for your review and approval.</CardDescription></CardHeader><CardContent className="pt-6">
         <form className="space-y-5" onSubmit={createLeadDocumentWithAtlas}>
           {family === 'LEGAL' && <label className="block space-y-2"><span className="font-semibold text-foreground">Document type</span><select value={kind} onChange={event => setKind(event.target.value as Kind)} className={fieldClass}><option value="CONTRACT">Contract</option><option value="SOW">Statement of Work</option></select></label>}
           <label className="block space-y-2"><span className="font-semibold text-foreground">Lead</span><select required value={atlasLeadKey} onChange={event => setAtlasLeadKey(event.target.value)} className={fieldClass}><option value="">Select a lead</option>{recipients.filter(recipient => recipient.type === 'LEAD').map(lead => <option key={lead.id} value={lead.id}>{lead.name} — {lead.email}</option>)}</select></label>
           {selectedAtlasLead && <div className="grid gap-3 rounded-xl border border-border bg-background p-4 sm:grid-cols-3"><div><span className="block text-sm text-muted-foreground">Lead</span><strong className="text-foreground">{selectedAtlasLead.name}</strong></div><div><span className="block text-sm text-muted-foreground">Company</span><strong className="text-foreground">{selectedAtlasLead.company}</strong></div><div><span className="block text-sm text-muted-foreground">Email</span><strong className="break-all text-foreground">{selectedAtlasLead.email}</strong></div></div>}
-          <label className="block space-y-2"><span className="font-semibold text-foreground">Instructions for Atlas AI</span><textarea required minLength={10} maxLength={8000} value={atlasPrompt} onChange={event => setAtlasPrompt(event.target.value)} className={`${fieldClass} min-h-36 resize-y`} placeholder="Describe the offer, desired outcome, scope, timeline, pricing, and any special terms. Atlas will use the selected lead and agency details automatically." /></label>
-          <Button type="submit" disabled={Boolean(busy)} className="min-w-64">{busy === 'atlas-create' ? <Loader2 className="h-4 w-4 animate-spin" /> : <AtlasIcon className="h-4 w-4" />}{busy === 'atlas-create' ? 'Atlas is creating...' : kind === 'SOW' ? 'Create and send with Atlas AI' : 'Create for approval with Atlas AI'}</Button>
+          <label className="block space-y-2"><span className="font-semibold text-foreground">Instructions for Miles AI</span><textarea required minLength={10} maxLength={8000} value={atlasPrompt} onChange={event => setAtlasPrompt(event.target.value)} className={`${fieldClass} min-h-36 resize-y`} placeholder="Describe the offer, desired outcome, scope, timeline, pricing, and any special terms. Miles will use the selected lead and agency details automatically." /></label>
+          <Button type="submit" disabled={Boolean(busy)} className="min-w-64">{busy === 'atlas-create' ? <Loader2 className="h-4 w-4 animate-spin" /> : <AtlasIcon className="h-4 w-4" />}{busy === 'atlas-create' ? 'Miles is creating...' : kind === 'SOW' ? 'Create and send with Miles AI' : 'Create for approval with Miles AI'}</Button>
         </form>
       </CardContent></Card></div> : children}
     </>}

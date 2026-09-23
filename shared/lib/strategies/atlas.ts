@@ -43,13 +43,13 @@ export async function generateStrategyWithAtlas(input: GenerateStrategyInput) {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
     throw new AtlasStrategyError(
-      'Atlas AI strategy generation is not configured. Add ANTHROPIC_API_KEY to the server environment.',
+      'Miles AI strategy generation is not configured. Add ANTHROPIC_API_KEY to the server environment.',
       503,
     );
   }
 
   const model = process.env.ANTHROPIC_STRATEGY_MODEL?.trim() || ['cla', 'ude-sonnet-5'].join('');
-  const system = `You are the senior strategy architect inside Iris OS Atlas AI.
+  const system = `You are the senior strategy architect inside IrisOS Miles AI.
 
 Use only the first-party, manually onboarded Client and Project records supplied in this request. Never use web knowledge, connected advertising data, integrations, inferred market statistics, invoices, or ledger data. Never invent missing facts.
 
@@ -120,7 +120,7 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
       providerMessage = '';
     }
     throw new AtlasStrategyError(
-      `Atlas AI could not generate the strategy (${response.status})${providerMessage ? `: ${providerMessage}` : ''}${requestId ? ` [request ${requestId}]` : ''}.`,
+      `Miles AI could not generate the strategy (${response.status})${providerMessage ? `: ${providerMessage}` : ''}${requestId ? ` [request ${requestId}]` : ''}.`,
       response.status === 429 ? 429 : 502,
     );
   }
@@ -133,7 +133,7 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
     data = await response.json() as typeof data;
   } catch {
     await settleAtlasTokenReservation(reservation, null);
-    throw new AtlasStrategyError('Atlas AI returned an invalid strategy response.');
+    throw new AtlasStrategyError('Miles AI returned an invalid strategy response.');
   }
   const content = (data.content || [])
     .filter((block) => block.type === 'text' && typeof block.text === 'string')
@@ -145,6 +145,6 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
     output: data.usage?.output_tokens ?? estimateInputTokens(content),
   });
 
-  if (!content) throw new AtlasStrategyError('Atlas AI returned an empty strategy.');
-  return { content, model: 'Atlas AI' };
+  if (!content) throw new AtlasStrategyError('Miles AI returned an empty strategy.');
+  return { content, model: 'Miles AI' };
 }

@@ -45,7 +45,34 @@ beforeEach(() => {
     ? { ok: true, json: async () => ({ value: 'ephemeral-test-token' }) }
     : { ok: true, text: async () => 'answer' }));
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
+
+it('starts a new chat when a question arrives from the Miles top bar', async () => {
+  window.history.replaceState(null, '', '/atlas?q=How%20is%20revenue%3F');
+  vi.mocked(AtlasAIService.askAtlas).mockResolvedValueOnce({
+    result: 'Revenue is on plan.',
+    model: 'Miles AI',
+    sessionId: 'new-session',
+  });
+  render(<AtlasClient initialData={{
+    ...initialData,
+    sessions: [{ id: 'existing-session', title: 'Existing chat', updatedAt: '2026-09-22T00:00:00.000Z' }],
+    currentSessionId: 'existing-session',
+    messages: [
+      { id: 'old-user', role: 'user', content: 'Old question', createdAt: '2026-09-22T00:00:00.000Z' },
+      { id: 'old-assistant', role: 'assistant', content: 'Old answer', createdAt: '2026-09-22T00:00:01.000Z' },
+    ],
+  }} />);
+
+  await waitFor(() => expect(AtlasAIService.askAtlas).toHaveBeenCalledWith(
+    'How is revenue?',
+    undefined,
+    undefined,
+    expect.objectContaining({ signal: expect.any(AbortSignal), onDelta: expect.any(Function) }),
+  ));
+  expect(screen.queryByText('Old question')).not.toBeInTheDocument();
+  expect(await screen.findByText('Revenue is on plan.')).toBeInTheDocument();
+});
 
 it('persists voice turns and executes multiple confirmed tool actions once in dependency order', async () => {
   vi.mocked(AtlasAIService.persistVoiceTurn)
@@ -54,14 +81,14 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   vi.mocked(AtlasAIService.askAtlas)
     .mockResolvedValueOnce({
       result: 'Project Nova Launch was created and saved.',
-      model: 'Atlas AI',
+      model: 'Miles AI',
       sessionId: 'voice-history-1',
       automation: { completed: true, entity: { type: 'project', id: 'project-1', href: '/projects/project-1' } },
       workflow: { active: false, kind: 'PROJECT' },
     })
     .mockResolvedValueOnce({
       result: 'Invoice INV-VOICE-001 was created and saved.',
-      model: 'Atlas AI',
+      model: 'Miles AI',
       sessionId: 'voice-history-1',
       automation: { completed: true, entity: { type: 'invoice', id: 'invoice-1', href: '/invoices' } },
       workflow: { active: false, kind: 'INVOICE' },
@@ -181,7 +208,7 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   expect(screen.getByRole('alert')).toHaveTextContent('Voice quota exhausted');
 });
 
-it('ignores ambient noise transcripts without asking Atlas to respond', async () => {
+it('ignores ambient noise transcripts without asking Miles to respond', async () => {
   render(<AtlasClient initialData={initialData} />);
   fireEvent.click(screen.getByRole('button', { name: 'Start voice conversation' }));
   await waitFor(() => expect(peer.setRemoteDescription).toHaveBeenCalled());
@@ -196,7 +223,7 @@ it('ignores ambient noise transcripts without asking Atlas to respond', async ()
 });
 
 it('reports a failed confirmed action to realtime voice instead of stalling silently', async () => {
-  vi.mocked(AtlasAIService.askAtlas).mockRejectedValueOnce(new Error('Atlas could not reach the workspace. Please retry.'));
+  vi.mocked(AtlasAIService.askAtlas).mockRejectedValueOnce(new Error('Miles could not reach the workspace. Please retry.'));
   render(<AtlasClient initialData={initialData} />);
   fireEvent.click(screen.getByRole('button', { name: 'Start voice conversation' }));
   await waitFor(() => expect(peer.setRemoteDescription).toHaveBeenCalled());
@@ -219,8 +246,8 @@ it('reports a failed confirmed action to realtime voice instead of stalling sile
     },
   });
 
-  expect((await screen.findAllByText('Atlas could not reach the workspace. Please retry.')).length).toBeGreaterThan(0);
-  expect(screen.getByRole('alert')).toHaveTextContent('Atlas could not reach the workspace. Please retry.');
+  expect((await screen.findAllByText('Miles could not reach the workspace. Please retry.')).length).toBeGreaterThan(0);
+  expect(screen.getByRole('alert')).toHaveTextContent('Miles could not reach the workspace. Please retry.');
   await waitFor(() => expect(peer.channel.send).toHaveBeenCalledWith(expect.stringContaining('function_call_output')));
   const functionOutputEvent = vi.mocked(peer.channel.send).mock.calls
     .map(([payload]) => JSON.parse(String(payload)))
@@ -232,7 +259,7 @@ it('reports a failed confirmed action to realtime voice instead of stalling sile
 it('keeps and narrates a committed result when refreshing chat history fails', async () => {
   vi.mocked(AtlasAIService.askAtlas).mockResolvedValueOnce({
     result: 'Invoice INV-VOICE-002 was created for Nova Launch.',
-    model: 'Atlas AI',
+    model: 'Miles AI',
     sessionId: 'voice-history-2',
     automation: { completed: true, entity: { type: 'invoice', id: 'invoice-2', href: '/invoices' } },
     workflow: { active: false, kind: 'INVOICE' },

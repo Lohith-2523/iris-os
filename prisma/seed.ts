@@ -281,7 +281,7 @@ async function main() {
       data: {
         platform: ['instagram', 'facebook'],
         postType: 'carousel',
-        caption: '🚀 Elevate your marketing funnel with Iris OS integrations! Synced design pipelines from Canva straight to Meta campaign layouts. Learn how David Kim optimizes creative performance in seconds. #Agencies #CreativeOperations',
+        caption: '🚀 Elevate your marketing funnel with IrisOS integrations! Synced design pipelines from Canva straight to Meta campaign layouts. Learn how David Kim optimizes creative performance in seconds. #Agencies #CreativeOperations',
         mediaUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&auto=format&fit=crop&q=60',
         status: 'PUBLISHED',
         scheduledAt: new Date('2026-06-25T14:30:00Z'),
@@ -293,7 +293,7 @@ async function main() {
       data: {
         platform: ['instagram'],
         postType: 'reel',
-        caption: 'Watch Sarah execute high-fidelity profit leak audits using Atlas AI! 📊💸 Recover up to $2,800/mo in contractor allocations in just three clicks. Full tutorial in bio!',
+        caption: 'Watch Sarah execute high-fidelity profit leak audits using Miles AI! 📊💸 Recover up to $2,800/mo in contractor allocations in just three clicks. Full tutorial in bio!',
         mediaUrl: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=500&auto=format&fit=crop&q=60',
         status: 'PUBLISHED',
         scheduledAt: new Date('2026-06-24T18:00:00Z'),
@@ -499,7 +499,7 @@ async function main() {
         projectedRev: 200000 + m * 5000,
         projectedExp: 130000 + m * 2000,
         confidence: 90 - m * 5,
-        narrative: `Atlas AI projects steady growth of ${2.5 + m * 0.2}% in pipeline value, driven by Aether and Vertex account expansions.`,
+        narrative: `Miles AI projects steady growth of ${2.5 + m * 0.2}% in pipeline value, driven by Aether and Vertex account expansions.`,
         orgId: org.id,
       },
     });
@@ -617,7 +617,7 @@ async function main() {
       type: 'FINANCE',
       status: 'READY',
       filePath: '/reports/q2_finance.pdf',
-      summary: 'Atlas Executive Summary: Q2 Revenue surged by 12.8% to $528K. Churn rate drops to historic low 2.4%. Profit leaks detected in Contractor Utilizations ($14,500 leakage).',
+      summary: 'Miles Executive Summary: Q2 Revenue surged by 12.8% to $528K. Churn rate drops to historic low 2.4%. Profit leaks detected in Contractor Utilizations ($14,500 leakage).',
       createdById: user1.id,
       orgId: org.id,
     },
@@ -629,13 +629,13 @@ async function main() {
       type: 'CLIENT',
       status: 'READY',
       filePath: '/reports/solaria_renewal.pdf',
-      summary: 'Atlas AI client churn warning report: Solaria Energy churn risk reaches 68%. Action: Immediate renewal touchpoint advised.',
+      summary: 'Miles AI client churn warning report: Solaria Energy churn risk reaches 68%. Action: Immediate renewal touchpoint advised.',
       createdById: user2.id,
       orgId: org.id,
     },
   });
 
-  // 12. Atlas Insights
+  // 12. Miles Insights
   await prisma.atlasInsight.create({
     data: {
       type: 'HEALTH_SCORE',
@@ -675,7 +675,7 @@ async function main() {
     },
   });
 
-  // 13. Ask Atlas Messages
+  // 13. Ask Miles Messages
   await prisma.askAtlasMessage.create({
     data: {
       role: 'USER',
@@ -1448,7 +1448,7 @@ async function main() {
         },
         {
           date: new Date('2026-06-18'),
-          details: 'Atlas AI Team Seat',
+          details: 'Miles AI Team Seat',
           category: 'AI Subscription',
           type: 'Others',
           transactorAccount: 'anthropic-billing@anthropic.com',

@@ -36,7 +36,7 @@ export function IrisPricingComparison({
         <header className={styles.heading}>
           <span className={styles.sectionDivider} aria-hidden="true" />
           <span className={styles.eyebrow}>Simple monthly pricing</span>
-          <Heading id="pricing-comparison-title">Choose how far Atlas can take you.</Heading>
+          <Heading id="pricing-comparison-title">Choose how far Miles can take you.</Heading>
           <p aria-live="polite">
             {loading
               ? 'Detecting pricing for your region…'
@@ -48,7 +48,7 @@ export function IrisPricingComparison({
         <div
           className={styles.grid}
           role="group"
-          aria-label="Iris OS plan comparison. Scroll horizontally to compare plans."
+          aria-label="IrisOS plan comparison. Scroll horizontally to compare plans."
           tabIndex={0}
         >
           <article className={`${styles.card} ${styles.featureCard}`} aria-labelledby="feature-labels-title">

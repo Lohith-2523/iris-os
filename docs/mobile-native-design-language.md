@@ -1,12 +1,12 @@
-# Iris OS Touch Design Language
+# IrisOS Touch Design Language
 
 Version 1.0 · 2026-08-25
 
-This is the portable source of truth for Iris OS phone, tablet, and future native-app surfaces. It extends the locked graphite, titanium, silver, porcelain, Clash Display, and Sansation language in `design.md`; it does not replace it.
+This is the portable source of truth for IrisOS phone, tablet, and future native-app surfaces. It extends the locked graphite, titanium, silver, porcelain, Clash Display, and Sansation language in `design.md`; it does not replace it.
 
 ## Product posture
 
-Iris on touch devices is an operational app, not a compressed website. Preserve the same routes, permissions, data, and workflows, but reveal one primary task at a time on phones and a compact workbench on tablets. Function carries the interface: no decorative illustration, neon accent, emoji, or invented metrics.
+IrisOS on touch devices is an operational app, not a compressed website. Preserve the same routes, permissions, data, and workflows, but reveal one primary task at a time on phones and a compact workbench on tablets. Function carries the interface: no decorative illustration, neon accent, emoji, or invented metrics.
 
 ## Adaptive modes
 
@@ -66,7 +66,7 @@ Classify with usable width and height, orientation, safe-area insets, and input 
 
 ## Platform mapping
 
-| Iris primitive | SwiftUI | Jetpack Compose |
+| IrisOS primitive | SwiftUI | Jetpack Compose |
 | --- | --- | --- |
 | Phone bottom navigation | `TabView` / custom safe-area bar | `NavigationBar` |
 | Tablet rail | `NavigationSplitView` sidebar | `NavigationRail` / adaptive scaffold |

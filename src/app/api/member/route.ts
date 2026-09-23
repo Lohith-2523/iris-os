@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       const accessPermissions = normalizeSecurityPages(body.accessPermissions);
       const requestedProjects = Array.isArray(projects) ? projects.filter((projectId): projectId is string => typeof projectId === 'string') : [];
       const handlesDeliverables = body.handlesDeliverables === true || requestedProjects.length > 0;
+      const memberRole = accessPermissions.length > 0 ? 'sub_admin' : 'member';
 
       const normalizedPhone = normalizeRequiredPhone(phone);
       if (!name || !email || !normalizedPhone) {
@@ -111,11 +112,20 @@ export async function POST(request: NextRequest) {
             throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, plan));
           }
         }
+        if (memberRole === 'sub_admin') {
+          const coreTeamMemberLimit = entitlementsFor(plan).coreTeamMemberLimit;
+          const coreTeamMemberCount = await tx.user.count({
+            where: { orgId: requestingUser.orgId, role: 'sub_admin', accessRevokedAt: null },
+          });
+          if (coreTeamMemberCount >= coreTeamMemberLimit) {
+            throw new TeamPlanLimitError(planLimitMessage('core team members', coreTeamMemberLimit, plan));
+          }
+        }
         const member = await tx.user.create({
           data: {
             email: normalizedEmail,
             name,
-            role: 'sub_admin',
+            role: memberRole,
             phone: normalizedPhone,
             accessPermissions,
             handlesDeliverables,
@@ -245,13 +255,21 @@ export async function POST(request: NextRequest) {
               throw new TeamPlanLimitError(planLimitMessage('team members', memberLimit, plan));
             }
           }
+          const memberRole = Array.isArray(invite.accessPermissions) && invite.accessPermissions.length > 0 ? 'sub_admin' : 'member';
+          if (memberRole === 'sub_admin') {
+            const coreTeamMemberLimit = entitlementsFor(plan).coreTeamMemberLimit;
+            const coreTeamMemberCount = await tx.user.count({ where: { orgId: invite.orgId, role: 'sub_admin', accessRevokedAt: null } });
+            if (coreTeamMemberCount >= coreTeamMemberLimit) {
+              throw new TeamPlanLimitError(planLimitMessage('core team members', coreTeamMemberLimit, plan));
+            }
+          }
           return tx.user.create({
             data: {
               email: invite.email,
               authUserId: identity.id,
               ...avatarUpdate,
               name: invite.name,
-              role: plan === 'BASIC' ? 'member' : 'sub_admin',
+              role: memberRole,
               phone: invite.phone,
               accessPermissions: invite.accessPermissions ?? undefined,
               handlesDeliverables: invite.handlesDeliverables || invite.projects.length > 0,

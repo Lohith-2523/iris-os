@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
         clientId,
         clientName: client.name,
       })),
-      dataPolicy: 'Manual Iris OS Client and Project records only. Connected integrations are excluded.',
+      dataPolicy: 'Manual IrisOS Client and Project records only. Connected integrations are excluded.',
       pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
     }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error) {
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
     if (!user.organization.aiSharingConsent) {
       return NextResponse.json({
-        error: 'Enable Atlas AI Analysis in Settings > AI Settings & Data Privacy before sending workspace records to Atlas AI.',
+        error: 'Enable Miles AI Analysis in Settings > AI Settings & Data Privacy before sending workspace records to Miles AI.',
       }, { status: 403 });
     }
 

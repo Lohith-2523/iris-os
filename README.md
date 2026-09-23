@@ -1,8 +1,8 @@
-# Iris OS - Enterprise Agency Operating System
+# IrisOS - Enterprise Agency Operating System
 
 The agent likes turtles. 
 
-Iris OS is an enterprise-grade SaaS operating system designed for creative agencies, consulting firms, marketing organizations, and multi-brand enterprises. It unifies operations, client relationship tracking, financial auditing, project delivery metrics, Canva-powered asset management, and live Meta campaign integrations within a single, high-fidelity command center.
+IrisOS is an enterprise-grade SaaS operating system designed for creative agencies, consulting firms, marketing organizations, and multi-brand enterprises. It unifies operations, client relationship tracking, financial auditing, project delivery metrics, Canva-powered asset management, and live Meta campaign integrations within a single, high-fidelity command center.
 
 ---
 
@@ -12,8 +12,8 @@ Iris OS is an enterprise-grade SaaS operating system designed for creative agenc
 * **Performance Indicators**: Real-time tracking of revenue streams, profit margins, active contractor allocations, and team utilization.
 * **Proactive Intelligence**: Built-in risk detection, cost-leak signals, and actionable operations recommendations.
 
-### 2. Atlas AI Engine
-* **Atlas AI Intelligence**: Leverages Atlas AI with Gemini and ChatGPT capabilities to delegate intelligence queries based on complexity.
+### 2. Miles AI Engine
+* **Miles AI Intelligence**: Leverages Miles AI with Gemini and ChatGPT capabilities to delegate intelligence queries based on complexity.
 * **Contextual Features**: Powers SaaS cost audits, rolling cash flow forecasting, strategy checklist generation, and direct conversational database querying.
 
 ### 3. Meta Ads & Leads Manager
@@ -45,11 +45,11 @@ Iris OS is an enterprise-grade SaaS operating system designed for creative agenc
 ## Source layout
 
 * `src/app` contains the customer-facing Next.js application deployed to production.
-* `src/admin` is reserved for the future Iris OS super-admin application and its internal-only entrypoints.
+* `src/admin` is reserved for the future IrisOS super-admin application and its internal-only entrypoints.
 * `shared/components`, `shared/config`, `shared/lib`, and `shared/server` contain reusable code for both applications.
 * `src/proxy.ts` is the required Next.js proxy entrypoint and delegates authentication policy to shared server code.
 
-Keep customer-facing routes out of `src/admin`. The admin application must use a separate Iris OS super-admin authorization boundary before it is exposed or deployed.
+Keep customer-facing routes out of `src/admin`. The admin application must use a separate IrisOS super-admin authorization boundary before it is exposed or deployed.
 
 ---
 
@@ -112,18 +112,18 @@ For a serverless Supabase deployment, use the transaction-pooler URL (port
 the direct or session-mode connection for Prisma migrations and introspection.
 
 Transactional onboarding and meeting email is delivered over Gmail SMTP or
-Google Workspace SMTP Relay as `Iris OS <noreply@irisos.app>`. For Gmail SMTP,
+Google Workspace SMTP Relay as `IrisOS <noreply@irisos.app>`. For Gmail SMTP,
 use `smtp.gmail.com`, port `587`, and an app password. For Google SMTP Relay,
 use `smtp-relay.gmail.com` with the port, TLS mode, authentication, and allowed-IP
 settings configured in Google Workspace. `SMTP_USER` and `SMTP_PASSWORD` may be
-omitted together when the relay authorizes the deployment server by IP. Atlas
+omitted together when the relay authorizes the deployment server by IP. Miles
 meeting coordination always uses Gemini; the creating user must also connect
 Google Calendar with event-management access.
 
 Help requests and waitlist registrations use the existing Google OAuth client
 and an encrypted connected-account refresh token. Set `GOOGLE_SHEETS_OAUTH_USER_EMAIL`
 to the connected Google account that owns or can edit both sheets (it defaults to
-`cto.admin@irisos.app`), then reconnect that account once to approve the Sheets scope. Iris creates the header row when
+`cto.admin@irisos.app`), then reconnect that account once to approve the Sheets scope. IrisOS creates the header row when
 the first worksheet is empty.
 
 ### 4. Initialize Database

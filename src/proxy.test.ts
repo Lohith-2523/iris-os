@@ -23,7 +23,7 @@ describe('host routing proxy', () => {
     },
   );
 
-  it('keeps the main Iris OS login route unchanged', async () => {
+  it('keeps the main IrisOS login route unchanged', async () => {
     const request = new NextRequest('https://irisos.app/login');
     const response = await proxy(request);
 

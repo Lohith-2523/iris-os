@@ -98,7 +98,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
   const initialMessage: Message = {
     role: 'assistant',
-    content: formatUserMessage('Welcome to Atlas AI. Ask a question, or tell me to create a project, task, invoice, or report. I’ll collect any missing details and complete the work after your confirmation.'),
+    content: formatUserMessage('Welcome to Miles AI. Ask a question, or tell me to create a project, task, invoice, or report. I’ll collect any missing details and complete the work after your confirmation.'),
   };
 
   const [messages, setMessages] = React.useState<Message[]>(
@@ -233,19 +233,20 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         void loadSessions().catch(() => undefined);
       })
       .catch((error) => {
-        setVoiceError(error instanceof Error ? error.message : 'Atlas could not save this voice conversation.');
+        setVoiceError(error instanceof Error ? error.message : 'Miles could not save this voice conversation.');
       });
     return realtimePersistenceQueueRef.current;
   }, [loadSessions, setActiveSessionId]);
 
-  const handleSendMessage = async (textToSend: string) => {
+  const handleSendMessage = async (textToSend: string, options?: { startNewChat?: boolean }) => {
     if (!textToSend.trim() || isLoading || voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || voiceChatActiveRef.current) return;
 
     const startingFromGuide = isGuideSelected;
+    const startingNewChat = startingFromGuide || options?.startNewChat === true;
     const userMsg: Message = { role: 'user', content: textToSend };
     const assistantPlaceholder: Message = { role: 'assistant', content: '' };
-    setMessages((prev) => startingFromGuide ? [userMsg, assistantPlaceholder] : [...prev, userMsg, assistantPlaceholder]);
-    if (startingFromGuide) {
+    setMessages((prev) => startingNewChat ? [userMsg, assistantPlaceholder] : [...prev, userMsg, assistantPlaceholder]);
+    if (startingNewChat) {
       setActiveSessionId(null);
       setIsGuideSelected(false);
     }
@@ -261,7 +262,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       const response = await AtlasAIService.askAtlas(
         textToSend,
         undefined,
-        startingFromGuide ? undefined : currentSessionId || undefined,
+        startingNewChat ? undefined : currentSessionId || undefined,
         {
           signal: controller.signal,
           onDelta: (delta) => {
@@ -286,9 +287,11 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       if (error instanceof DOMException && error.name === 'AbortError') return;
       // The optimistic user message was never persisted, so remove it instead
       // of displaying a misleading completed-looking conversation.
-      setMessages((prev) => startingFromGuide ? ATLAS_GUIDE_MESSAGES.map((message) => ({ ...message })) : prev.slice(0, -2));
+      setMessages((prev) => startingFromGuide
+        ? ATLAS_GUIDE_MESSAGES.map((message) => ({ ...message }))
+        : startingNewChat ? [initialMessage] : prev.slice(0, -2));
       if (startingFromGuide) setIsGuideSelected(true);
-      setChatError(error instanceof Error ? error.message : 'Atlas could not save this chat. Please retry.');
+      setChatError(error instanceof Error ? error.message : 'Miles could not save this chat. Please retry.');
     } finally {
       if (chatAbortControllerRef.current === controller) {
         chatAbortControllerRef.current = null;
@@ -303,7 +306,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       const searchParams = new URLSearchParams(window.location.search);
       const q = searchParams.get('q');
       if (q) {
-        handleSendMessage(q);
+        handleSendMessage(q, { startNewChat: true });
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
@@ -378,7 +381,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       const updated = await AtlasAIService.renameSession(id, title);
       setSessions((items) => items.map((item) => item.id === id ? { ...item, title: updated.title } : item));
     } catch (error) {
-      setChatError(error instanceof Error ? error.message : 'Atlas could not rename this chat.');
+      setChatError(error instanceof Error ? error.message : 'Miles could not rename this chat.');
     }
   };
 
@@ -440,7 +443,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           form.append('file', audio, `atlas-recording.${extension}`);
           const response = await fetch('/api/atlas-ai/transcribe', { method: 'POST', body: form });
           const data = await response.json().catch(() => ({}));
-          if (!response.ok || typeof data.text !== 'string') throw new Error(data.error || 'Atlas could not transcribe this recording.');
+          if (!response.ok || typeof data.text !== 'string') throw new Error(data.error || 'Miles could not transcribe this recording.');
           const verifiedTranscript = hasMeaningfulEnglishSpeech(data.text) ? data.text : '';
           const finalText = joinTranscript(voicePrefixRef.current, verifiedTranscript);
           setQuery(finalText);
@@ -452,7 +455,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             setLiveVoiceText('');
             setVoiceError('Live transcript kept; final transcription could not be verified.');
           } else {
-            setVoiceError(error instanceof Error ? error.message : 'Atlas could not transcribe this recording.');
+            setVoiceError(error instanceof Error ? error.message : 'Miles could not transcribe this recording.');
           }
         } finally {
           updateVoiceState('idle');
@@ -505,7 +508,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       updateVoiceState('idle');
       setVoiceError(error instanceof DOMException && error.name === 'NotAllowedError'
         ? 'Microphone access was denied. Allow it in your browser settings and try again.'
-        : 'Atlas could not access the microphone.');
+        : 'Miles could not access the microphone.');
     }
   }, [query, updateVoiceState]);
 
@@ -556,8 +559,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     realtimeWorkflowAbortRef.current = controller;
     setVoiceError(null);
     setRealtimeState('speaking');
-    setLiveAtlasText('Atlas is checking and saving this request…');
-    setMessages((current) => [...current, { role: 'assistant', content: '', voiceItemId: assistantItemId, model: 'Atlas Voice' }]);
+    setLiveAtlasText('Miles is checking and saving this request…');
+    setMessages((current) => [...current, { role: 'assistant', content: '', voiceItemId: assistantItemId, model: 'Miles Voice' }]);
     try {
       const queuedActions = voiceConfirmation?.actions.length ? voiceConfirmation.actions : [undefined];
       const completedResults: string[] = [];
@@ -593,7 +596,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       voiceWorkflowActiveRef.current = workflowActive;
       if (!workflowActive) voiceActionTranscriptRef.current = [];
       setMessages((current) => current.map((message) => message.voiceItemId === assistantItemId
-        ? { ...message, content: formatUserMessage(combinedResult), model: 'Atlas AI' }
+        ? { ...message, content: formatUserMessage(combinedResult), model: 'Miles AI' }
         : message));
       setLiveAtlasText(spokenAtlasResult(combinedResult));
 
@@ -617,7 +620,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             output_modalities: ['audio'],
             tools: [],
             metadata: { purpose: 'atlas_persisted_result' },
-            instructions: 'Read the supplied Atlas result faithfully. Do not add, remove, or infer any completed action.',
+            instructions: 'Read the supplied Miles result faithfully. Do not add, remove, or infer any completed action.',
             input: [{
               type: 'message',
               role: 'user',
@@ -634,10 +637,10 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       void loadSessions().catch(() => undefined);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
-      const errorMessage = error instanceof Error ? error.message : 'Atlas could not save this voice request. Please retry.';
+      const errorMessage = error instanceof Error ? error.message : 'Miles could not save this voice request. Please retry.';
       voiceWorkflowActiveRef.current = false;
       setMessages((current) => current.map((message) => message.voiceItemId === assistantItemId
-        ? { ...message, content: errorMessage, model: 'Atlas AI' }
+        ? { ...message, content: errorMessage, model: 'Miles AI' }
         : message));
       setLiveAtlasText(errorMessage);
       setVoiceError(errorMessage);
@@ -658,7 +661,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             output_modalities: ['audio'],
             tools: [],
             metadata: { purpose: 'atlas_persisted_result' },
-            instructions: 'Tell the user the supplied Atlas request failed and can be retried. Do not claim that any action completed.',
+            instructions: 'Tell the user the supplied Miles request failed and can be retried. Do not claim that any action completed.',
             input: [{
               type: 'message',
               role: 'user',
@@ -703,7 +706,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       const sessionResponse = await fetch('/api/atlas-ai/realtime/session', { method: 'POST', cache: 'no-store', signal: attempt.signal });
       const session = await sessionResponse.json().catch(() => ({})) as { value?: string; client_secret?: { value?: string }; error?: string };
       const ephemeralKey = session.value || session.client_secret?.value;
-      if (!sessionResponse.ok || !ephemeralKey) throw new Error(session.error || 'Atlas could not create a realtime voice session.');
+      if (!sessionResponse.ok || !ephemeralKey) throw new Error(session.error || 'Miles could not create a realtime voice session.');
 
       if (attempt.signal.aborted) return;
       const peer = new RTCPeerConnection();
@@ -747,7 +750,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           if (!itemId) return;
           setMessages((current) => {
             const index = current.findIndex((item) => item.voiceItemId === itemId);
-            if (index < 0) return [...current, { role, content: text, voiceItemId: itemId, model: 'Atlas Voice' }];
+            if (index < 0) return [...current, { role, content: text, voiceItemId: itemId, model: 'Miles Voice' }];
             return current.map((item, position) => position === index
               ? { ...item, content: append && item.content !== 'Listening…' ? item.content + text : text } : item);
           });
@@ -811,7 +814,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           try { parsedArguments = JSON.parse(String(toolItem.arguments || '{}')); } catch { parsedArguments = null; }
           const actions = confirmedToolActions(parsedArguments);
           if (actions.length === 0) {
-            setVoiceError('Atlas could not validate the confirmed workspace actions. Please confirm again.');
+            setVoiceError('Miles could not validate the confirmed workspace actions. Please confirm again.');
             return;
           }
           processedRealtimeToolCallIdsRef.current.add(callId);
@@ -875,7 +878,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           if (response?.status === 'failed') {
             workflowRequestInFlightRef.current = false;
             persistedNarrationStartedRef.current = false;
-            setVoiceError(response.status_details?.error?.message || 'Atlas could not reply. Please retry.');
+            setVoiceError(response.status_details?.error?.message || 'Miles could not reply. Please retry.');
             setRealtimeState('listening');
           }
         } else if (type === 'error') {
@@ -884,7 +887,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           const details = event.error as { message?: string } | undefined;
           workflowRequestInFlightRef.current = false;
           persistedNarrationStartedRef.current = false;
-          setVoiceError(details?.message || 'Atlas realtime voice encountered an error.');
+          setVoiceError(details?.message || 'Miles realtime voice encountered an error.');
           setRealtimeState('listening');
         }
       };
@@ -900,7 +903,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         body: offer.sdp,
         signal: attempt.signal,
       });
-      if (!answerResponse.ok) throw new Error((await answerResponse.text()) || 'Atlas could not establish the realtime audio connection.');
+      if (!answerResponse.ok) throw new Error((await answerResponse.text()) || 'Miles could not establish the realtime audio connection.');
       const answer = await answerResponse.text();
       if (attempt.signal.aborted) return;
       await peer.setRemoteDescription({ type: 'answer', sdp: answer });
@@ -910,7 +913,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       stopRealtimeVoice();
       setVoiceError(error instanceof DOMException && error.name === 'NotAllowedError'
         ? 'Microphone access was denied. Allow it in browser settings and try again.'
-        : error instanceof Error ? error.message : 'Atlas could not start realtime voice.');
+        : error instanceof Error ? error.message : 'Miles could not start realtime voice.');
     }
   }, [persistRealtimeTurn, processRealtimeTranscript, realtimeState, stopRealtimeVoice]);
 
@@ -958,7 +961,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       <div className={`${chatExpanded ? 'hidden' : 'flex'} flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5 shrink-0`}>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Atlas Command Center</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Miles Command Center</h1>
             <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300 py-0.5 px-2 flex items-center gap-1 font-semibold">
               <AtlasIcon className="atlas-proprietary-engine-icon h-3 w-3" />
               <span>Proprietary AI Engine</span>
@@ -1000,7 +1003,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
               <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span className="min-w-0">
                 <span className="block font-semibold">{ATLAS_GUIDE_TITLE}</span>
-                <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">Pinned Atlas guide</span>
+                <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">Pinned Miles guide</span>
               </span>
             </button>
             {sessions.map((session) => (
@@ -1088,8 +1091,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
         {/* Chat Stream Panel */}
         <div onDoubleClick={(event) => { if ((event.target as HTMLElement).closest('button,input,textarea,a')) return; setChatExpanded(true); }} className={`${chatExpanded ? 'fixed inset-0 z-[80]' : 'relative'} flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-zinc-800 bg-[#0d0e12] brushed-border`}>
-          <button type="button" onClick={() => setChatExpanded((value) => !value)} className="absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full border border-zinc-700 bg-zinc-950/80 text-zinc-400 backdrop-blur hover:text-white" aria-label={chatExpanded ? 'Restore chat interface' : 'Expand chat interface'} title="Expand chat interface">
-            {chatExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          <button type="button" onClick={() => setChatExpanded((value) => !value)} className="absolute right-2 top-2 z-10 grid h-4 w-4 place-items-center rounded-full border border-zinc-700 bg-zinc-950/80 text-zinc-400 backdrop-blur hover:text-white" aria-label={chatExpanded ? 'Restore chat interface' : 'Expand chat interface'} title={chatExpanded ? 'Restore chat interface' : 'Expand chat interface'}>
+            {chatExpanded ? <Minimize2 className="h-2 w-2" /> : <Maximize2 className="h-2 w-2" />}
           </button>
           <div className="border-b border-zinc-800 p-2 lg:hidden">
             <button
@@ -1139,7 +1142,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                       : 'bg-[#121215] border border-zinc-850 text-zinc-300'
                   }`}>
                     {isLoading && idx === messages.length - 1 && msg.role === 'assistant' && !msg.content ? (
-                      <span className="italic text-zinc-500">Atlas is thinking...</span>
+                      <span className="italic text-zinc-500">Miles is thinking...</span>
                     ) : (
                       <>
                         <FormattedMarkdown text={fileContent.displayText} />
@@ -1188,7 +1191,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           {(voiceChatActive || realtimeState === 'connecting') && (
             <div className="shrink-0 border-t border-zinc-800 bg-zinc-950/80 px-5 py-4 text-center" role="status">
               <div className="mx-auto mb-2 flex w-fit items-center gap-1">{[.5,.9,.65,1,.7].map((scale,index) => <i key={index} className="atlas-transcription-wave" style={{ '--wave-scale': scale, '--wave-delay': `${index * 80}ms` } as React.CSSProperties} />)}</div>
-              <p className="text-sm text-white">{realtimeState === 'connecting' ? 'Connecting securely…' : realtimeState === 'speaking' ? liveAtlasText || 'Atlas is responding…' : liveVoiceText || 'Listening…'}</p>
+              <p className="text-sm text-white">{realtimeState === 'connecting' ? 'Connecting securely…' : realtimeState === 'speaking' ? liveAtlasText || 'Miles is responding…' : liveVoiceText || 'Listening…'}</p>
             </div>
           )}
           {audioBlocked && <button type="button" className="px-5 py-2 text-sm text-white underline" onClick={() => {
@@ -1210,7 +1213,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ask Atlas anything, or say “Create a project…”"
+                placeholder="Ask Miles anything, or say “Create a project…”"
                 onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !composerExpanded) { event.preventDefault(); void handleSendMessage(query); } }}
                 className={`${composerExpanded ? 'h-40' : 'h-11'} block w-full resize-none rounded-none border border-zinc-800 bg-zinc-900/40 pb-2 pl-4 pr-10 pt-3 text-xs text-white placeholder-zinc-500 focus:border-zinc-700 focus:bg-zinc-900/80 focus:outline-none focus:ring-0 transition-[height,background-color,border-color] font-sans`}
               />

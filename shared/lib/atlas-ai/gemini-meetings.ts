@@ -39,7 +39,7 @@ export async function extractMeetingDetailsWithGemini(input: {
     throw new GeminiMeetingError('Gemini meeting assistance is not configured.', 503);
   }
 
-  const prompt = `You are the dedicated Gemini meeting coordinator inside Iris OS.
+  const prompt = `You are the dedicated Gemini meeting coordinator inside IrisOS.
 This workflow MUST use Gemini only. Never delegate or mention another model.
 
 Collect exactly these meeting details:

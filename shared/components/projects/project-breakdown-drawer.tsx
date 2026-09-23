@@ -290,7 +290,7 @@ export function ProjectBreakdownDrawer({
             <div className="space-y-4">
               <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
                 <MessageSquareText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
-                <div><h3 className="font-semibold">Project change control</h3><p className="mt-1 text-sm text-muted-foreground">Review client proposals, discuss alternatives, and finalize the agreed scope. Atlas updates the task plan when a request is finalized.</p></div>
+                <div><h3 className="font-semibold">Project change control</h3><p className="mt-1 text-sm text-muted-foreground">Review client proposals, discuss alternatives, and finalize the agreed scope. Miles updates the task plan when a request is finalized.</p></div>
               </div>
               <ChangeRequestManager requests={changeRequests} canManage={canManageChangeRequests} onUpdated={onChangeRequestUpdated} />
             </div>

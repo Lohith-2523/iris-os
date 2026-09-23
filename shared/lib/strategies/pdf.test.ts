@@ -28,7 +28,7 @@ describe('generateStrategyPdf', () => {
       goal: 'Create a focused and respectful expansion pipeline.',
       timeline: 'Next 90 days',
       content,
-      organizationName: 'Iris OS Demo Agency',
+      organizationName: 'IrisOS Demo Agency',
       createdBy: 'Agency Admin',
       createdAt: new Date('2026-07-28T00:00:00.000Z'),
     });

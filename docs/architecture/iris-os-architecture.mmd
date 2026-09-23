@@ -25,7 +25,7 @@ graph TB
   subgraph Providers["External providers"]
     Supabase["Supabase Auth"]
     Adapters["Google, Meta, Canva, finance, SMTP adapters"]
-    Atlas["Gemini, OpenAI, Anthropic through Atlas orchestration"]
+    Miles["Gemini, OpenAI, Anthropic through Miles orchestration"]
   end
 
   Browser --> Proxy
@@ -47,7 +47,7 @@ graph TB
   API --> Services
   API --> Prisma
   API --> Adapters
-  API --> Atlas
+  API --> Miles
   Crypto --> API
   API --> Ciphertext
   Ciphertext --> Prisma

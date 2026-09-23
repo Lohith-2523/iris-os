@@ -5,7 +5,7 @@ import { POST } from './route';
 
 vi.mock('@/lib/org', () => ({ getRequestUser: vi.fn() }));
 
-describe('Atlas realtime session', () => {
+describe('Miles realtime session', () => {
   beforeEach(() => {
     vi.stubEnv('OPENAI_API_KEY', 'test-key');
     vi.mocked(getRequestUser).mockResolvedValue({

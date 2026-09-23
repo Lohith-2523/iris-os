@@ -24,7 +24,7 @@ describe('HelpCenter confirmations', () => {
     fireEvent.change(screen.getByPlaceholderText('Work email'), { target: { value: 'asha@example.com' } });
     fireEvent.change(screen.getByPlaceholderText('Subject'), { target: { value: 'Navigation feedback' } });
     fireEvent.change(screen.getByPlaceholderText('Tell us what happened or what you need…'), { target: { value: 'The navigation could be more compact.' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Send to Iris' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send to IrisOS' }));
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Your feedback has been sent. You can expect a response within a day.'));
   });

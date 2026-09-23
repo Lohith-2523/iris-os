@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
 import { ensureLegacyManagedCoupons } from '@/server/admin/managed-coupons';
 import { buildAdminCreditAnalytics } from '@/lib/admin-credit-analytics';
-import { ADMIN_DIRECT_ACCESS_PURPOSE } from '@/lib/auth-access';
+import { ADMIN_DIRECT_ACCESS_PURPOSE, adminDirectAccessUrl } from '@/lib/auth-access';
 
 export async function getAdminDashboardData() {
   await ensureLegacyManagedCoupons();
@@ -53,7 +53,7 @@ export async function getAdminDashboardData() {
       where: { purpose: ADMIN_DIRECT_ACCESS_PURPOSE },
       orderBy: { createdAt: 'desc' },
       take: 100,
-      select: { id: true, email: true, status: true, createdAt: true, expiresAt: true, redeemedAt: true },
+      select: { id: true, status: true, createdAt: true, tokenCiphertext: true },
     }),
   ]);
 
@@ -101,10 +101,9 @@ export async function getAdminDashboardData() {
     ],
     directAccessLinks: directAccessTokens.map((token) => ({
       id: token.id,
-      email: token.email,
-      status: token.redeemedAt ? 'REDEEMED' : token.expiresAt && token.expiresAt <= now ? 'EXPIRED' : token.status,
+      status: token.status,
       createdAt: token.createdAt.toISOString(),
-      expiresAt: token.expiresAt?.toISOString() ?? null,
+      accessUrl: token.status === 'SENT' ? adminDirectAccessUrl(token.tokenCiphertext) : null,
     })),
   };
 }

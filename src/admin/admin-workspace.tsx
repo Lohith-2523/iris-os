@@ -72,7 +72,7 @@ export function AdminWorkspace({ section, data, admin }: { section: AdminSection
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-zinc-800 bg-[#0c0c0e] lg:flex lg:flex-col">
       <div className="flex h-20 flex-col items-start justify-center gap-1 border-b border-zinc-800 px-5 py-2">
         <Link href="/admin" aria-label="Superadmin overview">
-          <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={113} height={43} className="h-[43px] w-auto object-contain" />
+          <Image src="/iris-logo-black-bg.png" alt="IrisOS Logo" width={113} height={43} className="h-[43px] w-auto object-contain" />
         </Link>
         <p className="pl-0.5 text-[10px] uppercase leading-none tracking-[0.18em] text-zinc-500">Superadmin</p>
       </div>
@@ -220,6 +220,7 @@ function CouponFields({ coupon }: { coupon?: AdminDashboardData['coupons'][numbe
     <label className={labelClass}>Label<input className={inputClass} name="label" defaultValue={coupon?.label} required /></label>
     {coupon && <label className={labelClass}>Status<select className={inputClass} name="enabled" defaultValue={String(coupon.enabled)}><option value="true">Enabled</option><option value="false">Disabled</option></select></label>}
     <label className={labelClass}>Plan<select className={inputClass} name="plan" defaultValue={coupon?.plan ?? 'ANY'}><option>ANY</option><option>PRO</option><option>ADVANCED</option></select></label>
+    <label className={labelClass}>Discount (%)<input className={inputClass} name="discountPercent" type="number" min="1" max="100" defaultValue={coupon?.discountPercent ?? 100} required /></label>
     <label className={labelClass}>{coupon ? 'New code (optional)' : 'Coupon code'}<input className={inputClass} name="code" required={!coupon} minLength={4} autoComplete="off" /></label>
     <label className={labelClass}>Starts<input className={inputClass} name="startsAt" type="datetime-local" required defaultValue={coupon?.startsAt.slice(0, 16) ?? new Date().toISOString().slice(0, 16)} /></label>
     <label className={labelClass}>Ends (optional)<input className={inputClass} name="endsAt" type="datetime-local" defaultValue={coupon?.endsAt?.slice(0, 16)} /></label>
@@ -233,7 +234,7 @@ function CouponsView({ data, mutate, busy }: { data: AdminDashboardData; mutate:
       <form className={formClass} onSubmit={async event => {
         event.preventDefault();
         const form = new FormData(event.currentTarget);
-        const saved = await mutate({ action: 'create-coupon', code: form.get('code'), label: form.get('label'), plan: form.get('plan'), startsAt: new Date(String(form.get('startsAt'))).toISOString(), endsAt: form.get('endsAt') ? new Date(String(form.get('endsAt'))).toISOString() : null, maxUses: form.get('maxUses') ? Number(form.get('maxUses')) : null });
+        const saved = await mutate({ action: 'create-coupon', code: form.get('code'), label: form.get('label'), plan: form.get('plan'), discountPercent: Number(form.get('discountPercent')), startsAt: new Date(String(form.get('startsAt'))).toISOString(), endsAt: form.get('endsAt') ? new Date(String(form.get('endsAt'))).toISOString() : null, maxUses: form.get('maxUses') ? Number(form.get('maxUses')) : null });
         if (saved) event.currentTarget.reset();
       }}>
         <CouponFields />
@@ -242,11 +243,11 @@ function CouponsView({ data, mutate, busy }: { data: AdminDashboardData; mutate:
     </Panel>
     <Panel title="Managed coupons" description="Includes the three existing access coupons and successful plan activations">
       {data.coupons.length ? <div className="divide-y divide-zinc-800">{data.coupons.map(coupon => <details key={coupon.id} className="group p-5">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4"><div><div className="flex gap-2"><Pill>{coupon.enabled ? 'ENABLED' : 'DISABLED'}</Pill><Pill>{coupon.plan}</Pill></div><p className="mt-2 font-medium">{coupon.label} <span className="font-mono text-xs text-zinc-500">{coupon.codeHint}</span></p><p className="mt-1 text-xs text-zinc-500">{coupon.uses}{coupon.maxUses ? ` / ${coupon.maxUses}` : ''} uses Ã‚&middot; {date(coupon.startsAt)} to {coupon.endsAt ? date(coupon.endsAt) : 'No end date'}</p></div><span className="text-xs text-zinc-500">Edit</span></summary>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4"><div><div className="flex gap-2"><Pill>{coupon.enabled ? 'ENABLED' : 'DISABLED'}</Pill><Pill>{coupon.plan}</Pill><Pill>{coupon.discountPercent}% OFF</Pill></div><p className="mt-2 font-medium">{coupon.label} <span className="font-mono text-xs text-zinc-500">{coupon.codeHint}</span></p><p className="mt-1 text-xs text-zinc-500">{coupon.uses}{coupon.maxUses ? ` / ${coupon.maxUses}` : ''} uses Ã‚&middot; {date(coupon.startsAt)} to {coupon.endsAt ? date(coupon.endsAt) : 'No end date'}</p></div><span className="text-xs text-zinc-500">Edit</span></summary>
         <form className="mt-5 grid gap-5 border-t border-zinc-800 pt-5 sm:grid-cols-2" onSubmit={event => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
-          void mutate({ action: 'update-coupon', id: coupon.id, label: form.get('label'), enabled: form.get('enabled') === 'true', plan: form.get('plan'), startsAt: new Date(String(form.get('startsAt'))).toISOString(), endsAt: form.get('endsAt') ? new Date(String(form.get('endsAt'))).toISOString() : null, maxUses: form.get('maxUses') ? Number(form.get('maxUses')) : null, ...(form.get('code') ? { code: form.get('code') } : {}) });
+          void mutate({ action: 'update-coupon', id: coupon.id, label: form.get('label'), enabled: form.get('enabled') === 'true', plan: form.get('plan'), discountPercent: Number(form.get('discountPercent')), startsAt: new Date(String(form.get('startsAt'))).toISOString(), endsAt: form.get('endsAt') ? new Date(String(form.get('endsAt'))).toISOString() : null, maxUses: form.get('maxUses') ? Number(form.get('maxUses')) : null, ...(form.get('code') ? { code: form.get('code') } : {}) });
         }}>
           <CouponFields coupon={coupon} />
           <div className="self-end pt-1"><Button loading={busy} type="submit">Save changes</Button></div>
@@ -258,8 +259,6 @@ function CouponsView({ data, mutate, busy }: { data: AdminDashboardData; mutate:
 
 function UserAccessView({ data, admin }: { data: AdminDashboardData; admin: SuperadminIdentity }) {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [expiresInDays, setExpiresInDays] = useState(7);
   const [accessUrl, setAccessUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -273,7 +272,7 @@ function UserAccessView({ data, admin }: { data: AdminDashboardData; admin: Supe
     const response = await fetch('/api/admin/manage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create-user-access-link', email, expiresInDays }),
+      body: JSON.stringify({ action: 'create-user-access-link' }),
     });
     const result = await response.json().catch(() => ({}));
     setBusy(false);
@@ -282,31 +281,29 @@ function UserAccessView({ data, admin }: { data: AdminDashboardData; admin: Supe
       return;
     }
     setAccessUrl(result.accessUrl);
-    setMessage(`Single-use access created for ${result.email}.`);
+    setMessage('Onboarding access link generated.');
     router.refresh();
   };
 
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(accessUrl);
+  const copyLink = async (value: string) => {
+    await navigator.clipboard.writeText(value);
     setCopied(true);
   };
 
   return <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-    <Panel title="Generate user access link" description="Bypass the waitlist for one approved email address">
+    <Panel title="Generate user access link" description="Create an onboarding link without pre-assigning an email address">
       {admin.role === 'VIEWER' ? <Empty>Editor access is required to generate user links.</Empty> : <form className={formClass} onSubmit={generate}>
-        <label className={labelClass}>Approved user email<input className={inputClass} name="email" type="email" value={email} onChange={event => setEmail(event.target.value)} required /></label>
-        <label className={labelClass}>Link expires in (Days)<input className={inputClass} name="days" type="number" min="1" max="30" value={expiresInDays} onChange={event => setExpiresInDays(Number(event.target.value))} required /></label>
-        <p className="text-xs leading-5 text-zinc-500">The link is single-use. Once opened, that browser can reach login and signup while the public waitlist remains active. Signup stays restricted to this email address.</p>
+        <p className="text-xs leading-5 text-zinc-500">The link authorizes signup for the first user who claims it and remains available here until that workspace completes onboarding.</p>
         <Button type="submit" loading={busy}>Generate secure link</Button>
         {accessUrl && <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
           <label className={labelClass}>Share this link<input className={inputClass} value={accessUrl} readOnly /></label>
-          <Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}>{copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}{copied ? 'Copied' : 'Copy link'}</Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => void copyLink(accessUrl)}>{copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}{copied ? 'Copied' : 'Copy link'}</Button>
         </div>}
         {message && <p role="status" className="text-xs text-zinc-300">{message}</p>}
       </form>}
     </Panel>
-    <Panel title="Recent user access links" description="Raw links are shown only once when generated">
-      {data.directAccessLinks.length ? <div className="divide-y divide-zinc-800">{data.directAccessLinks.map(item => <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium">{item.email}</p><p className="mt-1 text-xs text-zinc-500">Created {date(item.createdAt)} · Expires {date(item.expiresAt)}</p></div><Pill>{item.status}</Pill></div>)}</div> : <Empty>No direct-access links have been generated.</Empty>}
+    <Panel title="User access links" description="Active links remain available until onboarding is completed">
+      {data.directAccessLinks.length ? <div className="divide-y divide-zinc-800">{data.directAccessLinks.map(item => <div key={item.id} className="space-y-3 px-5 py-4"><div className="flex items-center justify-between gap-4"><p className="text-xs text-zinc-500">Created {date(item.createdAt)}</p><Pill>{item.status}</Pill></div>{item.accessUrl && <div className="flex flex-col gap-2 sm:flex-row"><input className={inputClass + ' mt-0 min-w-0 flex-1'} value={item.accessUrl} readOnly aria-label="Generated onboarding link" /><Button type="button" variant="outline" size="sm" onClick={() => void copyLink(item.accessUrl!)}><Copy className="mr-2 h-4 w-4" />Copy</Button></div>}</div>)}</div> : <Empty>No direct-access links have been generated.</Empty>}
     </Panel>
   </div>;
 }
@@ -319,7 +316,7 @@ function AccessView({ data, admin, mutate, busy }: { data: AdminDashboardData; a
         const form = new FormData(event.currentTarget);
         if (await mutate({ action: 'invite', email: form.get('email'), role: form.get('role'), expiresInDays: Number(form.get('days')) })) event.currentTarget.reset();
       }}>
-        <label className={labelClass}>Iris OS email<input className={inputClass} name="email" type="email" pattern="[^@]+@irisos\.app" required /></label>
+        <label className={labelClass}>IrisOS email<input className={inputClass} name="email" type="email" pattern="[^@]+@irisos\.app" required /></label>
         <label className={labelClass}>Role<select className={inputClass} name="role"><option>VIEWER</option><option>EDITOR</option></select></label>
         <label className={labelClass}>Invite expires in<input className={inputClass} name="days" type="number" min="1" max="30" defaultValue="7" required /></label>
         <div className="pt-1"><Button loading={busy}>Grant invitation</Button></div>

@@ -55,13 +55,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  applicationName: "Iris OS",
-  title: "Iris OS - Enterprise Agency Operating System",
+  applicationName: "IrisOS",
+  title: "IrisOS - Enterprise Agency Operating System",
   description: "The operating system used by modern agencies and creative enterprises to manage finance, operations, clients, projects, reporting, forecasting, intelligence, and content production from a single platform.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Iris OS",
+    title: "IrisOS",
     statusBarStyle: "black-translucent",
   },
   icons: {

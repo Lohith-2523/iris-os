@@ -18,15 +18,15 @@ Build operations management for internal workflows, approvals, process health, d
 - Show process status, open approvals, blocked work, SLA risk, stage/task delays, and operational throughput.
 - Include queues for client requests, design approvals, report reviews, project escalations, and finance approvals.
 - Link operational items to clients, projects, reports, designs, automations, and team owners.
-- Surface Atlas operational recommendations and bottleneck detection.
+- Surface Miles operational recommendations and bottleneck detection.
 
 ## Data
 
-Use approval requests, tasks, internal requests, automation runs, project risks, report schedules, design assets, owners, and Atlas operations insights.
+Use approval requests, tasks, internal requests, automation runs, project risks, report schedules, design assets, owners, and Miles operations insights.
 
 ## Acceptance Checks
 
 - Work queue supports filters and status changes.
 - Approvals connect to Design Hub, Reporting, Finance, and Projects.
 - Process health has useful metrics, not static filler.
-- Atlas identifies bottlenecks from seeded queues.
+- Miles identifies bottlenecks from seeded queues.

@@ -210,7 +210,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       items: [
         { name: 'Reporting', href: '/reporting', icon: FileText },
         { name: 'Strategy', href: '/strategy', icon: TrendingUp, requiredPlan: 'ADVANCED' },
-        { name: 'Atlas AI', href: '/atlas', icon: AtlasIcon, highlight: true, requiredPlan: 'PRO' },
+        { name: 'Miles AI', href: '/atlas', icon: AtlasIcon, highlight: true, requiredPlan: 'BASIC' },
       ],
     },
   ], []);
@@ -373,14 +373,14 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
           {isCollapsed ? (
             <img 
               src="/iris-logo-white-transparent.png" 
-              alt="Iris OS Logo" 
+              alt="IrisOS Logo"
               className="h-9 w-9 object-contain"
             />
           ) : (
             <div className="flex items-center gap-2">
               <img 
                 src="/iris-logo-black-bg.png" 
-                alt="Iris OS Logo" 
+                alt="IrisOS Logo"
                 className="h-[43px] object-contain"
               />
             </div>

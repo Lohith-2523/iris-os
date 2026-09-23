@@ -131,7 +131,7 @@ function InvitePageContent() {
 
       <Card className="relative z-10 w-full max-w-md bg-[#0d0e12] border-zinc-800 p-2 shadow-2xl font-sans text-xs">
         <CardHeader className="text-center pt-8 pb-6 flex flex-col items-center">
-          <Image src="/iris-logo-black-bg.png" alt="Iris OS Logo" width={105} height={40} priority className="h-10 w-auto object-contain mb-4" />
+          <Image src="/iris-logo-black-bg.png" alt="IrisOS Logo" width={105} height={40} priority className="h-10 w-auto object-contain mb-4" />
           <CardTitle className="text-xl font-bold tracking-tight text-white silver-text-gradient">
             Set Up Your Account
           </CardTitle>

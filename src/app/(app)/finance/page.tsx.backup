@@ -384,8 +384,8 @@ export default function FinancePage() {
   }, [isRazorpayConnected, fetchRazorpayData]);
 
   const aiLeakText = React.useMemo(() => {
-    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Atlas AI...');
-    return formatUserMessage(`Lohith, Atlas AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
+    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Miles AI...');
+    return formatUserMessage(`Lohith, Miles AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {

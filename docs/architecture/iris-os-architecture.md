@@ -1,4 +1,4 @@
-# Iris OS architecture
+# IrisOS architecture
 
 Status: server-first execution architecture, 31 August 2026  
 Style: domain-oriented modular monolith  
@@ -10,7 +10,7 @@ The standalone Mermaid source is available in [`iris-os-architecture.mmd`](./iri
 
 ## Architecture outcome
 
-Normal authenticated reads for the workspace shell, Dashboard, Projects, Tasks, Clients, Finance, Team, Reporting, Security, Messaging, and Atlas now follow this path:
+Normal authenticated reads for the workspace shell, Dashboard, Projects, Tasks, Clients, Finance, Team, Reporting, Security, Messaging, and Miles now follow this path:
 
 ```text
 request
@@ -25,7 +25,7 @@ request
 -> interactive Client Component
 ```
 
-API handlers remain the HTTP boundary for mutations, browser refreshes, realtime activity, integrations, and external callers. Server Components call shared services directly; they do not call Iris OS API routes over HTTP.
+API handlers remain the HTTP boundary for mutations, browser refreshes, realtime activity, integrations, and external callers. Server Components call shared services directly; they do not call IrisOS API routes over HTTP.
 
 ## Previous request path
 
@@ -54,7 +54,7 @@ Representative initial browser requests before migration:
 | Projects | workspace plus projects, clients, team, workspace repeat |
 | Tasks | workspace plus projects, team, user, tasks |
 | Clients | workspace plus clients, team, user |
-| Finance | workspace plus finance, clients, transactions, organization, invoices, subscriptions, integrations, Atlas |
+| Finance | workspace plus finance, clients, transactions, organization, invoices, subscriptions, integrations, Miles |
 
 ## Request security context
 
@@ -80,7 +80,7 @@ Server-only services own reusable read behavior:
 - `TaskService`: bounded task pages with client/member visibility predicates;
 - `WorkspaceDirectoryService`: tenant-scoped clients and team;
 - `FinanceReadService`: dashboard and finance metrics;
-- page read models: Dashboard, Projects, Tasks, Clients, Finance, Team, Reporting, Security, Messaging, and Atlas orchestration.
+- page read models: Dashboard, Projects, Tasks, Clients, Finance, Team, Reporting, Security, Messaging, and Miles orchestration.
 
 API GET handlers for workspace, projects, tasks, dashboard/finance data, clients, and team use these same services. Mutations retain existing Zod parsing, authorization, transactions, locks, and response semantics.
 
@@ -89,7 +89,7 @@ API GET handlers for workspace, projects, tasks, dashboard/finance data, clients
 Server Components now own authentication, route authorization, initial critical reads, and page composition for migrated pages. Client files preserve existing UX and interaction behavior:
 
 - dialogs, drawers, forms, filters, tables, charts, optimistic state, and refreshes remain client-side;
-- critical initial collections, summaries, Atlas sessions, and chat messages arrive as props;
+- critical initial collections, summaries, Miles sessions, and chat messages arrive as props;
 - post-mutation refreshes continue through existing APIs and `workspaceFetch`;
 - secondary provider, notification, activity, and integration reads may load after hydration;
 - messaging ciphertext and conversation indexes arrive with the server payload, while private-key operations and plaintext remain browser-only.
@@ -103,12 +103,12 @@ These boundaries remain mandatory:
 3. `orgId` remains mandatory on tenant-rooted reads and writes.
 4. Client users retain client scope; members retain assignment or membership scope where existing APIs enforced it.
 5. Admin, sub-admin, member, and client route restrictions use one shared policy in server pages and the client shell.
-6. Plan and Atlas capability gates remain unchanged.
+6. Plan and Miles capability gates remain unchanged.
 7. Prisma remains the only ORM/data boundary; existing transactions, advisory locks, unique constraints, capacity checks, and deletion semantics remain.
 8. Zod and file/request validation remain at mutation and integration boundaries.
 9. Provider credentials remain encrypted/server-only and are never included in RSC props.
 10. Messaging private keys remain in browser IndexedDB; the server persists ciphertext only.
-11. Atlas retains tenant context, consent, permissions, token reservation/reconciliation, provider budgets, and confirmation boundaries.
+11. Miles retains tenant context, consent, permissions, token reservation/reconciliation, provider budgets, and confirmation boundaries.
 12. Webhook signatures, OAuth state, Meta association, and financial permissions remain unchanged.
 
 ## Proxy
@@ -172,7 +172,7 @@ Authenticated browser timings could not be captured: all repository test credent
 | Clients | client clients/team/user sequence | server parallel clients/team/context | immediate portfolio data | high |
 | Finance | client finance/workspace/clients plus secondary reads | server finance/workspace/clients; secondary/manual/provider reads client-side | immediate finance summary | high |
 | Messaging | client E2EE and SSE | unchanged security-first client boundary | preserves private-key boundary | critical security exception |
-| Atlas | client sessions request followed by selected-message request | tenant-scoped server snapshot containing visible sessions and their messages; client streaming retained | removes chat waterfall and makes existing chat selection local | high |
+| Miles | client sessions request followed by selected-message request | tenant-scoped server snapshot containing visible sessions and their messages; client streaming retained | removes chat waterfall and makes existing chat selection local | high |
 | Team, Reporting, Security | client mount-time API reads | server page read models with interactive client components | populated first render and fewer browser requests | high |
 | Remaining interactive modules | client reads with workspace cache | route-matched skeleton boundaries plus local loading gates; reads remain client-side where not yet migrated | prevents partial empty UI while preserving complex integration behavior | medium |
 
@@ -184,7 +184,7 @@ Authenticated browser timings could not be captured: all repository test credent
 - Clients initial clients, team, and user requests removed;
 - Dashboard critical dashboard, clients, tasks, and workspace requests removed;
 - Finance critical finance, clients, and workspace requests removed;
-- Atlas initial sessions, selected chat, and avatar requests removed;
+- Miles initial sessions, selected chat, and avatar requests removed;
 - Team initial workspace, directory, and projects requests removed;
 - Reporting initial reports and clients requests removed;
 - Security initial users request removed;
@@ -204,7 +204,7 @@ Authenticated browser timings could not be captured: all repository test credent
 | Prisma invariants | no mutation transaction, advisory lock, capacity, or deletion path changed |
 | Messaging E2EE | OpenPGP tests pass; messaging implementation unchanged |
 | Workspace client cache | cache-policy and workspace-data-cache tests pass |
-| Provider/Atlas secrets | only sanitized workspace fields enter RSC props; provider services unchanged |
+| Provider/Miles secrets | only sanitized workspace fields enter RSC props; provider services unchanged |
 | Type/build | `tsc --noEmit` and production Next.js build pass |
 
 ## Performance report status

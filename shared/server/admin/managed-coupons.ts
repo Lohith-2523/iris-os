@@ -37,7 +37,7 @@ export async function matchManagedCoupon(candidate: string, requestedPlan: strin
     if (!timingSafeEqual(actual, expected)) continue;
     const uses = await prisma.planCouponRedemption.count({ where: { couponId: coupon.id } });
     if (coupon.maxUses !== null && uses >= coupon.maxUses) return null;
-    return coupon.id;
+    return { id: coupon.id, discountPercent: coupon.discountPercent };
   }
   return null;
 }

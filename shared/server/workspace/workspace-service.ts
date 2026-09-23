@@ -83,7 +83,12 @@ export const getWorkspaceReadModel = cache(async (ctx: RequestSecurityContext): 
     entitlements: {
       specializationLimit: entitlements.specializationLimit,
       teamMemberLimit: entitlements.teamMemberLimit,
+      coreTeamMemberLimit: entitlements.coreTeamMemberLimit,
       clientLimit: entitlements.clientLimit,
+      projectLimit: entitlements.projectLimit,
+      activeLeadLimit: entitlements.activeLeadLimit,
+      dataTransferBytes: entitlements.dataTransferBytes,
+      monthlyInvoiceLimit: entitlements.monthlyInvoiceLimit,
       dailyBriefing: entitlements.dailyBriefing,
       strategyGeneration: entitlements.strategyGeneration,
       aiFeatures: entitlements.aiFeatures,

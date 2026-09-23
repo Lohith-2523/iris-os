@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ServiceWorkerRegistration } from './service-worker-registration';
 
-describe('Iris OS install prompt', () => {
+describe('IrisOS install prompt', () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: false }));

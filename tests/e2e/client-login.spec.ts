@@ -6,7 +6,7 @@ test.describe('Client Login and Access Control', () => {
     await page.goto('/login');
     
     // Check that we are on the login page
-    await expect(page).toHaveTitle(/Iris OS/);
+    await expect(page).toHaveTitle(/IrisOS/);
     
     // Fill in the client credentials we created
     await page.fill('input[type="text"]', 'client_new@client.co');
@@ -31,8 +31,8 @@ test.describe('Client Login and Access Control', () => {
     await expect(page.locator('nav')).toContainText('Client Dashboard');
     await expect(page.locator('nav')).not.toContainText('Finance');
     await expect(page.locator('nav')).not.toContainText('Team');
-    await expect(page.locator('nav')).not.toContainText('Atlas AI');
-    await expect(page.getByRole('button', { name: 'Open Atlas AI' })).toHaveCount(0);
+    await expect(page.locator('nav')).not.toContainText('Miles AI');
+    await expect(page.getByRole('button', { name: 'Open Miles AI' })).toHaveCount(0);
 
     // Verify client onboarding page access is not restricted anymore
     await page.goto('/clients/onboard');

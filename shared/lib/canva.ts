@@ -282,7 +282,7 @@ export async function createCanvaBannerDesign(input: {
         width: CANVA_BANNER_WIDTH,
         height: CANVA_BANNER_HEIGHT,
       },
-      title: 'Iris dashboard banner',
+      title: 'IrisOS dashboard banner',
     }),
     cache: 'no-store',
     signal: AbortSignal.timeout(15_000),

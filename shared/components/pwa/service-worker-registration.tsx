@@ -21,7 +21,7 @@ export function ServiceWorkerRegistration() {
         scope: '/',
         updateViaCache: 'none',
       }).catch((error: unknown) => {
-        console.error('Iris OS service worker registration failed:', error);
+        console.error('IrisOS service worker registration failed:', error);
       });
     };
 
@@ -92,7 +92,7 @@ export function ServiceWorkerRegistration() {
             <Download aria-hidden="true" className="h-5 w-5 text-zinc-200" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold" id="pwa-install-title">Install Iris OS</h2>
+            <h2 className="text-sm font-semibold" id="pwa-install-title">Install IrisOS</h2>
             <p className="mt-1 text-xs leading-5 text-zinc-400" id="pwa-install-description">
               Install from here, or use Chrome&apos;s Install App button in the browser bar above.
             </p>

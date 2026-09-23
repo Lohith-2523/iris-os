@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { IrisMarketingHeader } from '@/components/landing/iris-marketing-header';
 import { IrisPricingComparison } from '@/components/landing/iris-pricing-comparison';
-import { ReturningDevicePrompt } from '@/components/marketing/returning-device-prompt';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -124,7 +123,7 @@ function Hero() {
         >
           <Image
             src={irisLogo}
-            alt="Iris OS"
+            alt="IrisOS"
             width={136}
             height={52}
             priority
@@ -172,7 +171,7 @@ function Hero() {
             textAlign: 'center',
           }}
         >
-          Introducing Iris OS â€” The Unified Agency Workspace
+          Introducing IrisOS â€” The Unified Agency Workspace
         </span>
       </ScrollReveal>
 
@@ -219,7 +218,7 @@ function Hero() {
             margin: 0,
           }}
         >
-          Iris OS is the focal point of agency execution. Just as the physical iris regulates light to clarify vision, our platform synthesizes client portals, financial ledgers, creative workflows, and campaign metrics into one unified, crystal-clear operational view.
+          IrisOS is the focal point of agency execution. Just as the physical iris regulates light to clarify vision, our platform synthesizes client portals, financial ledgers, creative workflows, and campaign metrics into one unified, crystal-clear operational view.
         </p>
       </ScrollReveal>
 
@@ -305,7 +304,7 @@ function VideoSection() {
           style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-0.03em', marginBottom: '16px' }}
           className="gradient-text"
         >
-          See Iris in Action
+          See IrisOS in Action
         </h2>
         <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
           A two-minute tour of the agency console that regulates your operational focus.
@@ -464,10 +463,10 @@ function About() {
             The focal point of modern agency operations.
           </h2>
           <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8, marginBottom: '20px' }}>
-            We created Iris OS because agency owners are tired of navigating a fragmented stack of disconnected applications. Creative firms lose margin and time juggling client communications, financial tracking, and campaign execution across isolated tools.
+            We created IrisOS because agency owners are tired of navigating a fragmented stack of disconnected applications. Creative firms lose margin and time juggling client communications, financial tracking, and campaign execution across isolated tools.
           </p>
           <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8 }}>
-            Iris OS acts as the operational iris of your firm â€” regulating the flow of information, aligning client expectations, and focusing delivery coordination. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
+            IrisOS acts as the operational iris of your firm â€” regulating the flow of information, aligning client expectations, and focusing delivery coordination. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
           </p>
         </div>
 
@@ -628,7 +627,7 @@ function PlaceholderCard({ side }: { side: 'left' | 'right' }) {
           margin: 0,
         }}
       >
-        Select a module on the {side} side of the Iris console to expand specifications.
+        Select a module on the {side} side of the IrisOS console to expand specifications.
       </p>
     </div>
   );
@@ -952,7 +951,7 @@ function Features() {
           Consolidating your agency&apos;s entire operation into a single, high-fidelity lens.
         </h2>
         <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
-          Hover and click on the sectors of the Iris console below to expand detailed specifications.
+          Hover and click on the sectors of the IrisOS console below to expand detailed specifications.
         </p>
       </ScrollReveal>
 
@@ -1328,9 +1327,9 @@ function Footer() {
         gap: '16px',
       }}
     >
-      <Image src={irisLogo} alt="Iris OS" width={74} height={28} style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
+      <Image src={irisLogo} alt="IrisOS" width={74} height={28} style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
       <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
-        Â© 2026 Iris OS, Inc. All rights reserved.
+        Â© 2026 IrisOS, Inc. All rights reserved.
       </span>
       <div style={{ display: 'flex', gap: '24px' }}>
         {[
@@ -1367,7 +1366,6 @@ export default function App() {
         `,
       }}
     >
-      <ReturningDevicePrompt />
       <IrisMarketingHeader />
       <Hero />
       <VideoSection />

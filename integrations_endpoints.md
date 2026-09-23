@@ -1,6 +1,6 @@
-# Iris OS Integrations Endpoints Directory
+# IrisOS Integrations Endpoints Directory
 
-This document contains a compiled list of all authorization redirects, API callbacks, and webhook URLs configured for active and simulated integration modules across Iris OS, supporting both `localhost` and `127.0.0.1` local network mappings.
+This document contains a compiled list of all authorization redirects, API callbacks, and webhook URLs configured for active and simulated integration modules across IrisOS, supporting both `localhost` and `127.0.0.1` local network mappings.
 
 ---
 
@@ -17,7 +17,7 @@ Used for single sign-on (SSO) login, new organization signup, and Google Calenda
 
 ## 2. Canva Dashboard Banner
 
-Used to create a 2912 x 360 banner in Canva and export the completed design directly into the Iris OS dashboard.
+Used to create a 2912 x 360 banner in Canva and export the completed design directly into the IrisOS dashboard.
 
 *   **OAuth Callback / Redirect URI**:
     *   `http://127.0.0.1:3000/api/canva/callback`
@@ -52,7 +52,7 @@ Used to sync campaigns, track ad performance metrics, automate lead capture work
 *   **Graph API Permissions Used**:
     `public_profile`, `email`, `ads_read`, `business_management`, `leads_retrieval`, `pages_show_list`, `pages_manage_metadata`
 *   **Lead retrieval flow**: Discover manageable Facebook Pages, subscribe them to the `leadgen` webhook field, retrieve each lead by `leadgen_id`, resolve the source ad's exact ad account, and persist it only when that account is assigned to a client.
-*   **Not currently requested**: `ads_management`. Add it only when Iris OS performs provider-side campaign, ad, creative, status, or budget mutations.
+*   **Not currently requested**: `ads_management`. Add it only when IrisOS performs provider-side campaign, ad, creative, status, or budget mutations.
 
 ---
 

@@ -17,18 +17,18 @@ Build enterprise forecasting for revenue, cash flow, capacity, client churn, con
 ## Build
 
 - Show base, optimistic, and conservative scenarios.
-- Include forecast inputs, assumptions, confidence, variance, and Atlas narrative.
+- Include forecast inputs, assumptions, confidence, variance, and Miles narrative.
 - Connect finance, client, team, project, and creative data into forecast views.
 - Add scenario controls for pipeline conversion, churn, hiring, project load, and campaign performance.
 
 ## Data
 
-Use historical seeded metrics, forecast points, assumptions, clients, projects, team capacity, campaigns, and Atlas forecasts.
+Use historical seeded metrics, forecast points, assumptions, clients, projects, team capacity, campaigns, and Miles forecasts.
 
 ## Acceptance Checks
 
 - Forecasts are deterministic from seed data.
 - Scenario changes update visible outputs.
 - Forecasting links back to source modules.
-- Atlas explains risks, assumptions, and recommended actions.
+- Miles explains risks, assumptions, and recommended actions.
 

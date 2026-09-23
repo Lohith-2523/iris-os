@@ -12,7 +12,7 @@ import {
   waitlistDailyReportEmail,
 } from './iris-templates';
 
-describe('Iris email templates', () => {
+describe('IrisOS email templates', () => {
   it('escapes untrusted content', () => {
     expect(__testing.escapeHtml('<script>"x"</script>')).toBe('&lt;script&gt;&quot;x&quot;&lt;/script&gt;');
   });
@@ -28,7 +28,7 @@ describe('Iris email templates', () => {
       meetUrl: 'https://meet.google.com/example',
     });
 
-    expect(email.html).toContain('IRIS OS');
+    expect(email.html).toContain('IRISOS');
     expect(email.html).toContain('https://meet.google.com/example');
     expect(email.text).toContain('Quarterly Review');
   });

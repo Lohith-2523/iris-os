@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { getRazorpay, razorpayErrorResponse, verifyPaymentSchema, verifyRazorpaySignature } from '@/lib/razorpay';
-import { planPrice, type PricingRegion } from '@/lib/plan-pricing';
+import { planPrice, planPriceWithCoupon, type PricingRegion } from '@/lib/plan-pricing';
 import { prisma } from '@/lib/db';
 import { normalizePlan } from '@/lib/plan-entitlements';
 
@@ -31,7 +31,14 @@ export async function POST(request: NextRequest) {
     if ((purchasedPlan !== 'PRO' && purchasedPlan !== 'ADVANCED') || (pricingRegion !== 'INDIA' && pricingRegion !== 'INTERNATIONAL')) {
       return NextResponse.json({ error: 'Order pricing details are invalid.' }, { status: 400 });
     }
-    const expected = planPrice(purchasedPlan, pricingRegion);
+    const couponId = typeof order.notes?.couponId === 'string' ? order.notes.couponId : null;
+    const discountPercent = Number(order.notes?.discountPercent);
+    if (couponId && (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent >= 100)) {
+      return NextResponse.json({ error: 'Order coupon details are invalid.' }, { status: 400 });
+    }
+    const expected = couponId
+      ? planPriceWithCoupon(purchasedPlan, pricingRegion, discountPercent)
+      : planPrice(purchasedPlan, pricingRegion);
     if (Number(order.amount) !== expected.totalAmount || order.currency !== expected.currency) {
       return NextResponse.json({ error: 'Order amount does not match the selected plan.' }, { status: 400 });
     }
@@ -57,6 +64,21 @@ export async function POST(request: NextRequest) {
         },
         update: {},
       });
+      if (couponId) {
+        const previousRedemption = await tx.planCouponRedemption.findFirst({
+          where: { orgId: user.orgId, couponId, requestedPlan: activePlan },
+          select: { id: true },
+        });
+        if (!previousRedemption) {
+          await tx.planCouponRedemption.create({ data: {
+            orgId: user.orgId,
+            redeemedById: user.id,
+            couponId,
+            requestedPlan: activePlan,
+            activatedPlan: activePlan,
+          } });
+        }
+      }
     });
 
     return NextResponse.json({ success: true, order_id: order.id, payment_id: payment.razorpay_payment_id, plan: activePlan });

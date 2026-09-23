@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { canShowAtlasLauncher } from './workspace-launchers';
 
 describe('canShowAtlasLauncher', () => {
-  it.each(['client', 'CLIENT', 'member', 'MEMBER'])('hides Atlas and briefing launchers for %s workspaces', (role) => {
+  it.each(['client', 'CLIENT', 'member', 'MEMBER'])('hides Miles and briefing launchers for %s workspaces', (role) => {
     expect(canShowAtlasLauncher(role)).toBe(false);
   });
 

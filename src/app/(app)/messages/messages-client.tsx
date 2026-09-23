@@ -147,7 +147,7 @@ function CreateMeetingDialog({ participant, onClose, onCreate }: {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!meetingLink.trim() && !createGoogleMeet) {
-      setDialogError('Add a meeting link or ask Iris OS to create a Google Meet link.');
+      setDialogError('Add a meeting link or ask IrisOS to create a Google Meet link.');
       return;
     }
     if (meetingLink.trim() && !safeMeetingLink(meetingLink.trim())) {
@@ -718,7 +718,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
       <div className={styles.frame}>
         <aside className={styles.rail}>
           <header className={styles.railHeader}>
-            <div className={styles.eyebrow}>Iris Secure</div>
+            <div className={styles.eyebrow}>IrisOS Secure</div>
             <h1 className={styles.title}>Messages</h1>
             <p className={styles.subtitle}>Private owner-to-client and owner-to-team conversations.</p>
           </header>

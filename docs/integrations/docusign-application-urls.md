@@ -1,6 +1,6 @@
 # DocuSign application URLs
 
-These values are reserved for a future Iris OS DocuSign integration. They are
+These values are reserved for a future IrisOS DocuSign integration. They are
 configuration references only: no callback route, OAuth exchange, SDK client,
 API call, webhook, or backend integration currently exists.
 

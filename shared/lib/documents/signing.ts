@@ -112,7 +112,7 @@ export async function runSignedDocumentAutomation(documentId: string) {
         });
         await tx.agencyLead.update({ where: { id: lead.id }, data: { status: 'closed', activity: { atlasAutoOnboardedAt: new Date().toISOString(), signedDocumentId: document.id } } });
       }
-      if (!client) throw new Error('Atlas could not resolve a lead or client from the signed document.');
+      if (!client) throw new Error('Miles could not resolve a lead or client from the signed document.');
 
       let projectId = document.onboardedProjectId;
       let automationStatus = 'COMPLETED';
@@ -134,15 +134,15 @@ export async function runSignedDocumentAutomation(documentId: string) {
           await tx.clientTask.createMany({ data: content.deliverables.map(item => ({ title: item.name, description: item.scope, status: 'TODO', progress: 0, clientId: client!.id, projectId: project.id, stageId: stage.id })) });
         } else {
           automationStatus = 'NEEDS_REVIEW';
-          automationError = 'The client was onboarded, but the SOW needs a project name, dates, scope, and at least one complete deliverable before Atlas can create the project.';
+          automationError = 'The client was onboarded, but the SOW needs a project name, dates, scope, and at least one complete deliverable before Miles can create the project.';
         }
       }
 
       await tx.generatedDocument.update({ where: { id: document.id }, data: { onboardedClientId: client.id, onboardedProjectId: projectId, automationStatus, automationError } });
       const admins = await tx.user.findMany({ where: { orgId: document.orgId, role: { equals: 'admin', mode: 'insensitive' } }, select: { id: true } });
-      if (admins.length) await tx.notification.createMany({ data: admins.map(admin => ({ orgId: document.orgId, userId: admin.id, type: automationStatus === 'COMPLETED' ? 'UPDATE' : 'ISSUE', title: automationStatus === 'COMPLETED' ? 'Atlas onboarding completed' : 'Atlas onboarding needs review', body: automationError || `${client!.name} was onboarded${projectId ? ' and its signed SOW was converted into a project' : ''}.`, href: projectId ? '/projects' : '/clients', actionLabel: projectId ? 'View project' : 'View client' })) });
+      if (admins.length) await tx.notification.createMany({ data: admins.map(admin => ({ orgId: document.orgId, userId: admin.id, type: automationStatus === 'COMPLETED' ? 'UPDATE' : 'ISSUE', title: automationStatus === 'COMPLETED' ? 'Miles onboarding completed' : 'Miles onboarding needs review', body: automationError || `${client!.name} was onboarded${projectId ? ' and its signed SOW was converted into a project' : ''}.`, href: projectId ? '/projects' : '/clients', actionLabel: projectId ? 'View project' : 'View client' })) });
     }, { timeout: 10_000 });
   } catch (error) {
-    await prisma.generatedDocument.updateMany({ where: { id: documentId }, data: { automationStatus: 'FAILED', automationError: error instanceof Error ? error.message.slice(0, 1000) : 'Atlas onboarding failed.' } });
+    await prisma.generatedDocument.updateMany({ where: { id: documentId }, data: { automationStatus: 'FAILED', automationError: error instanceof Error ? error.message.slice(0, 1000) : 'Miles onboarding failed.' } });
   }
 }

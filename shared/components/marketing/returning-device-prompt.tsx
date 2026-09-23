@@ -70,7 +70,7 @@ export function ReturningDevicePrompt() {
         <div className="space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Recognized browser</p>
           <h2 id="returning-device-title" className="text-xl font-semibold leading-tight text-white">
-            Welcome back to Iris OS
+            Welcome back to IrisOS
           </h2>
           <p className="text-sm leading-6 text-zinc-400">
             We can see you have logged in previously. Do you want to proceed to the login page?

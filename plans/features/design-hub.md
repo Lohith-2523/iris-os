@@ -88,7 +88,7 @@ The Design Hub page will be organized into a Left-Sidebar sub-navigation console
 
 ### Module VI: Insights & Developers
 12. **Creative Analytics**: Visual performance charts (impressions, clicks, conversions) showing exact content ROI.
-13. **Creative Intelligence**: Atlas AI suggestion engine providing font recommendations, layout performance grades, and ad spend ROI forecasts.
+13. **Creative Intelligence**: Miles AI suggestion engine providing font recommendations, layout performance grades, and ad spend ROI forecasts.
 14. **Automation Builder**: Setup event-driven actions (e.g. "On design approved -> export as high-res PDF -> schedule on Calendar").
 15. **Design API Console**: Connection management, Client IDs, webhook subscription setup, and a real-time HTTP request console feed.
 

@@ -10,7 +10,7 @@ This document compiles all the features currently developed and planned for Crys
 - **Key Developed Features**:
   - Premium titanium/gunmetal grey app shell featuring a collapsable sidebar navigation.
   - Sidebar profile footer that dynamically displays the logged-in user profile, email, and initials (using a `/api/user?email={email}` lookup).
-  - Topbar global command center with quick query search and direct Ask Atlas AI hooks.
+  - Topbar global command center with quick query search and direct Ask Miles AI hooks.
   - Radix/shadcn-inspired zero-border flat aesthetic.
   - Test runner integrations (Vitest/Playwright setup).
 
@@ -22,11 +22,11 @@ This document compiles all the features currently developed and planned for Crys
   - Active insight cards highlighting profit leaks and client churn risk.
   - Quick action links routing the user directly into the relevant detail pages.
 
-## 3. Atlas AI flag intelligence
+## 3. Miles AI flag intelligence
 - **Status**: Developed
 - **Goal**: Embedded AI assistant powering recommendations, forecasts, summaries, and chat responses.
 - **Key Developed Features**:
-  - Ask Atlas chat terminal supporting dynamic suggestions ("Summarize renewals and churn signals").
+  - Ask Miles chat terminal supporting dynamic suggestions ("Summarize renewals and churn signals").
   - Dynamic user-name parsing through the `formatUserMessage` utility, translating mock "Lohith" prompts to use the active logged-in user's first name/full name based on local storage email.
 
 ## 4. Finance operating center

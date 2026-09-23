@@ -30,7 +30,7 @@ export function AuthShell({ title, description, children, appearance = 'light' }
           <header className={styles.header}>
             <Image
               src={dark ? '/iris-logo-white-transparent.png' : '/iris-logo-black-transparent.png'}
-              alt="Iris OS"
+              alt="IrisOS"
               width={120}
               height={46}
               priority

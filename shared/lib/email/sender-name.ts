@@ -7,5 +7,5 @@ export function agencyViaIrisSenderName(agencyName: unknown, plan: unknown) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 120);
-  return cleanName ? `${cleanName} Via Iris OS` : 'Iris OS';
+  return cleanName ? `${cleanName} Via IrisOS` : 'IrisOS';
 }

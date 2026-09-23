@@ -309,8 +309,8 @@ export function buildDailyBriefing(snapshot: DailyBriefingSnapshot): DailyBriefi
     generatedAt: snapshot.now.toISOString(),
     greeting: dailyBriefingGreeting(snapshot.userName, snapshot.now, timeZone),
     introduction: totalActions
-      ? `Atlas found ${totalActions} items worth your attention. We will take them one at a time.`
-      : 'Atlas completed the morning scan. Everything important is moving in the right direction.',
+      ? `Miles found ${totalActions} items worth your attention. We will take them one at a time.`
+      : 'Miles completed the morning scan. Everything important is moving in the right direction.',
     items,
   };
 }

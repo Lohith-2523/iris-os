@@ -191,7 +191,7 @@ function validateCalendarScopes(scopeValue: string | undefined, requireSheetsWri
   if (!hasCalendarRead || !hasEventWrite || (requireSheetsWrite && !hasSheetsWrite)) {
     throw new GoogleOAuthError(
       requireSheetsWrite
-        ? 'Approve Calendar and Google Sheets permissions to connect the Iris Google workspace integration.'
+        ? 'Approve Calendar and Google Sheets permissions to connect the IrisOS Google workspace integration.'
         : 'Approve both Calendar reading and event management permissions to connect Google Calendar.',
       'permissions_missing',
       400,

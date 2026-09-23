@@ -560,7 +560,7 @@ export default function ClientDashboardPage() {
                 <CardHeader>
                   <CardTitle className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1.5">
                     <AtlasIcon className="h-4 w-4" />
-                    <span>Atlas Strategy Insights</span>
+                    <span>Miles Strategy Insights</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 leading-relaxed text-zinc-400 text-[11px] font-sans">

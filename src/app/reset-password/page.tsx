@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
   return (
     <AuthShell
       title="Choose a new password"
-      description="Create a new password for your Iris OS account. You’ll sign in again after it is updated."
+      description="Create a new password for your IrisOS account. You’ll sign in again after it is updated."
     >
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}

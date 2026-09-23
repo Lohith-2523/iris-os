@@ -127,10 +127,10 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
   const metadataLabel = isProforma ? 'Proforma Invoice' : 'Tax Invoice';
   const document = await PDFDocument.create();
   document.setTitle(`${metadataLabel} ${safeText(input.invoiceNumber)}`);
-  document.setAuthor('Iris OS');
+  document.setAuthor('IrisOS');
   document.setSubject(`${metadataLabel} for ${safeText(input.projectName)}`);
-  document.setCreator('Iris OS Invoice Engine');
-  document.setProducer('Iris OS');
+  document.setCreator('IrisOS Invoice Engine');
+  document.setProducer('IrisOS');
   const page = document.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const font = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
@@ -293,7 +293,7 @@ export async function generateInvoicePdf(input: InvoicePdfInput) {
     });
   });
   page.drawLine({ start: { x: MARGIN, y: 76 }, end: { x: PAGE_WIDTH - MARGIN, y: 76 }, thickness: 0.7, color: rgb(0.82, 0.83, 0.85) });
-  page.drawText('Generated securely by Iris OS', { x: MARGIN, y: 56, size: 7.5, font, color: rgb(0.5, 0.52, 0.56) });
+  page.drawText('Generated securely by IrisOS', { x: MARGIN, y: 56, size: 7.5, font, color: rgb(0.5, 0.52, 0.56) });
   const pageNumber = 'Page 1 of 1';
   page.drawText(pageNumber, {
     x: PAGE_WIDTH - MARGIN - font.widthOfTextAtSize(pageNumber, 7.5),

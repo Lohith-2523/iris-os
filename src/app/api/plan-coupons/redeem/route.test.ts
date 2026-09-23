@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+vi.mock('server-only', () => ({}));
+
 const mocks = vi.hoisted(() => ({
   getRequestUser: vi.fn(),
   isOrganizationAdmin: vi.fn(),
@@ -50,7 +52,7 @@ describe('plan coupon redemption route', () => {
     mocks.organizationFind.mockResolvedValue({ plan: 'BASIC' });
     mocks.redemptionFind.mockResolvedValue(null);
     mocks.redemptionCount.mockResolvedValue(0);
-    mocks.managedCouponFind.mockResolvedValue({ enabled: true, startsAt: new Date(0), endsAt: null, plan: 'ANY', maxUses: null });
+    mocks.managedCouponFind.mockResolvedValue({ enabled: true, startsAt: new Date(0), endsAt: null, plan: 'ANY', discountPercent: 100, maxUses: null });
   });
 
   it('requires an organization administrator', async () => {
@@ -70,7 +72,7 @@ describe('plan coupon redemption route', () => {
   });
 
   it('activates the selected paid plan without creating a payment order', async () => {
-    mocks.matchManagedCoupon.mockResolvedValue('standard');
+    mocks.matchManagedCoupon.mockResolvedValue({ id: 'standard', discountPercent: 100 });
     const response = await POST(request({ plan: 'ADVANCED', coupon: 'typed-value' }));
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ success: true, plan: 'ADVANCED' });
@@ -83,17 +85,39 @@ describe('plan coupon redemption route', () => {
   });
 
   it('validates a coupon without changing the organization plan', async () => {
-    mocks.matchManagedCoupon.mockResolvedValue('standard');
+    mocks.matchManagedCoupon.mockResolvedValue({ id: 'standard', discountPercent: 100 });
     const response = await POST(request({ plan: 'PRO', coupon: 'typed-value', action: 'VALIDATE' }));
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ success: true, valid: true });
+    await expect(response.json()).resolves.toMatchObject({ success: true, valid: true, discountPercent: 100, baseAmount: 0, taxAmount: 0, totalAmount: 0 });
     expect(mocks.organizationUpdate).not.toHaveBeenCalled();
     expect(mocks.redemptionCreate).not.toHaveBeenCalled();
     expect(mocks.securityDelete).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
   });
 
+  it('quotes a partial discount from the original plan price', async () => {
+    mocks.matchManagedCoupon.mockResolvedValue({ id: 'save-10', discountPercent: 10 });
+    const response = await POST(request({ plan: 'PRO', coupon: 'typed-value', action: 'VALIDATE' }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      discountPercent: 10,
+      listAmount: 3_999,
+      baseAmount: 3_599,
+      discountAmount: 400,
+      taxAmount: 648,
+      totalAmount: 4_247,
+      currency: 'USD',
+    });
+  });
+
+  it('requires payment before redeeming a partial discount', async () => {
+    mocks.matchManagedCoupon.mockResolvedValue({ id: 'save-10', discountPercent: 10 });
+    const response = await POST(request({ plan: 'PRO', coupon: 'typed-value', action: 'REDEEM' }));
+    expect(response.status).toBe(400);
+    expect(mocks.organizationUpdate).not.toHaveBeenCalled();
+  });
+
   it('keeps a repeated successful redemption idempotent', async () => {
-    mocks.matchManagedCoupon.mockResolvedValue('standard');
+    mocks.matchManagedCoupon.mockResolvedValue({ id: 'standard', discountPercent: 100 });
     mocks.organizationFind.mockResolvedValue({ plan: 'PRO' });
     mocks.redemptionFind.mockResolvedValue({ id: 'redemption-1' });
     const response = await POST(request({ plan: 'PRO', coupon: 'typed-value' }));
@@ -103,7 +127,7 @@ describe('plan coupon redemption route', () => {
   });
 
   it('allows a valid Pro coupon to downgrade an Advanced workspace', async () => {
-    mocks.matchManagedCoupon.mockResolvedValue('standard');
+    mocks.matchManagedCoupon.mockResolvedValue({ id: 'standard', discountPercent: 100 });
     mocks.organizationFind.mockResolvedValue({ plan: 'ADVANCED' });
     const response = await POST(request({ plan: 'PRO', coupon: 'typed-value' }));
     expect(response.status).toBe(200);

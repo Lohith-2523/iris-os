@@ -19,7 +19,7 @@ export const SECURITY_PAGE_OPTIONS: ReadonlyArray<{ id: SecurityAllowedPage; lab
   { id: 'reporting', label: 'Reporting' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'strategy', label: 'Strategy' },
-  { id: 'atlas', label: 'Atlas AI' },
+  { id: 'atlas', label: 'Miles AI' },
   { id: 'settings', label: 'Settings' },
 ];
 

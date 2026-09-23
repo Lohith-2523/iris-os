@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { extractChatFileArtifacts } from './chat-file-artifacts';
 
-describe('Atlas chat file artifacts', () => {
+describe('Miles chat file artifacts', () => {
   it('turns generated document links into preview descriptors without duplicating the link', () => {
     const result = extractChatFileArtifacts('Invoice created. [Open or download the invoice PDF](/api/invoices/invoice-1/pdf).');
 

@@ -20,7 +20,7 @@ export async function consumeAtlasStream(
   response: Response,
   onEvent: (event: AtlasStreamEvent) => void,
 ) {
-  if (!response.body) throw new Error('Atlas returned an empty response stream.');
+  if (!response.body) throw new Error('Miles returned an empty response stream.');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';

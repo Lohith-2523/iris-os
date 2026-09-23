@@ -52,10 +52,10 @@ export async function POST(request: Request) {
   const generation = generateSchema.safeParse(body);
   if (generation.success) {
     if (!user.organization.aiSharingConsent) {
-      return NextResponse.json({ error: 'Enable Atlas AI Analysis in Settings before generating reports from workspace data.' }, { status: 403 });
+      return NextResponse.json({ error: 'Enable Miles AI Analysis in Settings before generating reports from workspace data.' }, { status: 403 });
     }
     if (generation.data.kind === 'MARKETING' && (!user.organization.metaAccessConsent || !user.organization.atlasMetaAnalyticsConsent)) {
-      return NextResponse.json({ error: 'Marketing reports require both Meta access consent and Atlas Meta analytics consent.' }, { status: 403 });
+      return NextResponse.json({ error: 'Marketing reports require both Meta access consent and Miles Meta analytics consent.' }, { status: 403 });
     }
     try {
       const document = await buildAtlasReportDocument(user.orgId, user.id, user.role, generation.data.kind, generation.data.clientId);
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         date: report.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       }, { status: 201 });
     } catch (error) {
-      console.error('Unable to generate Atlas report:', error);
+      console.error('Unable to generate Miles report:', error);
       return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to generate report.' }, { status: 500 });
     }
   }

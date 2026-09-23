@@ -1,14 +1,14 @@
-# Iris OS Product And Architecture Plan
+# IrisOS Product And Architecture Plan
 
 ## Product Summary
 
-Iris OS is an enterprise-grade SaaS operating system for freelancers, agencies, consulting firms, marketing organizations, creative studios, and multi-brand enterprises.
+IrisOS is an enterprise-grade SaaS operating system for freelancers, agencies, consulting firms, marketing organizations, creative studios, and multi-brand enterprises.
 
 The product unifies finance, operations, clients, projects, reporting, forecasting, business intelligence, creative operations, automation, executive reporting, and proprietary AI intelligence.
 
-Atlas AI is the embedded intelligence layer. It should power insights, recommendations, forecasts, summaries, churn signals, agency performance scores, and Ask Atlas experiences throughout the app.
+Miles AI is the embedded intelligence layer. It should power insights, recommendations, forecasts, summaries, churn signals, agency performance scores, and Ask Miles experiences throughout the app.
 
-Design Hub is an Iris OS-owned creative operations workspace powered by Canva workflows. Canva can be visible as the underlying provider, but Iris OS remains the primary product.
+Design Hub is an IrisOS-owned creative operations workspace powered by Canva workflows. Canva can be visible as the underlying provider, but IrisOS remains the primary product.
 
 ## Product Experience Requirements
 
@@ -92,11 +92,11 @@ tests/
 - Design assets, Canva projects, campaigns, brand kits, publishing schedules, approvals
 - Automations, triggers, actions, runs, notifications
 - Integrations, providers, connections, sync events, webhooks
-- Atlas insights, recommendations, forecasts, scores, analyses, chat messages
+- Miles insights, recommendations, forecasts, scores, analyses, chat messages
 
-## Atlas AI Service
+## Miles AI Service
 
-Implement Atlas AI behind an internal service boundary with deterministic mock output first.
+Implement Miles AI behind an internal service boundary with deterministic mock output first.
 
 The service should expose helpers for:
 
@@ -107,7 +107,7 @@ The service should expose helpers for:
 - Profit Leak Detection
 - Forecast Narratives
 - Executive Summaries
-- Ask Atlas responses
+- Ask Miles responses
 - Creative Intelligence recommendations
 
 ## Testing Standard

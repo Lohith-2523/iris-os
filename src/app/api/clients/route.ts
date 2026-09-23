@@ -295,8 +295,17 @@ export async function POST(request: NextRequest) {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`client-capacity:${org.id}`}))`;
       const clientCount = await tx.client.count({ where: { orgId: org.id } });
       const clientLimit = entitlementsFor(org.plan).clientLimit;
-      if (clientCount >= clientLimit) {
+      if (clientLimit !== null && clientCount >= clientLimit) {
         throw new ClientPlanLimitError(planLimitMessage('clients', clientLimit, org.plan));
+      }
+      if (initialProject) {
+        const projectLimit = entitlementsFor(org.plan).projectLimit;
+        if (projectLimit !== null) {
+          const projectCount = await tx.project.count({ where: { orgId: org.id } });
+          if (projectCount >= projectLimit) {
+            throw new ClientPlanLimitError(planLimitMessage('projects', projectLimit, org.plan));
+          }
+        }
       }
       const newClient = await tx.client.create({
         data: {

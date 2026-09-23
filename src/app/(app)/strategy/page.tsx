@@ -214,12 +214,12 @@ export default function StrategyPage() {
         body: JSON.stringify({ type: activeType, ...form }),
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Atlas AI could not generate this strategy.');
+      if (!response.ok) throw new Error(result.error || 'Miles AI could not generate this strategy.');
       setStrategies((current) => [result.strategy, ...current.filter((item) => item.id !== result.strategy.id)]);
       setSelectedStrategy(result.strategy);
       setForm(EMPTY_FORM);
     } catch (generateError) {
-      setError(generateError instanceof Error ? generateError.message : 'Atlas AI could not generate this strategy.');
+      setError(generateError instanceof Error ? generateError.message : 'Miles AI could not generate this strategy.');
     } finally {
       setGenerating(false);
     }
@@ -261,11 +261,11 @@ export default function StrategyPage() {
       <div className="flex flex-col gap-3 border-b border-zinc-800/60 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-            <Sparkles className="h-3.5 w-3.5" /> Atlas AI-powered planning
+            <Sparkles className="h-3.5 w-3.5" /> Miles AI-powered planning
           </div>
           <h1 className="silver-text-gradient text-2xl font-bold tracking-tight text-white">Strategy Studio</h1>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-zinc-500">
-            Build actionable strategies from manually onboarded Iris OS client and project records—never connected third-party data.
+            Build actionable strategies from manually onboarded IrisOS client and project records—never connected third-party data.
           </p>
         </div>
         <Badge className="w-fit border-zinc-800 bg-zinc-900 text-zinc-300">{strategies.length} saved strategies</Badge>
@@ -304,14 +304,14 @@ export default function StrategyPage() {
         <Card>
           <CardHeader className="border-b border-zinc-800/70">
             <CardTitle className="text-sm text-white">Create {activeSection.label.toLowerCase()}</CardTitle>
-            <CardDescription>Atlas AI receives the selected first-party records plus this brief. Leaving scope empty includes all clients and projects.</CardDescription>
+            <CardDescription>Miles AI receives the selected first-party records plus this brief. Leaving scope empty includes all clients and projects.</CardDescription>
           </CardHeader>
           <CardContent className="pt-5">
             <form onSubmit={generate} className="space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1.5 text-xs text-zinc-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Strategy name <span className="font-normal normal-case tracking-normal">(optional)</span></span>
-                  <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} maxLength={140} placeholder="Atlas AI can name it for you" className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-zinc-600" />
+                  <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} maxLength={140} placeholder="Miles AI can name it for you" className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-xs text-white outline-none focus:border-zinc-600" />
                 </label>
                 <label className="space-y-1.5 text-xs text-zinc-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Strategy timeline *</span>
@@ -324,7 +324,7 @@ export default function StrategyPage() {
               </label>
               <div className="grid gap-4 md:grid-cols-2">
                 <MultiSelect label="Client scope" description="Select priority accounts, or leave empty for all." options={clients} selected={form.clientIds} onChange={(clientIds) => setForm({ ...form, clientIds, projectIds: form.projectIds.filter((id) => projects.some((project) => project.id === id && (!clientIds.length || clientIds.includes(project.clientId || '')))) })} />
-                <MultiSelect label="Project scope" description="Only manually created Iris OS projects are listed." options={filteredProjects} selected={form.projectIds} onChange={(projectIds) => setForm({ ...form, projectIds })} />
+                <MultiSelect label="Project scope" description="Only manually created IrisOS projects are listed." options={filteredProjects} selected={form.projectIds} onChange={(projectIds) => setForm({ ...form, projectIds })} />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1.5">
@@ -346,7 +346,7 @@ export default function StrategyPage() {
                 </p>
                 <Button type="submit" disabled={generating || !form.goal.trim() || !form.timeline.trim()} className="gap-2">
                   {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {generating ? 'Atlas AI is building…' : 'Generate with Atlas AI'}
+                  {generating ? 'Miles AI is building…' : 'Generate with Miles AI'}
                 </Button>
               </div>
             </form>

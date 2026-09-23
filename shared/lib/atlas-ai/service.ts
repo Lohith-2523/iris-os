@@ -31,10 +31,10 @@ export interface ProfitLeak {
 const UNAVAILABLE_HEALTH = {
   score: 0,
   rating: 'FAIR' as const,
-  details: 'Atlas AI health data is currently unavailable. No synthetic organization metrics were substituted.',
+  details: 'Miles AI health data is currently unavailable. No synthetic organization metrics were substituted.',
 };
 
-const AI_UNAVAILABLE = 'Atlas AI is currently unavailable. No synthetic organization data was returned.';
+const AI_UNAVAILABLE = 'Miles AI is currently unavailable. No synthetic organization data was returned.';
 
 export class AtlasAIRequestError extends Error {
   constructor(message: string, public readonly status?: number) {
@@ -55,7 +55,7 @@ export type AtlasVoiceWorkflowHandoff = {
   action: AtlasVoiceWorkflowAction;
 };
 
-// Automatic Atlas insights are derived from a point-in-time workspace snapshot.
+// Automatic Miles insights are derived from a point-in-time workspace snapshot.
 // Keep them in session storage (not local storage) so navigating between workspace
 // pages does not repeatedly invoke an AI provider, while a new browser session starts
 // with a fresh, authenticated snapshot.
@@ -108,7 +108,7 @@ function cacheInsight(key: string, data: unknown) {
       data,
     }));
   } catch {
-    // Session storage is only a performance optimization and must never block Atlas.
+    // Session storage is only a performance optimization and must never block Miles.
   }
 }
 
@@ -141,7 +141,7 @@ async function fetchAtlasAI(action: string, bodyData: Record<string, unknown> = 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new AtlasAIRequestError(
-        typeof data.error === 'string' ? data.error : 'Atlas AI could not complete this request.',
+        typeof data.error === 'string' ? data.error : 'Miles AI could not complete this request.',
         res.status,
       );
     }
@@ -210,9 +210,9 @@ export const AtlasAIService = {
   },
 
   async getReportingBrief(context?: Record<string, unknown>): Promise<{ result: string; model: string }> {
-    if (typeof window === 'undefined') return { result: AI_UNAVAILABLE, model: 'Atlas AI' };
+    if (typeof window === 'undefined') return { result: AI_UNAVAILABLE, model: 'Miles AI' };
     const data = await fetchAtlasAI('reporting-brief', { context });
-    return { result: data.result || AI_UNAVAILABLE, model: data.model || 'Atlas AI' };
+    return { result: data.result || AI_UNAVAILABLE, model: data.model || 'Miles AI' };
   },
 
   /**
@@ -241,7 +241,7 @@ export const AtlasAIService = {
     };
   }> {
     if (typeof window === 'undefined') {
-      throw new AtlasAIRequestError('Atlas chat is only available in the browser.');
+      throw new AtlasAIRequestError('Miles chat is only available in the browser.');
     }
     const meetingContext = {
       ...(context || {}),
@@ -274,7 +274,7 @@ export const AtlasAIService = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new AtlasAIRequestError(
-        typeof errorData.error === 'string' ? errorData.error : 'Atlas AI could not complete this request.',
+        typeof errorData.error === 'string' ? errorData.error : 'Miles AI could not complete this request.',
         response.status,
       );
     }
@@ -293,11 +293,11 @@ export const AtlasAIService = {
     });
     const data = completedData as Record<string, any> | null;
     if (!data) {
-      throw new AtlasAIRequestError('Atlas response ended before it could be saved. Please retry.');
+      throw new AtlasAIRequestError('Miles response ended before it could be saved. Please retry.');
     }
     data.result = typeof data.result === 'string' && data.result ? data.result : streamedResult;
     if (!data.persisted || typeof data.sessionId !== 'string' || !data.result) {
-      throw new AtlasAIRequestError('Atlas replied, but the chat could not be saved. Please retry.');
+      throw new AtlasAIRequestError('Miles replied, but the chat could not be saved. Please retry.');
     }
     if (data.meeting) {
       invalidateWorkspaceDataTags(['calendar', 'dashboard']);
@@ -316,7 +316,7 @@ export const AtlasAIService = {
     }
     return {
       result: data.result,
-      model: data.model || 'Atlas AI',
+      model: data.model || 'Miles AI',
       sessionId: data.sessionId,
       automation: data.automation,
       workflow: data.workflow,
@@ -340,7 +340,7 @@ export const AtlasAIService = {
 
   async getSessions() {
     if (typeof window === 'undefined') return [];
-    // Chat history must reflect completed Atlas writes immediately. Unlike
+    // Chat history must reflect completed Miles writes immediately. Unlike
     // dashboard reads, a stale session list makes a persisted conversation look
     // as though it was lost.
     const res = await workspaceFetch('/api/atlas-ai/sessions', { cache: 'no-store' });
@@ -363,7 +363,7 @@ export const AtlasAIService = {
     const data = await res.json().catch(() => ({}));
     if (!res.ok || typeof data.sessionId !== 'string') {
       throw new AtlasAIRequestError(
-        typeof data.error === 'string' ? data.error : 'Atlas could not save this voice turn.',
+        typeof data.error === 'string' ? data.error : 'Miles could not save this voice turn.',
         res.status,
       );
     }
@@ -391,7 +391,7 @@ export const AtlasAIService = {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new AtlasAIRequestError(
-        typeof data.error === 'string' ? data.error : 'Atlas could not rename this chat.',
+        typeof data.error === 'string' ? data.error : 'Miles could not rename this chat.',
         res.status,
       );
     }

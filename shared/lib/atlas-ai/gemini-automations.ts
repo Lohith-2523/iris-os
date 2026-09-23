@@ -58,7 +58,7 @@ export class GeminiAutomationError extends Error {
 async function callGemini(body: Record<string, unknown>, tokenBudget: AtlasTokenBudgetContext) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new GeminiAutomationError('Atlas AI automations are not configured.', 503);
+    throw new GeminiAutomationError('Miles AI automations are not configured.', 503);
   }
   const generationConfig = typeof body.generationConfig === 'object' && body.generationConfig
     ? body.generationConfig as Record<string, unknown>
@@ -100,9 +100,9 @@ async function callGemini(body: Record<string, unknown>, tokenBudget: AtlasToken
   };
   if (!response.ok) {
     await settleAtlasTokenReservation(reservation, null);
-    console.error('Atlas automation provider failed:', response.status, payload.error?.message || 'Unknown error');
+    console.error('Miles automation provider failed:', response.status, payload.error?.message || 'Unknown error');
     throw new GeminiAutomationError(
-      payload.error?.message || 'Atlas AI could not continue this automation.',
+      payload.error?.message || 'Miles AI could not continue this automation.',
       response.status >= 400 && response.status < 500 ? 400 : 502,
     );
   }
@@ -111,7 +111,7 @@ async function callGemini(body: Record<string, unknown>, tokenBudget: AtlasToken
     input: payload.usageMetadata?.promptTokenCount ?? estimateInputTokens(serializedBody),
     output: payload.usageMetadata?.candidatesTokenCount ?? estimateInputTokens(text || ''),
   });
-  if (!text) throw new GeminiAutomationError('Atlas AI returned an empty automation response.');
+  if (!text) throw new GeminiAutomationError('Miles AI returned an empty automation response.');
   return text;
 }
 
@@ -135,8 +135,8 @@ export async function extractAutomationDetailsWithGemini(input: {
   decisionRequested: boolean;
   tokenBudget: AtlasTokenBudgetContext;
 }) {
-  const prompt = `You are the automation engine inside Atlas AI.
-This workflow MUST use Gemini 3.5 Flash only. Never mention Gemini or any provider to the user; the product is always called Atlas AI.
+  const prompt = `You are the automation engine inside Miles AI.
+This workflow MUST use Gemini 3.5 Flash only. Never mention Gemini or any provider to the user; the product is always called Miles AI.
 
 Identify and collect details for exactly one of PROJECT, TASK, INVOICE, or REPORT.
 - Preserve every valid value in CURRENT_STATE unless the user changes it.
@@ -151,7 +151,7 @@ Identify and collect details for exactly one of PROJECT, TASK, INVOICE, or REPOR
 - Use CANCEL only when the user clearly cancels.
 - Otherwise use COLLECT and ask one concise question that gathers the most useful missing values.
 - If this is not a creation request and there is no active workflow, use kind NONE.
-- DELEGATED_DECISION means the user explicitly asked Atlas to use its judgment instead of supplying every detail.
+- DELEGATED_DECISION means the user explicitly asked Miles to use its judgment instead of supplying every detail.
 - When DELEGATED_DECISION is true, analyze DIRECTORY and select the single highest-impact safe action supported by this workflow. Prefer a TASK that addresses the highest-risk or blocked active project; use REPORT when no justified record-changing action is available.
 - In decision mode, infer missing operational details from verified DIRECTORY evidence instead of asking the user. Use the least-loaded qualified team member, canonical entity names, and a reasonable future deadline. Never invent evidence, entities, amounts, or performance claims.
 - Commercial amounts may only be inferred from an existing exact project or a clear comparable-project median in DIRECTORY. Otherwise collect the amount rather than fabricating it.
@@ -279,7 +279,7 @@ USER_MESSAGE: ${input.query}`;
   }, input.tokenBudget);
   const retried = parseGeminiAutomationResponse(retryText);
   if (!retried) {
-    throw new GeminiAutomationError('Atlas AI returned incomplete automation details. Please retry the request.');
+    throw new GeminiAutomationError('Miles AI returned incomplete automation details. Please retry the request.');
   }
   return retried;
 }
@@ -291,7 +291,7 @@ export async function generateReportWithGemini(input: {
   workspaceContext: string;
   tokenBudget: AtlasTokenBudgetContext;
 }) {
-  const prompt = `You are Atlas AI, an executive reporting system.
+  const prompt = `You are Miles AI, an executive reporting system.
 Create a polished ${input.type} report titled "${input.title}" focused on: ${input.focus}.
 Use only facts present in WORKSPACE_CONTEXT. Never invent figures, clients, or performance claims.
 Use concise markdown headings, an executive summary, evidence, risks, and recommended next actions.

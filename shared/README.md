@@ -1,6 +1,6 @@
 # Shared application code
 
-This directory contains code shared by the production Iris OS application and the future Iris OS super-admin application.
+This directory contains code shared by the production IrisOS application and the future IrisOS super-admin application.
 
 - `components`: reusable UI and feature components
 - `config`: shared integration configuration

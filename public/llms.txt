@@ -1,6 +1,6 @@
-# Iris OS
+# IrisOS
 
-> Iris OS is an agency workspace for managing clients, projects, tasks, teams, finances, reporting, and Atlas AI.
+> IrisOS is an agency workspace for managing clients, projects, tasks, teams, finances, reporting, and Miles AI.
 
 ## Public content
 

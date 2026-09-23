@@ -16,10 +16,9 @@
   height: min(36.5rem, calc(100dvh - 3rem));
   min-height: 33.125rem;
   overflow: hidden;
-  background: #fff;
-  border: 1px solid rgb(255 255 255 / 22%);
+  background: transparent;
+  border: 0;
   border-radius: 0.875rem;
-  box-shadow: 0 2rem 5rem rgb(0 0 0 / 42%);
 }
 
 .host {
@@ -29,6 +28,61 @@
   height: 100%;
   min-height: 100%;
   overflow: hidden;
+  background: transparent;
+  transition: opacity 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.processing .host {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.processingState {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+  color: #f4f4f5;
+  background: rgb(9 9 11 / 36%);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  animation: processing-enter 180ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.spinner {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid rgb(255 255 255 / 18%);
+  border-top-color: #f4f4f5;
+  border-radius: 9999px;
+  animation: spinner-rotate 700ms linear infinite;
+}
+
+.processingTitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.processingCopy {
+  max-width: 20rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #a1a1aa;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes processing-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .host > iframe {
@@ -62,4 +116,10 @@
     min-height: 100% !important;
     transform: none !important;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .host { transition: none; }
+  .processingState { animation: none; }
+  .spinner { animation-duration: 1.4s; }
 }

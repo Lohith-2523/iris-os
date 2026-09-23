@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import manifest from './manifest';
 
-describe('Iris OS web app manifest', () => {
+describe('IrisOS web app manifest', () => {
   it('defines an installable standalone desktop experience', () => {
     const value = manifest();
 
-    expect(value.name).toBe('Iris OS');
+    expect(value.name).toBe('IrisOS');
     expect(value.start_url).toBe('/dashboard');
     expect(value.display).toBe('standalone');
     expect(value.icons).toEqual(expect.arrayContaining([

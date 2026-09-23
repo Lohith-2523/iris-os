@@ -38,7 +38,7 @@ function irisEmailLayout(input: {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border:1px solid #27272a;background:#0b0b0d">
             <tr>
               <td style="padding:24px 28px;border-bottom:1px solid #27272a">
-                <div style="font-size:18px;font-weight:700;letter-spacing:.12em;color:#ffffff">IRIS OS</div>
+                <div style="font-size:18px;font-weight:700;letter-spacing:.12em;color:#ffffff">IRISOS</div>
                 <div style="margin-top:4px;font-size:10px;letter-spacing:.2em;color:${IRIS_MUTED};text-transform:uppercase">Enterprise Operations System</div>
               </td>
             </tr>
@@ -96,7 +96,7 @@ function irisInviteLayout(input: {
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:580px">
             <tr>
               <td align="center" style="padding:0 0 22px">
-                <img src="https://irisos.app/iris-logo-white-bg.png" width="132" alt="Iris OS" style="display:block;width:132px;max-width:100%;height:auto;border:0">
+                <img src="https://irisos.app/iris-logo-white-bg.png" width="132" alt="IrisOS" style="display:block;width:132px;max-width:100%;height:auto;border:0">
               </td>
             </tr>
             <tr>
@@ -140,7 +140,7 @@ function irisInviteLayout(input: {
                   </tr>
                   <tr>
                     <td align="center" style="padding:18px 28px;border-top:1px solid #282a2e;background-color:#0c0d0f">
-                      <p style="margin:0;font-size:10px;line-height:1.6;letter-spacing:.8px;color:#aeb1b6">IRIS OS &nbsp;&middot;&nbsp; ENTERPRISE WORKSPACE MANAGEMENT</p>
+                      <p style="margin:0;font-size:10px;line-height:1.6;letter-spacing:.8px;color:#aeb1b6">IrisOS &nbsp;&middot;&nbsp; ENTERPRISE WORKSPACE MANAGEMENT</p>
                     </td>
                   </tr>
                 </table>
@@ -172,13 +172,13 @@ export function clientOnboardingEmail(input: {
       documentTitle: `Activate your ${input.organizationName} client portal`,
       eyebrow: 'Client invitation',
       title: `Welcome, ${input.recipientName}`,
-      intro: `${input.organizationName} has invited you to activate your secure Iris OS client workspace.`,
+      intro: `${input.organizationName} has invited you to activate your secure IrisOS client workspace.`,
       details: [{ label: 'Invitation expires', value: expiry }],
       ctaLabel: 'Activate client workspace',
       ctaUrl: input.inviteUrl,
       securityNote: 'This access link is unique to your email address. Do not forward it.',
     }),
-    text: `Welcome, ${input.recipientName}.\n\n${input.organizationName} invited you to activate your Iris OS client workspace.\n\nActivate: ${input.inviteUrl}\n\nThis invitation expires ${expiry}.`,
+    text: `Welcome, ${input.recipientName}.\n\n${input.organizationName} invited you to activate your IrisOS client workspace.\n\nActivate: ${input.inviteUrl}\n\nThis invitation expires ${expiry}.`,
   };
 }
 
@@ -194,12 +194,12 @@ export function memberOnboardingEmail(input: {
   const workspace = input.handlesDeliverables ? 'Team workspace' : 'Agency workspace';
   const access = input.pageAccess.length > 0 ? input.pageAccess.join(', ') : 'Standard delivery pages';
   return {
-    subject: `Join ${input.organizationName} on Iris OS`,
+    subject: `Join ${input.organizationName} on IrisOS`,
     html: irisInviteLayout({
-      documentTitle: `Join ${input.organizationName} on Iris OS`,
+      documentTitle: `Join ${input.organizationName} on IrisOS`,
       eyebrow: 'Team invitation',
       title: `Your workspace is ready, ${input.recipientName}`,
-      intro: `${input.organizationName} has invited you to join its Iris OS operating workspace.`,
+      intro: `${input.organizationName} has invited you to join its IrisOS operating workspace.`,
       details: [
         { label: 'Workspace', value: workspace },
         { label: 'Page access', value: access },
@@ -209,7 +209,7 @@ export function memberOnboardingEmail(input: {
       ctaUrl: input.inviteUrl,
       securityNote: 'This secure onboarding link is bound to the invited email address.',
     }),
-    text: `Hello ${input.recipientName},\n\nJoin ${input.organizationName} on Iris OS.\nWorkspace: ${workspace}\nPage access: ${access}\n\nComplete onboarding: ${input.inviteUrl}\n\nThis invitation expires ${expiry}.`,
+    text: `Hello ${input.recipientName},\n\nJoin ${input.organizationName} on IrisOS.\nWorkspace: ${workspace}\nPage access: ${access}\n\nComplete onboarding: ${input.inviteUrl}\n\nThis invitation expires ${expiry}.`,
   };
 }
 
@@ -279,7 +279,7 @@ export function invoiceDeliveryEmail(input: {
       ctaUrl: input.downloadUrl,
       securityNote: 'The attached PDF is your document copy. The secure download link is intended for the named recipient.',
       badgeLabel: documentLabel,
-      footerNote: `${documentLabel} generated securely by Iris OS. Keep this email for your billing records.`,
+      footerNote: `${documentLabel} generated securely by IrisOS. Keep this email for your billing records.`,
     }),
     text: `Hello ${input.recipientName},\n\n${input.organizationName} issued ${documentLabel.toLowerCase()} ${input.invoiceNumber} for ${input.projectName}.\n${isProforma ? 'Estimated total' : 'Amount due'}: ${input.amount}${input.dueDate ? `\n${isProforma ? 'Valid until' : 'Due date'}: ${input.dueDate}` : ''}\n\nDownload the PDF: ${input.downloadUrl}\n\nA PDF copy is also attached.`,
   };
@@ -291,16 +291,16 @@ export function authAccessEmail(input: {
   isSignup: boolean;
 }) {
   const expiry = input.expiresAt.toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' });
-  const title = input.isSignup ? 'Your early-access invitation is ready' : 'Authorize this device for Iris OS';
+  const title = input.isSignup ? 'Your early-access invitation is ready' : 'Authorize this device for IrisOS';
   return {
-    subject: input.isSignup ? 'Your Iris OS early-access invitation' : 'Access Iris OS on this device',
+    subject: input.isSignup ? 'Your IrisOS early-access invitation' : 'Access IrisOS on this device',
     html: irisInviteLayout({
       documentTitle: title,
       eyebrow: input.isSignup ? 'Early access' : 'Secure access',
       title,
       intro: input.isSignup
-        ? 'Your place on the Iris OS waitlist is ready. Authorize this browser to continue to workspace signup.'
-        : 'A secure device-access link was requested for your Iris OS account.',
+        ? 'Your place on the IrisOS waitlist is ready. Authorize this browser to continue to workspace signup.'
+        : 'A secure device-access link was requested for your IrisOS account.',
       details: [
         { label: 'Access type', value: input.isSignup ? 'Workspace signup' : 'Existing account' },
         { label: 'Link expires', value: expiry },
@@ -311,7 +311,7 @@ export function authAccessEmail(input: {
       badgeLabel: 'Secure link',
       footerNote: 'If you did not request this message, ignore it. No account access has been granted.',
     }),
-    text: `${title}\n\n${input.isSignup ? 'Your Iris OS waitlist place is ready.' : 'A secure device-access link was requested for your account.'}\n\nContinue: ${input.accessUrl}\n\nThis single-use link expires ${expiry}. Your account credentials are still required.`,
+    text: `${title}\n\n${input.isSignup ? 'Your IrisOS waitlist place is ready.' : 'A secure device-access link was requested for your account.'}\n\nContinue: ${input.accessUrl}\n\nThis single-use link expires ${expiry}. Your account credentials are still required.`,
   };
 }
 
@@ -329,7 +329,7 @@ export function teamOffboardingEmail(input: {
       documentTitle: `Access revoked · ${input.organizationName}`,
       eyebrow: 'Access update',
       title: `Your workspace access has ended, ${input.recipientName}`,
-      intro: `${input.organizationName} has revoked your Iris OS team access. Your workspace data and permissions are no longer available.`,
+      intro: `${input.organizationName} has revoked your IrisOS team access. Your workspace data and permissions are no longer available.`,
       details: [
         { label: 'Organization', value: input.organizationName },
         { label: 'Agency feedback', value: input.feedback },
@@ -340,7 +340,7 @@ export function teamOffboardingEmail(input: {
       badgeLabel: 'Access revoked',
       footerNote: 'This message confirms an access change made by your agency administrator.',
     }),
-    text: `Hello ${input.recipientName},\n\n${input.organizationName} has revoked your Iris OS team access.\n\nFeedback from the agency:\n${input.feedback}\n\nContact ${input.administratorName} at ${input.administratorEmail} if you have questions.`,
+    text: `Hello ${input.recipientName},\n\n${input.organizationName} has revoked your IrisOS team access.\n\nFeedback from the agency:\n${input.feedback}\n\nContact ${input.administratorName} at ${input.administratorEmail} if you have questions.`,
   };
 }
 
@@ -354,7 +354,7 @@ export function generatedDocumentDeliveryEmail(input: {
   includesLinkedProforma?: boolean;
 }) {
   return {
-    subject: `${input.documentTitle} from Iris OS`,
+    subject: `${input.documentTitle} from IrisOS`,
     html: irisInviteLayout({
       documentTitle: input.documentTitle,
       eyebrow: 'Document delivery',
@@ -367,7 +367,7 @@ export function generatedDocumentDeliveryEmail(input: {
       ...(input.signingUrl ? { ctaLabel: 'Review and sign document', ctaUrl: input.signingUrl } : {}),
       securityNote: input.signingUrl ? 'The secure signing link is intended only for the named recipient.' : 'Keep the attached files for your records.',
       badgeLabel: 'Secure document',
-      footerNote: 'Document delivered securely through Iris OS.',
+      footerNote: 'Document delivered securely through IrisOS.',
     }),
     text: `Hello ${input.recipientName},\n\n${input.organizationName} sent ${input.documentTitle} (${input.documentNumber}) for review. The document files are attached.${input.includesLinkedProforma ? ' A linked proforma invoice is attached as well.' : ''}${input.signingUrl ? `\n\nReview and sign securely: ${input.signingUrl}` : ''}`,
   };
@@ -382,7 +382,7 @@ export function helpRequestNotificationEmail(input: {
   page: string;
 }) {
   return {
-    subject: `[Iris ${input.type.toLowerCase()}] ${input.subject}`,
+    subject: `[IrisOS ${input.type.toLowerCase()}] ${input.subject}`,
     html: irisInviteLayout({
       documentTitle: input.subject,
       eyebrow: `${input.type} request`,
@@ -390,35 +390,35 @@ export function helpRequestNotificationEmail(input: {
       intro: input.details,
       details: [
         { label: 'Submitted by', value: `${input.name} · ${input.email}` },
-        { label: 'Page', value: input.page || 'Iris OS' },
+        { label: 'Page', value: input.page || 'IrisOS' },
       ],
       ctaLabel: 'Reply to requester',
       ctaUrl: `mailto:${input.email}`,
-      securityNote: 'This operational notification was generated from the Iris OS help form.',
+      securityNote: 'This operational notification was generated from the IrisOS help form.',
       badgeLabel: input.type,
-      footerNote: 'Internal Iris OS support notification.',
+      footerNote: 'Internal IrisOS support notification.',
     }),
-    text: `${input.name} (${input.email}) submitted a ${input.type.toLowerCase()} from ${input.page || 'Iris OS'}.\n\n${input.details}`,
+    text: `${input.name} (${input.email}) submitted a ${input.type.toLowerCase()} from ${input.page || 'IrisOS'}.\n\n${input.details}`,
   };
 }
 
 export function waitlistDailyReportEmail(input: { reportDate: string; entryCount: number }) {
   return {
-    subject: `Iris OS waitlist — ${input.reportDate}`,
+    subject: `IrisOS waitlist — ${input.reportDate}`,
     html: irisInviteLayout({
       documentTitle: `Waitlist report · ${input.reportDate}`,
       eyebrow: 'Daily operations',
       title: 'Waitlist report is ready',
-      intro: 'The latest Iris OS waitlist workbook is attached to this message.',
+      intro: 'The latest IrisOS waitlist workbook is attached to this message.',
       details: [
         { label: 'Report date', value: input.reportDate },
         { label: 'Registrations', value: String(input.entryCount) },
       ],
-      securityNote: 'This attachment contains registration details and should remain within the authorized Iris OS operations team.',
+      securityNote: 'This attachment contains registration details and should remain within the authorized IrisOS operations team.',
       badgeLabel: 'Internal report',
-      footerNote: 'Automated Iris OS waitlist operations report.',
+      footerNote: 'Automated IrisOS waitlist operations report.',
     }),
-    text: `Attached is the Iris OS waitlist report for ${input.reportDate}. Total registrations: ${input.entryCount}.`,
+    text: `Attached is the IrisOS waitlist report for ${input.reportDate}. Total registrations: ${input.entryCount}.`,
   };
 }
 

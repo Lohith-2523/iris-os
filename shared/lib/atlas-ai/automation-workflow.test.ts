@@ -14,7 +14,7 @@ const decisionDefaults = {
   decisionEvidence: [] as string[],
 };
 
-describe('Atlas automation workflow', () => {
+describe('Miles automation workflow', () => {
   it('detects creation requests without hijacking analytical questions', () => {
     expect(isAutomationRequest('Create a project for Acme')).toBe(true);
     expect(isAutomationRequest('Generate a financial report')).toBe(true);

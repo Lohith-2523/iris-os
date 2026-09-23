@@ -17,7 +17,7 @@ function chunkedResponse(chunks: string[]) {
   }));
 }
 
-describe('Atlas streaming protocol', () => {
+describe('Miles streaming protocol', () => {
   it('parses NDJSON events split across network chunks', async () => {
     const source = [
       encodeAtlasStreamEvent({ type: 'delta', delta: 'Hello ' }),
@@ -34,7 +34,7 @@ describe('Atlas streaming protocol', () => {
   });
 
   it('chunks completed fallback text without losing whitespace', () => {
-    const text = 'Atlas can stream this completed fallback response.';
+    const text = 'Miles can stream this completed fallback response.';
     expect(responseTextChunks(text, 2).join('')).toBe(text);
   });
 

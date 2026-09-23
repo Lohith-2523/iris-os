@@ -425,7 +425,7 @@ export default function AgencyLeadsPage() {
 
   // --- TEMPLATE DOWNLOAD HANDLERS ---
   const downloadCsvTemplate = () => {
-    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Other Details,Status,Lead Source,Estimated Client Value,Follow Up Date,Follow Up Time\nIRIS_OS_AGENCY_LEAD_IMPORT_v2,Vikram Patel,vikram@apex.co,+919876543210,Enterprise prospect,procured,Cold Outreach,250000,2026-08-10,14:30\nIRIS_OS_AGENCY_LEAD_IMPORT_v2,Aditi Sharma,aditi@apex.co,+919988776655,Requested proposal,warm,Referral,120000,2026-08-12,11:00";
+    const csvContent = "IrisOS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Other Details,Status,Lead Source,Estimated Client Value,Follow Up Date,Follow Up Time\nIRIS_OS_AGENCY_LEAD_IMPORT_v2,Vikram Patel,vikram@apex.co,+919876543210,Enterprise prospect,procured,Cold Outreach,250000,2026-08-10,14:30\nIRIS_OS_AGENCY_LEAD_IMPORT_v2,Aditi Sharma,aditi@apex.co,+919988776655,Requested proposal,warm,Referral,120000,2026-08-12,11:00";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -441,7 +441,7 @@ export default function AgencyLeadsPage() {
     const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Leads Import');
-    sheet.addRow(['Iris OS_Template_Identifier (DO NOT MODIFY)', 'Full Name', 'Email ID', 'Phone Number', 'Other Details', 'Status', 'Lead Source', 'Estimated Client Value', 'Follow Up Date', 'Follow Up Time']);
+    sheet.addRow(['IrisOS_Template_Identifier (DO NOT MODIFY)', 'Full Name', 'Email ID', 'Phone Number', 'Other Details', 'Status', 'Lead Source', 'Estimated Client Value', 'Follow Up Date', 'Follow Up Time']);
     sheet.addRow(['IRIS_OS_AGENCY_LEAD_IMPORT_v2', 'Vikram Patel', 'vikram@apex.co', '+919876543210', 'Enterprise prospect', 'procured', 'Cold Outreach', 250000, '2026-08-10', '14:30']);
     sheet.columns = [{ width: 45 }, { width: 24 }, { width: 30 }, { width: 22 }, { width: 34 }, { width: 18 }, { width: 20 }, { width: 24 }, { width: 20 }, { width: 18 }];
     for (let row = 2; row <= 1000; row += 1) {
@@ -1299,7 +1299,7 @@ export default function AgencyLeadsPage() {
                   </div>
                   <div className="space-y-1">
                     <span className="text-xs font-semibold text-white block">Drag and drop file here</span>
-                    <span className="text-[10px] text-zinc-550 block">Supports .csv or .xlsx spreadsheets containing the Iris OS aligned template.</span>
+                    <span className="text-[10px] text-zinc-550 block">Supports .csv or .xlsx spreadsheets containing the IrisOS aligned template.</span>
                   </div>
                   <div className="relative inline-block">
                     <input

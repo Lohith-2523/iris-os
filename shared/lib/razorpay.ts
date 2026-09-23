@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 export const createOrderSchema = z.object({
   plan: z.enum(['PRO', 'ADVANCED']),
+  coupon: z.string().trim().min(1).max(64).optional(),
 });
 
 export const verifyPaymentSchema = z.object({

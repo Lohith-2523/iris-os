@@ -163,7 +163,7 @@ export function WorkspaceShell({
   const planGate: { feature: string; requiredPlan: PlanId } | null = isClientDashboardPlanGated
     ? { feature: 'Client Dashboard', requiredPlan: 'PRO' }
     : pathname === '/atlas'
-      ? { feature: 'Atlas AI', requiredPlan: 'PRO' }
+      ? { feature: 'Miles AI', requiredPlan: 'BASIC' }
       : pathname === '/strategy'
           ? { feature: 'Strategy', requiredPlan: 'ADVANCED' }
           : null;

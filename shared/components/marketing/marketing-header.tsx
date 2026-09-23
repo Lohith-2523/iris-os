@@ -35,7 +35,7 @@ export function MarketingHeader() {
           <Link href="/" prefetch={false} className="flex items-center no-underline">
             <Image
               src="/iris-logo-black-bg.png"
-              alt="Iris OS"
+              alt="IrisOS"
               width={95}
               height={36}
               priority

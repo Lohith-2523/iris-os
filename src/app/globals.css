@@ -2327,7 +2327,7 @@ button {
   opacity: 1 !important;
 }
 
-/* Atlas opens frequently from the global launcher. Keep this loading surface
+/* Miles opens frequently from the global launcher. Keep this loading surface
    fully opaque so a previous command-center frame can never bleed through. */
 :root.light .workspace-loading-overlay:has(.page-skeleton--atlas),
 :root.light .page-skeleton--atlas {
@@ -2584,13 +2584,11 @@ button {
 /* Workspace search is an input affordance, not a metallic action button. */
 .workspace-topbar-search-trigger {
   background: #09090b;
-  border-color: #3f3f46;
   box-shadow: none;
 }
 
 .workspace-topbar-search-trigger:hover {
   background: #18181b;
-  border-color: #52525b;
 }
 
 .workspace-shell .workspace-command-search-control .workspace-command-search-input {
@@ -2612,14 +2610,12 @@ button {
 
 :root.light .workspace-shell .workspace-topbar-search-trigger {
   background: #ffffff !important;
-  border-color: #cbd5e1 !important;
   box-shadow: none !important;
   text-shadow: none !important;
 }
 
 :root.light .workspace-shell .workspace-topbar-search-trigger:hover {
   background: #f8fafc !important;
-  border-color: #94a3b8 !important;
 }
 
 :root.light .workspace-shell .workspace-command-search-control .workspace-command-search-input {
@@ -3432,7 +3428,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
 
 /* Hallmark · genre: modern-minimal · macrostructure: Geometry-aware Workbench
  * design-system: design.md · designed-as-app · pre-emit critique: P5 H5 E5 S5 R5 V5
- * Iris geometry-aware composition system — remove this labelled block to restore
+ * IrisOS geometry-aware composition system — remove this labelled block to restore
  * the proportional single-desktop composition documented in the rollback note. */
 .workspace-shell {
   --workspace-content-max: var(--layout-workspace-standard-max);
@@ -3514,7 +3510,7 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   transition-duration: 0ms;
 }
 
-/* Help centre: translucent at rest, solid Iris metal under interaction. */
+/* Help centre: translucent at rest, solid IrisOS metal under interaction. */
 .iris-help-root { position: fixed; right: max(1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 90; font-family: var(--font-geist-sans), sans-serif; }
 .iris-help-root-atlas { right: auto; left: max(1rem, env(safe-area-inset-left)); }
 .iris-help-root-atlas .iris-help-panel { right: auto; left: 0; }
@@ -3651,7 +3647,7 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   [data-layout-mode='compact-phone'],
   [data-layout-mode='standard-phone'],
   [data-layout-mode='large-phone']
-) .workspace-topbar-search-trigger { width: var(--layout-touch-target); padding-inline: 0; justify-content: center; }
+) .workspace-topbar-search-trigger { width: 2.75rem; min-width: 2.75rem; height: 2.75rem; min-height: 2.75rem; padding-inline: 0; justify-content: center; }
 .workspace-shell:is(
   [data-layout-mode='compact-phone'],
   [data-layout-mode='standard-phone'],
@@ -4104,7 +4100,7 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   }
 }
 
-/* Scroll recovery + Atlas topbar menu.
+/* Scroll recovery + Miles topbar menu.
  * One touch-capable scroller owns each full-screen layer; modal presence no
  * longer disables the workspace scroller through a relational selector. */
 .workspace-shell {
@@ -4205,7 +4201,7 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
 @keyframes atlas-wave { from{transform:scaleY(.2);opacity:.45} to{transform:scaleY(var(--wave-scale));opacity:1} }
 @media (prefers-reduced-motion: reduce) { .atlas-transcription-wave { animation:none; } }
 
-/* Hallmark · component: dashboard metric composition · genre: modern-minimal · theme: locked Iris OS
+/* Hallmark · component: dashboard metric composition · genre: modern-minimal · theme: locked IrisOS
  * layout: restored geometry-aware executive MRR anchor
  * pre-emit critique: P5 H5 E5 S5 R5 V5 · contrast: pass (40-41)
  * tokens: pass (48) · mobile: pass (34, 49-57) */
@@ -4609,27 +4605,33 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   }
 }
 
-/* Shared header: search, Atlas, and utilities center in the left, middle, and right thirds. */
+/* Shared header: Miles and its three utility buttons form one centered control group. */
 .workspace-topbar.workspace-topbar-centered { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .75rem; }
 .workspace-topbar-navigation { position: relative; z-index: 2; grid-column: 1; grid-row: 1; justify-self: start; }
-.workspace-topbar-controls { grid-column: 1 / -1; grid-row: 1; display: grid; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; column-gap: clamp(1.25rem, 2vw, 2rem); min-width: 0; padding-inline: clamp(1rem, 2vw, 2rem); pointer-events: none; }
-.workspace-topbar-search-trigger { grid-column: 1; grid-row: 1; width: min(11rem, 100%); justify-self: center; pointer-events: auto; }
-.workspace-topbar-atlas { grid-column: 2; grid-row: 1; min-width: 0; pointer-events: auto; }
-.workspace-topbar-actions { grid-column: 3; grid-row: 1; display: flex; align-items: center; justify-self: center; gap: .75rem; pointer-events: auto; }
+.workspace-topbar-controls { grid-column: 2; grid-row: 1; display: flex; align-items: center; justify-content: center; gap: .75rem; min-width: 0; pointer-events: auto; }
+.workspace-topbar-search-trigger {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  flex: 0 0 2.75rem;
+  padding: 0;
+}
+.workspace-topbar-atlas { width: clamp(14rem, 28vw, 22rem); min-width: 0; }
+.workspace-topbar-actions { display: flex; align-items: center; gap: .75rem; }
 .workspace-topbar-help { position: relative; z-index: 2; grid-column: 3; grid-row: 1; justify-self: end; }
 .workspace-topbar-help .iris-help-bubble { height: 2.25rem; min-height: 2.25rem; padding: .5rem .75rem; white-space: nowrap; }
 .iris-help-root-header { top: 4.75rem; bottom: auto; left: auto; }
 .iris-help-root-header .iris-help-panel { top: 0; bottom: auto; max-height: calc(100dvh - 6rem); overflow-y: auto; }
 @media (max-width: 1199px) {
-  .workspace-topbar-controls { grid-column: 2; width: auto; grid-template-columns: 2.5rem minmax(9rem, 18rem) 5.5rem; gap: .5rem; padding-inline: 0; pointer-events: auto; }
-  .workspace-topbar-atlas { grid-column: 2; }
-  .workspace-topbar-actions { grid-column: 3; gap: .5rem; }
-  .workspace-topbar-search-trigger { grid-column: 1; width: 2.5rem; padding: 0; justify-content: center; }
-  .workspace-topbar-search-trigger span, .workspace-topbar-search-trigger .font-mono { display: none; }
+  .workspace-topbar-controls { gap: .5rem; }
+  .workspace-topbar-atlas { width: clamp(9rem, 26vw, 18rem); }
+  .workspace-topbar-actions { gap: .5rem; }
 }
 @media (max-width: 767px) {
   .workspace-topbar.workspace-topbar-centered { grid-template-columns: 2.25rem minmax(0, 1fr) 2.5rem; gap: .25rem; padding-inline: .5rem; }
   .workspace-topbar-controls { display: flex; justify-content: center; gap: .35rem; }
+  .workspace-topbar-atlas { width: 2.25rem; }
   .workspace-topbar-actions { display: flex; align-items: center; gap: .35rem; }
   .workspace-topbar-help .iris-help-bubble { width: 2.5rem; padding: .5rem; justify-content: center; }
   .workspace-topbar-help .iris-help-bubble span { display: none; }

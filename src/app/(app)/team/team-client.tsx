@@ -111,7 +111,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
       if (!response.ok) throw new Error(payload.error || 'Unable to update team member access.');
       const updated = {
         ...selectedMember,
-        role: 'sub_admin',
+        role: payload.user?.role || (accessPermissions.length > 0 ? 'sub_admin' : 'member'),
         accessPermissions,
         handlesDeliverables: memberHandlesDeliverables,
         deliveryWorkspace: memberHandlesDeliverables || Boolean(selectedMember.projects),
@@ -326,7 +326,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
 
   // --- TEMPLATE DOWNLOAD HANDLERS ---
   const downloadCsvTemplate = () => {
-    const csvContent = "Iris OS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects\n";
+    const csvContent = "IrisOS_Template_Identifier (DO NOT MODIFY),Full Name,Email ID,Phone Number,Role,Assigned Projects\n";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -341,7 +341,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
   const downloadXlsxTemplate = async () => {
     const XLSX = await import('xlsx');
     const data = [
-      ["Iris OS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects"]
+      ["IrisOS_Template_Identifier (DO NOT MODIFY)", "Full Name", "Email ID", "Phone Number", "Role", "Assigned Projects"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -364,7 +364,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
       });
       if (res.ok) {
         const data = await res.json();
-        // Parse Atlas AI returned array
+        // Parse Miles AI returned array
         const parsedUsers = JSON.parse(data.result);
         if (Array.isArray(parsedUsers)) {
           setStagedUsers(parsedUsers.map((u: any) => ({
@@ -377,14 +377,14 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
           setIsTemplateAligned(false);
           setUploadStatus('success');
         } else {
-          throw new Error("Atlas AI output could not be parsed into a list.");
+          throw new Error("Miles AI output could not be parsed into a list.");
         }
       } else {
         throw new Error("AI Routing Handler failed.");
       }
     } catch (e: any) {
       console.error(e);
-      setErrorMsg("Atlas AI could not parse the custom layout. Loaded local smart fallback users.");
+      setErrorMsg("Miles AI could not parse the custom layout. Loaded local smart fallback users.");
       setStagedUsers([
         { name: 'Kunal Verma', email: 'kunal@apex.co', phone: '+91 99887 76655', role: 'Solutions Architect', projects: 'Integrations Phase 2' },
         { name: 'Aditi Sharma', email: 'aditi@apex.co', phone: '+91 99887 76644', role: 'UI/UX Specialist', projects: 'Canva Design Hub' }
@@ -440,7 +440,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
             setUploadStatus('success');
             setIsParsing(false);
           } else {
-            // Non-aligned: Ask Atlas AI to parse
+            // Non-aligned: Ask Miles AI to parse
             await triggerAIAnalysis(text);
           }
         };
@@ -490,7 +490,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
               setUploadStatus('success');
               setIsParsing(false);
             } else {
-              // Convert worksheet rows to flat text layout description for Atlas AI
+              // Convert worksheet rows to flat text layout description for Miles AI
               const textFormat = rows.map(r => r.join(', ')).join('\n');
               await triggerAIAnalysis(textFormat);
             }
@@ -1069,7 +1069,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                     <div className="bg-zinc-950 border border-zinc-900 p-4 text-xs text-zinc-400 flex items-center justify-between rounded-md animate-pulse">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 text-white animate-spin" />
-                        <span>Analyzing layout format. Running Atlas AI extraction pipelines...</span>
+                        <span>Analyzing layout format. Running Miles AI extraction pipelines...</span>
                       </div>
                       <Badge variant="outline" className="text-[9px] bg-zinc-900 border-zinc-800 text-zinc-400 rounded-md uppercase">
                         AI Processing
@@ -1097,12 +1097,12 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                           {isTemplateAligned ? <Check className="h-4.5 w-4.5" /> : <Sparkles className="h-4.5 w-4.5" />}
                           <div>
                             <span className="font-bold uppercase tracking-wider block">
-                              {isTemplateAligned ? 'Standard Template Identified' : 'Atlas AI Extraction Complete'}
+                              {isTemplateAligned ? 'Standard Template Identified' : 'Miles AI Extraction Complete'}
                             </span>
                             <span className="text-[10px] block mt-0.5 opacity-80">
                               {isTemplateAligned
                                 ? `Imported file matched headers. Extracted ${stagedUsers.length} specialists directly.`
-                                : `Atlas AI parsed custom columns. Extracted ${stagedUsers.length} specialists. Please review details below.`}
+                                : `Miles AI parsed custom columns. Extracted ${stagedUsers.length} specialists. Please review details below.`}
                             </span>
                           </div>
                         </div>

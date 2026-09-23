@@ -20,7 +20,7 @@ function waitlistWorkbook(entries: Array<{ name: string | null; email: string; s
   const workbook = XLSX.utils.book_new();
   const generatedAt = new Date();
   const summarySheet = XLSX.utils.aoa_to_sheet([
-    ['Iris OS waitlist report'],
+    ['IrisOS waitlist report'],
     ['Report date (UTC)', isoDate(reportDate)],
     ['Generated at (UTC)', generatedAt.toISOString()],
     ['Total registrations', entries.length],

@@ -8,15 +8,15 @@ describe('plan entitlements', () => {
     expect(entitlementsFor('ADVANCED').specializationLimit).toBe(10);
   });
 
-  it('reserves team member onboarding for Pro and Advanced', () => {
-    expect(entitlementsFor('BASIC')).toMatchObject({ teamMemberLimit: 0, clientLimit: 5 });
-    expect(entitlementsFor('PRO')).toMatchObject({ teamMemberLimit: null, clientLimit: 15 });
-    expect(entitlementsFor('ADVANCED')).toMatchObject({ teamMemberLimit: null, clientLimit: 30 });
+  it('matches the published workspace capacity limits', () => {
+    expect(entitlementsFor('BASIC')).toMatchObject({ teamMemberLimit: 0, coreTeamMemberLimit: 0, clientLimit: 5, projectLimit: 5, activeLeadLimit: 20, dataTransferBytes: 300 * 1024 * 1024, monthlyInvoiceLimit: 3 });
+    expect(entitlementsFor('PRO')).toMatchObject({ teamMemberLimit: 5, coreTeamMemberLimit: 2, clientLimit: 25, projectLimit: 50, activeLeadLimit: 150, dataTransferBytes: 5 * 1024 * 1024 * 1024, monthlyInvoiceLimit: null });
+    expect(entitlementsFor('ADVANCED')).toMatchObject({ teamMemberLimit: 15, coreTeamMemberLimit: 5, clientLimit: null, projectLimit: null, activeLeadLimit: 500, dataTransferBytes: 25 * 1024 * 1024 * 1024, monthlyInvoiceLimit: null });
   });
 
-  it('keeps Basic free of AI and messaging features', () => {
+  it('gives Free its published AI allowance while keeping premium workflow features gated', () => {
     expect(entitlementsFor('BASIC')).toMatchObject({
-      aiFeatures: false,
+      aiFeatures: true,
       dailyBriefing: false,
       signedDocumentAutomation: false,
       strategyGeneration: false,
@@ -24,8 +24,13 @@ describe('plan entitlements', () => {
     });
   });
 
-  it('allocates Atlas token budgets by direction and provider', () => {
-    expect(entitlementsFor('BASIC').atlasTokenLimits).toBeNull();
+  it('allocates Miles token budgets by direction and provider', () => {
+    expect(entitlementsFor('BASIC').atlasTokenLimits).toEqual({
+      total: 20_000,
+      input: 6_000,
+      output: 14_000,
+      providers: { GEMINI: 8_000, GPT: 6_000, CLAUDE: 6_000 },
+    });
     expect(entitlementsFor('PRO').atlasTokenLimits).toEqual({
       total: 500_000,
       input: 150_000,
@@ -40,7 +45,7 @@ describe('plan entitlements', () => {
     });
   });
 
-  it('limits Pro Atlas actions and halves every messaging size/count limit', () => {
+  it('limits Pro Miles actions and halves every messaging size/count limit', () => {
     const pro = entitlementsFor('PRO');
     const advanced = entitlementsFor('ADVANCED');
     expect(canUseAtlasCapability('PRO', 'MEETING')).toBe(true);

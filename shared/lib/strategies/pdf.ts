@@ -122,9 +122,9 @@ function layoutRichText(value: string, fonts: PdfFonts, size: number, maxWidth: 
 export async function generateStrategyPdf(input: StrategyPdfInput) {
   const document = await PDFDocument.create();
   document.setTitle(safe(input.title));
-  document.setAuthor('Iris OS');
+  document.setAuthor('IrisOS');
   document.setSubject(`${safe(input.type)} strategy`);
-  document.setCreator('Iris OS Strategy Studio');
+  document.setCreator('IrisOS Strategy Studio');
   const font = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
   const italic = await document.embedFont(StandardFonts.HelveticaOblique);
@@ -146,7 +146,7 @@ export async function generateStrategyPdf(input: StrategyPdfInput) {
       const scaled = logo.scaleToFit(92, 34);
       page.drawImage(logo, { x: MARGIN, y: HEIGHT - 64, width: scaled.width, height: scaled.height });
     } catch {
-      page.drawText('IRIS OS', { x: MARGIN, y: HEIGHT - 55, size: 15, font: bold, color: WHITE });
+      page.drawText('IRISOS', { x: MARGIN, y: HEIGHT - 55, size: 15, font: bold, color: WHITE });
     }
     page.drawText('STRATEGY STUDIO', {
       x: WIDTH - MARGIN - 112,
@@ -286,7 +286,7 @@ export async function generateStrategyPdf(input: StrategyPdfInput) {
 
   for (const [index, item] of document.getPages().entries()) {
     item.drawLine({ start: { x: MARGIN, y: 42 }, end: { x: WIDTH - MARGIN, y: 42 }, thickness: 0.6, color: rgb(0.84, 0.85, 0.87) });
-    item.drawText(`Prepared by ${safe(input.createdBy)} in Iris OS`, { x: MARGIN, y: 27, size: 7, font, color: SILVER });
+    item.drawText(`Prepared by ${safe(input.createdBy)} in IrisOS`, { x: MARGIN, y: 27, size: 7, font, color: SILVER });
     const label = `${index + 1} / ${document.getPageCount()}`;
     item.drawText(label, { x: WIDTH - MARGIN - font.widthOfTextAtSize(label, 7), y: 27, size: 7, font, color: SILVER });
   }

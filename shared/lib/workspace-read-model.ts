@@ -50,7 +50,12 @@ export type WorkspaceReadModel = {
   entitlements: {
     specializationLimit: number;
     teamMemberLimit: number | null;
-    clientLimit: number;
+    coreTeamMemberLimit: number;
+    clientLimit: number | null;
+    projectLimit: number | null;
+    activeLeadLimit: number;
+    dataTransferBytes: number;
+    monthlyInvoiceLimit: number | null;
     dailyBriefing: boolean;
     strategyGeneration: boolean;
     aiFeatures: boolean;

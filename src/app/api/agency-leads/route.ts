@@ -9,6 +9,9 @@ import { normalizeRequiredPhone } from '@/lib/phone';
 import { createNotification } from '@/lib/notifications';
 import { getKanbanLeadCutoff } from '@/lib/lead-archive';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
+import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+
+const ACTIVE_LEAD_STATUSES = { notIn: ['lost', 'closed'], mode: 'insensitive' as const };
 
 function parseEstimatedClientValue(value: unknown) {
   if (value === undefined || value === null || value === '') return null;
@@ -266,6 +269,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Select why the lead was lost.' }, { status: 400 });
       }
       const existingLead = await prisma.agencyLead.findUnique({ where: { orgId_leadId: { orgId: org.id, leadId } } });
+      const nextStatus = String(status).toLowerCase();
+      const wasInactive = existingLead ? ['lost', 'closed'].includes(existingLead.status.toLowerCase()) : false;
+      if (wasInactive && !['lost', 'closed'].includes(nextStatus)) {
+        const activeLeadLimit = entitlementsFor(org.plan).activeLeadLimit;
+        const activeLeadCount = await prisma.agencyLead.count({ where: { orgId: org.id, status: ACTIVE_LEAD_STATUSES } });
+        if (activeLeadCount >= activeLeadLimit) {
+          return NextResponse.json({ error: planLimitMessage('active leads', activeLeadLimit, org.plan) }, { status: 409 });
+        }
+      }
       const activity = Array.isArray(existingLead?.activity) ? existingLead.activity : [];
       const updatedLead = await prisma.agencyLead.update({
         where: { orgId_leadId: { orgId: org.id, leadId } },
@@ -302,6 +314,13 @@ export async function POST(request: NextRequest) {
       }
 
       const cleanStatus = status.toLowerCase();
+      if (!['lost', 'closed'].includes(cleanStatus)) {
+        const activeLeadLimit = entitlementsFor(org.plan).activeLeadLimit;
+        const activeLeadCount = await prisma.agencyLead.count({ where: { orgId: org.id, status: ACTIVE_LEAD_STATUSES } });
+        if (activeLeadCount >= activeLeadLimit) {
+          return NextResponse.json({ error: planLimitMessage('active leads', activeLeadLimit, org.plan) }, { status: 409 });
+        }
+      }
       if (cleanStatus === 'lost' && !String(body.lostReason || '').trim()) return NextResponse.json({ error: 'Select why the lead was lost.' }, { status: 400 });
       const followUpAt = body.followUpAt ? new Date(body.followUpAt) : null;
       if (followUpAt && Number.isNaN(followUpAt.getTime())) return NextResponse.json({ error: 'Follow-up date is invalid.' }, { status: 400 });
@@ -382,6 +401,14 @@ export async function POST(request: NextRequest) {
         return existing ? [prisma.agencyLead.update({ where: { id: existing.id }, data: lead })] : [];
       });
       const newLeads = normalizedLeads.filter((lead) => !existingByEmail.has(lead.email));
+      const newActiveLeads = newLeads.filter((lead) => !['lost', 'closed'].includes(lead.status)).length;
+      if (newActiveLeads > 0) {
+        const activeLeadLimit = entitlementsFor(org.plan).activeLeadLimit;
+        const activeLeadCount = await prisma.agencyLead.count({ where: { orgId: org.id, status: ACTIVE_LEAD_STATUSES } });
+        if (activeLeadCount + newActiveLeads > activeLeadLimit) {
+          return NextResponse.json({ error: planLimitMessage('active leads', activeLeadLimit, org.plan) }, { status: 409 });
+        }
+      }
       await prisma.$transaction([
         ...updates,
         prisma.agencyLead.createMany({

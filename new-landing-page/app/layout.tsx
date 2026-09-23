@@ -8,7 +8,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'Iris OS — The AI Operating System for Modern Agencies',
+  title: 'IrisOS — The AI Operating System for Modern Agencies',
   description: 'Run clients, projects, teams, finances, reporting and AI from one connected agency operating system.',
   generator: 'v0.app',
 }

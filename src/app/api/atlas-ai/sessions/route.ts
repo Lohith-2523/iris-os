@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
-import { normalizePlan } from '@/lib/plan-entitlements';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 import { z } from 'zod';
 
@@ -15,10 +14,6 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const plan = normalizePlan(user.organization.plan);
-    if (plan === 'BASIC') {
-      return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
-    }
 
     const pageRequest = readCursorPage(request);
     const sessions = await prisma.atlasChatSession.findMany({
@@ -49,12 +44,9 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (normalizePlan(user.organization.plan) === 'BASIC') {
-      return NextResponse.json({ error: 'Atlas AI is not available on the Free plan.' }, { status: 403 });
-    }
 
     const parsed = voiceTurnSchema.safeParse(await request.json().catch(() => null));
-    if (!parsed.success) return NextResponse.json({ error: 'Invalid Atlas voice turn.' }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid Miles voice turn.' }, { status: 400 });
     const { role, content, sessionId } = parsed.data;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -90,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (!result) return NextResponse.json({ error: 'Chat session not found' }, { status: 404 });
     return NextResponse.json(result);
   } catch (error: unknown) {
-    console.error('Error saving Atlas voice turn:', error);
+    console.error('Error saving Miles voice turn:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

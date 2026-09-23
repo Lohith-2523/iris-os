@@ -48,18 +48,18 @@ describe('POST /api/atlas-ai/sessions', () => {
   });
 
   it('creates a persisted chat from the first completed voice turn', async () => {
-    const response = await POST(voiceTurn({ role: 'user', content: 'Hello Atlas' }));
+    const response = await POST(voiceTurn({ role: 'user', content: 'Hello Miles' }));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ sessionId: 'voice-session-1', created: true });
     expect(mocks.createSession).toHaveBeenCalledWith({
-      data: { title: 'Hello Atlas', userId: 'user-1', orgId: 'org-1' },
+      data: { title: 'Hello Miles', userId: 'user-1', orgId: 'org-1' },
       select: { id: true },
     });
     expect(mocks.createMessage).toHaveBeenCalledWith({
       data: {
         role: 'user',
-        content: 'Hello Atlas',
+        content: 'Hello Miles',
         userId: 'user-1',
         orgId: 'org-1',
         sessionId: 'voice-session-1',
@@ -67,14 +67,14 @@ describe('POST /api/atlas-ai/sessions', () => {
     });
   });
 
-  it('allows Free workspaces to persist Atlas chat history', async () => {
+  it('allows Free workspaces to persist Miles chat history', async () => {
     mocks.getRequestUser.mockResolvedValue({
       id: 'user-1',
       orgId: 'org-1',
       organization: { plan: 'BASIC' },
     });
 
-    const response = await POST(voiceTurn({ role: 'user', content: 'Hello Atlas' }));
+    const response = await POST(voiceTurn({ role: 'user', content: 'Hello Miles' }));
 
     expect(response.status).toBe(200);
     expect(mocks.createMessage).toHaveBeenCalledOnce();

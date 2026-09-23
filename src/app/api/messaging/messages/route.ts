@@ -141,6 +141,16 @@ export async function POST(request: NextRequest) {
   if (totalAttachmentBytes > limits.combinedAttachmentBytes) {
     return NextResponse.json({ error: 'Combined attachments exceed this plan’s limit.' }, { status: 413 });
   }
+  if (totalAttachmentBytes > 0) {
+    const transferred = await prisma.encryptedAttachment.aggregate({
+      where: { orgId: user.orgId },
+      _sum: { byteSize: true },
+    });
+    const usedBytes = transferred._sum.byteSize ?? 0;
+    if (usedBytes + totalAttachmentBytes > entitlements.dataTransferBytes) {
+      return NextResponse.json({ error: 'This workspace has reached its plan data-transfer limit.', code: 'PLAN_LIMIT_REACHED' }, { status: 413 });
+    }
+  }
   for (const attachment of input.attachments) {
     if (attachment.byteSize > limits[categoryLimitKey[attachment.category]]) {
       return NextResponse.json({ error: `${attachment.category.toLowerCase()} attachment exceeds this plan’s limit.` }, { status: 413 });

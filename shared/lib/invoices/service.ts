@@ -25,6 +25,7 @@ import {
   MAX_INVOICE_ITEMS,
   type InvoiceLineItemInput,
 } from './calculations';
+import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
 
 export class InvoiceServiceError extends Error {
   constructor(message: string, readonly status = 400, readonly invoiceId?: string) {
@@ -181,6 +182,17 @@ async function createAndSendDocument(input: {
   if (missing.length) throw new InvoiceServiceError(`Invoice creation requires: ${missing.join(', ')}.`);
 
   const issuedDate = input.issuedDate || new Date();
+  const monthlyInvoiceLimit = entitlementsFor(organization.plan).monthlyInvoiceLimit;
+  if (monthlyInvoiceLimit !== null) {
+    const monthStart = new Date(Date.UTC(issuedDate.getUTCFullYear(), issuedDate.getUTCMonth(), 1));
+    const nextMonth = new Date(Date.UTC(issuedDate.getUTCFullYear(), issuedDate.getUTCMonth() + 1, 1));
+    const issuedThisMonth = await prisma.invoice.count({
+      where: { orgId: input.orgId, issuedDate: { gte: monthStart, lt: nextMonth } },
+    });
+    if (issuedThisMonth >= monthlyInvoiceLimit) {
+      throw new InvoiceServiceError(planLimitMessage('monthly invoices', monthlyInvoiceLimit, organization.plan), 409);
+    }
+  }
   const dueDate = input.dueDate ?? (input.documentType === 'PROFORMA' ? null : invoiceDueDate(issuedDate));
   const seller: InvoicePartySnapshot = {
     ...billingSnapshot(organization, organization.billingEmail || ''),

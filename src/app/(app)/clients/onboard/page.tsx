@@ -1568,7 +1568,7 @@ export default function ClientOnboardPage() {
                           </div>
                           <span className="block text-[9px] text-zinc-500">
                             {inviteEmailSent
-                              ? `An Iris OS invitation was sent from noreply@irisos.app to ${formData.clientEmail}.`
+                              ? `An IrisOS invitation was sent from noreply@irisos.app to ${formData.clientEmail}.`
                               : 'Copy this link to deliver it manually after resolving the email provider issue.'}
                           </span>
                         </div>

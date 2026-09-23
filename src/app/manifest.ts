@@ -3,9 +3,9 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/',
-    name: 'Iris OS',
-    short_name: 'Iris OS',
-    description: 'Enterprise agency operating system for finance, clients, projects, delivery, reporting, and Atlas AI.',
+    name: 'IrisOS',
+    short_name: 'IrisOS',
+    description: 'Enterprise agency operating system for finance, clients, projects, delivery, reporting, and Miles AI.',
     start_url: '/dashboard',
     scope: '/',
     display: 'standalone',
@@ -53,8 +53,8 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: '/icons/iris-192.png', sizes: '192x192', type: 'image/png' }],
       },
       {
-        name: 'Atlas AI',
-        short_name: 'Atlas',
+        name: 'Miles AI',
+        short_name: 'Miles',
         url: '/atlas',
         icons: [{ src: '/icons/iris-192.png', sizes: '192x192', type: 'image/png' }],
       },

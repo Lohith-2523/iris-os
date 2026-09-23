@@ -1,6 +1,6 @@
-# Iris OS Build Plans
+# IrisOS Build Plans
 
-Start here before building Iris OS. These files turn `app-prompt.docx` into an agent-friendly implementation plan.
+Start here before building IrisOS. These files turn `app-prompt.docx` into an agent-friendly implementation plan.
 
 ## Source Of Truth
 
@@ -12,9 +12,9 @@ Start here before building Iris OS. These files turn `app-prompt.docx` into an a
 
 ## Build Principle
 
-Iris OS is a full-stack SaaS MVP, not a static mockup. Build a navigable, premium, enterprise-grade product shell with realistic data, database-backed domains, mocked integrations, and Atlas AI embedded across the experience.
+IrisOS is a full-stack SaaS MVP, not a static mockup. Build a navigable, premium, enterprise-grade product shell with realistic data, database-backed domains, mocked integrations, and Miles AI embedded across the experience.
 
-Do not create placeholder pages. Every route should include real UI structure, realistic sample data, relevant actions, and at least one useful Atlas insight or workflow where appropriate.
+Do not create placeholder pages. Every route should include real UI structure, realistic sample data, relevant actions, and at least one useful Miles insight or workflow where appropriate.
 
 ## Recommended Agent Workflow
 
@@ -29,7 +29,7 @@ Do not create placeholder pages. Every route should include real UI structure, r
 
 1. Foundation and shared shell
 2. Dashboard
-3. Atlas
+3. Miles
 4. Finance
 5. Clients
 6. Projects

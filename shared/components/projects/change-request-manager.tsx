@@ -116,7 +116,7 @@ export function ChangeRequestManager({ requests, canManage = false, showProjectN
                     {showProjectName && request.project?.name ? ` · ${request.project.name}` : ''}
                   </p>
                 </div>
-                {request.atlasAppliedAt && <Badge variant="risk-low"><Sparkles className="mr-1 h-3.5 w-3.5" />Atlas applied</Badge>}
+                {request.atlasAppliedAt && <Badge variant="risk-low"><Sparkles className="mr-1 h-3.5 w-3.5" />Miles applied</Badge>}
               </div>
 
               {canManage ? (
@@ -135,7 +135,7 @@ export function ChangeRequestManager({ requests, canManage = false, showProjectN
                   </label>
                   <label className="space-y-2">
                     <span className="text-sm font-semibold">Proposed alternate</span>
-                    <textarea value={draft.alternateProposal} onChange={(event) => updateDraft(request.id, { alternateProposal: event.target.value })} placeholder="Offer an alternate scope or approach; when present, Atlas treats this as the finalized scope" className="min-h-28 w-full rounded-lg border border-border bg-background p-3 text-foreground outline-none focus:border-foreground/40" />
+                    <textarea value={draft.alternateProposal} onChange={(event) => updateDraft(request.id, { alternateProposal: event.target.value })} placeholder="Offer an alternate scope or approach; when present, Miles treats this as the finalized scope" className="min-h-28 w-full rounded-lg border border-border bg-background p-3 text-foreground outline-none focus:border-foreground/40" />
                   </label>
                   <div className="flex flex-wrap items-end justify-between gap-4 lg:col-span-2">
                     <label className="min-w-56 space-y-2">
@@ -147,10 +147,10 @@ export function ChangeRequestManager({ requests, canManage = false, showProjectN
                       </select>
                     </label>
                     <div className="text-right">
-                      {draft.status === 'FINALIZED' && <p className="mb-2 max-w-lg text-sm text-muted-foreground">Finalizing asks Atlas to add or adapt project tasks using the agreed scope and alternate proposal.</p>}
+                      {draft.status === 'FINALIZED' && <p className="mb-2 max-w-lg text-sm text-muted-foreground">Finalizing asks Miles to add or adapt project tasks using the agreed scope and alternate proposal.</p>}
                       <Button type="button" disabled={isBusy || !draft.title.trim() || !draft.details.trim()} onClick={() => void saveRequest(request)} className="gap-2">
                         {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : draft.status === 'FINALIZED' ? <Sparkles className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-                        {isBusy ? 'Saving...' : draft.status === 'FINALIZED' ? 'Finalize and apply with Atlas' : 'Save change request'}
+                        {isBusy ? 'Saving...' : draft.status === 'FINALIZED' ? 'Finalize and apply with Miles' : 'Save change request'}
                       </Button>
                     </div>
                   </div>
@@ -163,7 +163,7 @@ export function ChangeRequestManager({ requests, canManage = false, showProjectN
                 </div>
               )}
 
-              {request.atlasSummary && <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4"><Sparkles className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-sm font-semibold">Atlas project-plan update</p><p className="mt-1 text-sm text-muted-foreground">{request.atlasSummary}</p></div></div>}
+              {request.atlasSummary && <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4"><Sparkles className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-sm font-semibold">Miles project-plan update</p><p className="mt-1 text-sm text-muted-foreground">{request.atlasSummary}</p></div></div>}
             </CardContent>
           </Card>
         );

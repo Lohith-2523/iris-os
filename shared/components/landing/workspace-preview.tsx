@@ -8,7 +8,7 @@ import styles from './iris-landing.module.css';
 const defaultNavigation = [
   [LayoutDashboard, 'Command Center'], [Users, 'Clients'], [FolderKanban, 'Projects'],
   [CheckSquare2, 'Tasks'], [CircleDollarSign, 'Finance'], [BarChart3, 'Reporting'],
-  [CalendarDays, 'Calendar'], [FileText, 'Documents'], [Sparkles, 'Atlas AI'],
+  [CalendarDays, 'Calendar'], [FileText, 'Documents'], [Sparkles, 'Miles AI'],
 ] as const;
 
 type WorkspacePreviewProps = {
@@ -29,9 +29,9 @@ export function WorkspacePreview({
     : defaultNavigation;
 
   return (
-    <div className={`${styles.workspacePreview} workspace-shell`} aria-label={`Iris OS ${area} preview with sample data`}>
+    <div className={`${styles.workspacePreview} workspace-shell`} aria-label={`IrisOS ${area} preview with sample data`}>
       <aside className={`${styles.previewSidebar} workspace-sidebar`}>
-        <div className={styles.previewBrand}><Image src="/iris-logo-white-transparent.svg" alt="" width={24} height={24} /><span><b>IRIS</b> OS</span></div>
+        <div className={styles.previewBrand}><Image src="/iris-logo-white-transparent.svg" alt="" width={24} height={24} /><span><b>IRISOS</b></span></div>
         <div className={styles.previewOrganization}><span>NS</span><div><b>Northstar Studio</b><small>Advanced workspace</small></div></div>
         <nav aria-label={`${area} preview navigation`}>
           <small>Workspace</small>
@@ -42,7 +42,7 @@ export function WorkspacePreview({
 
       <div className={styles.previewMain}>
         <div className={`${styles.previewTopbar} workspace-topbar`}>
-          <div className={styles.previewAtlasSearch}><Sparkles aria-hidden="true" /><span>Ask Atlas AI</span></div>
+          <div className={styles.previewAtlasSearch}><Sparkles aria-hidden="true" /><span>Ask Miles AI</span></div>
           <div className={styles.previewTopbarActions}><Bell aria-hidden="true" /><Sun aria-hidden="true" /><span><Search aria-hidden="true" /> Search <kbd>⌘ K</kbd></span></div>
         </div>
         <div className={`${styles.previewCanvas} workspace-main`}>

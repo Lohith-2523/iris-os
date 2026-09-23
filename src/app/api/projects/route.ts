@@ -11,6 +11,7 @@ import { isSelectedAgencyServiceLine } from '@/lib/agency-specializations';
 import { cursorHeaders, readCursorPage } from '@/lib/cursor-pagination';
 import { getRequestSecurityContext } from '@/server/security/request-security-context';
 import { listProjects } from '@/server/domains/project-service';
+import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
 
 export async function GET(request: NextRequest) {
   try {
@@ -92,6 +93,14 @@ export async function POST(request: NextRequest) {
     }
 
     const orgId = client.orgId;
+
+    const projectLimit = entitlementsFor(user.organization.plan).projectLimit;
+    if (projectLimit !== null) {
+      const projectCount = await prisma.project.count({ where: { orgId } });
+      if (projectCount >= projectLimit) {
+        return NextResponse.json({ error: planLimitMessage('projects', projectLimit, user.organization.plan) }, { status: 409 });
+      }
+    }
 
     // Create the project
     const newProject = await prisma.project.create({

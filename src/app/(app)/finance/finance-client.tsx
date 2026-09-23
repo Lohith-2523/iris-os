@@ -40,6 +40,7 @@ import { generateRecurringOccurrences, recurringOccurrenceId } from '@/lib/finan
 import { validateBrowserFile } from '@/lib/file-security';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { FinanceReadModel } from '@/server/read-models/workspace-pages';
+import { financialValueClass } from '@/lib/financial-value';
 
 export default function FinancePage({ initialData }: { initialData: FinanceReadModel }) {
   const router = useRouter();
@@ -446,7 +447,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       ? ((await organizationResponse.json()).bankNames || [])
       : bankNames;
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Iris OS';
+    workbook.creator = 'IrisOS';
     workbook.created = new Date();
     workbook.modified = new Date();
     const instructions = workbook.addWorksheet('Instructions');
@@ -467,19 +468,19 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
 
     instructions.columns = [{ width: 24 }, { width: 100 }];
     instructions.mergeCells('A1:B1');
-    instructions.getCell('A1').value = 'IRIS OS · FINANCIAL LEDGER IMPORT';
+    instructions.getCell('A1').value = 'IrisOS · FINANCIAL LEDGER IMPORT';
     instructions.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
     instructions.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
     instructions.getCell('A1').alignment = { vertical: 'middle' };
     instructions.getRow(1).height = 30;
     instructions.addRows([
-      ['How to use this workbook', 'Use the Revenue and Expenses sheets only. Keep the header row unchanged and enter one transaction per row. Upload this same XLSX file back to Iris OS when ready.'],
+      ['How to use this workbook', 'Use the Revenue and Expenses sheets only. Keep the header row unchanged and enter one transaction per row. Upload this same XLSX file back to IrisOS when ready.'],
       ['Revenue sheet', 'Required columns: Date, Invoice Number, Bank Account, Amount. Choose the invoice number and bank account from their dropdowns. The invoice description and client are applied automatically; the received amount is entered manually and may be a partial payment.'],
       ['Expenses sheet', 'Required columns: Date, Transaction Details, Payment Method, Bank Account, Amount. Comments are optional.'],
       ['Invoice Number dropdown', 'Shows every currently unpaid or partially paid invoice when this workbook is downloaded. Download a fresh template after creating an invoice so its number is included.'],
-      ['Bank Account dropdown', 'Shows bank accounts configured in Iris OS Settings at the time this workbook is downloaded. Add bank accounts in Settings, then download a fresh workbook if the list changes.'],
+      ['Bank Account dropdown', 'Shows bank accounts configured in IrisOS Settings at the time this workbook is downloaded. Add bank accounts in Settings, then download a fresh workbook if the list changes.'],
       ['Payment Method dropdown', 'UPI, IMPS, NEFT, Cash, or Others. If you select Others, use Comments to clarify the method.'],
-      ['Amounts', 'Enter positive amounts. Iris OS records Revenue as income and Expenses as an expense automatically. Do not change sheet names or column headings.'],
+      ['Amounts', 'Enter positive amounts. IrisOS records Revenue as income and Expenses as an expense automatically. Do not change sheet names or column headings.'],
     ]);
     for (let row = 2; row <= 8; row += 1) {
       const labelCell = instructions.getCell(`A${row}`);
@@ -545,7 +546,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     const file = e.target.files?.[0];
     if (!file) return;
     const validation = await validateBrowserFile(file, 'spreadsheet-import', { maxBytes: 10 * 1024 * 1024 });
-    if (!validation.ok || !file.name.toLowerCase().endsWith('.xlsx')) return alert(validation.ok ? 'Please upload the Iris OS Excel template (.xlsx).' : validation.error);
+    if (!validation.ok || !file.name.toLowerCase().endsWith('.xlsx')) return alert(validation.ok ? 'Please upload the IrisOS Excel template (.xlsx).' : validation.error);
     setIsImportingTransactions(true);
     try {
       const ExcelJS = await import('exceljs');
@@ -554,7 +555,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       const revenueSheet = workbook.getWorksheet('Revenue');
       const expensesSheet = workbook.getWorksheet('Expenses');
       if (!revenueSheet || !expensesSheet) {
-        throw new Error('Revenue and Expenses sheets are required. Please use the latest Iris OS ledger template.');
+        throw new Error('Revenue and Expenses sheets are required. Please use the latest IrisOS ledger template.');
       }
       const getCellValue = (cell: any): unknown => {
         const value = cell.value;
@@ -573,7 +574,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       const validateHeaders = (sheet: any, expectedHeaders: string[]) => {
         const headers = expectedHeaders.map((_, index) => normalizeText(getCellValue(sheet.getRow(1).getCell(index + 1))));
         if (!expectedHeaders.every((header, index) => header.toLowerCase() === headers[index]?.toLowerCase())) {
-          throw new Error(`The ${sheet.name} sheet columns do not match the Iris OS ledger template.`);
+          throw new Error(`The ${sheet.name} sheet columns do not match the IrisOS ledger template.`);
         }
       };
       const revenueHeaders = ['Date', 'Invoice Number', 'Bank Account', 'Amount'];
@@ -744,8 +745,8 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
   }, [timeFrame]);
 
   const aiLeakText = React.useMemo(() => {
-    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Atlas AI...');
-    return formatUserMessage(`Lohith, Atlas AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
+    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Miles AI...');
+    return formatUserMessage(`Lohith, Miles AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
   }, [leakData, currencyState]);
 
   const combinedMetrics = React.useMemo(() => {
@@ -990,7 +991,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
   const handleExportExcel = async () => {
     const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Iris OS';
+    workbook.creator = 'IrisOS';
     workbook.created = new Date();
     workbook.modified = new Date();
 
@@ -1062,7 +1063,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
 
     const ledgerLastRow = Math.max(2, ledger.rowCount);
     summary.mergeCells('A1:H1');
-    summary.getCell('A1').value = 'Iris OS Financial Summary';
+    summary.getCell('A1').value = 'IrisOS Financial Summary';
     summary.getCell('A1').font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
     summary.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF09090B' } };
     summary.getCell('A2').value = 'Exported';
@@ -1197,7 +1198,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-zinc-850 gap-6">
+      <div className="flex items-center gap-6 border-b border-zinc-850">
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
@@ -1220,6 +1221,9 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
         >
           Ledger
         </button>
+        <Button type="button" variant="outline" size="sm" className="mb-2 ml-auto gap-2" onClick={() => setIsFinancialReportOpen(true)}>
+          <Sparkles className="h-4 w-4" /> Financial reports
+        </Button>
       </div>
 
       {/* OVERVIEW TAB */}
@@ -1233,7 +1237,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                 <span className="font-bold text-zinc-505 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                <div className={`text-2xl font-bold font-mono tracking-tight ${financialValueClass(combinedMetrics.grossBillings)}`}>
                   {formatCurrency(combinedMetrics.grossBillings)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
@@ -1296,7 +1300,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                         {expensesByCategory.map((exp, idx) => (
                           <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
                             <TableCell className="font-semibold text-zinc-300">{exp.name}</TableCell>
-                            <TableCell className="text-right font-mono text-white">{formatCurrency(exp.amount)}</TableCell>
+                            <TableCell className={`text-right font-mono ${financialValueClass(exp.amount)}`}>{formatCurrency(exp.amount)}</TableCell>
                             <TableCell className="text-right font-mono text-zinc-400">{exp.percentage}%</TableCell>
                           </TableRow>
                         ))}
@@ -1311,7 +1315,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                 <span className="font-bold text-zinc-550 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                <div className={`text-2xl font-bold font-mono tracking-tight ${financialValueClass(combinedMetrics.totalExpenses)}`}>
                   {formatCurrency(combinedMetrics.totalExpenses)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400 font-semibold">
@@ -1364,7 +1368,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                 <span className="font-bold text-zinc-550 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                <div className={`text-2xl font-bold font-mono tracking-tight ${financialValueClass(combinedMetrics.aiSubscriptionCosts)}`}>
                   {formatCurrency(combinedMetrics.aiSubscriptionCosts)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-zinc-500 font-medium">
@@ -1379,7 +1383,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                 <Wallet className="h-4 w-4 text-emerald-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold font-mono tracking-tight text-white">
+                <div className={`text-2xl font-bold font-mono tracking-tight ${financialValueClass(combinedMetrics.grossBillings - combinedMetrics.totalExpenses)}`}>
                   {formatCurrency(combinedMetrics.grossBillings - combinedMetrics.totalExpenses)}
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
@@ -1417,7 +1421,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                                 return (
                                   <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
                                     <p className="text-xs font-semibold text-white">{payload[0].payload.name}</p>
-                                    <p className="text-sm font-mono font-bold text-emerald-400 mt-1">
+                                    <p className={`text-sm font-mono font-bold mt-1 ${financialValueClass(payload[0].value as number, 'text-emerald-400')}`}>
                                       {formatCurrency(payload[0].value as number)}
                                     </p>
                                   </div>
@@ -1448,9 +1452,9 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                           {topClientsByProfit.map((c, idx) => (
                             <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
                               <TableCell className="font-semibold text-zinc-300">{c.name}</TableCell>
-                              <TableCell className="text-right font-mono text-emerald-400 font-bold">{formatCurrency(c.profit)}</TableCell>
-                              <TableCell className="text-right font-mono text-white">{formatCurrency(c.revenue)}</TableCell>
-                              <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(c.expense)}</TableCell>
+                              <TableCell className={`text-right font-mono font-bold ${financialValueClass(c.profit, 'text-emerald-400')}`}>{formatCurrency(c.profit)}</TableCell>
+                              <TableCell className={`text-right font-mono ${financialValueClass(c.revenue)}`}>{formatCurrency(c.revenue)}</TableCell>
+                              <TableCell className={`text-right font-mono ${financialValueClass(c.expense, 'text-zinc-400')}`}>{formatCurrency(c.expense)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -1464,7 +1468,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                   <span className="font-bold text-zinc-500 w-4 text-center text-sm select-none">{getCurrencySymbol(currencyState)}</span>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
+                  <div className={`text-2xl font-bold font-mono tracking-tight ${financialValueClass(combinedMetrics.grossBillings - combinedMetrics.totalExpenses, 'text-emerald-400')}`}>
                     {formatCurrency(combinedMetrics.grossBillings - combinedMetrics.totalExpenses)}
                   </div>
                 </CardContent>
@@ -1493,7 +1497,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                                 return (
                                   <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
                                     <p className="text-xs font-semibold text-white">{payload[0].payload.name}</p>
-                                    <p className="text-sm font-mono font-bold text-emerald-450 mt-1">
+                                    <p className={`text-sm font-mono font-bold mt-1 ${financialValueClass(payload[0].value as number, 'text-emerald-450')}`}>
                                       {(payload[0].value as number).toFixed(1)}%
                                     </p>
                                   </div>
@@ -1524,9 +1528,9 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                           {topClientsByMargin.map((c, idx) => (
                             <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
                               <TableCell className="font-semibold text-zinc-300">{c.name}</TableCell>
-                              <TableCell className="text-right font-mono text-emerald-400 font-bold">{c.margin.toFixed(1)}%</TableCell>
-                              <TableCell className="text-right font-mono text-white">{formatCurrency(c.profit)}</TableCell>
-                              <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(c.revenue)}</TableCell>
+                              <TableCell className={`text-right font-mono font-bold ${financialValueClass(c.margin, 'text-emerald-400')}`}>{c.margin.toFixed(1)}%</TableCell>
+                              <TableCell className={`text-right font-mono ${financialValueClass(c.profit)}`}>{formatCurrency(c.profit)}</TableCell>
+                              <TableCell className={`text-right font-mono ${financialValueClass(c.revenue, 'text-zinc-400')}`}>{formatCurrency(c.revenue)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -1540,7 +1544,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                   <TrendingUp className="h-4 w-4 text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-emerald-400">
+                  <div className={`text-2xl font-bold font-mono tracking-tight ${financialValueClass(combinedMetrics.netProfitMargin, 'text-emerald-400')}`}>
                     {combinedMetrics.netProfitMargin.toFixed(1)}%
                   </div>
                 </CardContent>
@@ -1559,7 +1563,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                             <p className="truncate text-[10px] text-zinc-500">{invoice.clientName}</p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
-                            <span className="font-mono font-bold text-amber-400">{formatCurrency(invoice.pendingAmount)}</span>
+                            <span className={`font-mono font-bold ${financialValueClass(Number(invoice.pendingAmount), 'text-amber-400')}`}>{formatCurrency(invoice.pendingAmount)}</span>
                             <Button size="sm" className="h-7 px-2 text-[10px]" onClick={(event) => { event.stopPropagation(); addReceivableAsRevenue(invoice); }}>
                               Add revenue
                             </Button>
@@ -1575,7 +1579,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                   <Wallet className="h-4 w-4 text-amber-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold font-mono tracking-tight text-amber-400">
+                  <div className={`text-2xl font-bold font-mono tracking-tight ${financialValueClass(combinedMetrics.outstandingAmount, 'text-amber-400')}`}>
                     {formatCurrency(combinedMetrics.outstandingAmount)}
                   </div>
                 </CardContent>
@@ -1583,12 +1587,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
             </div>
             
             {/* Center Column: Overall finance over time */}
-            <div className="min-h-[560px] flex flex-col space-y-6">
-              <div className="flex justify-end">
-                <Button type="button" variant="outline" className="gap-2" onClick={() => setIsFinancialReportOpen(true)}>
-                  <Sparkles className="h-4 w-4" /> Financial reports
-                </Button>
-              </div>
+            <div className="min-h-[560px] flex flex-col">
               <div className="flex-1">
                 <RevenueLineChart
                   data={loadingFinanceTimeframe ? [] : revenueLineData}
@@ -1746,7 +1745,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                                   return (
                                     <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
                                       <p className="text-xs font-semibold text-white">{payload[0].payload.label}</p>
-                                      <p className="text-sm font-mono font-bold text-white mt-1">
+                                      <p className={`text-sm font-mono font-bold mt-1 ${financialValueClass(payload[0].value as number)}`}>
                                         {customReport.yAxis.includes('Margin') ? `${(payload[0].value as number).toFixed(1)}%` : formatCurrency(payload[0].value as number)}
                                       </p>
                                     </div>
@@ -1773,11 +1772,11 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                             {customReport.data.map((row, idx) => (
                               <TableRow key={idx} className="border-zinc-800 hover:bg-zinc-900/30">
                                 <TableCell className="font-semibold text-zinc-300">{row.label}</TableCell>
-                                <TableCell className="text-right font-mono font-bold text-white">
+                                <TableCell className={`text-right font-mono font-bold ${financialValueClass(row.value)}`}>
                                   {customReport.yAxis.includes('Margin') ? `${row.value.toFixed(1)}%` : formatCurrency(row.value)}
                                 </TableCell>
-                                {customReport.yAxis !== 'Revenue' && <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(row.revenue)}</TableCell>}
-                                {customReport.yAxis !== 'Expenses' && <TableCell className="text-right font-mono text-zinc-400">{formatCurrency(row.expenses)}</TableCell>}
+                                {customReport.yAxis !== 'Revenue' && <TableCell className={`text-right font-mono ${financialValueClass(row.revenue, 'text-zinc-400')}`}>{formatCurrency(row.revenue)}</TableCell>}
+                                {customReport.yAxis !== 'Expenses' && <TableCell className={`text-right font-mono ${financialValueClass(row.expenses, 'text-zinc-400')}`}>{formatCurrency(row.expenses)}</TableCell>}
                               </TableRow>
                             ))}
                           </TableBody>
@@ -1910,7 +1909,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                                   <TableCell className="text-zinc-400">
                                     {new Date(sub.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                   </TableCell>
-                                  <TableCell className="text-right font-mono font-semibold text-white">
+                                  <TableCell className={`text-right font-mono font-semibold ${financialValueClass(Number(sub.amount))}`}>
                                     {formatCurrency(sub.amount)}
                                   </TableCell>
                                   <TableCell className="text-right space-x-2 text-[10px]">
@@ -2235,7 +2234,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                       <>
                         <Upload className="h-6 w-6 text-zinc-450 mb-2" />
                         <span className="block font-semibold text-zinc-300">Upload Filled Template</span>
-                        <span className="block text-[9px] text-zinc-550 mt-1">Accepts the Iris OS XLSX template only</span>
+                        <span className="block text-[9px] text-zinc-550 mt-1">Accepts the IrisOS XLSX template only</span>
                       </>
                     )}
                   </div>

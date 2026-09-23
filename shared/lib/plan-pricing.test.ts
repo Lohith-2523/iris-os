@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
-import { formatPlanMoney, planDisplayName, planPrice, pricingCatalog, pricingRegionForCountry } from './plan-pricing';
+import { formatPlanMoney, planDisplayName, planPrice, planPriceWithCoupon, pricingCatalog, pricingRegionForCountry } from './plan-pricing';
 import { countryFromPublicIpHeaders, pricingLocation } from './request-country';
 
 describe('regional plan pricing', () => {
@@ -19,6 +19,18 @@ describe('regional plan pricing', () => {
     expect(planPrice('ADVANCED', 'INTERNATIONAL')).toMatchObject({ listAmount: 7_999, baseAmount: 3_999, taxAmount: 720, totalAmount: 4_719, currency: 'USD' });
   });
 
+  it('applies coupons to the original list price instead of the promotional price', () => {
+    expect(planPriceWithCoupon('PRO', 'INDIA', 10)).toMatchObject({
+      listAmount: 159_900,
+      baseAmount: 143_910,
+      discountAmount: 15_990,
+      discountPercent: 10,
+      taxAmount: 25_904,
+      totalAmount: 169_814,
+    });
+    expect(planPriceWithCoupon('PRO', 'INDIA', 100)).toMatchObject({ baseAmount: 0, taxAmount: 0, totalAmount: 0 });
+  });
+
   it('renders the internal BASIC plan as Free', () => {
     expect(planDisplayName('BASIC')).toBe('Free');
     expect(formatPlanMoney(0, 'INR')).toBe('₹0');
@@ -32,7 +44,7 @@ describe('regional plan pricing', () => {
     expect(advanced.listAmount).toBe(319_900);
     expect(free.features.map((feature) => [feature.label, feature.value])).toEqual([
       ['Clients', '5'], ['Projects', '5'], ['Active leads', '20'], ['Team members', '0'],
-      ['Core team members', '—'], ['Data Transfer', '300 MB'], ['Atlas AI', '✓'],
+      ['Core team members', '—'], ['Data Transfer', '300 MB'], ['Miles AI', '✓'],
       ['AI allowance', '20k'], ['Invoices', '3/mo'], ['Reports', 'Basic'], ['Client workspace', 'Limited'],
       ['Automations', 'Limited'], ['Business analytics', 'Basic'], ['Unlimited onboarding', '—'], ['Priority support', '—'],
     ]);

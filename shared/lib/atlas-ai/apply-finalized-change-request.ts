@@ -72,9 +72,9 @@ export async function applyFinalizedChangeRequest(input: FinalizedChangeRequestI
       tasks: { include: { stage: true } },
     },
   });
-  if (!project) throw new Error('Atlas could not find the project for this finalized change request.');
+  if (!project) throw new Error('Miles could not find the project for this finalized change request.');
 
-  const marker = `[Atlas change request ${input.id}]`;
+  const marker = `[Miles change request ${input.id}]`;
   const scope = finalizedScope(input);
   const actions = scopeActions(scope);
   const operations: Array<ReturnType<typeof prisma.clientTask.update> | ReturnType<typeof prisma.clientTask.create>> = [];
@@ -106,7 +106,7 @@ export async function applyFinalizedChangeRequest(input: FinalizedChangeRequestI
           approvalStatus: 'NOT_REQUIRED',
           approvalNote: null,
           approvedAt: null,
-          updates: { create: { content: `Atlas adapted this task for finalized change request: ${input.title}` } },
+          updates: { create: { content: `Miles adapted this task for finalized change request: ${input.title}` } },
         },
       }));
       taskIds.push(task.id);
@@ -145,7 +145,7 @@ export async function applyFinalizedChangeRequest(input: FinalizedChangeRequestI
     : project.progress;
   await prisma.project.update({ where: { id: project.id }, data: { progress } });
 
-  const summary = `Atlas adapted the project plan: ${altered} existing task${altered === 1 ? '' : 's'} updated and ${created} new task${created === 1 ? '' : 's'} created.`;
+  const summary = `Miles adapted the project plan: ${altered} existing task${altered === 1 ? '' : 's'} updated and ${created} new task${created === 1 ? '' : 's'} created.`;
   await prisma.changeRequest.update({
     where: { id: input.id },
     data: { atlasAppliedAt: new Date(), atlasSummary: summary },

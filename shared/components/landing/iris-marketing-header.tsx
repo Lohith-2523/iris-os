@@ -13,7 +13,7 @@ export function IrisMarketingHeader() {
   const isHome = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [hasDirectAccess, setHasDirectAccess] = useState(false);
+  const [hasIdentificationToken, setHasIdentificationToken] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -35,15 +35,15 @@ export function IrisMarketingHeader() {
     const controller = new AbortController();
     void fetch('/api/auth/device-access', { cache: 'no-store', signal: controller.signal })
       .then(async (response) => response.ok ? response.json() : null)
-      .then((device: { directAccess?: boolean } | null) => setHasDirectAccess(device?.directAccess === true))
+      .then((device: { knownDevice?: boolean } | null) => setHasIdentificationToken(device?.knownDevice === true))
       .catch((error) => {
         if ((error as Error).name !== 'AbortError') console.error('Unable to check direct access:', error);
       });
     return () => controller.abort();
   }, []);
 
-  const accessHref = hasDirectAccess ? '/login' : '/waitlist';
-  const accessLabel = hasDirectAccess ? 'Login / Sign up' : 'Join the Waitlist';
+  const accessHref = hasIdentificationToken ? '/login' : '/waitlist';
+  const accessLabel = hasIdentificationToken ? 'Login / Sign up' : 'Join the Waitlist';
 
   const navLinks = [
     { label: 'Preview', href: isHome ? '#video' : '/#video' },
@@ -67,10 +67,10 @@ export function IrisMarketingHeader() {
           transition: 'background-color 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        <Link href={isHome ? '#top' : '/'} className="flex items-center no-underline" aria-label="Iris OS home">
+        <Link href={isHome ? '#top' : '/'} className="flex items-center no-underline" aria-label="IrisOS home">
           <Image
             src={IRIS_LOGO}
-            alt="Iris OS"
+            alt="IrisOS"
             width={105}
             height={40}
             priority
@@ -162,7 +162,7 @@ export function IrisMarketingHeader() {
       >
         <div>
           <div className="mb-8 flex items-center justify-between border-b border-zinc-900 pb-4">
-            <Image src={IRIS_LOGO} alt="Iris OS" width={84} height={32} className="h-8 w-auto object-contain" style={{ width: 'auto' }} />
+            <Image src={IRIS_LOGO} alt="IrisOS" width={84} height={32} className="h-8 w-auto object-contain" style={{ width: 'auto' }} />
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(false)}

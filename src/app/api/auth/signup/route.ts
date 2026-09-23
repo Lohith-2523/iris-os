@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const accessCookie = request.cookies.get(DEVICE_ACCESS_COOKIE)?.value;
     if (WAITLIST_ENABLED && !await validateDeviceAccess(accessCookie, parsed.data.email)) {
-      return NextResponse.json({ error: 'A valid Iris OS invitation is required to create an account.' }, { status: 403 });
+      return NextResponse.json({ error: 'A valid IrisOS invitation is required to create an account.' }, { status: 403 });
     }
     const supabase = await createClient();
     // A deleted client can still have an unexpired session in this browser.

@@ -30,10 +30,10 @@ export class AtlasTokenLimitError extends Error {
 
   constructor(readonly dimension: 'total' | 'input' | 'output' | 'provider', plan?: PlanId) {
     super(plan === 'BASIC'
-      ? 'This workspace has used all of its monthly Atlas AI credits. Upgrade to Pro or Advanced for more credits.'
+      ? 'This workspace has used all of its monthly Miles AI credits. Upgrade to Pro or Advanced for more credits.'
       : plan === 'PRO'
-        ? 'This workspace has used all of its monthly Atlas AI credits. Upgrade to Advanced for more credits.'
-        : 'This workspace has used all of its monthly Atlas AI credits. Credits reset at the start of the next month.');
+        ? 'This workspace has used all of its monthly Miles AI credits. Upgrade to Advanced for more credits.'
+        : 'This workspace has used all of its monthly Miles AI credits. Credits reset at the start of the next month.');
     this.name = 'AtlasTokenLimitError';
   }
 }

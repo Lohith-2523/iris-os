@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       const existingNames = new Set(matchingClients.map((client) => client.name));
       const clientsToCreate = invoiceClientNames.filter((name) => !existingNames.has(name)).length;
       const clientLimit = entitlementsFor(org.plan).clientLimit;
-      if (currentClientCount + clientsToCreate > clientLimit) {
+      if (clientLimit !== null && currentClientCount + clientsToCreate > clientLimit) {
         return NextResponse.json({
           error: planLimitMessage('clients', clientLimit, org.plan),
           current: currentClientCount,

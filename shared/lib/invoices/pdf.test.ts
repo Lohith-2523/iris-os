@@ -15,7 +15,7 @@ describe('invoice PDF', () => {
       issuedDate: new Date('2026-07-28T00:00:00.000Z'),
       dueDate: new Date('2026-08-27T00:00:00.000Z'),
       currency: 'INR',
-      projectName: 'Iris OS implementation',
+      projectName: 'IrisOS implementation',
       description: 'Enterprise operating system implementation and onboarding',
       seller: {
         name: 'Iris Studio',
@@ -45,7 +45,7 @@ describe('invoice PDF', () => {
         gstNumber: '',
       },
       lineItems: [{
-        description: 'Iris OS implementation',
+        description: 'IrisOS implementation',
         quantity: 1,
         unitPrice: 100000,
         amount: 100000,
@@ -138,8 +138,8 @@ describe('invoice PDF', () => {
       projectName: 'Manual quotation',
       description: 'Professional services',
       seller: {
-        name: 'Atlas Studio',
-        legalEntityName: 'Atlas Studio Private Limited',
+        name: 'Miles Studio',
+        legalEntityName: 'Miles Studio Private Limited',
         email: 'billing@example.com',
         addressLine1: '1 Studio Road',
         addressLine2: '',

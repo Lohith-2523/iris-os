@@ -37,7 +37,7 @@ export async function createAtlasMeeting(input: {
     orgId: input.orgId,
     userId: input.userId,
     title: input.title,
-    description: 'Created by Atlas AI in Iris OS.',
+    description: 'Created by Miles AI in IrisOS.',
     startTime: input.startTime,
     endTime: input.endTime,
     timeZone: input.timeZone,
@@ -56,7 +56,7 @@ export async function createAtlasMeeting(input: {
   const event = await prisma.calendarEvent.create({
     data: {
       title: input.title,
-      description: 'Created by Atlas AI in Iris OS.',
+      description: 'Created by Miles AI in IrisOS.',
       meetLink: googleEvent.meetLink,
       startTime: input.startTime,
       endTime: input.endTime,

@@ -15,7 +15,7 @@ describe('AtlasAIService safe server fallbacks', () => {
 
   it('does not invent financial leakage when the service is unavailable', async () => {
     await expect(AtlasAIService.askAtlas('Highlight profit leaks')).rejects.toThrow(
-      'Atlas AI is currently unavailable. No synthetic organization data was returned.',
+      'Miles AI is currently unavailable. No synthetic organization data was returned.',
     );
   });
 });
