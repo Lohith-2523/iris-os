@@ -165,6 +165,76 @@
   white-space: nowrap;
 }
 
+.planCard { scroll-margin-top: 7.5rem; }
+
+.bestValue {
+  composes: popular;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--pricing-ink);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.875rem;
+  margin-top: 3rem;
+}
+
+.summaryCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--pricing-rule);
+  border-radius: 1.5rem;
+  background: var(--pricing-surface);
+  box-shadow: 0.375rem 0.375rem 1.125rem #040404, -0.375rem -0.375rem 1.125rem #191919;
+}
+
+.summaryTop {
+  display: flex;
+  min-height: 2rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summaryTop h3 {
+  margin: 0 auto 0 0;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 1.25rem;
+}
+
+.summaryPrice { display: flex; align-items: baseline; gap: 0.4rem; margin-top: 2.25rem; }
+.summaryPrice strong { font-family: var(--font-geist-mono), monospace; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.06em; }
+.summaryPrice span,
+.summaryCard > p { color: var(--pricing-quiet); }
+.summaryCard > p { min-height: 2.75rem; margin: 0.75rem 0 1.5rem; line-height: 1.5; }
+.summaryCard ul { display: grid; gap: 0.75rem; margin: 0 0 2rem; padding: 1.25rem 0 0; border-top: 1px solid var(--pricing-rule); list-style: none; }
+.summaryCard li { display: flex; justify-content: space-between; gap: 1rem; color: var(--pricing-muted); font-size: 0.8125rem; }
+.summaryCard li strong { color: var(--pricing-ink); font-family: var(--font-geist-mono), monospace; }
+
+.viewMore {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  border: 1px solid var(--pricing-rule-strong);
+  border-radius: 999px;
+  color: var(--pricing-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 180ms var(--pricing-ease-out), background-color 180ms var(--pricing-ease-out);
+}
+
+.viewMore svg { width: 0.875rem; }
+.viewMore:focus-visible { outline: 2px solid var(--pricing-focus); outline-offset: 3px; }
+
 .rows {
   display: grid;
   grid-template-rows: var(--pricing-price-row-height) var(--pricing-best-for-row-height);
@@ -324,6 +394,12 @@
     box-shadow: 0.4375rem 0.4375rem 1rem #020202, -0.4375rem -0.4375rem 1rem #222222;
   }
   .compareLink:hover { color: var(--pricing-ink); }
+  .viewMore:hover { transform: translateY(-1px); background: rgba(255, 255, 255, 0.06); }
+}
+
+@media (max-width: 47.99rem) {
+  .summaryGrid { grid-template-columns: minmax(0, 1fr); }
+  .summaryCard > p { min-height: 0; }
 }
 
 @media (min-width: 48rem) {

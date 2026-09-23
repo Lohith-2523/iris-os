@@ -30,6 +30,44 @@ export function IrisPricingComparison({
     values: plans.map((plan) => plan.features[featureIndex].value),
   }));
 
+  if (showFullPricingLink) {
+    return (
+      <section id="pricing" className={styles.section} aria-labelledby="pricing-summary-title">
+        <div className={styles.frame}>
+          <header className={styles.heading}>
+            <span className={styles.sectionDivider} aria-hidden="true" />
+            <span className={styles.eyebrow}>Simple monthly pricing</span>
+            <h2 id="pricing-summary-title">Start lean. Scale when the work demands it.</h2>
+            <p aria-live="polite">
+              {loading ? 'Detecting pricing for your region…' : `${region === 'INDIA' ? 'India' : 'International'} pricing selected. Open any plan for the complete feature comparison.`}
+            </p>
+          </header>
+          <div className={styles.summaryGrid}>
+            {plans.map((plan) => (
+              <article className={`${styles.summaryCard} ${plan.id === 'PRO' ? styles.featured : ''}`} key={plan.id}>
+                <div className={styles.summaryTop}>
+                  <h3>{plan.name}</h3>
+                  {plan.id === 'PRO' && <b className={styles.popular}>Popular</b>}
+                  {plan.id === 'ADVANCED' && <b className={styles.bestValue}>Best value</b>}
+                </div>
+                <div className={styles.summaryPrice}>
+                  <strong>{formatPlanMoney(plan.baseAmount, plan.currency)}</strong><span>/month</span>
+                </div>
+                <p>{plan.description}</p>
+                <ul>
+                  {plan.features.slice(0, 3).map((feature) => <li key={feature.label}><span>{feature.label}</span><strong>{feature.value}</strong></li>)}
+                </ul>
+                <Link className={styles.viewMore} href={`/pricing#plan-${plan.id.toLowerCase()}`}>
+                  View more <ArrowRight aria-hidden="true" />
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="pricing" className={styles.section} aria-labelledby="pricing-comparison-title">
       <div className={styles.frame}>
@@ -69,10 +107,12 @@ export function IrisPricingComparison({
             <article
               className={`${styles.card} ${styles.planCard} ${plan.id === 'PRO' ? styles.featured : ''}`}
               key={plan.id}
+              id={`plan-${plan.id.toLowerCase()}`}
             >
               <div className={styles.columnHeader}>
                 <h3>{plan.name}</h3>
                 {plan.id === 'PRO' && <b className={styles.popular}>Popular</b>}
+                {plan.id === 'ADVANCED' && <b className={styles.bestValue}>Best value</b>}
               </div>
               <div className={styles.rows}>
                 <div className={`${styles.planValue} ${styles.priceValue}`}>
@@ -112,11 +152,6 @@ export function IrisPricingComparison({
           ))}
         </div>
 
-        {showFullPricingLink && (
-          <Link className={styles.compareLink} href="/pricing" prefetch={false}>
-            View the full pricing page <ArrowRight aria-hidden="true" />
-          </Link>
-        )}
       </div>
     </section>
   );

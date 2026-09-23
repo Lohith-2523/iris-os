@@ -87,12 +87,11 @@
 
 .host > iframe {
   position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: 100vw !important;
-  height: 100dvh !important;
-  min-height: 100dvh !important;
-  transform: translate(-50%, -50%) !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  transform: none !important;
   background: transparent !important;
   border: 0 !important;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, Download, X } from 'lucide-react';
+import { ArrowUp, Download, Monitor, X } from 'lucide-react';
 
 const INSTALL_PROMPT_DISMISSED = 'iris-os:pwa-install-dismissed';
 
@@ -77,7 +77,7 @@ export function ServiceWorkerRegistration() {
     >
       <div className="absolute left-4 right-4 top-14 mx-auto max-w-md rounded-xl border border-zinc-700/80 bg-zinc-950/95 p-4 text-white shadow-2xl shadow-black/50 backdrop-blur-xl sm:left-auto sm:right-6 sm:top-10 sm:mx-0">
         <div className="pointer-events-none absolute -top-10 right-5 flex items-center gap-1.5 text-xs font-semibold text-zinc-200" aria-hidden="true">
-          <span>Browser install button</span><ArrowUpRight className="h-7 w-7" strokeWidth={1.7} />
+          <span>Browser install button</span><ArrowUp className="h-7 w-7" strokeWidth={1.7} />
         </div>
         <button
           aria-label="Dismiss app install prompt"
@@ -88,11 +88,12 @@ export function ServiceWorkerRegistration() {
           <X aria-hidden="true" className="h-4 w-4" />
         </button>
         <div className="flex gap-3 pr-7">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900">
-            <Download aria-hidden="true" className="h-5 w-5 text-zinc-200" />
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900">
+            <Monitor aria-hidden="true" className="h-6 w-6 text-zinc-200" />
+            <Download aria-hidden="true" className="absolute h-2.5 w-2.5 text-zinc-950" strokeWidth={3} />
           </div>
           <div>
-            <h2 className="text-sm font-semibold" id="pwa-install-title">Install IrisOS</h2>
+            <h2 className="text-sm font-semibold" id="pwa-install-title">Install the IrisOS app</h2>
             <p className="mt-1 text-xs leading-5 text-zinc-400" id="pwa-install-description">
               Install from here, or use Chrome&apos;s Install App button in the browser bar above.
             </p>

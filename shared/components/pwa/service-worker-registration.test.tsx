@@ -21,6 +21,7 @@ describe('IrisOS install prompt', () => {
     window.dispatchEvent(event);
 
     expect(await screen.findByTestId('pwa-install-overlay')).toHaveClass('inset-0');
+    expect(screen.getByText('Install the IrisOS app')).toBeInTheDocument();
     expect(screen.getByText('Browser install button')).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Quick install' }));
     await waitFor(() => expect(prompt).toHaveBeenCalledOnce());

@@ -8,7 +8,7 @@ Modern-minimal enterprise software with restrained graphite, titanium, silver, a
 
 ## Macrostructure families
 
-- Authentication pages: Centered Glass ? black procedural wireframes fade to white across the upper 60% behind a centered, rounded rectangular frosted-glass form.
+- Authentication pages: Centered Glass — a slow monochrome Aurora Flow field in graphite, charcoal and silver sits behind a centered frosted-glass form.
 - Application pages: Geometry-aware Workbench — the existing sidebar, topbar, feature components, and domain layouts are composed through shared viewport modes and route families.
 - Touch application pages: Touch-first Workbench — phone bottom navigation, one-task canvases, safe-area sheets, and tablet rail/master-detail compositions. The platform-neutral specification is `docs/mobile-native-design-language.md`.
 - Marketing pages: Geometry-aware Workbench — the narrative remains vertical on standard screens and becomes a split editorial/product composition on ultrawide screens.
@@ -19,7 +19,7 @@ Modern-minimal enterprise software with restrained graphite, titanium, silver, a
 - Paper: cool porcelain, expressed through `--color-auth-paper`.
 - Ink: cool graphite, expressed through `--color-auth-ink`.
 - Accent: monochrome; focus is a restrained cool graphite signal.
-- Background treatment: white canvas with a black procedural triangulated surface, contour texture, vertices, connections, and restrained reconstruction motion.
+- Background treatment: black canvas with a layered monochrome Aurora Flow field, restrained grain, cool metallic highlights and a deep vignette.
 
 ## Typography
 
@@ -30,8 +30,8 @@ Modern-minimal enterprise software with restrained graphite, titanium, silver, a
 ## Spacing and motion
 
 - Four-point named spacing scale in `tokens.css`.
-- Motion uses a slow procedural surface-state cycle plus restrained control transforms.
-- Reduced-motion users receive a static generated geometry frame.
+- Motion uses a slow fluid field cycle plus restrained control transforms.
+- Reduced-motion users receive a static Aurora Flow frame.
 
 ## Layout modes
 
@@ -53,8 +53,8 @@ Application routes are additionally grouped as dashboard, planner, records, stud
 ## Authentication performance contract
 
 - The form and logo render independently from the client-only WebGL canvas.
-- The background uses adaptive vertex density and device-pixel-ratio limits.
-- Geometry updates use typed buffers and a small, fixed number of draw calls.
+- The background uses a bounded WebGL canvas with device-pixel-ratio limits.
+- Aurora Flow uses a small, fixed number of shader layers and one draw call per frame.
 - Reduced-motion mode renders a static frame without a continuous animation loop.
 
 ## Shared requirements
@@ -63,7 +63,7 @@ Application routes are additionally grouped as dashboard, planner, records, stud
 - Supabase remains the identity provider; email signup requires verification before workspace activation.
 - The frosted-glass card stays centered at every viewport, with a bounded width and internal padding. The form must remain readable at 320, 375, 414, and 768 px widths.
 - Every workspace route inherits the shared layout-mode and route-family attributes from the application shell.
-- Geometry overrides remain in labelled additive CSS blocks and must not alter routing, permissions, state, data fetching, or integrations.
+- Aurora overrides remain in labelled additive CSS blocks and must not alter routing, permissions, state, data fetching, or integrations.
 - The pre-redesign language and exact reversion recipe live in `docs/design-language-original-2026-08-25.md`.
 
 ## Exports

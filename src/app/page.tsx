@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { IrisMarketingHeader } from '@/components/landing/iris-marketing-header';
 import { IrisPricingComparison } from '@/components/landing/iris-pricing-comparison';
+import { ConsoleEcosystem, MilesAiSection } from '@/components/landing/iris-landing-sections';
+import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -171,7 +173,7 @@ function Hero() {
             textAlign: 'center',
           }}
         >
-          Introducing IrisOS â€” The Unified Agency Workspace
+          Introducing IrisOS — The Unified Agency Workspace
         </span>
       </ScrollReveal>
 
@@ -197,6 +199,44 @@ function Hero() {
           <br />
           <span style={{ color: 'rgba(232,232,232,0.3)', fontWeight: 300 }}>Manage it all.</span>
         </h1>
+        <div
+          aria-label="For business owners, agency owners and freelancers"
+          className="flex-col items-center sm:flex-row sm:items-baseline"
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '0.35em',
+            width: '100%',
+            maxWidth: '100%',
+            minHeight: '1.15em',
+            marginTop: 'clamp(22px, 4vw, 38px)',
+            color: 'rgba(232,232,232,0.3)',
+            fontFamily: DISPLAY,
+            fontSize: 'clamp(28px, 5.4vw, 58px)',
+            fontWeight: 300,
+            letterSpacing: '-0.055em',
+            lineHeight: 1,
+            textAlign: 'center',
+          }}
+        >
+          <span>For</span>
+          <FlippingWordSwap
+            word1="Business owners"
+            word2="Agency owners"
+            word3="Freelancers"
+            duration={520}
+            stagger={30}
+            autoPlay
+            interval={3000}
+            className="max-w-full !text-[clamp(28px,5.4vw,58px)]"
+            wordClassName="text-zinc-100"
+            style={{
+              fontFamily: DISPLAY,
+              fontWeight: 700,
+              letterSpacing: '-0.055em',
+            }}
+          />
+        </div>
       </ScrollReveal>
 
       {/* Tagline */}
@@ -416,10 +456,10 @@ function VideoSection() {
 // â”€â”€â”€ About Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function About() {
   const stats = [
-    { value: '0.8ms',   label: 'Avg. response latency' },
-    { value: '99.97%',  label: 'Uptime SLA'            },
-    { value: '128-bit', label: 'End-to-end encryption' },
-    { value: '2026',    label: 'Founded'                },
+    { value: 'Unlimited', label: 'Clients on the Advanced plan' },
+    { value: '14 vs 38 min', label: 'Typical end-to-end workflow time' },
+    { value: '9.5 hrs', label: 'Estimated weekly admin time saved' },
+    { value: '68% fewer', label: 'Manual handoffs with Miles-assisted workflows' },
   ]
 
   return (
@@ -466,7 +506,7 @@ function About() {
             We created IrisOS because agency owners are tired of navigating a fragmented stack of disconnected applications. Creative firms lose margin and time juggling client communications, financial tracking, and campaign execution across isolated tools.
           </p>
           <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8 }}>
-            IrisOS acts as the operational iris of your firm â€” regulating the flow of information, aligning client expectations, and focusing delivery coordination. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
+            IrisOS acts as the operational iris of your firm — regulating the flow of information, aligning client expectations, and focusing delivery coordination. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
           </p>
         </div>
 
@@ -491,6 +531,9 @@ function About() {
               </div>
             </div>
           ))}
+          <p className="sm:col-span-2" style={{ margin: 0, fontFamily: JBMONO, fontSize: '10px', color: 'rgba(232,232,232,0.3)', lineHeight: 1.6 }}>
+            Illustrative benchmark: the same 12-step agency workflow modeled in IrisOS and a comparable multi-tool software stack. Validate against your own process before relying on projected savings.
+          </p>
         </div>
       </div>
     </section>
@@ -1240,6 +1283,10 @@ function Pricing() {
   );
 }
 
+// Retained temporarily as a rollback reference while the new flip-stack console ships.
+void PlaceholderCard;
+void Features;
+
 function Waitlist() {
   return (
     <section id="waitlist" style={{ padding: 'clamp(88px, 10vw, 120px) clamp(16px, 5vw, 32px) clamp(112px, 14vw, 160px)', maxWidth: '1200px', margin: '0 auto' }}>
@@ -1329,7 +1376,7 @@ function Footer() {
     >
       <Image src={irisLogo} alt="IrisOS" width={74} height={28} style={{ height: '28px', width: 'auto', objectFit: 'contain', opacity: 0.6 }} />
       <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
-        Â© 2026 IrisOS, Inc. All rights reserved.
+        © 2026 IrisOS, Inc. All rights reserved.
       </span>
       <div style={{ display: 'flex', gap: '24px' }}>
         {[
@@ -1370,7 +1417,8 @@ export default function App() {
       <Hero />
       <VideoSection />
       <About />
-      <Features />
+      <ConsoleEcosystem />
+      <MilesAiSection />
       <Pricing />
       <Waitlist />
       <Footer />

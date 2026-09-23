@@ -1,0 +1,180 @@
+/* Hallmark · macrostructure: Scroll-led Console Narrative · tone: technical premium · anchor hue: cool graphite
+ * pre-emit critique: P5 H5 E5 S5 R5 V5 · contrast: pass · mobile: pass
+ */
+.consoleSection,
+.milesSection {
+  overflow-x: clip;
+  background: transparent;
+  color: var(--color-landing-ink);
+}
+
+.sectionHeading,
+.milesHeading {
+  width: min(100% - 2rem, 75rem);
+  margin-inline: auto;
+}
+
+.sectionHeading {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  padding-block: clamp(5rem, 10vw, 9rem) clamp(2rem, 5vw, 4rem);
+  text-align: center;
+}
+
+.sectionHeading > span,
+.milesEyebrow {
+  color: var(--color-landing-quiet);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sectionHeading h2,
+.milesHeading h2 {
+  max-width: 18ch;
+  margin: 0;
+  color: var(--color-landing-ink);
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  overflow-wrap: anywhere;
+}
+
+.sectionHeading p,
+.milesIntro p {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--color-landing-muted);
+  line-height: 1.65;
+}
+
+.consoleStack {
+  background: transparent !important;
+  color: var(--color-landing-ink) !important;
+  font-family: var(--font-geist-sans), sans-serif !important;
+}
+
+.consoleStack h1 {
+  color: var(--color-landing-accent) !important;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: clamp(2.5rem, 6vw, 5.5rem) !important;
+  font-style: normal;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+}
+
+.consoleStack article > div {
+  border: 1px solid var(--color-landing-rule);
+  box-shadow: inset 0 1px var(--color-landing-highlight), 0 2rem 5rem var(--color-landing-shadow) !important;
+}
+
+.milesSection {
+  padding-top: clamp(6rem, 11vw, 10rem);
+  background: transparent;
+}
+
+.milesHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
+  gap: clamp(2rem, 7vw, 7rem);
+  align-items: end;
+}
+
+.milesEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.milesEyebrow svg,
+.milesIntro svg { width: 1rem; }
+
+.milesIntro {
+  display: grid;
+  gap: 1.25rem;
+  padding-bottom: 0.5rem;
+}
+
+.milesIntro > span {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--color-landing-muted);
+  font-size: 0.8125rem;
+}
+
+.milesStage { margin-top: clamp(2rem, 5vw, 4.5rem); }
+
+.milesSplit {
+  color: var(--color-landing-ink);
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+.milesSplit [data-split-card-icon] svg {
+  width: clamp(1.8rem, 2.4vw, 2.2rem);
+  height: clamp(1.8rem, 2.4vw, 2.2rem);
+}
+
+.milesSplit [data-split-card-title] {
+  font-size: clamp(1.4rem, 2vw, 2.2rem) !important;
+  line-height: 1.05;
+}
+
+.milesSplit [data-split-card-description] {
+  font-size: clamp(0.95rem, 1.2vw, 1.125rem) !important;
+  line-height: 1.6;
+}
+
+.milesSplit [data-split-card-end-label] {
+  font-size: clamp(2rem, 4vw, 4.5rem) !important;
+  line-height: 0.86;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.capabilityRail {
+  display: grid;
+  width: min(100% - 2rem, 90rem);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: -20vh auto 0;
+  padding-bottom: clamp(6rem, 10vw, 10rem);
+  border-top: 1px solid var(--color-landing-rule);
+}
+
+.capabilityRail > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 0.75rem;
+  min-height: 8.25rem;
+  padding: 1.875rem;
+  border-right: 1px solid var(--color-landing-rule);
+  border-bottom: 1px solid var(--color-landing-rule);
+}
+
+.capabilityRail svg { width: 1.5rem; color: var(--color-landing-quiet); }
+.capabilityRail strong { font-size: 1.125rem; }
+.capabilityRail span { grid-column: 2; color: var(--color-landing-quiet); font-size: 0.875rem; line-height: 1.5; }
+
+@media (max-width: 47.99rem) {
+  .milesHeading { grid-template-columns: minmax(0, 1fr); }
+  .capabilityRail { grid-template-columns: minmax(0, 1fr); margin-top: -10vh; }
+  .capabilityRail > div { min-height: 7rem; padding: 1.375rem; }
+  .sectionHeading h2,
+  .milesHeading h2 { max-width: 100%; }
+}
+
+@media (min-width: 48rem) and (max-width: 63.99rem) {
+  .capabilityRail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consoleStack *,
+  .milesSplit * { scroll-behavior: auto !important; }
+}

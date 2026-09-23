@@ -1,5 +1,27 @@
 [
   {
+    "date": "2026-09-23",
+    "scope": "landing audience, console narrative, and Miles AI motion",
+    "macrostructure": "Compressed Scroll-led Console Narrative",
+    "theme": "Iris OS graphite and metallic silver",
+    "axes": ["three-audience airport-board cycle", "one-gesture console card cadence", "shortened oversized Miles reveal"],
+    "nav": "N5 Floating pill (locked existing brand chrome)",
+    "footer": "Ft2 Inline single line",
+    "enrichment": "existing Iris workspace imagery",
+    "brief": "Tighten the landing scroll stories, enlarge their key typography and surfaces, and align every new section to the shared graphite page background"
+  },
+  {
+    "date": "2026-09-23",
+    "scope": "landing, authentication, public pricing, and app install prompt",
+    "macrostructure": "Scroll-led Console Narrative with split-card intelligence",
+    "theme": "Iris OS graphite and metallic silver",
+    "axes": ["monochrome Aurora authentication field", "flip-stack console narrative", "Miles split-card capability reveal"],
+    "nav": "N5 Floating pill (locked existing brand chrome)",
+    "footer": "Ft2 Inline single line",
+    "enrichment": "slow monochrome Aurora flow and real workspace imagery",
+    "brief": "Refresh authentication and the public product story with Componentry motion, focused comparison metrics, compact pricing, and clearer PWA install guidance"
+  },
+  {
     "date": "2026-09-19",
     "scope": "landing and public pricing visual restoration",
     "macrostructure": "Locked Iris Workbench with shared four-card Catalogue",
@@ -186,19 +208,5 @@
     "theme": "CrystalOS light contrast cards",
     "enrichment": "semantic label spectrum",
     "brief": "Black briefing cards in light mode with bright semantic labels and concrete renewal, delay, and blocker signals"
-  },
-  {
-    "date": "2026-07-31",
-    "macrostructure": "Narrative Workflow",
-    "theme": "CrystalOS obsidian and silver",
-    "enrichment": "subtle grid material",
-    "brief": "Full-viewport Atlas briefing entrance that morphs into the workspace shell with matched light and dark materials"
-  },
-  {
-    "date": "2026-07-31",
-    "macrostructure": "Narrative Workflow",
-    "theme": "CrystalOS graphite",
-    "enrichment": "none",
-    "brief": "Admin-only Atlas daily briefing with staged updates and an action-card ring"
   }
 ]
