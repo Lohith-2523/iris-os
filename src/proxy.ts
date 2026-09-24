@@ -21,6 +21,11 @@ export async function proxy(request: NextRequest) {
   // Discovery files must remain public, including during coming-soon mode and
   // authentication-provider outages. They never contain workspace information.
   if (['/robots.txt', '/llms.txt'].includes(request.nextUrl.pathname)) return NextResponse.next();
+
+  // Regional pricing is public and does not use session data. Avoid touching
+  // stale Supabase cookies so anonymous visitors can always resolve currency.
+  if (pathname === '/api/pricing') return NextResponse.next();
+
   const host = request.headers.get('host') || '';
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
   const isProduction = process.env.NODE_ENV === 'production';

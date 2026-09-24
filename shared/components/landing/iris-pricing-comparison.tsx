@@ -50,7 +50,13 @@ export function IrisPricingComparison({
                   {plan.id === 'PRO' && <b className={styles.popular}>Popular</b>}
                   {plan.id === 'ADVANCED' && <b className={styles.bestValue}>Best value</b>}
                 </div>
-                <div className={styles.summaryPrice}>
+                {plan.listAmount > plan.baseAmount && (
+                  <div className={styles.summaryDiscount}>
+                    <del>{formatPlanMoney(plan.listAmount, plan.currency)}</del>
+                    <b>50% off early bird offer</b>
+                  </div>
+                )}
+                <div className={`${styles.summaryPrice} ${plan.listAmount > plan.baseAmount ? '' : styles.summaryPriceNoDiscount}`}>
                   <strong>{formatPlanMoney(plan.baseAmount, plan.currency)}</strong><span>/month</span>
                 </div>
                 <p>{plan.description}</p>
@@ -120,7 +126,7 @@ export function IrisPricingComparison({
                     {plan.listAmount > plan.baseAmount && (
                       <span className={styles.discount}>
                         <del>{formatPlanMoney(plan.listAmount, plan.currency)}</del>
-                        <b>Early bird · 50% off</b>
+                        <b>50% off early bird offer</b>
                       </span>
                     )}
                     <strong>

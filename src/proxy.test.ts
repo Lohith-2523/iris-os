@@ -30,4 +30,11 @@ describe('host routing proxy', () => {
     expect(response.status).toBe(200);
     expect(mocks.updateSession).toHaveBeenCalledWith(request);
   });
+
+  it('keeps regional pricing public without invoking Supabase auth', async () => {
+    const response = await proxy(new NextRequest('https://irisos.app/api/pricing'));
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateSession).not.toHaveBeenCalled();
+  });
 });

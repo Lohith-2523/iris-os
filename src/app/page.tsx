@@ -4,10 +4,12 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
+import { IrisLandingSkeleton } from '@/components/landing/iris-landing-skeleton';
 import { IrisMarketingHeader } from '@/components/landing/iris-marketing-header';
 import { IrisPricingComparison } from '@/components/landing/iris-pricing-comparison';
 import { ConsoleEcosystem, MilesAiSection } from '@/components/landing/iris-landing-sections';
 import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
+import type { pricingCatalog, PricingRegion } from '@/lib/plan-pricing';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -1203,14 +1205,14 @@ function Features() {
 }
 
 // â”€â”€â”€ Waitlist Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function Pricing() {
-  const { region, plans, loading } = usePlanPricing();
-
+function Pricing({ region, plans }: {
+  region: PricingRegion;
+  plans: ReturnType<typeof pricingCatalog>;
+}) {
   return (
     <IrisPricingComparison
       plans={plans}
       region={region}
-      loading={loading}
       showFullPricingLink
     />
   );
@@ -1333,6 +1335,10 @@ function Footer() {
 
 // â”€â”€â”€ App Root â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function App() {
+  const { region, plans, loading } = usePlanPricing();
+
+  if (loading) return <IrisLandingSkeleton />;
+
   return (
     <div
       id="top"
@@ -1352,7 +1358,7 @@ export default function App() {
       <About />
       <ConsoleEcosystem />
       <MilesAiSection />
-      <Pricing />
+      <Pricing region={region} plans={plans} />
       <Waitlist />
       <Footer />
     </div>
