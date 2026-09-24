@@ -26,6 +26,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment signature does not match.' }, { status: 400 });
     }
 
+    const completedPayment = await client.payments.fetch(payment.razorpay_payment_id);
+    if (
+      completedPayment.order_id !== order.id
+      || completedPayment.status !== 'captured'
+      || Number(completedPayment.amount) !== Number(order.amount)
+      || completedPayment.currency !== order.currency
+    ) {
+      return NextResponse.json({ error: 'Payment has not completed.' }, { status: 400 });
+    }
+
     const purchasedPlan = order.notes?.plan;
     const pricingRegion = order.notes?.pricingRegion as PricingRegion | undefined;
     if ((purchasedPlan !== 'PRO' && purchasedPlan !== 'ADVANCED') || (pricingRegion !== 'INDIA' && pricingRegion !== 'INTERNATIONAL')) {

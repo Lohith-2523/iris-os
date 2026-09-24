@@ -33,7 +33,7 @@ async function postJson(url: string, body: unknown) {
   return data;
 }
 
-type CheckoutPrice = {
+export type CheckoutPrice = {
   currency: 'INR' | 'USD';
   listAmount?: number;
   baseAmount: number;
@@ -41,17 +41,18 @@ type CheckoutPrice = {
   totalAmount: number;
 };
 
-type CouponQuote = Required<CheckoutPrice> & {
+export type CouponPriceQuote = Required<CheckoutPrice> & {
   discountPercent: number;
   discountAmount: number;
 };
 
-export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, onVerified }: {
+export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, onVerified, onPriceChange }: {
   plan: Exclude<PlanId, 'BASIC'>;
   price: CheckoutPrice;
   buttonLabel?: string;
   disabled?: boolean;
   onVerified?: (plan: Exclude<PlanId, 'BASIC'>) => void | Promise<void>;
+  onPriceChange?: (quote: CouponPriceQuote | null) => void;
 }) {
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -61,7 +62,7 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
   const [message, setMessage] = useState('');
   const [coupon, setCoupon] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [couponQuote, setCouponQuote] = useState<CouponQuote | null>(null);
+  const [couponQuote, setCouponQuote] = useState<CouponPriceQuote | null>(null);
   const locked = useRef(false);
   const checkout = useRef<CheckoutInstance | null>(null);
   const checkoutHostId = `razorpay-checkout-${useId().replace(/:/g, '')}`;
@@ -129,7 +130,7 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
     try {
       const validation = await postJson('/api/plan-coupons/redeem', { plan, coupon, action: 'VALIDATE' });
       if (validation.success !== true || validation.valid !== true) throw new Error('Coupon could not be applied.');
-      const quote: CouponQuote = {
+      const quote: CouponPriceQuote = {
         currency: validation.currency === 'INR' ? 'INR' : 'USD',
         listAmount: Number(validation.listAmount),
         baseAmount: Number(validation.baseAmount),
@@ -139,11 +140,13 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
         totalAmount: Number(validation.totalAmount),
       };
       setCouponQuote(quote);
+      onPriceChange?.(quote);
       setMessage(quote.discountPercent === 100
         ? `100% coupon applied. Choose ${plan === 'PRO' ? 'Pro' : 'Advanced'} to activate it at no charge.`
         : `${quote.discountPercent}% coupon applied to the original price.`);
     } catch (reason) {
       setCouponQuote(null);
+      onPriceChange?.(null);
       setError(reason instanceof Error ? reason.message : 'Coupon could not be applied.');
     } finally {
       locked.current = false; setApplyingCoupon(false);
@@ -156,7 +159,7 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
     try {
       const redeemed = await postJson('/api/plan-coupons/redeem', { plan, coupon, action: 'REDEEM' });
       if (redeemed.success !== true || (redeemed.plan !== 'PRO' && redeemed.plan !== 'ADVANCED')) throw new Error('Coupon could not be redeemed.');
-      setCoupon(''); setCouponQuote(null);
+      setCoupon(''); setCouponQuote(null); onPriceChange?.(null);
       setMessage(`${redeemed.plan === 'PRO' ? 'Pro' : 'Advanced'} activated at no charge.`);
       window.dispatchEvent(new Event('organization-updated'));
       window.dispatchEvent(new Event('user-updated'));
@@ -197,7 +200,7 @@ export function RazorpayCheckout({ plan, price, buttonLabel, disabled = false, o
           name="iris-plan-coupon"
           type="text"
           value={coupon}
-          onChange={(event) => { setCoupon(event.target.value); setCouponQuote(null); setError(''); setMessage(''); }}
+          onChange={(event) => { setCoupon(event.target.value); setCouponQuote(null); onPriceChange?.(null); setError(''); setMessage(''); }}
           autoComplete="new-password"
           autoCapitalize="none"
           spellCheck={false}

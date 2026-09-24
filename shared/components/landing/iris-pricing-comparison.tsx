@@ -57,7 +57,8 @@ export function IrisPricingComparison({
                   </div>
                 )}
                 <div className={`${styles.summaryPrice} ${plan.listAmount > plan.baseAmount ? '' : styles.summaryPriceNoDiscount}`}>
-                  <strong>{formatPlanMoney(plan.baseAmount, plan.currency)}</strong><span>/month</span>
+                  <strong>{plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}</strong>
+                  {plan.baseAmount > 0 && <span>/month</span>}
                 </div>
                 <p>{plan.description}</p>
                 <ul>
@@ -130,8 +131,8 @@ export function IrisPricingComparison({
                       </span>
                     )}
                     <strong>
-                      {formatPlanMoney(plan.baseAmount, plan.currency)}
-                      <small>/mo</small>
+                      {plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}
+                      {plan.baseAmount > 0 && <small>/mo</small>}
                     </strong>
                   </div>
                 </div>

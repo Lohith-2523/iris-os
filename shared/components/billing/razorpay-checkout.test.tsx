@@ -109,15 +109,17 @@ it('validates first, then activates from the plan button without opening Razorpa
 });
 
 it('applies a partial coupon to the original price and opens checkout for the balance', async () => {
+  const onPriceChange = vi.fn();
   fetchMock
     .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, valid: true, discountPercent: 10, listAmount: 159_900, baseAmount: 143_910, discountAmount: 15_990, taxAmount: 25_904, totalAmount: 169_814, currency: 'INR' }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({ order_id: 'order_123', amount: 169_814, currency: 'INR', key_id: 'public-key', base_amount: 143_910, tax_amount: 25_904 }) });
-  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', listAmount: 159_900, baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} />);
+  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', listAmount: 159_900, baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} onPriceChange={onPriceChange} />);
 
   fireEvent.change(screen.getByLabelText('Coupon code'), { target: { value: 'SAVE10' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
   expect(await screen.findByRole('status')).toHaveTextContent('10% coupon applied to the original price.');
+  expect(onPriceChange).toHaveBeenCalledWith(expect.objectContaining({ discountPercent: 10, baseAmount: 143_910, currency: 'INR' }));
   expect(screen.queryByText('Original price')).not.toBeInTheDocument();
   expect(screen.queryByText(/Coupon discount/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/Amount due today/i)).not.toBeInTheDocument();

@@ -11,7 +11,7 @@ import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { CountrySelect } from '@/components/ui/country-select';
 import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
 import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
-import { RazorpayCheckout } from '@/components/billing/razorpay-checkout';
+import { RazorpayCheckout, type CouponPriceQuote } from '@/components/billing/razorpay-checkout';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { formatPlanMoney } from '@/lib/plan-pricing';
 
@@ -53,6 +53,7 @@ export default function OnboardingPage() {
   
   // Pricing state
   const [selectedPlanId, setSelectedPlanId] = React.useState<'basic' | 'pro' | 'advanced'>('pro');
+  const [couponPrice, setCouponPrice] = React.useState<{ plan: 'PRO' | 'ADVANCED'; quote: CouponPriceQuote } | null>(null);
   
   // Consent state
   const [termsAgreed, setTermsAgreed] = React.useState(false);
@@ -74,6 +75,11 @@ export default function OnboardingPage() {
     id: price.id.toLowerCase() as 'basic' | 'pro' | 'advanced',
     tagline: price.positioning,
   }));
+  const selectedPlan = PLANS.find(plan => plan.id === selectedPlanId)!;
+  const selectedPaidPlan = selectedPlanId === 'basic' ? null : selectedPlanId.toUpperCase() as 'PRO' | 'ADVANCED';
+  const selectedCouponPrice = selectedPaidPlan && couponPrice?.plan === selectedPaidPlan ? couponPrice.quote : null;
+  const selectedDisplayPrice = selectedCouponPrice ?? selectedPlan;
+  const selectedDiscountPercent = selectedCouponPrice?.discountPercent ?? (selectedPlan.listAmount > selectedPlan.baseAmount ? 50 : null);
   React.useEffect(() => {
     fetch('/api/workspace')
       .then(async (response) => {
@@ -392,7 +398,7 @@ export default function OnboardingPage() {
                   <div className="border-b border-zinc-800 pb-3">
                     {ordered.center.listAmount > ordered.center.baseAmount && <span className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.center.listAmount, ordered.center.currency)}</del><b className="text-zinc-200">50% off</b></span>}
                     <span className="font-mono text-4xl font-black text-white">{ordered.center.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.center.baseAmount, ordered.center.currency)}</span>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>
+                    {ordered.center.baseAmount > 0 && <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>}
                   </div>
                   <div className="space-y-2">
                     <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Included Features:</span>
@@ -578,8 +584,8 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  {(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.listAmount > selected.baseAmount ? <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selected.listAmount, selected.currency)}</del> <b className="text-zinc-200">50% off</b></span> : null; })()}
-                  <span className="font-mono text-xl font-bold text-white">{(() => { const selected = PLANS.find(p => p.id === selectedPlanId)!; return selected.baseAmount === 0 ? 'Free' : `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}</span>
+                  {selectedDisplayPrice.listAmount > selectedDisplayPrice.baseAmount && <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selectedDisplayPrice.listAmount, selectedDisplayPrice.currency)}</del> {selectedDiscountPercent && <b className="text-zinc-200">{selectedDiscountPercent}% off</b>}</span>}
+                  <span className="font-mono text-xl font-bold text-white" aria-live="polite">{selectedDisplayPrice.baseAmount === 0 ? 'Free' : `${formatPlanMoney(selectedDisplayPrice.baseAmount, selectedDisplayPrice.currency)}/mo`}</span>
                 </div>
               </div>
 
@@ -591,6 +597,7 @@ export default function OnboardingPage() {
                   price={PLANS.find(p => p.id === selectedPlanId)!}
                   buttonLabel={`Pay securely for ${PLANS.find(p => p.id === selectedPlanId)?.name}`}
                   onVerified={(verifiedPlan) => completeOnboarding(verifiedPlan)}
+                  onPriceChange={(quote) => setCouponPrice(quote && selectedPaidPlan ? { plan: selectedPaidPlan, quote } : null)}
                 />
               )}
 
