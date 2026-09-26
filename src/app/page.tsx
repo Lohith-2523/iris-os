@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { IrisLandingSkeleton } from '@/components/landing/iris-landing-skeleton';
 import { IrisMarketingHeader } from '@/components/landing/iris-marketing-header';
@@ -12,6 +13,11 @@ import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
 import type { pricingCatalog, PricingRegion } from '@/lib/plan-pricing';
 
 const irisLogo = '/iris-logo-black-bg.png';
+
+const IrisInteractiveDemo = dynamic(() => import('@/components/demo/iris-interactive-demo'), {
+  ssr: false,
+  loading: () => <div className="landing-demo-skeleton" aria-label="Loading interactive IrisOS workspace"><span /><span /><span /><span /></div>,
+});
 
 // â”€â”€â”€ Font shorthands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const DISPLAY = "var(--font-space-grotesk), sans-serif"
@@ -242,7 +248,7 @@ function Hero() {
             <circle cx="8" cy="8" r="7" stroke="rgba(232,232,232,0.4)" strokeWidth="1.2" />
             <path d="M6.5 5.5L10.5 8L6.5 10.5V5.5Z" fill="rgba(232,232,232,0.6)" />
           </svg>
-          Watch the Demo
+          Explore the Demo
         </a>
       </ScrollReveal>
 
@@ -269,121 +275,33 @@ function Hero() {
 
 // â”€â”€â”€ Video Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function VideoSection() {
-  const [playing, setPlaying] = useState(false)
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section || shouldLoad) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setShouldLoad(true);
+      observer.disconnect();
+    }, { rootMargin: '500px 0px' });
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
 
   return (
-    <section id="video" style={{ padding: 'clamp(72px, 10vw, 112px) clamp(16px, 5vw, 32px)', maxWidth: '1200px', margin: '0 auto' }}>
+    <section ref={sectionRef} id="video" style={{ padding: 'clamp(72px, 10vw, 112px) clamp(12px, 3vw, 28px)', maxWidth: '1500px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '64px' }}>
         <div className="section-divider" style={{ margin: '0 auto 24px' }} />
-        <h2
-          style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-0.03em', marginBottom: '16px' }}
-          className="gradient-text"
-        >
-          See IrisOS in Action
+        <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-0.03em', marginBottom: '16px' }} className="gradient-text">
+          Experience IrisOS
         </h2>
-        <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.45)', maxWidth: '480px', margin: '0 auto', lineHeight: 1.6 }}>
-          A two-minute tour of the agency console that regulates your operational focus.
+        <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.45)', maxWidth: '620px', margin: '0 auto', lineHeight: 1.6 }}>
+          Explore a real IrisOS workspace before creating an account. Every interaction stays inside a deterministic, fictional agency environment.
         </p>
       </div>
-
-      <div
-        style={{
-          position: 'relative',
-          borderRadius: '28px',
-          overflow: 'hidden',
-          background: '#0d0d0d',
-          boxShadow: 'inset 8px 8px 20px #040404, inset -8px -8px 20px #1a1a1a, 0 0 0 1px rgba(255,255,255,0.05)',
-          aspectRatio: '16 / 9',
-          maxWidth: '900px',
-          margin: '0 auto',
-          cursor: 'pointer',
-        }}
-        onClick={() => setPlaying((p) => !p)}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 40%, transparent 70%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {/* Grid overlay */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
-              backgroundSize: '60px 60px',
-            }}
-          />
-
-          {/* Decorative iris rings */}
-          {[120, 180, 240, 300].map((r, i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                width: `${r}px`,
-                height: `${r}px`,
-                borderRadius: '50%',
-                border: `1px solid rgba(255,255,255,${0.04 - i * 0.005})`,
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                pointerEvents: 'none',
-              }}
-            />
-          ))}
-
-          {/* Play / pause */}
-          <div
-            style={{
-              position: 'relative',
-              zIndex: 2,
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: '#111111',
-              boxShadow: '8px 8px 18px #040404, -8px -8px 18px #1e1e1e',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {playing ? (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <rect x="6" y="5" width="4" height="14" rx="1" fill="rgba(232,232,232,0.8)" />
-                <rect x="14" y="5" width="4" height="14" rx="1" fill="rgba(232,232,232,0.8)" />
-              </svg>
-            ) : (
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M8 5.5L18.5 12L8 18.5V5.5Z" fill="rgba(232,232,232,0.85)" />
-              </svg>
-            )}
-          </div>
-
-          {/* Label */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '32px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              fontFamily: JBMONO,
-              fontSize: '11px',
-              color: 'rgba(232,232,232,0.3)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {playing ? 'Click to pause' : 'Click to play'}
-          </div>
-        </div>
-      </div>
+      {shouldLoad ? <IrisInteractiveDemo /> : <div className="landing-demo-skeleton" aria-label="Interactive demo loads as it approaches the viewport"><span /><span /><span /><span /></div>}
     </section>
   )
 }

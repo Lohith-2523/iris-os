@@ -52,7 +52,7 @@ function IntegrationNetwork() {
     { name: 'WhatsApp', icon: '/whatsapp.png' },
   ];
 
-  return <div className={styles.integrationNetwork} data-reveal="network" data-scroll-depth data-depth="0.45">{services.map((service) => <span key={service.name} role="img" aria-label={service.name} title={service.name}><Image src={service.icon} alt="" width={32} height={32} unoptimized /></span>)}<div role="img" aria-label="IrisOS connected workspace"><Image className={styles.brandLogo} src="/iris-logo-white-transparent.svg" alt="" width={38} height={38} /><strong>IRISOS</strong><small>Connected workspace</small></div><i className={styles.networkHorizontal} aria-hidden="true" /><i className={styles.networkVertical} aria-hidden="true" /></div>;
+  return <div className={styles.integrationNetwork} data-reveal="network" data-scroll-depth data-depth="0.45">{services.map((service) => <span key={service.name} role="img" aria-label={service.name} title={service.name}><Image src={service.icon} alt="" width={32} height={32} unoptimized /></span>)}<div role="img" aria-label="IrisOS connected workspace"><Image className={styles.brandLogo} src="/iris-logo-black-bg.png" alt="" width={84} height={34} /><small>Connected workspace</small></div><i className={styles.networkHorizontal} aria-hidden="true" /><i className={styles.networkVertical} aria-hidden="true" /></div>;
 }
 
 function CommercialFlow() {
@@ -124,8 +124,8 @@ export function IrisLanding() {
 
     <FAQ />
 
-    <section className={styles.finalCta}><div data-reveal="depth"><Image className={styles.brandLogo} src="/iris-logo-white-transparent.svg" alt="" width={36} height={36} /><p>The operating layer connecting the entire agency.</p><h2>Your agency deserves one operating system.</h2><Link className={styles.primaryButton} href="/signup">Start using IrisOS <ArrowRight aria-hidden="true" /></Link></div></section>
-    <footer className={styles.footer}><p>Run the business. See the context. Move the work.</p><div><span className={styles.wordmark}><Image className={styles.brandLogo} src="/iris-logo-white-transparent.svg" alt="" width={28} height={28} /><b>IRISOS</b></span><nav aria-label="Footer navigation"><a href="#product">Product</a><a href="#atlas">Miles</a><Link href="/pricing">Pricing</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav><small>© 2026 IrisOS</small></div></footer>
+    <section className={styles.finalCta}><div data-reveal="depth"><Image className={styles.brandLogo} src="/iris-logo-black-bg.png" alt="" width={88} height={36} /><p>The operating layer connecting the entire agency.</p><h2>Your agency deserves one operating system.</h2><Link className={styles.primaryButton} href="/signup">Start using IrisOS <ArrowRight aria-hidden="true" /></Link></div></section>
+    <footer className={styles.footer}><p>Run the business. See the context. Move the work.</p><div><span className={styles.wordmark}><Image className={styles.brandLogo} src="/iris-logo-black-bg.png" alt="" width={68} height={28} /></span><nav aria-label="Footer navigation"><a href="#product">Product</a><a href="#atlas">Miles</a><Link href="/pricing">Pricing</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav><small>© 2026 IrisOS</small></div></footer>
     </PageParallax>
   </main>;
 }

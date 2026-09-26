@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { invalidateWorkspaceDataTags, workspaceFetch as fetch } from '@/lib/workspace-data-cache';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { invalidateWorkspaceDataTags } from '@/lib/workspace-data-cache';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 // Helper for formatting time (e.g., "10:00 AM")
 function formatTime(dateStr: string | Date) {
@@ -66,7 +67,9 @@ interface CalendarEvent {
 }
 
 export default function CalendarPage() {
-  const router = useRouter();
+  const runtime = useWorkspaceRuntime();
+  const router = runtime.router;
+  const fetch = runtime.fetch;
   const searchParams = useSearchParams();
   const [viewerEmail, setViewerEmail] = React.useState('');
   const [userRole, setUserRole] = React.useState('');
@@ -143,7 +146,7 @@ export default function CalendarPage() {
         })
         .catch(e => console.error('Error fetching integrations status:', e));
     }
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => {
     const saved = readWorkspaceUiPreference(
@@ -182,7 +185,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false);
     }
-  }, [viewerEmail]);
+  }, [fetch, viewerEmail]);
 
   React.useEffect(() => {
     loadEvents();
@@ -235,6 +238,10 @@ export default function CalendarPage() {
       .catch(err => console.error('Error disconnecting google calendar:', err))
       .finally(() => setSyncingGoogle(false));
     } else {
+      if (runtime.isDemo) {
+        runtime.demo?.showNotice('Google Calendar connection is simulated in this safe demo.');
+        return;
+      }
       setSyncingGoogle(true);
       window.location.assign('/api/integrations/google/start?returnTo=/calendar');
     }

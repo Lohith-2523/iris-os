@@ -141,7 +141,7 @@ export async function generateStrategyPdf(input: StrategyPdfInput) {
     page.drawRectangle({ x: 0, y: 0, width: WIDTH, height: HEIGHT, color: WHITE });
     page.drawRectangle({ x: 0, y: HEIGHT - 92, width: WIDTH, height: 92, color: BLACK });
     try {
-      const bytes = await readFile(path.join(process.cwd(), 'public', 'iris-logo-white-transparent.png'));
+      const bytes = await readFile(path.join(process.cwd(), 'public', 'iris-logo-black-bg.png'));
       const logo = await document.embedPng(Uint8Array.from(bytes));
       const scaled = logo.scaleToFit(92, 34);
       page.drawImage(logo, { x: MARGIN, y: HEIGHT - 64, width: scaled.width, height: scaled.height });

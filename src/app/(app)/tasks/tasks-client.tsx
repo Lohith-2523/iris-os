@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +34,7 @@ import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import type { TasksReadModel } from '@/server/read-models/workspace-pages';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type TaskInlineChanges = {
   status?: string;
@@ -81,7 +81,7 @@ function taskEditorValues(task: any) {
 
 export default function TasksPage({ initialData }: { initialData: TasksReadModel }) {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const { router, fetch } = useWorkspaceRuntime();
   const urlProjectId = searchParams.get('projectId');
   const urlTaskId = searchParams.get('taskId');
 

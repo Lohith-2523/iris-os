@@ -73,6 +73,12 @@
   box-shadow: inset 0 1px var(--color-landing-highlight), 0 2rem 5rem var(--color-landing-shadow) !important;
 }
 
+.consoleStack article img {
+  object-fit: fill !important;
+  object-position: center;
+  background: var(--color-landing-surface-inset);
+}
+
 .consoleStack [data-flip-card-title] {
   max-width: none;
   font-size: clamp(1.125rem, 1.8vw, 1.75rem) !important;

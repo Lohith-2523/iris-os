@@ -57,6 +57,6 @@ export function LegalPolicyPage({ title, badge, updated, effectiveDate, jurisdic
       </section>
     </main>
 
-    <footer className="border-t border-white/5 px-6 py-10"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5"><Image src="/iris-logo-white-transparent.svg" alt="IrisOS" width={120} height={42} className="h-10 w-auto opacity-70" /><span className="text-sm text-zinc-600">© 2026 IrisOS. All rights reserved.</span><div className="flex flex-wrap gap-5 text-sm text-zinc-500"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link><Link href="/cancellation-refund-policy" className="hover:text-white">Cancellation &amp; Refunds</Link></div></div></footer>
+    <footer className="border-t border-white/5 px-6 py-10"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5"><Image src="/iris-logo-black-bg.png" alt="IrisOS" width={120} height={49} className="h-10 w-auto opacity-70" /><span className="text-sm text-zinc-600">© 2026 IrisOS. All rights reserved.</span><div className="flex flex-wrap gap-5 text-sm text-zinc-500"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link><Link href="/cancellation-refund-policy" className="hover:text-white">Cancellation &amp; Refunds</Link></div></div></footer>
   </div>;
 }

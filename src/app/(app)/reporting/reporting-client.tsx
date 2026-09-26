@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { formatUserMessage } from '@/lib/utils';
 import type { ReportKind } from '@/lib/reports/types';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import type { ReportingInitialReadModel } from '@/server/domains/reporting-read-service';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type ReportArchive = {
   id: string;
@@ -42,6 +42,7 @@ const REPORT_OPTIONS: Array<{
 ];
 
 export default function ReportingClient({ initialData }: { initialData: ReportingInitialReadModel }) {
+  const { fetch } = useWorkspaceRuntime();
   const [reports, setReports] = React.useState<ReportArchive[]>(initialData.reports);
   const [clients, setClients] = React.useState<ClientOption[]>(initialData.clients);
   const [selectedKind, setSelectedKind] = React.useState<ReportKind>('EXECUTIVE');

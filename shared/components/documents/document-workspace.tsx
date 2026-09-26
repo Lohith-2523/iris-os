@@ -3,12 +3,12 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle2, ChevronDown, Download, Eye, FilePlus2, FileSignature, List, Loader2, Send, Trash2 } from 'lucide-react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { formatUserMessage } from '@/lib/utils';
 import { TranscribeButton } from '@/components/ui/transcribe-button';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type Kind = 'PROPOSAL' | 'CONTRACT' | 'SOW';
 type Recipient = { id: string; type: 'LEAD' | 'CLIENT'; name: string; company: string; email: string };
@@ -17,6 +17,8 @@ type DocumentRow = { id: string; kind: Kind; title: string; documentNumber: stri
 const fieldClass = 'w-full rounded-xl border border-border bg-background px-3 py-3 text-foreground outline-none placeholder:text-muted-foreground focus:border-ring';
 
 export function DocumentWorkspace({ family, title, description, children }: { family: 'PROPOSAL' | 'LEGAL'; title: string; description: string; children: React.ReactNode }) {
+  const runtime = useWorkspaceRuntime();
+  const fetch = runtime.fetch;
   const [tab, setTab] = React.useState<'list' | 'create'>('list');
   const [mode, setMode] = React.useState<'simple' | 'advanced'>('simple');
   const [documents, setDocuments] = React.useState<DocumentRow[]>([]);
@@ -37,7 +39,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
     const data = await response.json();
     setDocuments(data.documents || []);
     setRecipients(data.recipients || []);
-  }, [family]);
+  }, [family, fetch]);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -119,7 +121,19 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
 
   const download = (document: DocumentRow, format: 'pdf' | 'docx' | 'both') => {
     setDownloadMenu(null);
+    if (runtime.isDemo) {
+      runtime.demo?.showNotice('Downloads stay inside the safe demo. No production document was requested.');
+      return;
+    }
     window.location.assign(`/api/generated-documents/${document.id}/download?format=${format}`);
+  };
+
+  const view = (document: DocumentRow) => {
+    if (runtime.isDemo) {
+      runtime.demo?.showNotice('Document previews are simulated in the safe demo.');
+      return;
+    }
+    window.open(`/api/generated-documents/${document.id}/pdf`, '_blank', 'noopener,noreferrer');
   };
 
   const openDownloadMenu = (event: React.MouseEvent<HTMLButtonElement>, document: DocumentRow) => {
@@ -166,7 +180,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
       <td className="px-3 py-4"><span className={`rounded-full border px-2 py-1 text-sm font-medium ${document.approvedAt && !document.sentAt ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : needsApproval ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-border bg-muted/40 text-foreground'}`}>{document.status.replaceAll('_', ' ')}</span>{document.approvedAt && <div className="mt-2 text-sm text-muted-foreground">Approved by {document.approvedByName || 'team member'}</div>}{document.kind !== 'PROPOSAL' && <div className="mt-1 text-sm text-muted-foreground">Recipient: {document.recipientSignedAt ? 'signed' : 'pending'} · Agency: {document.agencySignedAt ? 'signed' : 'pending'}</div>}{document.automationStatus === 'NEEDS_REVIEW' && <div className="mt-1 text-sm text-amber-500">Miles review required</div>}</td>
       <td className="px-3 py-4 text-muted-foreground">{new Date(document.createdAt).toLocaleDateString()}</td>
       <td className="px-3 py-4"><div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" size="icon" title="View document" aria-label="View document" onClick={() => window.open(`/api/generated-documents/${document.id}/pdf`, '_blank', 'noopener,noreferrer')}><Eye className="h-4 w-4" /></Button>
+        <Button type="button" variant="outline" size="icon" title="View document" aria-label="View document" onClick={() => view(document)}><Eye className="h-4 w-4" /></Button>
         {needsApproval && <Button type="button" variant="outline" title="Approve document" aria-label="Approve document" disabled={busy === document.id} onClick={() => setApprovalTarget(document)}><CheckCircle2 className="h-4 w-4" />Approve</Button>}
         <Button type="button" variant="outline" size="icon" title={needsApproval ? 'Approval required before sending' : 'Send document'} aria-label={needsApproval ? 'Approval required before sending' : 'Send document'} disabled={busy === document.id || Boolean(document.fullySignedAt) || needsApproval} onClick={() => void send(document.id)}>{busy === document.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</Button>
         <Button type="button" variant="outline" title={canDownload ? 'Download a copy' : 'Approve before downloading'} aria-label={canDownload ? 'Choose download format' : 'Approve before downloading'} aria-haspopup="menu" aria-expanded={downloadMenu?.document.id === document.id} disabled={!canDownload} onClick={event => openDownloadMenu(event, document)}><Download className="h-4 w-4" /><ChevronDown className="h-3.5 w-3.5" /></Button>

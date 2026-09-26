@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Download, FileText, ImagePlus, Loader2, Plus, ReceiptText, Trash2, X } from 'lucide-react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
@@ -11,6 +10,7 @@ import type { ProposalInput } from '@/lib/proposals/types';
 import { DocumentWorkspace } from '@/components/documents/document-workspace';
 import { DateInput } from '@/components/ui/date-input';
 import { RequiredFieldLabel } from '@/components/ui/required-field-label';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 const today = new Date();
 const thirtyDays = new Date(today.getTime() + 30 * 86400000);
@@ -70,6 +70,7 @@ type ProformaDraft = {
 type ProformaItem = { description: string; quantity: number; unitPrice: number };
 
 export default function ProposalsPage() {
+  const { fetch } = useWorkspaceRuntime();
   const [form, setForm] = React.useState<ProposalInput>(initialProposal);
   const [loading, setLoading] = React.useState(true);
   const [generating, setGenerating] = React.useState(false);

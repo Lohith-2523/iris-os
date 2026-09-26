@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +31,7 @@ import { SECURITY_PAGE_OPTIONS } from '@/lib/security-pages';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { normalizePlan, type PlanId } from '@/lib/plan-entitlements';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
@@ -39,6 +39,7 @@ const isInternalTeamUser = (user: { role?: string }) => ['admin', 'member', 'sub
 const teamRoleLabel = (role?: string) => workspaceRoleLabel(role) || 'Team member';
 
 export default function TeamClient({ initialData }: { initialData: TeamReadModel }) {
+  const { fetch } = useWorkspaceRuntime();
   const [canManageTeam] = React.useState(initialData.workspace.user.role.toLowerCase() === 'admin');
   const [plan, setPlan] = React.useState<PlanId>(normalizePlan(initialData.workspace.organization.plan));
   const [teamUpgradePromptOpen, setTeamUpgradePromptOpen] = React.useState(false);

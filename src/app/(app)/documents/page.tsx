@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Download, FileCheck2, FileText, ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
@@ -10,6 +9,7 @@ import { formatUserMessage } from '@/lib/utils';
 import type { ContractInput, LegalDocumentInput, SowInput } from '@/lib/legal-documents/types';
 import { DocumentWorkspace } from '@/components/documents/document-workspace';
 import { DateInput } from '@/components/ui/date-input';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { RequiredFieldLabel } from '@/components/ui/required-field-label';
 
 const date = new Date().toISOString().slice(0, 10);
@@ -47,6 +47,7 @@ const textareaClass = `${inputClass} min-h-28 resize-y leading-relaxed`;
 function Field({ label, children, span = false }: { label: string; children: React.ReactNode; span?: boolean }) { return <label className={`space-y-1.5 ${span ? 'md:col-span-2' : ''}`}><span className="block font-semibold text-muted-foreground"><RequiredFieldLabel label={label} /></span>{children}</label>; }
 
 export default function DocumentsPage() {
+  const { fetch } = useWorkspaceRuntime();
   const [kind, setKind] = React.useState<'CONTRACT' | 'SOW'>('CONTRACT');
   const [contract, setContract] = React.useState(initialContract);
   const [sow, setSow] = React.useState(initialSow);

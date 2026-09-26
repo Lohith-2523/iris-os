@@ -356,7 +356,7 @@
 }
 
 .previewBrand { display: flex; align-items: center; gap: 0.5rem; padding: 0.15rem 0.4rem 0.75rem; border-bottom: 1px solid #27272a; }
-.previewBrand img { width: 1.4rem; height: 1.4rem; object-fit: contain; }
+.previewBrand img { width: auto; height: 1.4rem; object-fit: contain; }
 .previewBrand span { color: #f4f4f5; font-size: 0.875rem; letter-spacing: 0.08em; white-space: nowrap; }
 .previewBrand b { font-weight: 800; }
 .previewOrganization, .previewProfile { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.45rem; padding: 0.65rem 0.35rem; }

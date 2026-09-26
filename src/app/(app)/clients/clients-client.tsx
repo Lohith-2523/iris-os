@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { formatCurrency } from '@/lib/utils';
 import { collectAssignedSpecialists, type AssignedSpecialist } from '@/lib/clients/assigned-specialists';
 import type { ClientsReadModel } from '@/server/read-models/workspace-pages';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 function SpecialistAvatar({ specialist, index }: { specialist: AssignedSpecialist; index: number }) {
   return (
@@ -61,6 +61,7 @@ function AssignedSpecialists({ specialists }: { specialists: AssignedSpecialist[
 }
 
 export default function ClientsPage({ initialData }: { initialData: ClientsReadModel }) {
+  const { fetch } = useWorkspaceRuntime();
   const searchParams = useSearchParams();
   const [dbClients, setDbClients] = React.useState<any[]>(initialData.clients);
   const [team] = React.useState<any[]>(initialData.team);

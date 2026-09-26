@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type StrategyType = 'UPSELL' | 'MARKETING' | 'FINANCIAL';
 
@@ -164,6 +164,7 @@ function MultiSelect({
 }
 
 export default function StrategyPage() {
+  const { fetch } = useWorkspaceRuntime();
   const [activeType, setActiveType] = React.useState<StrategyType>('UPSELL');
   const [form, setForm] = React.useState(EMPTY_FORM);
   const [strategies, setStrategies] = React.useState<StrategyRecord[]>([]);
@@ -230,7 +231,7 @@ export default function StrategyPage() {
     setDownloadingId(strategy.id);
     setError('');
     try {
-      const response = await globalThis.fetch(`/api/strategies/${strategy.id}/pdf`, { cache: 'no-store' });
+      const response = await fetch(`/api/strategies/${strategy.id}/pdf`, { cache: 'no-store' });
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
         throw new Error(result.error || 'Unable to download this strategy.');

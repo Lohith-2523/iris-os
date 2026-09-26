@@ -1,8 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
-import { useRouter, usePathname } from 'next/navigation';
 import { Search, Menu, X, Sun, Moon, CircleDollarSign, FolderKanban } from 'lucide-react';
 import { Button } from '../ui/button';
 import { AtlasIcon } from '../ui/atlas-icon';
@@ -16,6 +14,7 @@ import {
   readWorkspaceTheme,
   type WorkspaceTheme,
 } from '@/lib/workspace-theme';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 interface TopbarProps {
   onMenuToggle: () => void;
@@ -63,8 +62,10 @@ const workspaceCommands: CommandItem[] = [
 const commandSearchText = (item: CommandItem) => [item.name, item.category, item.description, ...item.keywords].join(' ').toLowerCase();
 
 export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, canManagePlan }: TopbarProps) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const runtime = useWorkspaceRuntime();
+  const router = runtime.router;
+  const pathname = runtime.pathname;
+  const fetch = runtime.fetch;
   const isClient = pathname === '/client-dashboard';
   const [isCommandOpen, setIsCommandOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -98,7 +99,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => {
     applyWorkspaceTheme(theme);

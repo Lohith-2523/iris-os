@@ -1,8 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
-import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +42,7 @@ import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/de
 import { agencyServiceLines } from '@/lib/agency-specializations';
 import { ProjectBreakdownDrawer } from '@/components/projects/project-breakdown-drawer';
 import type { ProjectsReadModel } from '@/server/read-models/workspace-pages';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 const clientIdentityIcons: LucideIcon[] = [
   Building2,
@@ -108,7 +107,7 @@ const newQuickTaskDraft = (stageId = ''): QuickTaskDraft => ({
 });
 
 export default function ProjectsPage({ initialData }: { initialData: ProjectsReadModel }) {
-  const router = useRouter();
+  const { router, fetch } = useWorkspaceRuntime();
   const initialServiceLines = agencyServiceLines(initialData.workspace.organization.agencyTypes);
   const [projects, setProjects] = React.useState<any[]>(initialData.projects);
   const [clients, setClients] = React.useState<any[]>(initialData.clients);

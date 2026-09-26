@@ -37,7 +37,7 @@ export function LandingNavigation() {
   const links = [['Product', '#product'], ['Miles', '#atlas'], ['Solutions', '#roles'], ['Integrations', '#integrations'], ['Pricing', '/pricing']];
   return <header className={`${styles.nav} ${scrolled ? styles.navScrolled : ''}`}>
     <div className={styles.navInner}>
-      <Link className={styles.wordmark} href="#top" aria-label="IrisOS home" onClick={() => setOpen(false)}><Image className={styles.brandLogo} src="/iris-logo-white-transparent.svg" alt="" width={28} height={28} priority /><span><b>IRISOS</b></span></Link>
+      <Link className={styles.wordmark} href="#top" aria-label="IrisOS home" onClick={() => setOpen(false)}><Image className={styles.brandLogo} src="/iris-logo-black-bg.png" alt="" width={76} height={31} priority /></Link>
       <nav className={styles.navLinks} aria-label="Primary navigation">{links.map(([label, href]) => <Link href={href} key={label}>{label}</Link>)}</nav>
       <div className={styles.navActions}><Link className={styles.primaryButton} href="/waitlist">Join the Waitlist <ArrowRight aria-hidden="true" /></Link></div>
       <button className={styles.menuButton} type="button" aria-expanded={open} aria-controls="landing-mobile-nav" aria-label={open ? 'Close navigation' : 'Open navigation'} onClick={() => setOpen((value) => !value)}>{open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>

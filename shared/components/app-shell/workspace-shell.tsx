@@ -4,7 +4,6 @@ import * as React from 'react';
 import { Sidebar } from '@/components/app-shell/sidebar';
 import { Topbar } from '@/components/app-shell/topbar';
 import { X, Lock, ArrowRight } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { setActiveWorkspaceContext } from '@/lib/utils';
 import { setAtlasAIWorkspaceScope } from '@/lib/atlas-ai/service';
@@ -30,6 +29,7 @@ import { workspaceDataUrlsForRoute } from '@/lib/workspace-route-data';
 import type { WorkspaceReadModel } from '@/lib/workspace-read-model';
 import { workspaceRouteRestriction } from '@/lib/workspace-route-authorization';
 import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 prepareWorkspaceDataCacheForNavigation();
 
@@ -86,9 +86,10 @@ export function WorkspaceShell({
 }) {
   const [isMobileOpen, setIsMobileOpen] = React.useState(false);
   const layoutMode = useWorkspaceLayoutMode();
-  const pathname = usePathname();
+  const runtime = useWorkspaceRuntime();
+  const pathname = runtime.pathname;
   const layoutFamily = resolveWorkspaceLayoutFamily(pathname);
-  const router = useRouter();
+  const router = runtime.router;
   
   const [user, setUser] = React.useState<WorkspaceShellUser>(() => workspaceShellUser(initialWorkspace));
 
@@ -112,8 +113,9 @@ export function WorkspaceShell({
   }, []);
 
   const fetchUser = React.useCallback(async () => {
+    if (runtime.isDemo) return;
     try {
-      const res = await fetch('/api/workspace', { cache: 'no-store' });
+      const res = await runtime.fetch('/api/workspace', { cache: 'no-store' });
       if (res.ok) {
         applyWorkspace(await res.json() as WorkspaceReadModel);
       } else if (res.status === 401) {
@@ -124,17 +126,19 @@ export function WorkspaceShell({
     } catch (e) {
       console.error('Error fetching user in layout:', e);
     }
-  }, [applyWorkspace, router]);
+  }, [applyWorkspace, router, runtime]);
 
   React.useEffect(() => {
+    if (runtime.isDemo) return;
     applyWorkspace(initialWorkspace);
     window.addEventListener('user-updated', fetchUser);
     return () => {
       window.removeEventListener('user-updated', fetchUser);
     };
-  }, [applyWorkspace, fetchUser, initialWorkspace]);
+  }, [applyWorkspace, fetchUser, initialWorkspace, runtime.isDemo]);
 
   React.useEffect(() => {
+    if (runtime.isDemo) return;
     prepareWorkspaceDataCacheForRouteChange(pathname);
     if (!user) return;
     const schedule = window.requestIdleCallback
@@ -144,13 +148,14 @@ export function WorkspaceShell({
       if (window.cancelIdleCallback && typeof schedule === 'number') window.cancelIdleCallback(schedule);
       else window.clearTimeout(schedule);
     };
-  }, [pathname, user]);
+  }, [pathname, runtime.isDemo, user]);
 
   React.useEffect(() => {
+    if (runtime.isDemo) return;
     if (!user) return;
     startWorkspaceDataBackgroundChecks();
     return stopWorkspaceDataBackgroundChecks;
-  }, [user]);
+  }, [runtime.isDemo, user]);
 
   const routeRestriction = workspaceRouteRestriction(user, pathname);
   const isClientGated = routeRestriction === 'client';
@@ -175,9 +180,9 @@ export function WorkspaceShell({
       data-layout-mode={layoutMode}
       data-layout-family={layoutFamily}
     >
-      <WorkspaceRuntime />
+      {!runtime.isDemo && <WorkspaceRuntime />}
       {/* Desktop Sidebar */}
-      <Sidebar className="workspace-desktop-sidebar hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} workspaceDeliveryWorkspace={user?.deliveryWorkspace} workspaceAccessPermissions={user?.accessPermissions} />
+      <Sidebar className="workspace-desktop-sidebar hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} workspaceDeliveryWorkspace={user?.deliveryWorkspace} workspaceAccessPermissions={user?.accessPermissions} workspaceUserName={user?.name} />
 
       {/* Mobile Sidebar overlay drawer */}
       {isMobileOpen && (
@@ -190,7 +195,7 @@ export function WorkspaceShell({
 
           {/* Sidebar Drawer */}
           <div className="workspace-drawer relative z-50 flex h-full w-[282px] max-w-[calc(100%-3.5rem)] transform transition-transform duration-300 ease-in-out">
-            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} workspaceDeliveryWorkspace={user?.deliveryWorkspace} workspaceAccessPermissions={user?.accessPermissions} />
+            <Sidebar onCloseMobile={() => setIsMobileOpen(false)} className="w-full" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} workspaceDeliveryWorkspace={user?.deliveryWorkspace} workspaceAccessPermissions={user?.accessPermissions} workspaceUserName={user?.name} />
             <button
               onClick={() => setIsMobileOpen(false)}
               className="workspace-icon-control absolute top-4 -right-12 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
@@ -206,7 +211,7 @@ export function WorkspaceShell({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar
           onMenuToggle={() => setIsMobileOpen(true)}
-          atlasMenuEnabled={Boolean(user && canShowAtlasLauncher(user.role))}
+          atlasMenuEnabled={!runtime.isDemo && Boolean(user && canShowAtlasLauncher(user.role))}
           workspacePlan={user?.plan}
           canManagePlan={user?.role.toLowerCase() === 'admin'}
         />

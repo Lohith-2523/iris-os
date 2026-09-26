@@ -9,7 +9,7 @@ import { generateInvoicePdf } from './pdf';
 
 describe('invoice PDF', () => {
   it('creates a valid one-page PDF with invoice metadata', async () => {
-    const logoDataUrl = `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public', 'iris-logo-white-transparent.png'))).toString('base64')}`;
+    const logoDataUrl = `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public', 'iris-logo-white-bg.png'))).toString('base64')}`;
     const pdf = await generateInvoicePdf({
       invoiceNumber: 'INV-2026-TEST',
       issuedDate: new Date('2026-07-28T00:00:00.000Z'),

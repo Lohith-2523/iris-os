@@ -3,9 +3,8 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Popover } from 'radix-ui';
-import { invalidateWorkspaceDataTags, workspaceFetch as fetch } from '@/lib/workspace-data-cache';
+import { invalidateWorkspaceDataTags } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { PROFILE_AVATAR_TEMPLATES, type ProfileAvatarTemplateId } from '@/lib/profile-avatar-templates';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import {
   getMetaSdkStatus,
   META_SDK_ERROR_EVENT,
@@ -230,7 +230,9 @@ function ProfileIdentity({
 }
 
 export default function SettingsPage() {
-  const router = useRouter();
+  const runtime = useWorkspaceRuntime();
+  const router = runtime.router;
+  const fetch = runtime.fetch;
   const supabase = React.useMemo(() => createClient(), []);
   const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
   const [currentUser, setCurrentUser] = React.useState<{ id: string; orgId: string; name: string; email: string; role: string; avatarUrl?: string | null; accessPermissions?: string[] | null } | null>(null);
@@ -258,7 +260,7 @@ export default function SettingsPage() {
   const [showCancelPlanModal, setShowCancelPlanModal] = React.useState(false);
   const [cancelPlanStatus, setCancelPlanStatus] = React.useState<'idle' | 'saving' | 'error'>('idle');
   const [cancelPlanError, setCancelPlanError] = React.useState('');
-  const { region: pricingRegion, plans: settingsPlans, loading: pricingLoading } = usePlanPricing();
+  const { region: pricingRegion, plans: settingsPlans, loading: pricingLoading } = usePlanPricing(!runtime.isDemo);
   const [hasAddon, setHasAddon] = React.useState(false);
   const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, projects: 0, activeLeads: 0, teamMembers: 0, coreTeamMembers: 0, dataTransferBytes: 0, monthlyInvoices: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
@@ -319,7 +321,7 @@ export default function SettingsPage() {
     } finally {
       setLoadingIntegrations(false);
     }
-  }, []);
+  }, [fetch]);
 
   const openMetaAccountPicker = (meta: MetaConnectionDetails) => {
     setMetaConnection(meta);
@@ -548,11 +550,15 @@ export default function SettingsPage() {
       }
     }
     loadOrg();
-  }, []);
+  }, [fetch]);
 
 
   const handleSignOut = async () => {
     if (signingOut) return;
+    if (runtime.isDemo) {
+      runtime.demo?.showNotice('Sign out is disabled inside the safe demo.');
+      return;
+    }
     setSigningOut(true);
     clearWorkspaceUiPreferences(currentUser ? { userId: currentUser.id, orgId: currentUser.orgId } : null);
     const { error } = await supabase.auth.signOut();
@@ -1794,7 +1800,8 @@ export default function SettingsPage() {
                                             handleConnectMeta();
                                           }
                                         } else if (item.provider === 'GOOGLE') {
-                                          window.location.assign('/api/integrations/google/start?returnTo=/calendar');
+                                          if (runtime.isDemo) runtime.demo?.showNotice('External account connections are disabled inside the safe demo.');
+                                          else window.location.assign('/api/integrations/google/start?returnTo=/calendar');
                                         }
                                       }}
                                       className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
@@ -2252,6 +2259,11 @@ export default function SettingsPage() {
                     type="button"
                     disabled={!destructiveConfirmationValid || wipeStatus === 'wiping'}
                     onClick={async () => {
+                      if (runtime.isDemo) {
+                        runtime.demo?.showNotice('Destructive workspace actions are disabled inside the safe demo.');
+                        setShowWipeModal(false);
+                        return;
+                      }
                       setWipeStatus('wiping');
                       setWipeError('');
                       try {

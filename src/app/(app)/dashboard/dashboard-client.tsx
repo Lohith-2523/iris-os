@@ -4,11 +4,10 @@ import * as React from 'react';
 import {
   configureWorkspaceDataCache,
   primeWorkspaceJson,
-  workspaceFetch as fetch,
 } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +58,7 @@ import { MAX_SOURCE_IMAGE_BYTES, processBrowserImage } from '@/lib/browser-image
 import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import type { DashboardReadModel } from '@/server/read-models/workspace-pages';
 import { financialValueClass } from '@/lib/financial-value';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type FinanceMetricKey = 'revenue' | 'profit' | 'mrr' | 'expenses' | 'receivables';
 type OverviewTab = 'leads' | 'clients' | 'actions' | 'tasks' | 'meetings';
@@ -126,7 +126,9 @@ function dashboardRangeLabel(startValue: string, endValue: string) {
 }
 
 export default function DashboardPage({ initialData, range }: { initialData: DashboardReadModel; range: { start: string; end: string } }) {
-  const router = useRouter();
+  const runtime = useWorkspaceRuntime();
+  const router = runtime.router;
+  const fetch = runtime.fetch;
   const searchParams = useSearchParams();
   const formatCurrency = React.useCallback(
     (amount: number, decimals: number = 0) => formatCurrencyFor(
@@ -149,6 +151,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   const [progressView, setProgressView] = React.useState<'projects' | 'tasks'>('projects');
   const [selectedProjectId, setSelectedProjectId] = React.useState('all');
   const [draftRange, setDraftRange] = React.useState(range);
+  const [appliedRange, setAppliedRange] = React.useState(range);
   const [rangeError, setRangeError] = React.useState('');
   const [isRangePending, startRangeTransition] = React.useTransition();
   // Keep dashboard metrics tied to the latest server read model. These values
@@ -179,6 +182,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   };
 
   React.useEffect(() => {
+    if (runtime.isDemo) return;
     const { user, organization } = initialData.workspace;
     configureWorkspaceDataCache({
       userId: user.id,
@@ -192,7 +196,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       `/api/data?domain=dashboard&start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}`,
       initialData.dashboard,
     );
-  }, [initialData, range.end, range.start]);
+  }, [initialData, range.end, range.start, runtime.isDemo]);
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(
@@ -255,7 +259,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
     setSavedBannerZoom(nextZoom);
     setIsRepositioningBanner(false);
     setWelcomeBackgroundStatus('idle');
-  }, [organizationPreferences]);
+  }, [fetch, organizationPreferences]);
 
   const saveBannerTransform = React.useCallback(async (position: BannerPosition, zoom: number) => {
     setWelcomeBackgroundStatus('saving');
@@ -279,7 +283,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
     setSavedBannerZoom(zoom);
     setIsRepositioningBanner(false);
     setWelcomeBackgroundStatus('idle');
-  }, [organizationPreferences]);
+  }, [fetch, organizationPreferences]);
 
   const processWelcomeBackgroundFile = async (file: File) => {
     try {
@@ -316,7 +320,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ onboarding: { checklist: next } }),
     });
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => {
     async function load() {
@@ -338,10 +342,11 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       }
     }
     load();
-  }, [range.end, range.start]);
+  }, [fetch, range.end, range.start]);
 
   React.useEffect(() => {
     setDraftRange(range);
+    setAppliedRange(range);
   }, [range]);
 
   const applyDashboardRange = () => {
@@ -350,6 +355,11 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       return;
     }
     setRangeError('');
+    if (runtime.isDemo) {
+      setAppliedRange(draftRange);
+      runtime.demo?.showNotice('Dashboard range updated using the demo dataset.');
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set('start', draftRange.start);
     params.set('end', draftRange.end);
@@ -358,6 +368,11 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
 
   
   const handleConnect = (id: string) => {
+    if (runtime.isDemo) {
+      const provider = id === 'google' ? 'Google Calendar' : id === 'stripe' ? 'Stripe' : 'PayPal';
+      runtime.demo?.showNotice(`${provider} connection is simulated in this safe demo.`);
+      return;
+    }
     if (id === 'google') {
       window.location.assign('/api/google/auth');
       return;
@@ -752,8 +767,8 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
         <div className="z-10 flex min-w-0 max-w-full flex-wrap items-center justify-start gap-3 md:col-start-2 md:row-start-1 md:justify-self-end">
           <Popover.Root>
             <Popover.Trigger asChild>
-              <button type="button" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${dashboardRangeLabel(range.start, range.end)}`}>
-                <Calendar className="h-4 w-4" aria-hidden="true" />{dashboardRangeLabel(range.start, range.end)}
+              <button type="button" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${dashboardRangeLabel(appliedRange.start, appliedRange.end)}`}>
+                <Calendar className="h-4 w-4" aria-hidden="true" />{dashboardRangeLabel(appliedRange.start, appliedRange.end)}
               </button>
             </Popover.Trigger>
             <Popover.Portal>
@@ -1345,7 +1360,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.location.href = '/agency-leads';
+                      router.push('/agency-leads');
                     }}
                     className="w-full h-8 font-semibold bg-white hover:bg-zinc-200 text-zinc-950 text-[11px] flex items-center justify-center gap-1 cursor-pointer rounded-md"
                   >
@@ -1397,7 +1412,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                       className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-100 border border-zinc-300 text-zinc-950 hover:bg-white rounded-md h-11"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = '/clients/onboard';
+                        router.push('/clients/onboard');
                       }}
                     >
                       Add Client
@@ -1408,7 +1423,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                       className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-900 border border-zinc-800 text-zinc-200 hover:text-white hover:bg-zinc-800/80 rounded-md h-11"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = '/atlas';
+                        router.push('/atlas');
                       }}
                     >
                       Ask Miles

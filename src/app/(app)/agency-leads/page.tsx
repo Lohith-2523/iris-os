@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { WhatsappLogo } from '@phosphor-icons/react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,12 +29,12 @@ import {
   GripVertical
 } from 'lucide-react';
 import { formatCurrency, formatUserMessage } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 import { validateBrowserFile } from '@/lib/file-security';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { DateInput, DateTimeInput } from '@/components/ui/date-input';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { LEAD_EXPORT_TIMEFRAMES, resolveLeadExportTimeframe, type LeadExportTimeframe } from '@/lib/lead-export-timeframe';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 interface AgencyLead {
   id: string;
@@ -111,7 +110,9 @@ interface MetaConnectionData {
 }
 
 export default function AgencyLeadsPage() {
-  const router = useRouter();
+  const runtime = useWorkspaceRuntime();
+  const router = runtime.router;
+  const fetch = runtime.fetch;
   const [leads, setLeads] = React.useState<AgencyLead[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
@@ -635,7 +636,7 @@ export default function AgencyLeadsPage() {
       const queryValues = exportTimeframe === 'custom' ? exportRange : presetRange;
       if (!queryValues) throw new Error('Unable to resolve the selected timeframe.');
       const query = new URLSearchParams(queryValues);
-      const response = await globalThis.fetch(`/api/agency-leads/export?${query.toString()}`, { cache: 'no-store' });
+      const response = await fetch(`/api/agency-leads/export?${query.toString()}`, { cache: 'no-store' });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || 'Unable to export leads.');

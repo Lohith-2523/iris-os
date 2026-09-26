@@ -3,6 +3,10 @@
 import { Bot, ChartNoAxesCombined, FileCheck2, ShieldCheck, Sparkles, Workflow } from 'lucide-react';
 import { CaseStudyFlipStack, type CaseStudyFlipItem } from '@/components/ui/case-study-flip-stack';
 import { ScrollSplitCard } from '@/components/ui/scroll-split-card';
+import mainDashboardImage from '../../../main-dashboard.png';
+import financeDashboardImage from '../../../finance-dashboard.png';
+import clientOverviewImage from '../../../client-overview.png';
+import projectDeliverablesImage from '../../../project-deliverables.png';
 import styles from './iris-landing-sections.module.css';
 
 const consoleItems: CaseStudyFlipItem[] = [
@@ -11,8 +15,8 @@ const consoleItems: CaseStudyFlipItem[] = [
     eyebrow: 'Command centre',
     title: 'Keep every operating signal in one shared view.',
     description: 'Projects, priorities, team capacity and deadlines stay connected so owners can move from signal to action without rebuilding context.',
-    image: '/workspace_banner_dark.png',
-    imageAlt: 'IrisOS workspace overview',
+    image: mainDashboardImage.src,
+    imageAlt: 'IrisOS main dashboard overview',
     background: 'var(--color-landing-surface)',
     foreground: 'var(--color-landing-ink)',
   },
@@ -21,8 +25,8 @@ const consoleItems: CaseStudyFlipItem[] = [
     eyebrow: 'Revenue control',
     title: 'See the work and the margin behind it.',
     description: 'Invoices, expenses, profitability and forecasts share the same operating record as delivery, exposing risk before month end.',
-    image: '/workspace_banner_light.jpg',
-    imageAlt: 'IrisOS financial workspace',
+    image: financeDashboardImage.src,
+    imageAlt: 'IrisOS finance dashboard',
     background: 'var(--color-landing-surface-raised)',
     foreground: 'var(--color-landing-ink)',
   },
@@ -31,8 +35,8 @@ const consoleItems: CaseStudyFlipItem[] = [
     eyebrow: 'Client workspace',
     title: 'Give every client a clear, accountable experience.',
     description: 'Onboarding, approvals, reports, documents and secure communication move through one controlled client journey.',
-    image: '/workspace_banner_dark.png',
-    imageAlt: 'IrisOS client workspace',
+    image: clientOverviewImage.src,
+    imageAlt: 'IrisOS client overview',
     background: 'var(--color-landing-surface-inset)',
     foreground: 'var(--color-landing-ink)',
   },
@@ -41,8 +45,8 @@ const consoleItems: CaseStudyFlipItem[] = [
     eyebrow: 'Delivery system',
     title: 'Turn briefs into coordinated work without tool hopping.',
     description: 'Leads, projects, tasks, documents and automations stay linked from first conversation through final delivery.',
-    image: '/workspace_banner_light.jpg',
-    imageAlt: 'IrisOS delivery workspace',
+    image: projectDeliverablesImage.src,
+    imageAlt: 'IrisOS project deliverables workspace',
     background: 'var(--color-landing-metal-dark)',
     foreground: 'var(--color-landing-ink)',
   },

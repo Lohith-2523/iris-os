@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Download, FileText, LayoutDashboard, ListPlus, Loader2, Pencil, Plus, ReceiptText, Send, Sparkles, Trash2, X } from 'lucide-react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
 import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatCurrency } from '@/lib/utils';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type PageTab = 'OVERVIEW' | 'TAX' | 'PROFORMA';
 type LineItemForm = { description: string; quantity: number; unitPrice: number };
@@ -139,6 +139,7 @@ function RequiredLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function InvoicesPage() {
+  const { fetch } = useWorkspaceRuntime();
   const [invoices, setInvoices] = React.useState<any[]>([]);
   const [projects, setProjects] = React.useState<any[]>([]);
   const [leads, setLeads] = React.useState<LeadOption[]>([]);
@@ -303,7 +304,7 @@ export default function InvoicesPage() {
     setDownloadingInvoiceId(invoice.id);
     setError('');
     try {
-      const response = await globalThis.fetch(invoice.downloadUrl, { cache: 'no-store' });
+      const response = await fetch(invoice.downloadUrl, { cache: 'no-store' });
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
         throw new Error(result.error || 'Unable to download this invoice.');

@@ -31,7 +31,7 @@ export function WorkspacePreview({
   return (
     <div className={`${styles.workspacePreview} workspace-shell`} aria-label={`IrisOS ${area} preview with sample data`}>
       <aside className={`${styles.previewSidebar} workspace-sidebar`}>
-        <div className={styles.previewBrand}><Image src="/iris-logo-white-transparent.svg" alt="" width={24} height={24} /><span><b>IRISOS</b></span></div>
+        <div className={styles.previewBrand}><Image src="/iris-logo-black-bg.png" alt="" width={68} height={28} /></div>
         <div className={styles.previewOrganization}><span>NS</span><div><b>Northstar Studio</b><small>Advanced workspace</small></div></div>
         <nav aria-label={`${area} preview navigation`}>
           <small>Workspace</small>

@@ -1,9 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
@@ -13,6 +11,7 @@ import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-d
 import { prepareWorkspaceDataCacheForRouteChange, stageWorkspaceDataCache } from '@/lib/workspace-data-cache';
 import { workspaceDataUrlsForRoute } from '@/lib/workspace-route-data';
 import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { normalizePlan, planIncludes, type PlanId } from '@/lib/plan-entitlements';
 import {
   LayoutDashboard,
@@ -42,6 +41,8 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   workspaceOrganizationLogoDataUrl?: string | null;
   workspaceDeliveryWorkspace?: boolean;
   workspaceAccessPermissions?: string[] | null;
+  workspaceUserName?: string;
+  workspaceUserEmail?: string;
 }
 
 type NavigationItem = {
@@ -58,9 +59,10 @@ type NavigationGroup = {
   items: NavigationItem[];
 };
 
-export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole, workspaceOrganizationName, workspaceOrganizationLogoDataUrl, workspaceDeliveryWorkspace, workspaceAccessPermissions, ...props }: SidebarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole, workspaceOrganizationName, workspaceOrganizationLogoDataUrl, workspaceDeliveryWorkspace, workspaceAccessPermissions, workspaceUserName, workspaceUserEmail, ...props }: SidebarProps) {
+  const runtime = useWorkspaceRuntime();
+  const pathname = runtime.pathname;
+  const router = runtime.router;
   const supabase = React.useMemo(() => createClient(), []);
   const [orgName, setOrgName] = React.useState(workspaceOrganizationName || 'Agency Workspace');
   const [orgLogoDataUrl, setOrgLogoDataUrl] = React.useState(workspaceOrganizationLogoDataUrl || '');
@@ -74,7 +76,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     avatarUrl?: string | null;
     accessPermissions?: string[] | null;
     deliveryWorkspace?: boolean;
-  } | null>(null);
+  } | null>(() => workspaceRole ? { name: workspaceUserName || 'Workspace User', email: workspaceUserEmail || '', role: workspaceRole, accessPermissions: workspaceAccessPermissions, deliveryWorkspace: workspaceDeliveryWorkspace } : null);
   const [isCollapsed, setIsCollapsed] = React.useState(true);
   const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({});
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
@@ -90,16 +92,21 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
 
   const prepareRouteIntent = React.useCallback((href: string) => {
     if (href === pathname || intentRoutes.current.has(href)) return;
+    if (runtime.isDemo) return;
     intentRoutes.current.add(href);
     router.prefetch(href);
     const [criticalUrl] = workspaceDataUrlsForRoute(href);
     if (criticalUrl) void stageWorkspaceDataCache([criticalUrl], 1, 'intent');
-  }, [pathname, router]);
+  }, [pathname, router, runtime.isDemo]);
 
   const navigateToRoute = React.useCallback(async (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
     onCloseMobile?.();
+    if (runtime.isDemo) {
+      router.push(href);
+      return;
+    }
     const [criticalUrl] = workspaceDataUrlsForRoute(href);
     if (criticalUrl) {
       await Promise.race([
@@ -109,11 +116,11 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     }
     prepareWorkspaceDataCacheForRouteChange(href);
     router.push(href);
-  }, [onCloseMobile, router]);
+  }, [onCloseMobile, router, runtime.isDemo]);
 
   const loadOrg = React.useCallback(async () => {
     try {
-      const res = await fetch('/api/workspace');
+      const res = await runtime.fetch('/api/workspace');
       if (res.ok) {
         const data = await res.json();
         setOrgName(data.organization.name || 'Agency Workspace');
@@ -125,7 +132,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     } catch (e) {
       console.error('Error loading org in sidebar:', e);
     }
-  }, []);
+  }, [runtime]);
 
   React.useEffect(() => {
     setIsCollapsed(readWorkspaceUiPreference(uiScope, 'sidebar', true, (value): value is boolean => typeof value === 'boolean'));
@@ -148,6 +155,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   };
 
   React.useEffect(() => {
+    if (runtime.isDemo) return;
     void loadOrg();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -170,7 +178,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       window.removeEventListener('organization-updated', handleOrgUpdate);
       window.removeEventListener('user-updated', handleUserUpdate);
     };
-  }, [loadOrg, supabase]);
+  }, [loadOrg, runtime.isDemo, supabase]);
 
   const navigationGroups = React.useMemo<NavigationGroup[]>(() => [
     {
@@ -372,9 +380,9 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         >
           {isCollapsed ? (
             <img 
-              src="/iris-logo-white-transparent.png" 
+              src="/iris-logo-black-bg.png"
               alt="IrisOS Logo"
-              className="h-9 w-9 object-contain"
+              className="h-8 w-auto max-w-[64px] object-contain"
             />
           ) : (
             <div className="flex items-center gap-2">

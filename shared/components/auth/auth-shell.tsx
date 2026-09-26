@@ -58,10 +58,10 @@ export function AuthShell({ title, description, children, appearance = 'light' }
         <div className={styles.card} style={{ backdropFilter: 'var(--filter-auth-frost)', WebkitBackdropFilter: 'var(--filter-auth-frost)' }}>
           <header className={styles.header}>
             <Image
-              src={dark ? '/iris-logo-white-transparent.png' : '/iris-logo-black-transparent.png'}
+              src={dark ? '/iris-logo-black-bg.png' : '/iris-logo-white-bg.png'}
               alt="IrisOS"
               width={120}
-              height={46}
+              height={49}
               priority
               className={styles.logo}
             />

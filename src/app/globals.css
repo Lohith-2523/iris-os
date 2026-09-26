@@ -2083,7 +2083,7 @@ button {
   z-index: 1;
   width: 28px;
   height: 28px;
-  background: center / contain no-repeat url('/iris-logo-white-transparent.svg');
+  background: left center / auto 28px no-repeat url('/iris-logo-black-bg.png');
   animation: workspace-bootstrap-logo-spin 1.4s linear infinite;
 }
 
@@ -2093,7 +2093,7 @@ button {
 }
 
 :root.light .workspace-bootstrap-loader .relative::after {
-  background-image: url('/iris-logo-black-transparent.svg');
+  background-image: url('/iris-logo-white-bg.png');
 }
 
 .integration-meta-logo-light {
@@ -2988,72 +2988,22 @@ button {
   background: #27272a !important;
 }
 
-/* Agency Leads header alignment.
-   Below 1200px the component keeps its existing responsive flex behavior.
-   From 1200–1499px the metrics take the first controls row while the title
-   remains anchored to that row; at 1500px all controls return to one axis. */
-@media (min-width: 1200px) and (max-width: 1599.98px) {
-  .workspace-shell .agency-leads-header {
-    align-items: flex-start;
-  }
-
-  .workspace-shell .agency-leads-heading {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
-  .workspace-shell .agency-leads-header-actions {
-    display: grid;
-    flex: 1 1 auto;
-    grid-template-areas:
-      "summary"
-      "controls";
-    grid-template-columns: minmax(0, 1fr);
-    justify-items: end;
-  }
-
-  .workspace-shell .agency-leads-summary-grid {
-    grid-area: summary;
-  }
-
-  .workspace-shell .agency-leads-controls {
-    grid-area: controls;
-  }
-}
-
-@media (min-width: 1500px) {
-  .workspace-shell .agency-leads-header,
-  .workspace-shell .agency-leads-header-actions {
-    flex-wrap: nowrap;
-  }
-
-  .workspace-shell .agency-leads-heading {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
-  .workspace-shell .agency-leads-summary-grid,
-  .workspace-shell .agency-leads-controls {
-    flex: 0 0 auto;
-  }
-}
-
-/* MacBook and square-ish desktops give the identity 30% and metrics 70% on
-   the first row, followed by one full-width controls box. */
-@media (min-width: 75rem) and (max-aspect-ratio: 33 / 20) {
+/* Agency Leads header alignment. A single desktop grid owns the title,
+   metrics, and controls so aspect ratio and demo scaling cannot overlap them. */
+@media (min-width: 1200px) {
   .workspace-shell .agency-leads-header {
     display: grid;
     grid-template-areas:
-      "heading heading heading summary summary summary summary summary summary summary"
-      "controls controls controls controls controls controls controls controls controls controls";
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-    grid-template-rows: auto auto;
+      "heading summary"
+      "controls controls";
+    grid-template-columns: minmax(15rem, .72fr) minmax(0, 2fr);
     align-items: center;
-    gap: 0.75rem 1rem;
+    gap: .75rem 1rem;
   }
 
   .workspace-shell .agency-leads-heading {
     grid-area: heading;
+    min-width: 0;
   }
 
   .workspace-shell .agency-leads-header-actions {
@@ -3074,6 +3024,7 @@ button {
   .workspace-shell .agency-leads-controls {
     grid-area: controls;
     display: flex;
+    min-width: 0;
     align-items: center;
     justify-content: space-between;
     justify-self: stretch;
@@ -3082,6 +3033,11 @@ button {
     border: 1px solid var(--workspace-edge);
     border-radius: 0.75rem;
     background: var(--workspace-inset);
+  }
+
+  .workspace-shell .agency-leads-tabs,
+  .workspace-shell .agency-leads-utilities {
+    min-width: 0;
   }
 }
 
@@ -4637,8 +4593,41 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   .workspace-topbar-help .iris-help-bubble span { display: none; }
 }
 
-/* Full wordmark artwork currently includes a registered mark; hide that edge until branding is registered. */
-img[src*="iris-logo-black-bg.png"],
-img[src*="iris-logo-white-bg.png"] {
-  clip-path: inset(0 4.5% 0 0);
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
+ * Hallmark · genre: modern-minimal · macrostructure: Geometry-aware Workbench · design-system: design.md
+ */
+.landing-demo-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  min-height: clamp(31rem, 63vw, 56.25rem);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 1.5rem;
+  background: #09090b;
+}
+
+.landing-demo-skeleton span {
+  min-height: 12rem;
+  border: 1px solid #27272a;
+  border-radius: 1rem;
+  background: #111114;
+  animation: landingDemoSkeleton 1.6s ease-in-out infinite alternate;
+}
+
+.landing-demo-skeleton span:first-child {
+  grid-column: 1 / -1;
+  min-height: 7rem;
+}
+
+@keyframes landingDemoSkeleton { to { opacity: 0.55; } }
+
+@media (max-width: 48rem) {
+  .landing-demo-skeleton { grid-template-columns: 1fr; min-height: 38rem; }
+  .landing-demo-skeleton span:first-child { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-demo-skeleton span { animation: none; }
 }

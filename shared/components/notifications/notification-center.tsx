@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import { Bell, CalendarClock, CheckCheck, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DateTimeInput } from '@/components/ui/date-input';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type Notification = { id: string; type: string; title: string; body: string; href: string | null; actionLabel: string | null; readAt: string | null; createdAt: string };
 
@@ -16,7 +16,9 @@ const notificationTone = (type: string) => {
 };
 
 export function NotificationCenter() {
-  const router = useRouter();
+  const runtime = useWorkspaceRuntime();
+  const router = runtime.router;
+  const fetch = runtime.fetch;
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
@@ -39,7 +41,7 @@ export function NotificationCenter() {
     knownNotificationIds.current = new Set(nextItems.map(item => item.id));
     setItems(nextItems);
     setUnreadCount(payload.unreadCount || 0);
-  }, []);
+  }, [fetch]);
   React.useEffect(() => { void load(); const timer = window.setInterval(() => void load(), 30_000); return () => window.clearInterval(timer); }, [load]);
   React.useEffect(() => {
     if (!popup) return;

@@ -13,6 +13,7 @@ import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { ChatFilePreview, type LoadedChatFile } from '@/components/ui/chat-file-preview';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { normalizePlan, type PlanId } from '@/lib/plan-entitlements';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type Person = { id: string; name: string; email: string; role: string; avatarUrl?: string | null };
 type Conversation = {
@@ -199,6 +200,8 @@ function CreateMeetingDialog({ participant, onClose, onCreate }: {
 }
 
 export default function MessagesClient({ initialInbox }: { initialInbox: InboxPayload }) {
+  const runtime = useWorkspaceRuntime();
+  const fetch = runtime.fetch;
   const [directory, setDirectory] = React.useState<Person[]>(initialInbox.directory);
   const [conversations, setConversations] = React.useState<Conversation[]>(initialInbox.conversations);
   const [selected, setSelected] = React.useState<Conversation | null>(null);
@@ -315,6 +318,12 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
         const cacheKey = `${conversation.id}:${message.id}:${message.encryptedEnvelope}`;
         const cached = decryptedMessageCacheRef.current.get(cacheKey);
         if (cached) return { ...cached, ...message, plaintext: cached.plaintext, attachments: cached.attachments };
+        if (runtime.isDemo) return {
+          ...message,
+          plaintext: message.encryptedEnvelope,
+          attachments: [],
+          deliveryState: message.senderUserId === userId ? 'read' : undefined,
+        };
         if (!protocolReadyRef.current) return {
           ...message,
           plaintext: null,
@@ -399,14 +408,14 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     } finally {
       syncingConversationIdsRef.current.delete(conversation.id);
     }
-  }, [protocol]);
+  }, [protocol, runtime.isDemo]);
 
   React.useEffect(() => {
     let current = true;
     void (async () => {
       applyInbox(initialInbox);
       try {
-        await protocol.prepare({ userId: initialInbox.currentUserId });
+        if (!runtime.isDemo) await protocol.prepare({ userId: initialInbox.currentUserId });
         if (!current) return;
         protocolReadyRef.current = true;
         setProtocolReady(true);
@@ -427,7 +436,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
       })
       .finally(() => { if (current) setPageReady(true); });
     return () => { current = false; };
-  }, [applyInbox, initialInbox, loadMessages, protocol]);
+  }, [applyInbox, initialInbox, loadMessages, protocol, runtime.isDemo]);
 
   React.useEffect(() => {
     if (!selected) return;

@@ -18,6 +18,7 @@ import { extractChatFileArtifacts } from '@/lib/chat-file-artifacts';
 import { ATLAS_GUIDE_MESSAGES, ATLAS_GUIDE_SESSION_ID, ATLAS_GUIDE_TITLE } from '@/lib/atlas-ai/guide';
 import type { AtlasInitialReadModel } from '@/server/domains/atlas-read-service';
 import { hasMeaningfulEnglishSpeech } from '@/lib/atlas-ai/voice-input';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -92,6 +93,8 @@ function confirmedToolActions(value: unknown): AtlasVoiceWorkflowAction[] {
 }
 
 export default function AtlasClient({ initialData }: { initialData: AtlasInitialReadModel }) {
+  const runtime = useWorkspaceRuntime();
+  const fetch = runtime.fetch;
   const [sessions, setSessions] = React.useState<any[]>(initialData.sessions);
   const [sessionMessages, setSessionMessages] = React.useState<Record<string, Message[]>>(initialData.sessionMessages);
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(initialData.currentSessionId);
@@ -172,7 +175,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
   React.useEffect(() => {
     const updateAvatar = async () => {
-      const response = await globalThis.fetch('/api/user', { cache: 'no-store' }).catch(() => null);
+      const response = await fetch('/api/user', { cache: 'no-store' }).catch(() => null);
       if (!response?.ok) return;
       const profile = await response.json();
       setUserAvatarUrl(typeof profile.avatarUrl === 'string' && profile.avatarUrl ? profile.avatarUrl : null);
@@ -180,7 +183,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     const handleUserUpdated = () => void updateAvatar();
     window.addEventListener('user-updated', handleUserUpdated);
     return () => window.removeEventListener('user-updated', handleUserUpdated);
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => () => {
     realtimeAttemptRef.current?.abort();
@@ -213,12 +216,14 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   }, [messages, isLoading]);
 
   const loadSessions = React.useCallback(async () => {
+    if (runtime.isDemo) return sessions;
     const data = await AtlasAIService.getSessions();
     setSessions(data);
     return data;
-  }, []);
+  }, [runtime.isDemo, sessions]);
 
   const persistRealtimeTurn = React.useCallback((role: Message['role'], content: string) => {
+    if (runtime.isDemo) return Promise.resolve();
     realtimePersistenceQueueRef.current = realtimePersistenceQueueRef.current
       .catch(() => undefined)
       .then(async () => {
@@ -236,10 +241,30 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         setVoiceError(error instanceof Error ? error.message : 'Miles could not save this voice conversation.');
       });
     return realtimePersistenceQueueRef.current;
-  }, [loadSessions, setActiveSessionId]);
+  }, [loadSessions, runtime.isDemo, setActiveSessionId]);
 
   const handleSendMessage = async (textToSend: string, options?: { startNewChat?: boolean }) => {
     if (!textToSend.trim() || isLoading || voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || voiceChatActiveRef.current) return;
+
+    if (runtime.isDemo) {
+      const userMessage: Message = { role: 'user', content: textToSend };
+      const normalized = textToSend.toLowerCase();
+      const result = normalized.includes('client')
+        ? 'Kinetic Health needs the closest attention: delivery is overdue and attribution variance still needs a decision. Nova Studio remains the strongest account by monthly revenue.'
+        : normalized.includes('finance') || normalized.includes('revenue')
+          ? 'Northstar Creative is tracking $55,750 in recognized revenue, $33,350 in net profit, and $13,500 in open receivables for the current demo range.'
+          : 'Northstar Creative has four active clients and four active projects. Delivery is broadly healthy, with the Kinetic Health acquisition project carrying the clearest near-term risk.';
+      const assistantMessage: Message = { role: 'assistant', content: result, model: 'IrisOS demo intelligence' };
+      const sessionId = currentSessionId || `demo-atlas-${sessions.length + 1}`;
+      setMessages((current) => options?.startNewChat ? [userMessage, assistantMessage] : [...current, userMessage, assistantMessage]);
+      setSessionMessages((current) => ({ ...current, [sessionId]: [...(current[sessionId] || []), userMessage, assistantMessage] }));
+      setSessions((current) => current.some((session) => session.id === sessionId) ? current : [{ id: sessionId, title: textToSend.slice(0, 42), updatedAt: new Date().toISOString() }, ...current]);
+      setActiveSessionId(sessionId);
+      setIsGuideSelected(false);
+      setQuery('');
+      setChatError(null);
+      return;
+    }
 
     const startingFromGuide = isGuideSelected;
     const startingNewChat = startingFromGuide || options?.startNewChat === true;
@@ -358,6 +383,10 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
       setMessages(cachedMessages.length > 0 ? cachedMessages : [initialMessage]);
       return;
     }
+    if (runtime.isDemo) {
+      setMessages([initialMessage]);
+      return;
+    }
     const data = await AtlasAIService.getSessionMessages(id);
     if (data && data.messages && data.messages.length > 0) {
       setMessages(data.messages);
@@ -377,6 +406,10 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     const title = editingTitle.trim();
     setEditingSessionId(null);
     if (!title) return;
+    if (runtime.isDemo) {
+      setSessions((items) => items.map((item) => item.id === id ? { ...item, title } : item));
+      return;
+    }
     try {
       const updated = await AtlasAIService.renameSession(id, title);
       setSessions((items) => items.map((item) => item.id === id ? { ...item, title: updated.title } : item));
@@ -396,6 +429,10 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
   const startRecording = React.useCallback(async () => {
     if (voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || realtimePeerRef.current || voiceChatActiveRef.current) return;
+    if (runtime.isDemo) {
+      runtime.demo?.showNotice('Voice input is simulated in the safe demo. Try one of the suggested prompts.');
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setVoiceError('Voice recording is not supported in this browser.');
       return;
@@ -510,7 +547,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         ? 'Microphone access was denied. Allow it in your browser settings and try again.'
         : 'Miles could not access the microphone.');
     }
-  }, [query, updateVoiceState]);
+  }, [query, runtime, updateVoiceState]);
 
   const stopRealtimeVoice = React.useCallback(() => {
     voiceChatActiveRef.current = false;
@@ -680,6 +717,10 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
   const startRealtimeVoice = React.useCallback(async () => {
     if (voiceStateRef.current !== 'idle' || realtimeAttemptRef.current || voiceChatActiveRef.current || realtimeState === 'connecting') return;
+    if (runtime.isDemo) {
+      runtime.demo?.showNotice('Realtime voice is simulated in the safe demo.');
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') {
       setVoiceError('Realtime voice is not supported in this browser.');
       return;
@@ -915,7 +956,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         ? 'Microphone access was denied. Allow it in browser settings and try again.'
         : error instanceof Error ? error.message : 'Miles could not start realtime voice.');
     }
-  }, [persistRealtimeTurn, processRealtimeTranscript, realtimeState, stopRealtimeVoice]);
+  }, [persistRealtimeTurn, processRealtimeTranscript, realtimeState, runtime, stopRealtimeVoice]);
 
   const toggleVoiceChat = React.useCallback(() => {
     if (voiceChatActiveRef.current || realtimeState === 'connecting') stopRealtimeVoice();
@@ -933,7 +974,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
   const handleDeleteSession = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    await AtlasAIService.deleteSession(id);
+    if (!runtime.isDemo) await AtlasAIService.deleteSession(id);
     setSessionMessages((current) => {
       const next = { ...current };
       delete next[id];
@@ -942,7 +983,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     if (currentSessionId === id) {
       handleNewChat();
     }
-    loadSessions();
+    if (!runtime.isDemo) loadSessions();
   };
 
   const suggestionPills = [

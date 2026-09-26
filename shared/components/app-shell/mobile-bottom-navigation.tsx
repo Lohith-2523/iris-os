@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { CalendarDays, FolderKanban, Gauge, ListChecks, Menu, MessageSquare, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 type Props = { role?: string; plan?: string; accessPermissions?: string[] | null; deliveryWorkspace?: boolean; onMore: () => void };
 type Destination = { href: string; label: string; icon: typeof Gauge };
@@ -30,7 +30,7 @@ function destinationsFor(role: string, plan: string): Destination[] {
 }
 
 export function MobileBottomNavigation({ role = '', plan = 'BASIC', accessPermissions, deliveryWorkspace = false, onMore }: Props) {
-  const pathname = usePathname();
+  const { pathname } = useWorkspaceRuntime();
   const normalizedRole = role.toLowerCase();
   const allowed = new Set(accessPermissions || []);
   const destinationRole = normalizedRole === 'sub_admin' && deliveryWorkspace ? 'member' : normalizedRole;

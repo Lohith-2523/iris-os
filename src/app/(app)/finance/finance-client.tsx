@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { InsightPanel } from '@/components/ui/insight-panel';
@@ -38,12 +37,15 @@ import { ExpandableCard } from '@/components/ui/expandable-card';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { generateRecurringOccurrences, recurringOccurrenceId } from '@/lib/finance/recurrence';
 import { validateBrowserFile } from '@/lib/file-security';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { FinanceReadModel } from '@/server/read-models/workspace-pages';
 import { financialValueClass } from '@/lib/financial-value';
+import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 export default function FinancePage({ initialData }: { initialData: FinanceReadModel }) {
-  const router = useRouter();
+  const runtime = useWorkspaceRuntime();
+  const router = runtime.router;
+  const fetch = runtime.fetch;
   const searchParams = useSearchParams();
   const initialChecklist = (initialData.workspace.onboarding.checklist && typeof initialData.workspace.onboarding.checklist === 'object'
     ? initialData.workspace.onboarding.checklist
@@ -118,7 +120,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     } finally {
       setLoadingSubs(false);
     }
-  }, []);
+  }, [fetch]);
 
   const handleSubSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,7 +274,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       headers: { 'X-Workspace-Cache-Background': '1' },
     });
     if (response.ok) setDbData(await response.json());
-  }, [timeFrame]);
+  }, [fetch, timeFrame]);
 
 
   const fetchManualTransactions = React.useCallback(async () => {
@@ -288,7 +290,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     } finally {
       setLoadingManual(false);
     }
-  }, []);
+  }, [fetch]);
 
   const fetchOutstandingInvoices = React.useCallback(async () => {
     try {
@@ -297,7 +299,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     } catch (error) {
       console.error('Error loading outstanding invoices:', error);
     }
-  }, []);
+  }, [fetch]);
 
   const addReceivableAsRevenue = (invoice: any) => {
     setActiveTab('manual');
@@ -699,10 +701,11 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     } finally {
       setLoadingIntegrations(false);
     }
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => {
     async function loadBase() {
+      if (runtime.isDemo) return;
       try {
         const leaks = await AtlasAIService.getProfitLeaks();
         if (leaks.length > 0) {
@@ -717,7 +720,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     fetchManualTransactions();
     fetchOutstandingInvoices();
     fetchSubscriptions();
-  }, [fetchIntegrations, fetchManualTransactions, fetchOutstandingInvoices, fetchSubscriptions]);
+  }, [fetchIntegrations, fetchManualTransactions, fetchOutstandingInvoices, fetchSubscriptions, runtime.isDemo]);
 
   const hasMountedFinanceTimeframe = React.useRef(false);
   React.useEffect(() => {
@@ -742,7 +745,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
         if (isCurrent) setLoadingFinanceTimeframe(false);
       });
     return () => { isCurrent = false; };
-  }, [timeFrame]);
+  }, [fetch, timeFrame]);
 
   const aiLeakText = React.useMemo(() => {
     if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Miles AI...');
@@ -2148,7 +2151,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                             <button
                               type="button"
                               onClick={() => {
-                                window.location.href = '/settings?tab=profile';
+                                router.push('/settings?tab=profile');
                               }}
                               className="text-white hover:underline block mt-1 font-semibold cursor-pointer text-left text-[10px]"
                             >

@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-09-26",
+    "scope": "landing interactive IrisOS product demo",
+    "macrostructure": "Shared Production Workbench in a bounded demo viewport",
+    "theme": "Iris OS graphite and metallic silver",
+    "axes": ["real workspace component reuse", "provider-switched deterministic data", "scaled desktop and native responsive mobile"],
+    "nav": "N5 Floating pill plus existing Iris workspace rail",
+    "footer": "locked existing landing footer",
+    "enrichment": "live shared Dashboard, Clients, Finance, and Calendar surfaces",
+    "brief": "Replace the landing video with a safe interactive one-to-one IrisOS experience that inherits production UI changes"
+  },
+  {
     "date": "2026-09-23",
     "scope": "landing audience, console narrative, and Miles AI motion",
     "macrostructure": "Compressed Scroll-led Console Narrative",
@@ -201,12 +212,5 @@
     "theme": "Iris OS porcelain and graphite",
     "enrichment": "supplied full-height auth video",
     "brief": "Shared login and signup split-screen shell with an abstract porcelain orbit and performance-deferred video"
-  },
-  {
-    "date": "2026-07-31",
-    "macrostructure": "Narrative Workflow",
-    "theme": "CrystalOS light contrast cards",
-    "enrichment": "semantic label spectrum",
-    "brief": "Black briefing cards in light mode with bright semantic labels and concrete renewal, delay, and blocker signals"
   }
 ]

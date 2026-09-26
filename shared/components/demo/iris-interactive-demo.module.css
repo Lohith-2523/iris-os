@@ -1,0 +1,124 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
+ * Hallmark · genre: modern-minimal · tone: operational and restrained · palette: Iris graphite and metallic silver
+ * Hallmark · macrostructure: Shared Production Workbench · design-system: design.md · designed-as-app · contrast: pass (40–41) · mobile: pass (34, 49, 50–57)
+ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 auto 0.75rem;
+  padding: 0.65rem 0.75rem 0.65rem 1rem;
+  border: 1px solid var(--color-landing-border, rgb(255 255 255 / 0.08));
+  border-radius: 1rem;
+  background: var(--color-landing-surface, rgb(14 14 16 / 0.92));
+  color: var(--color-landing-muted, #8b8b92);
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 0.75rem;
+}
+
+.toolbar > div { display: flex; min-width: 0; align-items: center; gap: 0.65rem; }
+.toolbar svg { width: 1rem; height: 1rem; flex: 0 0 auto; color: #d4d4d8; }
+.toolbar strong { margin-right: 0.4rem; color: #f4f4f5; }
+
+.viewportFrame {
+  position: relative;
+  width: 100%;
+  height: calc(900px * var(--demo-scale));
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  border-radius: 1.5rem;
+  background: #09090b;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 2.5rem 7rem rgb(0 0 0 / 0.45);
+  isolation: isolate;
+}
+
+.viewportCanvas {
+  width: 1440px;
+  height: 900px;
+  overflow: hidden;
+  transform: scale(var(--demo-scale));
+  transform-origin: left top;
+}
+
+.viewportCanvas :global(.workspace-shell) { height: 900px; }
+.viewportCanvas :global(.workspace-page) { min-height: 100%; }
+
+.routeRail {
+  display: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding: 0.35rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 0.9rem;
+  background: #0d0d0f;
+}
+
+.routeRail button {
+  min-width: 0;
+  min-height: 2.75rem;
+  border-radius: 0.65rem;
+  color: #71717a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.routeRail button[data-active='true'] { background: #f4f4f5; color: #09090b; }
+.routeRail button:focus-visible, .toolbar button:focus-visible { outline: 2px solid #d4d4d8; outline-offset: 2px; }
+
+.notice {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 140;
+  max-width: min(25rem, calc(100vw - 2rem));
+  padding: 0.85rem 1rem;
+  border: 1px solid #3f3f46;
+  border-radius: 0.85rem;
+  background: #111114;
+  color: #e4e4e7;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 0.5);
+  font-size: 0.78rem;
+}
+
+.unsupported {
+  display: grid;
+  min-height: 100%;
+  place-content: center;
+  justify-items: start;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  background: #0c0c0e;
+  color: #fafafa;
+}
+
+.unsupported span { color: #71717a; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.unsupported h3 { margin-top: 0.75rem; font-family: var(--font-clash-display), sans-serif; font-size: clamp(2rem, 6vw, 4.5rem); text-transform: capitalize; }
+.unsupported p { max-width: 34rem; margin: 1rem 0 1.5rem; color: #a1a1aa; line-height: 1.65; }
+
+.pageSkeleton { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding: 1.5rem; }
+.pageSkeleton span { min-height: 15rem; border: 1px solid #27272a; border-radius: 1rem; background: #111114; animation: demoSkeleton 1.6s ease-in-out infinite alternate; }
+.pageSkeleton span:first-child { grid-column: 1 / -1; min-height: 7rem; }
+
+@keyframes demoSkeleton { to { opacity: 0.55; } }
+
+@media (max-width: 63.99rem) {
+  .viewportFrame { height: min(760px, 76svh); border-radius: 1.1rem; }
+  .viewportCanvas { width: 100%; height: min(760px, 76svh); transform: translateZ(0); }
+  .viewportCanvas :global(.workspace-shell) { height: min(760px, 76svh); }
+  .routeRail { display: grid; }
+}
+
+@media (max-width: 30rem) {
+  .toolbar { align-items: flex-start; }
+  .toolbar > div span { display: grid; }
+  .toolbar strong { margin: 0; }
+  .routeRail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pageSkeleton { grid-template-columns: minmax(0, 1fr); }
+  .pageSkeleton span:first-child { grid-column: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pageSkeleton span { animation: none; }
+}
