@@ -7,6 +7,10 @@ import mainDashboardImage from '../../../main-dashboard.png';
 import financeDashboardImage from '../../../finance-dashboard.png';
 import clientOverviewImage from '../../../client-overview.png';
 import projectDeliverablesImage from '../../../project-deliverables.png';
+import mainDashboardLandscapeImage from '../../../md16.png';
+import financeDashboardLandscapeImage from '../../../fd16.png';
+import clientOverviewLandscapeImage from '../../../co16.png';
+import projectDeliverablesLandscapeImage from '../../../pd16.png';
 import styles from './iris-landing-sections.module.css';
 
 const consoleItems: CaseStudyFlipItem[] = [
@@ -16,6 +20,7 @@ const consoleItems: CaseStudyFlipItem[] = [
     title: 'Keep every operating signal in one shared view.',
     description: 'Projects, priorities, team capacity and deadlines stay connected so owners can move from signal to action without rebuilding context.',
     image: mainDashboardImage.src,
+    landscapeImage: mainDashboardLandscapeImage.src,
     imageAlt: 'IrisOS main dashboard overview',
     background: 'var(--color-landing-surface)',
     foreground: 'var(--color-landing-ink)',
@@ -26,6 +31,7 @@ const consoleItems: CaseStudyFlipItem[] = [
     title: 'See the work and the margin behind it.',
     description: 'Invoices, expenses, profitability and forecasts share the same operating record as delivery, exposing risk before month end.',
     image: financeDashboardImage.src,
+    landscapeImage: financeDashboardLandscapeImage.src,
     imageAlt: 'IrisOS finance dashboard',
     background: 'var(--color-landing-surface-raised)',
     foreground: 'var(--color-landing-ink)',
@@ -36,6 +42,7 @@ const consoleItems: CaseStudyFlipItem[] = [
     title: 'Give every client a clear, accountable experience.',
     description: 'Onboarding, approvals, reports, documents and secure communication move through one controlled client journey.',
     image: clientOverviewImage.src,
+    landscapeImage: clientOverviewLandscapeImage.src,
     imageAlt: 'IrisOS client overview',
     background: 'var(--color-landing-surface-inset)',
     foreground: 'var(--color-landing-ink)',
@@ -46,6 +53,7 @@ const consoleItems: CaseStudyFlipItem[] = [
     title: 'Turn briefs into coordinated work without tool hopping.',
     description: 'Leads, projects, tasks, documents and automations stay linked from first conversation through final delivery.',
     image: projectDeliverablesImage.src,
+    landscapeImage: projectDeliverablesLandscapeImage.src,
     imageAlt: 'IrisOS project deliverables workspace',
     background: 'var(--color-landing-metal-dark)',
     foreground: 'var(--color-landing-ink)',

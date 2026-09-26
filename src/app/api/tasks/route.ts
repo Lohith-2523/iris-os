@@ -6,13 +6,7 @@ import { createNotification, notifyOrganizationAdmins } from '@/lib/notification
 import { cursorHeaders, readCursorPage } from '@/lib/cursor-pagination';
 import { getRequestSecurityContext } from '@/server/security/request-security-context';
 import { listTasks } from '@/server/domains/task-service';
-
-function isTaskWriteConflict(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes('P2025')
-    || message.includes('55P03')
-    || message.toLowerCase().includes('lock timeout');
-}
+import { isTaskWriteConflict } from '@/lib/tasks/write-conflict';
 
 function canEditTask(user: Parameters<typeof userHasDeliveryWorkspace>[0] & { id: string; role: string }, task: { assignedToId: string | null }) {
   const role = user.role.toLowerCase();

@@ -15,6 +15,7 @@ import { clientHasMetaEnabledProject } from '@/lib/agency-specializations';
 import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { ProjectBreakdownDrawer } from '@/components/projects/project-breakdown-drawer';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
+import { ClientLogoAvatar, ClientLogoPicker } from '@/components/clients/client-logo-picker';
 import {
   ArrowLeft,
   Plus,
@@ -732,6 +733,17 @@ export default function ClientDetailDashboard({
     }
   };
 
+  const updateClientLogo = async (logoDataUrl: string | null) => {
+    const response = await fetch('/api/clients', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: client.id, logoDataUrl }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Unable to update the client company logo.');
+    onClientUpdated({ ...client, logoDataUrl: payload.client?.logoDataUrl || null });
+  };
+
   return (
     <div className="space-y-6 font-sans text-xs">
       {/* Top Navigation Row */}
@@ -745,6 +757,7 @@ export default function ClientDetailDashboard({
           >
             <ArrowLeft className="h-4.5 w-4.5" />
           </Button>
+          <ClientLogoAvatar value={client.logoDataUrl} companyName={client.name} className="h-11 w-11" />
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white silver-text-gradient">{client.name} Workspace</h1>
             <p className="text-[10px] text-zinc-500 mt-0.5">Admin Management Terminal | {client.domain}</p>
@@ -760,18 +773,18 @@ export default function ClientDetailDashboard({
         </div>
       </div>
 
-      <div className="flex gap-5 overflow-x-auto border-b border-zinc-850">
-        <button type="button" onClick={() => setActiveWorkspaceTab('overview')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'overview' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
+      <div className="flex w-full min-w-0 gap-5 overflow-x-auto overscroll-x-contain border-b border-zinc-850 scrollbar-none">
+        <button type="button" onClick={() => setActiveWorkspaceTab('overview')} className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'overview' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
           Operations overview
         </button>
-        <button type="button" onClick={() => setActiveWorkspaceTab('billing')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'billing' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
+        <button type="button" onClick={() => setActiveWorkspaceTab('billing')} className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'billing' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
           Billing & invoices
         </button>
-        <button type="button" onClick={() => setActiveWorkspaceTab('projects')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'projects' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Project breakdown</button>
-        <button type="button" onClick={() => setActiveWorkspaceTab('approvals')} className={`border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'approvals' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Deliverables & approvals</button>
-        <button type="button" onClick={() => setActiveWorkspaceTab('changes')} className={`shrink-0 border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'changes' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Change requests</button>
+        <button type="button" onClick={() => setActiveWorkspaceTab('projects')} className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'projects' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Project breakdown</button>
+        <button type="button" onClick={() => setActiveWorkspaceTab('approvals')} className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'approvals' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Deliverables & approvals</button>
+        <button type="button" onClick={() => setActiveWorkspaceTab('changes')} className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'changes' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>Change requests</button>
         {hasMetaEnabledProject && (
-          <button type="button" onClick={() => setActiveWorkspaceTab('meta')} className={`shrink-0 border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'meta' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
+          <button type="button" onClick={() => setActiveWorkspaceTab('meta')} className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-[10px] font-bold uppercase tracking-wider ${activeWorkspaceTab === 'meta' ? 'border-white text-white' : 'border-transparent text-zinc-600 hover:text-zinc-300'}`}>
             Meta ads
           </button>
         )}
@@ -780,6 +793,15 @@ export default function ClientDetailDashboard({
       <div className="client-detail-metrics grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         {overviewMetrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}
       </div>
+
+      {activeWorkspaceTab === 'overview' && (
+        <ClientLogoPicker
+          value={client.logoDataUrl}
+          companyName={client.name}
+          onChange={updateClientLogo}
+          description="Used in this overview and the client user's sidebar identity."
+        />
+      )}
 
       {activeWorkspaceTab === 'overview' && canManageMetaAccounts && (
         <Card>

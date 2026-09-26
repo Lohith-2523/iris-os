@@ -410,6 +410,7 @@ model PlanCouponSecurityState {
 model Client {
   id                     String       @id @default(uuid())
   name                   String
+  logoDataUrl            String?
   domain                 String?
   status                 String // ACTIVE, CHURNED, LEAD
   churnRiskScore         Int // Churn prediction score 0-100

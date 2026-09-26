@@ -193,6 +193,7 @@ export async function GET(request: NextRequest) {
       orphanedAds: orphanPage.items,
       role: user.role,
       clientName: user?.client?.name || null,
+      clientLogoDataUrl: user?.client?.logoDataUrl || null,
       hasMetaAccount: Boolean(clientAdAccountId),
       adAccountId: isClient ? clientAdAccountId || null : null,
       pagination: {

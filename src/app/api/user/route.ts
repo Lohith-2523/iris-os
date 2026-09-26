@@ -25,6 +25,11 @@ export async function GET() {
       avatarUrl: user.avatarUrl,
       orgId: user.orgId,
       clientId: user.clientId,
+      client: user.client ? {
+        id: user.client.id,
+        name: user.client.name,
+        logoDataUrl: user.client.logoDataUrl,
+      } : null,
       organization: {
         id: user.organization.id,
         name: user.organization.name,

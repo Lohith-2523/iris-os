@@ -59,6 +59,7 @@ export async function listWorkspaceClients(ctx: RequestSecurityContext) {
   return clients.map((client) => ({
     id: client.id,
     name: client.name,
+    logoDataUrl: client.logoDataUrl,
     domain: client.domain || '',
     status: client.status,
     churnRiskScore: client.churnRiskScore,

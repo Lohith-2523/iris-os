@@ -446,8 +446,8 @@ export default function InvoicesPage() {
       {error && <div role="alert" className="border border-amber-900/40 bg-amber-950/15 p-3 text-xs text-amber-300">{error}</div>}
       {success && <div role="status" className="border border-zinc-700 bg-zinc-900/60 p-3 text-xs text-zinc-200">{success}</div>}
 
-      <div className="border-b border-zinc-800" role="tablist" aria-label="Invoice workspace">
-        <div className="flex min-w-max gap-7 overflow-x-auto">
+      <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain border-b border-zinc-800 scrollbar-none" role="tablist" aria-label="Invoice workspace">
+        <div className="flex min-w-max gap-7">
           {([
             ['OVERVIEW', LayoutDashboard, 'Overview'],
             ['TAX', ListPlus, 'Tax Invoice'],
@@ -463,7 +463,7 @@ export default function InvoicesPage() {
                 setError('');
                 setSuccess('');
               }}
-              className={`relative flex items-center gap-2 pb-3 text-xs font-semibold transition-colors ${tab === value ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`relative flex shrink-0 items-center gap-2 whitespace-nowrap pb-3 text-xs font-semibold transition-colors ${tab === value ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
               <Icon className="h-4 w-4" />
               {label}

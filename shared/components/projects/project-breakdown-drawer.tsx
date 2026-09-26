@@ -152,14 +152,14 @@ export function ProjectBreakdownDrawer({
           </div>
         </div>
 
-        <nav className="project-breakdown-tabs flex shrink-0 gap-1 overflow-x-auto border-b border-border px-5 pt-3 sm:px-7" aria-label="Project breakdown sections">
+        <nav className="project-breakdown-tabs flex w-full min-w-0 shrink-0 gap-1 overflow-x-auto overscroll-x-contain border-b border-border px-5 pt-3 scrollbar-none sm:px-7" aria-label="Project breakdown sections">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'relative flex min-h-11 shrink-0 items-center gap-2 px-4 text-sm font-semibold transition-colors',
+                'relative flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap px-4 text-sm font-semibold transition-colors',
                 activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >

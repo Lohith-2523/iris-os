@@ -33,6 +33,7 @@ import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
+import { ClientLogoAvatar } from '@/components/clients/client-logo-picker';
 
 // Inline SVGs for Facebook & Instagram to avoid compilation issues
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
@@ -125,6 +126,7 @@ export default function ClientDashboardPage() {
   const [projects, setProjects] = React.useState<any[]>([]);
   const [userRole, setUserRole] = React.useState<string>('client');
   const [clientName, setClientName] = React.useState<string | null>(null);
+  const [clientLogoDataUrl, setClientLogoDataUrl] = React.useState<string | null>(null);
   const [hasMetaAccount, setHasMetaAccount] = React.useState(false);
   const [clientId, setClientId] = React.useState('');
   const [deliveryData, setDeliveryData] = React.useState<{ deliverables: any[]; changeRequests: any[] }>({ deliverables: [], changeRequests: [] });
@@ -171,6 +173,7 @@ export default function ClientDashboardPage() {
         const role = data.role || 'client';
         setUserRole(role);
         setClientName(data.clientName || '');
+        setClientLogoDataUrl(data.clientLogoDataUrl || null);
         const metaConnected = Boolean(data.hasMetaAccount);
         setHasMetaAccount(metaConnected);
         if (role === 'client') {
@@ -410,7 +413,9 @@ export default function ClientDashboardPage() {
     <div className="dashboard-canvas space-y-6">
       {/* Header */}
       <div className="dashboard-header flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
-        <div>
+        <div className="flex items-center gap-3">
+          <ClientLogoAvatar value={clientLogoDataUrl} companyName={clientName || 'Client company'} className="h-12 w-12" />
+          <div>
           <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Client Workspace</span>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
             {clientName} Client Workspace
@@ -420,6 +425,7 @@ export default function ClientDashboardPage() {
               ? 'Review attributed Meta ads and leads, with project task updates in a separate tab.'
               : 'Review project deliverables, progress, blockers, and the latest task updates.'}
           </p>
+          </div>
         </div>
         {hasMetaAccount && <div className="flex items-center gap-3">
           <Button
@@ -440,11 +446,11 @@ export default function ClientDashboardPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-zinc-850 gap-1.5 scrollbar-none overflow-x-auto">
+      <div className="flex w-full min-w-0 gap-1.5 overflow-x-auto overscroll-x-contain border-b border-zinc-850 scrollbar-none">
         {hasMetaAccount && (
             <button
               onClick={() => setActiveTab('campaigns')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'campaigns'
                   ? 'border-white text-white font-bold' 
                   : 'border-transparent text-zinc-400 hover:text-white'
@@ -456,7 +462,7 @@ export default function ClientDashboardPage() {
         )}
             <button
               onClick={() => setActiveTab('tasks')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'tasks' 
                   ? 'border-white text-white font-bold' 
                   : 'border-transparent text-zinc-400 hover:text-white'
@@ -465,7 +471,7 @@ export default function ClientDashboardPage() {
               <Activity className="h-3.5 w-3.5" />
               <span>Task Updates</span>
             </button>
-            <button onClick={() => setActiveTab('approvals')} className={`px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'approvals' ? 'border-white text-white font-bold' : 'border-transparent text-zinc-400 hover:text-white'}`}><CheckCircle2 className="h-4 w-4" /><span>Deliverables & approvals</span></button>
+            <button onClick={() => setActiveTab('approvals')} className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${activeTab === 'approvals' ? 'border-white text-white font-bold' : 'border-transparent text-zinc-400 hover:text-white'}`}><CheckCircle2 className="h-4 w-4" /><span>Deliverables & approvals</span></button>
       </div>
 
       {/* TAB 1: OVERVIEW */}

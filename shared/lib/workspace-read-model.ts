@@ -33,6 +33,7 @@ export type WorkspaceReadModel = {
     accessPermissions: string[] | null;
     deliveryWorkspace: boolean;
     hasMetaAccount: boolean;
+    client: { id: string; name: string; logoDataUrl: string | null } | null;
     preferences: unknown;
   };
   onboarding: {

@@ -119,6 +119,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
   const [createTaskError, setCreateTaskError] = React.useState('');
   const [deliverableForm, setDeliverableForm] = React.useState({ title: '', url: '', description: '' });
   const [isSubmittingDeliverable, setIsSubmittingDeliverable] = React.useState(false);
+  const [deliverableSuccess, setDeliverableSuccess] = React.useState('');
   const [taskPendingDeletion, setTaskPendingDeletion] = React.useState<any | null>(null);
   const [isDeletingTask, setIsDeletingTask] = React.useState(false);
   const [deleteTaskError, setDeleteTaskError] = React.useState('');
@@ -149,6 +150,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
   }, [selectedProjectId]);
 
   React.useEffect(() => {
+    setDeliverableSuccess('');
     if (!selectedTask) {
       setIsEditingTask(false);
       return;
@@ -302,12 +304,14 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
     event.preventDefault();
     if (!selectedTask) return;
     setIsSubmittingDeliverable(true);
+    setDeliverableSuccess('');
     try {
       const response = await fetch('/api/deliverables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', ...deliverableForm, clientId: selectedTask.clientId, projectId: selectedTask.projectId, taskId: selectedTask.id, stageId: selectedTask.stageId, needsApproval: ['NEEDS_CLIENT_APPROVAL', 'CHANGES_REQUESTED'].includes(selectedTask.approvalStatus) }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Unable to submit deliverable');
       setDeliverableForm({ title: '', url: '', description: '' });
       setSelectedTask((current: any) => ({ ...current, outputUrl: payload.deliverable.url, deliverables: [...(current.deliverables || []), payload.deliverable] }));
+      setDeliverableSuccess('Successfully sent');
       await loadTasks();
     } catch (cause) { alert(cause instanceof Error ? cause.message : 'Unable to submit deliverable'); }
     finally { setIsSubmittingDeliverable(false); }
@@ -1175,7 +1179,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                 </div>
               )}
 
-              <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/20 p-3"><div className="flex items-center justify-between"><div><span className="font-bold text-white">Deliverables</span><span className="mt-1 block text-zinc-500">{selectedTask.project?.name || 'Project'}{selectedTask.stage?.name ? ` · ${selectedTask.stage.name}` : ''} · {selectedTask.title}</span></div><Badge>{selectedTask.approvalStatus === 'NEEDS_CLIENT_APPROVAL' ? 'Need approval from client' : selectedTask.approvalStatus?.replaceAll('_', ' ') || 'No approval required'}</Badge></div><form onSubmit={submitDeliverable} className="space-y-2"><input required value={deliverableForm.title} onChange={(event) => setDeliverableForm({ ...deliverableForm, title: event.target.value })} placeholder="Deliverable title" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><input required type="url" value={deliverableForm.url} onChange={(event) => setDeliverableForm({ ...deliverableForm, url: event.target.value })} placeholder="https:// link to the deliverable" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><textarea value={deliverableForm.description} onChange={(event) => setDeliverableForm({ ...deliverableForm, description: event.target.value })} placeholder="Optional context" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><Button type="submit" disabled={isSubmittingDeliverable}>{isSubmittingDeliverable && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add deliverable link</Button></form><div className="space-y-2">{(selectedTask.deliverables || []).map((item: any) => <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-zinc-800 p-3 text-white"><div className="flex items-center justify-between gap-3"><span className="font-semibold">{item.title}</span><Badge>{item.status.replaceAll('_', ' ')}</Badge></div>{item.description && <span className="mt-2 block text-zinc-500">{item.description}</span>}{item.approvalNote && <span className="mt-2 block text-amber-300">Client note: {item.approvalNote}</span>}</a>)}</div></div>
+              <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/20 p-3"><div className="flex items-center justify-between"><div><span className="font-bold text-white">Deliverables</span><span className="mt-1 block text-zinc-500">{selectedTask.project?.name || 'Project'}{selectedTask.stage?.name ? ` · ${selectedTask.stage.name}` : ''} · {selectedTask.title}</span></div><Badge>{selectedTask.approvalStatus === 'NEEDS_CLIENT_APPROVAL' ? 'Need approval from client' : selectedTask.approvalStatus?.replaceAll('_', ' ') || 'No approval required'}</Badge></div><form onSubmit={submitDeliverable} className="space-y-2"><input required value={deliverableForm.title} onChange={(event) => setDeliverableForm({ ...deliverableForm, title: event.target.value })} placeholder="Deliverable title" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><input required type="url" value={deliverableForm.url} onChange={(event) => setDeliverableForm({ ...deliverableForm, url: event.target.value })} placeholder="https:// link to the deliverable" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><textarea value={deliverableForm.description} onChange={(event) => setDeliverableForm({ ...deliverableForm, description: event.target.value })} placeholder="Optional context" className="w-full rounded-xl border border-zinc-800 bg-zinc-950 p-2 text-white" /><Button type="submit" disabled={isSubmittingDeliverable}>{isSubmittingDeliverable && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Add deliverable link</Button>{deliverableSuccess && <p role="status" aria-live="polite" className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300"><CheckCircle className="h-4 w-4" />{deliverableSuccess}</p>}</form><div className="space-y-2">{(selectedTask.deliverables || []).map((item: any) => <a key={item.id} href={item.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-zinc-800 p-3 text-white"><div className="flex items-center justify-between gap-3"><span className="font-semibold">{item.title}</span><Badge>{item.status.replaceAll('_', ' ')}</Badge></div>{item.description && <span className="mt-2 block text-zinc-500">{item.description}</span>}{item.approvalNote && <span className="mt-2 block text-amber-300">Client note: {item.approvalNote}</span>}</a>)}</div></div>
 
               {currentUser?.role?.toLowerCase() !== 'client' && <Button type="button" variant="ghost" className="w-full text-rose-300" onClick={() => { setDeleteTaskError(''); setTaskPendingDeletion(selectedTask); }}><Trash2 className="mr-2 h-4 w-4" /> Delete task</Button>}
 

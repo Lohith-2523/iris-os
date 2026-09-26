@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { isMessagingTeamRole } from '@/lib/messaging/roles';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
-import { CalendarPlus, Check, ChevronDown, CircleCheck, Clock3, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, X } from 'lucide-react';
+import { CalendarPlus, Check, ChevronDown, CircleCheck, Clock3, Ellipsis, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, Trash2, X } from 'lucide-react';
 import { getMessagingProtocol } from '@/lib/messaging/protocol';
 import { safeDownloadName, validateBrowserFile, type SafeAttachmentCategory } from '@/lib/file-security';
 import type { MessagingLimits } from '@/lib/plan-entitlements';
@@ -221,6 +221,8 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   const [pageReady, setPageReady] = React.useState(false);
   const [conversationLoading, setConversationLoading] = React.useState(false);
   const [composerMenuOpen, setComposerMenuOpen] = React.useState(false);
+  const [chatMenuOpen, setChatMenuOpen] = React.useState(false);
+  const [deletingConversation, setDeletingConversation] = React.useState(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = React.useState(false);
   const [expandedMeetingId, setExpandedMeetingId] = React.useState('');
   const attachmentInputRef = React.useRef<HTMLInputElement>(null);
@@ -236,7 +238,38 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
 
   React.useEffect(() => {
     attachmentFileCacheRef.current.clear();
+    setChatMenuOpen(false);
   }, [selected?.id]);
+
+  const deleteSelectedConversation = async () => {
+    if (!selected || deletingConversation) return;
+    if (!window.confirm(`Delete your chat with ${selected.participant?.name || 'this participant'} and permanently remove its history?`)) return;
+
+    setDeletingConversation(true);
+    setError('');
+    try {
+      const conversationId = selected.id;
+      const response = await fetch(`/api/messaging?conversationId=${encodeURIComponent(conversationId)}`, { method: 'DELETE' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Unable to delete the conversation.');
+
+      setConversations((current) => current.filter((conversation) => conversation.id !== conversationId));
+      setSelected(null);
+      setMessages([]);
+      setChatMenuOpen(false);
+      activeConversationIdRef.current = '';
+      cursorByConversationRef.current.delete(conversationId);
+      threadMessageCacheRef.current.delete(conversationId);
+      syncingConversationIdsRef.current.delete(conversationId);
+      decryptedMessageCacheRef.current.forEach((_message, key) => {
+        if (key.startsWith(`${conversationId}:`)) decryptedMessageCacheRef.current.delete(key);
+      });
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete the conversation.');
+    } finally {
+      setDeletingConversation(false);
+    }
+  };
 
   const requestInbox = React.useCallback(async () => {
     const messagingResponse = await fetch('/api/messaging', { cache: 'no-store' });
@@ -785,10 +818,22 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                   <ProfileAvatar src={selected.participant.avatarUrl} name={selected.participant.name} seed={selected.participant.id} className={styles.avatar} />
                   <div><div className={styles.threadName}>{selected.participant.name}</div><div className={styles.threadMeta}>{workspaceRoleLabel(selected.participant.role)} · {selected.participant.email}</div></div>
                 </div>
-                <span className={`${styles.securePill} ${protocolReady ? styles.secureReady : ''}`}>
-                  {protocolReady ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
-                  {protocolReady ? 'Account encryption active' : 'Preparing account encryption'}
-                </span>
+                <div className={styles.chatHeaderActions}>
+                  <span className={`${styles.securePill} ${protocolReady ? styles.secureReady : ''}`}>
+                    {protocolReady ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+                    {protocolReady ? 'Account encryption active' : 'Preparing account encryption'}
+                  </span>
+                  <div className={styles.chatMenuWrap}>
+                    <button type="button" className={styles.chatMenuTrigger} onClick={() => setChatMenuOpen((open) => !open)} aria-label="Chat options" aria-haspopup="menu" aria-expanded={chatMenuOpen}>
+                      <Ellipsis size={18} />
+                    </button>
+                    {chatMenuOpen && <div className={styles.chatMenu} role="menu">
+                      <button type="button" role="menuitem" disabled={deletingConversation} onClick={() => void deleteSelectedConversation()}>
+                        <Trash2 size={15} /> {deletingConversation ? 'Deleting…' : 'Delete chat'}
+                      </button>
+                    </div>}
+                  </div>
+                </div>
               </header>
               <div className={styles.messages} aria-live="polite">
                 {conversationLoading ? (

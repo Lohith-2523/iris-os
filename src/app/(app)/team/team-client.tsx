@@ -738,11 +738,11 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
             </div>
 
             {/* Modal Tab Headers */}
-            <div className="flex border-b border-zinc-900 bg-zinc-950/40">
+            <div className="flex w-full min-w-0 overflow-x-auto overscroll-x-contain border-b border-zinc-900 bg-zinc-950/40 scrollbar-none">
               <button
                 onClick={() => { setActiveTab('single'); setErrorMsg(''); }}
                 className={cn(
-                  "flex-1 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 text-center cursor-pointer transition-all",
+                  "min-w-max shrink-0 whitespace-nowrap border-b-2 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer sm:min-w-0 sm:flex-1",
                   activeTab === 'single' ? "border-white text-white bg-zinc-900/30" : "border-transparent text-zinc-500 hover:text-zinc-300"
                 )}
               >
@@ -751,7 +751,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
               <button
                 onClick={() => { setActiveTab('existing'); setErrorMsg(''); }}
                 className={cn(
-                  "flex-1 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 text-center cursor-pointer transition-all",
+                  "min-w-max shrink-0 whitespace-nowrap border-b-2 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer sm:min-w-0 sm:flex-1",
                   activeTab === 'existing' ? "border-white text-white bg-zinc-900/30" : "border-transparent text-zinc-500 hover:text-zinc-300"
                 )}
               >
@@ -760,7 +760,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
               <button
                 onClick={() => { setActiveTab('batch'); setErrorMsg(''); }}
                 className={cn(
-                  "flex-1 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 text-center cursor-pointer transition-all",
+                  "min-w-max shrink-0 whitespace-nowrap border-b-2 px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer sm:min-w-0 sm:flex-1",
                   activeTab === 'batch' ? "border-white text-white bg-zinc-900/30" : "border-transparent text-zinc-500 hover:text-zinc-300"
                 )}
               >

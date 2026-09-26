@@ -23,6 +23,7 @@ import { normalizeRequiredPhone } from '@/lib/phone';
 import { purgeClientData } from '@/server/domains/client-deletion-service';
 import { createAuthenticationUserDeleter } from '@/server/domains/auth-user-deletion';
 import { parseInitialProjectTasks } from '@/server/domains/initial-project-tasks';
+import { validateClientLogoDataUrl } from '@/lib/client-logo';
 
 class ClientPlanLimitError extends Error {}
 
@@ -71,17 +72,27 @@ export async function PATCH(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(user)) {
+    const body = await request.json();
+    const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
+    const isAdmin = isOrganizationAdmin(user);
+    const isLinkedClient = user.role.toLowerCase() === 'client' && user.clientId === clientId;
+    if (!isAdmin && !isLinkedClient) {
       return NextResponse.json(
-        { error: 'Access Denied: Administrative clearance required.' },
+        { error: 'Access Denied: Client branding can only be changed by the linked client or an agency administrator.' },
         { status: 403 },
       );
     }
-
-    const body = await request.json();
-    const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
     if (!clientId) {
       return NextResponse.json({ error: 'Missing clientId parameter' }, { status: 400 });
+    }
+    if (!isAdmin && Object.keys(body).some((key) => !['clientId', 'logoDataUrl'].includes(key))) {
+      return NextResponse.json({ error: 'Client users may only update their company logo.' }, { status: 403 });
+    }
+
+    const hasLogoUpdate = Object.prototype.hasOwnProperty.call(body, 'logoDataUrl');
+    const logoResult = hasLogoUpdate ? validateClientLogoDataUrl(body.logoDataUrl) : null;
+    if (logoResult && 'error' in logoResult) {
+      return NextResponse.json({ error: logoResult.error }, { status: 400 });
     }
 
     const existingClient = await prisma.client.findFirst({
@@ -121,6 +132,7 @@ export async function PATCH(request: NextRequest) {
         where: { id: existingClient.id },
         data: {
           adAccountId: hasAdAccountUpdate ? adAccountId : undefined,
+          logoDataUrl: logoResult ? logoResult.value : undefined,
           legalEntityName: typeof body.legalEntityName === 'string' ? body.legalEntityName.trim() || null : undefined,
           billingAddressLine1: typeof body.billingAddressLine1 === 'string' ? body.billingAddressLine1.trim() || null : undefined,
           billingAddressLine2: typeof body.billingAddressLine2 === 'string' ? body.billingAddressLine2.trim() || null : undefined,
@@ -132,6 +144,7 @@ export async function PATCH(request: NextRequest) {
         },
         select: {
           id: true,
+          logoDataUrl: true,
           adAccountId: true,
           legalEntityName: true,
           billingAddressLine1: true,
@@ -157,8 +170,8 @@ export async function PATCH(request: NextRequest) {
     if (error instanceof MetaAdAccountAssignmentError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    console.error('Error assigning client Meta ad account:', error);
-    return NextResponse.json({ error: 'Unable to update the client Meta ad account.' }, { status: 500 });
+    console.error('Error updating client:', error);
+    return NextResponse.json({ error: 'Unable to update the client.' }, { status: 500 });
   }
 }
 
@@ -182,6 +195,7 @@ export async function POST(request: NextRequest) {
       billingPostalCode,
       billingCountry,
       gstNumber,
+      logoDataUrl,
       metadata,
       contact,
       sourceLeadId,
@@ -201,6 +215,11 @@ export async function POST(request: NextRequest) {
 
     if (!name) {
       return NextResponse.json({ error: 'Missing client name parameter' }, { status: 400 });
+    }
+
+    const logoResult = validateClientLogoDataUrl(logoDataUrl);
+    if ('error' in logoResult) {
+      return NextResponse.json({ error: logoResult.error }, { status: 400 });
     }
 
     if (adAccountId) {
@@ -310,6 +329,7 @@ export async function POST(request: NextRequest) {
       const newClient = await tx.client.create({
         data: {
           name,
+          logoDataUrl: logoResult.value,
           domain: domain || null,
           status: status || 'ACTIVE',
           churnRiskScore: churnRiskScore !== undefined ? churnRiskScore : 0,

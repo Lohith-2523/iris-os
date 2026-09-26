@@ -80,3 +80,30 @@ export async function POST(request: NextRequest) {
     headers: messagingNoStoreHeaders(),
   });
 }
+
+export async function DELETE(request: NextRequest) {
+  const authorization = await getMessagingUser(request);
+  if ('error' in authorization) {
+    return NextResponse.json({ error: authorization.error }, { status: authorization.status });
+  }
+
+  const conversationId = new URL(request.url).searchParams.get('conversationId')?.trim();
+  const parsedConversationId = z.string().uuid().safeParse(conversationId);
+  if (!parsedConversationId.success) {
+    return NextResponse.json({ error: 'Choose a valid conversation.' }, { status: 400 });
+  }
+
+  const { user } = authorization;
+  const deleted = await prisma.messagingConversation.deleteMany({
+    where: {
+      id: parsedConversationId.data,
+      orgId: user.orgId,
+      members: { some: { userId: user.id } },
+    },
+  });
+  if (deleted.count === 0) {
+    return NextResponse.json({ error: 'Conversation not found.' }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true }, { headers: messagingNoStoreHeaders() });
+}

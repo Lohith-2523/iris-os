@@ -84,8 +84,18 @@
 .chatHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .identity { display: flex; align-items: center; gap: 11px; }
 .identity .avatar { margin: 0; }
+.chatHeaderActions { display: flex; align-items: center; gap: 7px; }
 .securePill { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1px solid var(--msg-border); border-radius: 999px; color: var(--msg-muted); font-size: 12px; font-weight: 700; }
 .secureReady { color: #3ecf8e; }
+.chatMenuWrap { position: relative; }
+.chatMenuTrigger { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--msg-border); border-radius: 999px; background: var(--msg-panel-soft); color: var(--msg-muted); cursor: pointer; }
+.chatMenuTrigger:hover, .chatMenuTrigger:focus-visible { color: var(--msg-text); }
+.chatMenuTrigger:focus-visible { outline: 2px solid var(--msg-accent); outline-offset: 2px; }
+.chatMenu { position: absolute; z-index: 110; top: calc(100% + 8px); right: 0; width: 150px; padding: 6px; border: 1px solid var(--msg-border); border-radius: 12px; background: var(--msg-panel); box-shadow: 0 16px 42px var(--msg-shadow-strong); }
+.chatMenu button { display: flex; width: 100%; min-height: 38px; align-items: center; gap: 8px; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--msg-danger); cursor: pointer; font-size: 12px; font-weight: 750; text-align: left; }
+.chatMenu button:hover, .chatMenu button:focus-visible { background: color-mix(in srgb, var(--msg-danger) 10%, transparent); }
+.chatMenu button:focus-visible { outline: 2px solid var(--msg-danger); outline-offset: -2px; }
+.chatMenu button:disabled { cursor: wait; opacity: .55; }
 .messages { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 10px; overflow-y: auto; padding: 24px; }
 .threadLoading { display: flex; min-height: 100%; align-items: center; justify-content: center; gap: 8px; color: var(--msg-muted); font-size: 13px; font-weight: 700; }
 .empty { display: grid; min-height: 100%; place-items: center; padding: 30px; text-align: center; }

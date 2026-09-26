@@ -68,12 +68,13 @@ type WorkspaceShellUser = {
 };
 
 function workspaceShellUser(workspace: WorkspaceReadModel): WorkspaceShellUser {
+  const clientIdentity = workspace.user.role.toLowerCase() === 'client' ? workspace.user.client : null;
   return {
     ...workspace.user,
     orgId: workspace.user.orgId || workspace.organization.id,
     plan: workspace.organization.plan || 'BASIC',
-    organizationName: workspace.organization.name || 'Agency Workspace',
-    organizationLogoDataUrl: workspace.organization.invoiceLogoDataUrl || null,
+    organizationName: clientIdentity?.name || workspace.organization.name || 'Agency Workspace',
+    organizationLogoDataUrl: clientIdentity?.logoDataUrl || (clientIdentity ? null : workspace.organization.invoiceLogoDataUrl) || null,
   };
 }
 

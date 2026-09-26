@@ -1,8 +1,5 @@
 "use client";
 
-/* The component accepts both local and remote editorial imagery, so a native responsive image is intentional. */
-/* eslint-disable @next/next/no-img-element */
-
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/lib/use-media-query";
 import {
@@ -22,6 +19,7 @@ export interface CaseStudyFlipItem {
   title: string;
   description: string;
   image: string;
+  landscapeImage?: string;
   imageAlt: string;
   background: string;
   foreground?: string;
@@ -192,13 +190,18 @@ function FlipCard({
         </div>
 
         <div className="relative m-[clamp(10px,1.2vw,18px)] min-h-[180px] overflow-hidden rounded-[clamp(12px,1.4vw,22px)] sm:ml-0">
-          <img
-            src={item.image}
-            alt={item.imageAlt}
-            className="h-full w-full object-cover"
-            loading={index < 2 ? "eager" : "lazy"}
-            draggable={false}
-          />
+          <picture className="block h-full w-full">
+            {item.landscapeImage ? (
+              <source media="(max-width: 639px)" srcSet={item.landscapeImage} />
+            ) : null}
+            <img
+              src={item.image}
+              alt={item.imageAlt}
+              className="h-full w-full object-cover"
+              loading={index < 2 ? "eager" : "lazy"}
+              draggable={false}
+            />
+          </picture>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
         </div>
       </motion.div>

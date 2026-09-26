@@ -840,11 +840,11 @@ export default function AgencyLeadsPage() {
           </div>
           <div className="agency-leads-controls flex flex-wrap items-center justify-end gap-3">
           {/* Tab Selection */}
-          <div className="agency-leads-tabs workspace-segmented-control flex items-center gap-1 bg-zinc-950 p-1 border border-zinc-900 rounded-lg">
+          <div className="agency-leads-tabs workspace-segmented-control flex w-full min-w-0 items-center gap-1 overflow-x-auto overscroll-x-contain rounded-lg border border-zinc-900 bg-zinc-950 p-1 scrollbar-none md:w-auto">
             <button
               onClick={() => setActiveTab('pipeline')}
               aria-pressed={activeTab === 'pipeline'}
-              className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'pipeline' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -854,7 +854,7 @@ export default function AgencyLeadsPage() {
             <button
               onClick={() => setActiveTab('entry')}
               aria-pressed={activeTab === 'entry'}
-              className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'entry' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -865,7 +865,7 @@ export default function AgencyLeadsPage() {
               <button
                 onClick={() => setActiveTab('meta')}
                 aria-pressed={activeTab === 'meta'}
-                className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'meta' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
                 }`}
               >

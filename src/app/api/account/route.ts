@@ -64,6 +64,17 @@ export async function DELETE(request: Request) {
     await prisma.$transaction(async (tx) => {
       await purgeOrganizationData(tx, orgId, (stage) => { deletionStage = stage; });
       deletionStage = 'deleting account email records';
+      await tx.deviceAccessGrant.deleteMany({
+        where: {
+          OR: [
+            { email: { in: accountEmails, mode: 'insensitive' } },
+            { authUserId: { in: authUserIds } },
+          ],
+        },
+      });
+      await tx.authAccessToken.deleteMany({
+        where: { email: { in: accountEmails, mode: 'insensitive' } },
+      });
       await tx.waitlistEntry.deleteMany({
         where: { email: { in: accountEmails, mode: 'insensitive' } },
       });

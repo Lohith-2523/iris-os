@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
+import { ClientLogoPicker } from '@/components/clients/client-logo-picker';
 import { formatUserMessage } from '@/lib/utils';
 import { validateBrowserFile } from '@/lib/file-security';
 import { MAX_SOURCE_IMAGE_BYTES, processBrowserImage } from '@/lib/browser-image-processing';
@@ -235,7 +236,7 @@ export default function SettingsPage() {
   const fetch = runtime.fetch;
   const supabase = React.useMemo(() => createClient(), []);
   const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
-  const [currentUser, setCurrentUser] = React.useState<{ id: string; orgId: string; name: string; email: string; role: string; avatarUrl?: string | null; accessPermissions?: string[] | null } | null>(null);
+  const [currentUser, setCurrentUser] = React.useState<{ id: string; orgId: string; name: string; email: string; role: string; avatarUrl?: string | null; accessPermissions?: string[] | null; client?: { id: string; name: string; logoDataUrl?: string | null } | null } | null>(null);
   const [signingOut, setSigningOut] = React.useState(false);
   const [avatarStatus, setAvatarStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [avatarFeedback, setAvatarFeedback] = React.useState('PNG, JPEG, or WebP · maximum 10 MB · optimized before upload');
@@ -635,6 +636,23 @@ export default function SettingsPage() {
     }
   };
 
+  const updateClientLogo = async (logoDataUrl: string | null) => {
+    if (!currentUser?.client?.id) throw new Error('This account is not linked to a client company.');
+    const response = await fetch('/api/clients', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId: currentUser.client.id, logoDataUrl }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Unable to update the client company logo.');
+    setCurrentUser((existing) => existing?.client ? {
+      ...existing,
+      client: { ...existing.client, logoDataUrl: data.client?.logoDataUrl || null },
+    } : existing);
+    invalidateWorkspaceDataTags(['workspace']);
+    window.dispatchEvent(new Event('user-updated'));
+  };
+
   const handleInvoiceLogoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -827,6 +845,21 @@ export default function SettingsPage() {
             <Button type="button" variant="outline" disabled={signingOut} onClick={handleSignOut} className="gap-2 text-rose-400 hover:text-rose-300">{signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}{signingOut ? 'Signing out…' : 'Log out'}</Button>
           </CardContent>
         </Card>
+        {currentUser?.role?.toLowerCase() === 'client' && currentUser.client && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold text-white">Client company identity</CardTitle>
+              <CardDescription>Manage the company logo shown across your IrisOS client workspace.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ClientLogoPicker
+                value={currentUser.client.logoDataUrl}
+                companyName={currentUser.client.name}
+                onChange={updateClientLogo}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
@@ -842,14 +875,21 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-zinc-850 gap-6">
+      <div
+        className="w-full min-w-0 touch-pan-x snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-color:rgb(63_63_70)_transparent] [scrollbar-width:thin]"
+        role="tablist"
+        aria-label="Settings sections"
+      >
+        <div className="flex min-w-max gap-6 border-b border-zinc-850 pr-4">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'profile'}
           onClick={() => {
             setActiveTab('profile');
             setErrorMessage('');
           }}
-          className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+          className={`snap-start shrink-0 whitespace-nowrap border-b-2 pb-3 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
             activeTab === 'profile'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-zinc-500 hover:text-zinc-350'
@@ -859,11 +899,13 @@ export default function SettingsPage() {
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'billing'}
           onClick={() => {
             setActiveTab('billing');
             setErrorMessage('');
           }}
-          className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+          className={`snap-start shrink-0 whitespace-nowrap border-b-2 pb-3 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
             activeTab === 'billing'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-zinc-500 hover:text-zinc-350'
@@ -873,11 +915,13 @@ export default function SettingsPage() {
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'integrations'}
           onClick={() => {
             setActiveTab('integrations');
             setErrorMessage('');
           }}
-          className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+          className={`snap-start shrink-0 whitespace-nowrap border-b-2 pb-3 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
             activeTab === 'integrations'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-zinc-500 hover:text-zinc-350'
@@ -885,6 +929,7 @@ export default function SettingsPage() {
         >
           Integrations
         </button>
+        </div>
       </div>
 
       {activeTab === 'profile' && (

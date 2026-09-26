@@ -16,9 +16,9 @@ export function hasPersistedWorkspaceTheme() {
   return new RegExp(`(?:^|; )${THEME_COOKIE}=(light|dark)(?:;|$)`).test(document.cookie);
 }
 
-export function applyWorkspaceTheme(theme: WorkspaceTheme) {
+export function applyWorkspaceTheme(theme: WorkspaceTheme, target?: Element | null) {
   if (typeof document === 'undefined') return;
-  const root = document.documentElement;
+  const root = target ?? document.documentElement;
   root.classList.toggle('light', theme === 'light');
   root.classList.toggle('dark', theme === 'dark');
 }

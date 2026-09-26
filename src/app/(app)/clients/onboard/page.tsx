@@ -15,6 +15,7 @@ import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import { ConfettiCelebration } from '@/components/ui/confetti-celebration';
+import { ClientLogoAvatar, ClientLogoPicker } from '@/components/clients/client-logo-picker';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -59,6 +60,7 @@ const CLIENT_ONBOARDING_DRAFT_VERSION = 2;
 const createInitialFormData = () => ({
   // Step 1: Universal details
   name: '',
+  logoDataUrl: null as string | null,
   legalEntityName: '',
   billingAddressLine1: '',
   billingAddressLine2: '',
@@ -411,6 +413,7 @@ export default function ClientOnboardPage() {
     try {
       const payload = {
         name: formData.name,
+        logoDataUrl: formData.logoDataUrl,
         legalEntityName: formData.legalEntityName,
         billingAddressLine1: formData.billingAddressLine1,
         billingAddressLine2: formData.billingAddressLine2,
@@ -977,6 +980,13 @@ export default function ClientOnboardPage() {
                     </div>
                   </div>
 
+                  <ClientLogoPicker
+                    value={formData.logoDataUrl}
+                    companyName={formData.name || 'Client company'}
+                    onChange={(logoDataUrl) => setFormData((current) => ({ ...current, logoDataUrl }))}
+                    description="Add the identity shown in the client sidebar and workspace overview."
+                  />
+
                   <details className="group rounded border border-zinc-850 bg-zinc-950/30 p-4 space-y-4">
                     <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-300">
                       <span><span className="block text-[10px] font-bold uppercase tracking-wider text-white">Client invoicing details</span>
@@ -1451,9 +1461,12 @@ export default function ClientOnboardPage() {
                   <div className="grid gap-4 sm:grid-cols-2 text-[11px] font-sans">
                     <div className="rounded border border-zinc-900 p-3 space-y-2 bg-zinc-950/20">
                       <span className="block font-bold text-zinc-500 uppercase tracking-wider text-[9px]">Universal Business Profile</span>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-400">Client Name:</span>
-                        <span className="font-semibold text-white">{formData.name}</span>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-zinc-400">Client company:</span>
+                        <span className="flex min-w-0 items-center gap-2 font-semibold text-white">
+                          <ClientLogoAvatar value={formData.logoDataUrl} companyName={formData.name || 'Client company'} className="h-8 w-8" />
+                          <span className="truncate">{formData.name}</span>
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-zinc-400">Legal Entity:</span>

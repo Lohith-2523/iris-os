@@ -1201,11 +1201,11 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-6 border-b border-zinc-850">
+      <div className="flex w-full min-w-0 items-center gap-6 overflow-x-auto overscroll-x-contain border-b border-zinc-850 scrollbar-none">
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
-          className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
             activeTab === 'overview'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-zinc-550 hover:text-zinc-350'
@@ -1216,7 +1216,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
         <button
           type="button"
           onClick={() => setActiveTab('manual')}
-          className={`pb-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
             activeTab === 'manual'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-zinc-550 hover:text-zinc-350'
@@ -1224,7 +1224,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
         >
           Ledger
         </button>
-        <Button type="button" variant="outline" size="sm" className="mb-2 ml-auto gap-2" onClick={() => setIsFinancialReportOpen(true)}>
+        <Button type="button" variant="outline" size="sm" className="mb-2 ml-auto shrink-0 gap-2 whitespace-nowrap" onClick={() => setIsFinancialReportOpen(true)}>
           <Sparkles className="h-4 w-4" /> Financial reports
         </Button>
       </div>

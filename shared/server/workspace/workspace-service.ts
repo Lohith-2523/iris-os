@@ -59,6 +59,11 @@ export const getWorkspaceReadModel = cache(async (ctx: RequestSecurityContext): 
       accessPermissions: user.accessPermissions as string[] | null,
       deliveryWorkspace: ctx.deliveryWorkspace,
       hasMetaAccount: Boolean(user.client?.adAccountId),
+      client: user.client ? {
+        id: user.client.id,
+        name: user.client.name,
+        logoDataUrl: user.client.logoDataUrl,
+      } : null,
       preferences: user.preferences ?? { theme: 'dark', settings: {} },
     },
     onboarding: {

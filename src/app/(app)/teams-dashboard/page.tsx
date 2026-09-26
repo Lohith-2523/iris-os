@@ -353,10 +353,10 @@ export default function TeamsDashboardPage() {
         </div>
 
         {/* Tab Toggle buttons */}
-        <div className="workspace-segmented-control flex items-center gap-1.5 bg-zinc-950 p-1 border border-zinc-900 rounded-lg max-w-fit">
+        <div className="workspace-segmented-control flex max-w-full items-center gap-1.5 overflow-x-auto overscroll-x-contain rounded-lg border border-zinc-900 bg-zinc-950 p-1 scrollbar-none">
           <button
             onClick={() => setActiveTab('tasks')}
-            className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'tasks' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -365,7 +365,7 @@ export default function TeamsDashboardPage() {
           </button>
           <button
             onClick={() => setActiveTab('calendar')}
-            className={`workspace-segmented-trigger px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'calendar' ? 'bg-white text-zinc-950 font-bold' : 'text-zinc-400 hover:text-white'
             }`}
           >

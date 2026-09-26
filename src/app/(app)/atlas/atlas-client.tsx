@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AudioLines, Maximize2, Mic, Minimize2, PencilLine, Pin, Plus, Radio, Send, Square, Trash2 } from 'lucide-react';
+import { AudioLines, Ellipsis, Maximize2, Mic, Minimize2, PencilLine, Pin, Plus, Radio, Send, Square, Trash2 } from 'lucide-react';
 import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import {
@@ -114,6 +114,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   const [isGuideSelected, setIsGuideSelected] = React.useState(false);
   const [editingSessionId, setEditingSessionId] = React.useState<string | null>(null);
   const [editingTitle, setEditingTitle] = React.useState('');
+  const [openSessionMenuId, setOpenSessionMenuId] = React.useState<string | null>(null);
   const [voiceState, setVoiceState] = React.useState<'idle' | 'requesting' | 'recording' | 'transcribing'>('idle');
   const [voiceError, setVoiceError] = React.useState<string | null>(null);
   const [composerExpanded, setComposerExpanded] = React.useState(false);
@@ -974,16 +975,24 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
   const handleDeleteSession = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!runtime.isDemo) await AtlasAIService.deleteSession(id);
-    setSessionMessages((current) => {
-      const next = { ...current };
-      delete next[id];
-      return next;
-    });
-    if (currentSessionId === id) {
-      handleNewChat();
+    setOpenSessionMenuId(null);
+    try {
+      if (!runtime.isDemo) await AtlasAIService.deleteSession(id);
+      setSessions((current) => current.filter((session) => session.id !== id));
+      setSessionMessages((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      if (currentSessionId === id) {
+        abortActiveResponse();
+        setActiveSessionId(null);
+        setIsGuideSelected(false);
+        setMessages([initialMessage]);
+      }
+    } catch (error) {
+      setChatError(error instanceof Error ? error.message : 'Miles could not delete this chat.');
     }
-    if (!runtime.isDemo) loadSessions();
   };
 
   const suggestionPills = [
@@ -1088,22 +1097,28 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                       {session.title}
                     </span>
                   )}
-                  <button
-                    type="button"
-                    onClick={(event) => beginRename(event, session)}
-                    className="shrink-0 text-zinc-650 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 focus:opacity-100"
-                    aria-label={`Rename ${session.title}`}
-                  >
-                    <PencilLine className="h-3.5 w-3.5" />
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={(e) => handleDeleteSession(e, session.id)}
-                    className="text-zinc-650 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity duration-150 shrink-0"
-                    title="Delete Chat"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="relative shrink-0" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenSessionMenuId((current) => current === session.id ? null : session.id)}
+                      className="grid h-6 w-6 place-items-center rounded text-zinc-500 opacity-0 transition-[opacity,background-color,color] hover:bg-zinc-800 hover:text-white group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+                      aria-label={`Open options for ${session.title}`}
+                      aria-haspopup="menu"
+                      aria-expanded={openSessionMenuId === session.id}
+                    >
+                      <Ellipsis className="h-4 w-4" />
+                    </button>
+                    {openSessionMenuId === session.id && (
+                      <div className="absolute right-0 top-7 z-30 w-36 overflow-hidden rounded-md border border-zinc-700 bg-zinc-950 p-1 shadow-2xl" role="menu">
+                        <button type="button" role="menuitem" onClick={(event) => { setOpenSessionMenuId(null); beginRename(event, session); }} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-[11px] font-semibold text-zinc-300 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500">
+                          <PencilLine className="h-3.5 w-3.5" />Rename chat
+                        </button>
+                        <button type="button" role="menuitem" onClick={(event) => void handleDeleteSession(event, session.id)} className="flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-[11px] font-semibold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                          <Trash2 className="h-3.5 w-3.5" />Delete chat
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {session.updatedAt && (
                   <div className="flex items-center justify-between mt-2.5">

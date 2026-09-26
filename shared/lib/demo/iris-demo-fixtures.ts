@@ -100,7 +100,7 @@ const calendarEvents = [
 
 const workspace: WorkspaceReadModel = {
   organization: { id: 'demo-org', name: 'Northstar Creative', plan: 'ADVANCED', agencyTypes: ['Creative Agency'], billingEmail: 'finance@northstar.demo', currency: 'USD', preferences: {}, legalEntityName: 'Northstar Creative LLC', billingAddressLine1: null, billingAddressLine2: null, billingCity: 'New York', billingState: 'NY', billingPostalCode: null, billingCountry: 'US', gstNumber: null, bankNames: ['Operating Account'], invoiceLogoDataUrl: null, invoiceBrandColor: '#18181b' },
-  user: { id: 'demo-user', orgId: 'demo-org', clientId: null, name: 'Alex Morgan', username: 'alex', email: 'alex@northstar.demo', role: 'admin', avatarUrl: null, accessPermissions: null, deliveryWorkspace: false, hasMetaAccount: true, preferences: {} },
+  user: { id: 'demo-user', orgId: 'demo-org', clientId: null, name: 'Alex Morgan', username: 'alex', email: 'alex@northstar.demo', role: 'admin', avatarUrl: null, accessPermissions: null, deliveryWorkspace: false, hasMetaAccount: true, client: null, preferences: {} },
   onboarding: { needsOnboarding: false, currentStep: 5, checklist: { skippedAll: false }, draft: {}, completedAt: '2026-04-04T00:00:00.000Z' },
   integrations: [{ provider: 'GOOGLE', status: 'CONNECTED', lastSync: '2026-09-26T07:15:00.000Z' }, { provider: 'META', status: 'CONNECTED', lastSync: '2026-09-26T06:40:00.000Z' }, { provider: 'CANVA', status: 'CONNECTED', lastSync: '2026-09-25T18:20:00.000Z' }],
   entitlements: { specializationLimit: 12, teamMemberLimit: null, coreTeamMemberLimit: 25, clientLimit: null, projectLimit: null, activeLeadLimit: 500, dataTransferBytes: 10737418240, monthlyInvoiceLimit: null, dailyBriefing: true, strategyGeneration: true, aiFeatures: true, messaging: true, atlasCapabilities: ['ASK', 'ANALYZE', 'CREATE'], messagingLimits: {} },
@@ -228,8 +228,10 @@ export async function handleIrisDemoRequest(
     return json({ success: true });
   }
   if (url.pathname === '/api/clients' && method !== 'GET') {
-    setState((current) => ({ ...current, clients: current.clients.map((client) => client.id === body.id ? { ...client, ...body } : client) }));
-    return json({ client: body });
+    const id = body.clientId || body.id;
+    const updated = { ...state.clients.find((client) => client.id === id), ...body, id };
+    setState((current) => ({ ...current, clients: current.clients.map((client) => client.id === id ? updated : client) }));
+    return json({ client: updated });
   }
   if (url.pathname === '/api/projects') {
     if (method === 'POST') {
@@ -290,7 +292,14 @@ export async function handleIrisDemoRequest(
     }
     return json({ strategies: state.strategies, clients: state.clients.map((client) => ({ id: client.id, name: client.name, status: client.status })), projects: state.projects.map((project) => ({ id: project.id, name: project.name, status: project.status, clientId: project.clientId, clientName: project.client.name })) });
   }
-  if (url.pathname === '/api/messaging') return json(state.messaging);
+  if (url.pathname === '/api/messaging') {
+    if (method === 'DELETE') {
+      const conversationId = url.searchParams.get('conversationId');
+      setState((current) => ({ ...current, messaging: { ...current.messaging, conversations: current.messaging.conversations.filter((conversation) => conversation.id !== conversationId) } }));
+      return json({ success: true });
+    }
+    return json(state.messaging);
+  }
   if (url.pathname === '/api/messaging/messages') return json({ messages: [], receiptStates: [] });
   if (url.pathname === '/api/security/users') return json({ users: state.team });
   if (url.pathname === '/api/member') return json({ success: true });

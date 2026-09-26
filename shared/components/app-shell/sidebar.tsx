@@ -60,6 +60,7 @@ type NavigationGroup = {
 };
 
 export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole, workspaceOrganizationName, workspaceOrganizationLogoDataUrl, workspaceDeliveryWorkspace, workspaceAccessPermissions, workspaceUserName, workspaceUserEmail, ...props }: SidebarProps) {
+  const isMobileDrawer = Boolean(onCloseMobile);
   const runtime = useWorkspaceRuntime();
   const pathname = runtime.pathname;
   const router = runtime.router;
@@ -77,7 +78,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     accessPermissions?: string[] | null;
     deliveryWorkspace?: boolean;
   } | null>(() => workspaceRole ? { name: workspaceUserName || 'Workspace User', email: workspaceUserEmail || '', role: workspaceRole, accessPermissions: workspaceAccessPermissions, deliveryWorkspace: workspaceDeliveryWorkspace } : null);
-  const [isCollapsed, setIsCollapsed] = React.useState(true);
+  const [isCollapsed, setIsCollapsed] = React.useState(() => !isMobileDrawer);
   const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({});
   const [uiScope, setUiScope] = React.useState<WorkspaceUiScope | null>(null);
   const [upgradePrompt, setUpgradePrompt] = React.useState<{ feature: string; href: string; requiredPlan: PlanId } | null>(null);
@@ -123,8 +124,9 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       const res = await runtime.fetch('/api/workspace');
       if (res.ok) {
         const data = await res.json();
-        setOrgName(data.organization.name || 'Agency Workspace');
-        setOrgLogoDataUrl(data.organization.invoiceLogoDataUrl || '');
+        const clientIdentity = data.user?.role?.toLowerCase() === 'client' ? data.user.client : null;
+        setOrgName(clientIdentity?.name || data.organization.name || 'Agency Workspace');
+        setOrgLogoDataUrl(clientIdentity?.logoDataUrl || (clientIdentity ? '' : data.organization.invoiceLogoDataUrl) || '');
         setPlan(data.organization.plan || '');
         setUser(data.user);
         setUiScope({ userId: data.user.id, orgId: data.organization.id });
@@ -135,8 +137,12 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   }, [runtime]);
 
   React.useEffect(() => {
+    if (isMobileDrawer) {
+      setIsCollapsed(false);
+      return;
+    }
     setIsCollapsed(readWorkspaceUiPreference(uiScope, 'sidebar', true, (value): value is boolean => typeof value === 'boolean'));
-  }, [uiScope]);
+  }, [isMobileDrawer, uiScope]);
 
   // Client and team member workspaces are hosted by the agency that invited
   // them. Apply that agency branding immediately from the app bootstrap,
@@ -358,15 +364,17 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       {...props}
     >
       {/* Toggle Button */}
-      <button
-        onClick={toggleCollapsed}
-        className="workspace-icon-control absolute -right-3 top-6 z-50 flex h-7 w-7 items-center justify-center rounded-full border border-zinc-800 bg-[#09090b] text-zinc-400 hover:text-white shadow-md cursor-pointer"
-        title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-        aria-expanded={!isCollapsed}
-      >
-        {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
-      </button>
+      {!isMobileDrawer && (
+        <button
+          onClick={toggleCollapsed}
+          className="workspace-icon-control absolute -right-3 top-6 z-50 flex h-7 w-7 items-center justify-center rounded-full border border-zinc-800 bg-[#09090b] text-zinc-400 hover:text-white shadow-md cursor-pointer"
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+          aria-expanded={!isCollapsed}
+        >
+          {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+        </button>
+      )}
 
       <div className="flex h-16 items-center justify-center border-b border-zinc-800 px-2">
         <Link
@@ -380,9 +388,9 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         >
           {isCollapsed ? (
             <img 
-              src="/iris-logo-black-bg.png"
+              src="/iris-logo-white-transparent.png"
               alt="IrisOS Logo"
-              className="h-8 w-auto max-w-[64px] object-contain"
+              className="h-9 w-9 object-contain"
             />
           ) : (
             <div className="flex items-center gap-2">
@@ -408,7 +416,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
                 <img
                   src={orgLogoDataUrl}
                   alt={`${orgName} logo`}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full bg-white object-contain p-1"
                   onError={() => setOrgLogoDataUrl('')}
                 />
               ) : (initials || 'AP')}

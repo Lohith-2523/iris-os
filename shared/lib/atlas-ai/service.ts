@@ -379,7 +379,14 @@ export const AtlasAIService = {
 
   async deleteSession(id: string) {
     if (typeof window === 'undefined') return;
-    await workspaceFetch(`/api/atlas-ai/sessions/${id}`, { method: 'DELETE' });
+    const res = await workspaceFetch(`/api/atlas-ai/sessions/${id}`, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new AtlasAIRequestError(
+        typeof data.error === 'string' ? data.error : 'Miles could not delete this chat.',
+        res.status,
+      );
+    }
   },
 
   async renameSession(id: string, title: string): Promise<{ id: string; title: string }> {

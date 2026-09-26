@@ -72,8 +72,22 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
   const [atlasQuery, setAtlasQuery] = React.useState('');
   const [theme, setTheme] = React.useState<WorkspaceTheme>('dark');
   const hasOptimisticThemeRef = React.useRef(false);
+  const topbarRef = React.useRef<HTMLElement>(null);
+
+  const workspaceThemeTarget = React.useCallback(() => (
+    runtime.isDemo ? topbarRef.current?.closest('.workspace-shell') : null
+  ), [runtime.isDemo]);
 
   React.useEffect(() => {
+    if (runtime.isDemo) {
+      const target = workspaceThemeTarget();
+      setTheme('dark');
+      applyWorkspaceTheme('dark', target);
+      return () => {
+        target?.classList.remove('light', 'dark');
+      };
+    }
+
     const cookieTheme = readWorkspaceTheme();
     const hasThemeCookie = hasPersistedWorkspaceTheme();
     setTheme(cookieTheme);
@@ -99,18 +113,18 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
     return () => {
       isCurrent = false;
     };
-  }, [fetch]);
+  }, [fetch, runtime.isDemo, workspaceThemeTarget]);
 
   React.useEffect(() => {
-    applyWorkspaceTheme(theme);
-  }, [theme]);
+    applyWorkspaceTheme(theme, workspaceThemeTarget());
+  }, [theme, workspaceThemeTarget]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     hasOptimisticThemeRef.current = true;
     setTheme(nextTheme);
-    applyWorkspaceTheme(nextTheme);
-    persistWorkspaceTheme(nextTheme);
+    applyWorkspaceTheme(nextTheme, workspaceThemeTarget());
+    if (!runtime.isDemo) persistWorkspaceTheme(nextTheme);
     void fetch('/api/workspace', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -174,7 +188,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
 
   return (
     <>
-      <header className="workspace-topbar workspace-topbar-centered w-full border-b border-zinc-800 bg-[#09090b]">
+      <header ref={topbarRef} className="workspace-topbar workspace-topbar-centered w-full border-b border-zinc-800 bg-[#09090b]">
         {/* Left: Mobile Toggle & Brand indicator */}
         <div className="workspace-topbar-navigation">
           <Button

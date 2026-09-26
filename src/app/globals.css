@@ -131,7 +131,7 @@ html {
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-:root.light {
+:is(:root.light, .workspace-shell.light) {
   /* High-contrast porcelain light profile */
   --background: #f7f9fc;
   --foreground: #172033;
@@ -160,7 +160,7 @@ html {
   --status-danger-text: #852536;
 }
 
-:root.light .settings-atlas-meta-consent-title {
+:is(:root.light, .workspace-shell.light) .settings-atlas-meta-consent-title {
   color: #5b216d;
 }
 
@@ -259,7 +259,7 @@ h6,
 }
 
 /* Light Mode Global CSS Adaptations for dynamic profile styling */
-:root.light {
+:is(:root.light, .workspace-shell.light) {
   body {
     background: linear-gradient(145deg, #f8fafc 0%, #edf3fa 100%);
   }
@@ -1175,7 +1175,7 @@ input[data-date-picker-proxy] {
 }
 
 /* Light workspace: porcelain content with a permanently dark navigation rail. */
-:root.light .workspace-shell {
+:is(:root.light .workspace-shell, .workspace-shell.light) {
   --workspace-base: #eef2f7;
   --workspace-raised: #f8fafc;
   --workspace-inset: #e9eef5;
@@ -1186,13 +1186,13 @@ input[data-date-picker-proxy] {
   color: var(--workspace-text) !important;
 }
 
-:root.light .workspace-main {
+:is(:root.light, .workspace-shell.light) .workspace-main {
   background:
     radial-gradient(circle at 12% 0%, rgba(255,255,255,.95), transparent 32%),
     linear-gradient(145deg, #f5f8fc 0%, #e8eef6 100%) !important;
 }
 
-:root.light .workspace-shell .workspace-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-card {
   background: linear-gradient(145deg, #ffffff 0%, #f1f5fa 100%) !important;
   border-color: rgba(73,88,115,.18) !important;
   box-shadow:
@@ -1202,48 +1202,48 @@ input[data-date-picker-proxy] {
   color: #172033 !important;
 }
 
-:root.light .workspace-shell .dashboard-header {
+:is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-header {
   background: rgba(255,255,255,.74) !important;
   border-color: rgba(73,88,115,.16) !important;
   box-shadow: 0 14px 34px rgba(110,125,148,.15), inset 0 1px 0 rgba(255,255,255,.92);
 }
 
-:root.light .workspace-shell .dashboard-welcome-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-welcome-card {
   background: #ffffff !important;
   border-color: rgba(73,88,115,.18) !important;
   box-shadow: 0 8px 20px rgba(110,125,148,.13), inset 0 1px 0 #ffffff !important;
 }
 
-:root.light .workspace-shell .dashboard-command-center-banner {
+:is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-command-center-banner {
   display: block;
   background-image: url('/workspace_banner_light.jpg');
 }
 
-:root.light .workspace-shell .dashboard-canvas .workspace-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-canvas .workspace-card {
   background: rgba(255,255,255,.82) !important;
   border-color: rgba(73,88,115,.16) !important;
   box-shadow: 0 14px 34px rgba(110,125,148,.14), inset 0 1px 0 rgba(255,255,255,.9) !important;
 }
 
-:root.light .workspace-shell .workspace-segmented-control {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-control {
   background: rgba(226,232,240,.82) !important;
   border-color: rgba(73,88,115,.18) !important;
   box-shadow: inset 2px 2px 5px rgba(148,163,184,.26), inset -2px -2px 5px rgba(255,255,255,.85);
 }
 
-:root.light .workspace-shell .workspace-segmented-trigger,
-:root.light .workspace-shell .workspace-segmented-trigger:hover,
-:root.light .workspace-shell .workspace-segmented-trigger.bg-white {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-trigger,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-trigger:hover,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-trigger.bg-white {
   color: #09090b !important;
 }
 
-:root.light .workspace-shell .workspace-segmented-trigger.bg-white {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-trigger.bg-white {
   box-shadow: 0 2px 8px rgba(71,85,105,.2), inset 0 1px 0 rgba(255,255,255,.85);
 }
 
 /* Leads workflow selector: keep the selected surface legible in light mode,
    independent of utility-class order. */
-:root.light .workspace-shell .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true'] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true'] {
   position: relative;
   background: linear-gradient(145deg, #3b4657, #1b222d) !important;
   border-color: #202a38 !important;
@@ -1251,7 +1251,7 @@ input[data-date-picker-proxy] {
   box-shadow: 0 3px 9px rgba(51, 65, 85, .32), inset 0 1px 0 rgba(255, 255, 255, .2) !important;
 }
 
-:root.light .workspace-shell .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true']::after {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true']::after {
   content: '';
   position: absolute;
   right: 7px;
@@ -1263,84 +1263,84 @@ input[data-date-picker-proxy] {
   box-shadow: 0 0 5px rgba(255, 255, 255, .72);
 }
 
-:root.light .workspace-shell .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true'] :is(svg, span) {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-tabs .workspace-segmented-trigger[aria-pressed='true'] :is(svg, span) {
   color: #ffffff !important;
 }
 
-:root.light .workspace-shell .bg-\[\#0d0e12\].border,
-:root.light .workspace-shell .bg-\[\#0b0c10\].border {
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-\[\#0d0e12\].border,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-\[\#0b0c10\].border {
   background: linear-gradient(145deg, #ffffff 0%, #f1f5fa 100%) !important;
   border-color: rgba(73,88,115,.18) !important;
   box-shadow: 9px 9px 20px rgba(159,171,190,.42), -8px -8px 18px rgba(255,255,255,.95), inset 0 1px 0 #fff !important;
 }
 
-:root.light .workspace-topbar {
+:is(:root.light, .workspace-shell.light) .workspace-topbar {
   background: rgba(248,250,252,.92) !important;
   border-color: rgba(72,86,110,.18) !important;
   box-shadow: 0 8px 22px rgba(110,125,148,.16), inset 0 -1px 0 #fff;
 }
 
-:root.light .workspace-sidebar,
-:root.light .workspace-sidebar header,
-:root.light .workspace-sidebar .border-r,
-:root.light .workspace-sidebar .bg-zinc-950,
-:root.light .workspace-sidebar .bg-zinc-950\/40,
-:root.light .workspace-sidebar .bg-zinc-950\/20 {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar header,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .border-r,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-950,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-950\/40,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-950\/20 {
   background: linear-gradient(180deg, #111318 0%, #08090c 100%) !important;
   border-color: rgba(255,255,255,.09) !important;
   color: #a8adb7 !important;
 }
 
-:root.light .workspace-sidebar .bg-zinc-900,
-:root.light .workspace-sidebar .bg-zinc-900\/50 {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900\/50 {
   background: #191c22 !important;
   color: #f4f4f5 !important;
 }
 
-:root.light .workspace-sidebar .text-white,
-:root.light .workspace-sidebar .text-zinc-100,
-:root.light .workspace-sidebar .text-zinc-200,
-:root.light .workspace-sidebar .text-zinc-300 {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .text-white,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .text-zinc-100,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .text-zinc-200,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .text-zinc-300 {
   color: #f4f4f5 !important;
 }
 
-:root.light .workspace-sidebar .text-zinc-400,
-:root.light .workspace-sidebar .text-zinc-500 {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .text-zinc-400,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .text-zinc-500 {
   color: #9ca3af !important;
 }
 
-:root.light .workspace-shell input:not([type='checkbox']):not([type='radio']),
-:root.light .workspace-shell select,
-:root.light .workspace-shell textarea {
+:is(:root.light .workspace-shell, .workspace-shell.light) input:not([type='checkbox']):not([type='radio']),
+:is(:root.light .workspace-shell, .workspace-shell.light) select,
+:is(:root.light .workspace-shell, .workspace-shell.light) textarea {
   background: #edf2f7 !important;
   border-color: rgba(78,94,120,.18) !important;
   box-shadow: inset 4px 4px 9px rgba(160,172,191,.38), inset -4px -4px 9px #ffffff !important;
   color: #172033 !important;
 }
 
-:root.light .workspace-shell .workspace-button {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-button {
   box-shadow: 4px 4px 10px rgba(143,157,178,.34), -4px -4px 10px rgba(255,255,255,.95);
   color: #09090b !important;
 }
 
-:root.light .workspace-shell .workspace-button:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-button:hover {
   box-shadow: 6px 6px 13px rgba(135,150,173,.4), -5px -5px 12px #ffffff;
   color: #09090b !important;
 }
 
-:root.light .workspace-shell .workspace-button:active {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-button:active {
   box-shadow: inset 3px 3px 7px rgba(148,162,182,.38), inset -3px -3px 7px #ffffff;
 }
 
-:root.light .workspace-shell thead {
+:is(:root.light .workspace-shell, .workspace-shell.light) thead {
   background: #e7edf5 !important;
 }
 
-:root.light .workspace-shell tbody tr:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) tbody tr:hover {
   background: rgba(80,104,145,.06) !important;
 }
 
-:root.light .workspace-shell .agency-leads-summary {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-summary {
   background: #ffffff !important;
 }
 
@@ -1365,9 +1365,9 @@ input[data-date-picker-proxy] {
     background-color: #111113 !important;
   }
 
-  :root.light .workspace-shell .dashboard-header,
-  :root.light .workspace-shell .dashboard-canvas .workspace-card,
-  :root.light .workspace-shell .workspace-segmented-control {
+  :is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-header,
+  :is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-canvas .workspace-card,
+  :is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-control {
     background-color: #ffffff !important;
   }
 }
@@ -1379,9 +1379,9 @@ input[data-date-picker-proxy] {
     border-color: rgba(255,255,255,.28) !important;
   }
 
-  :root.light .workspace-shell .dashboard-header,
-  :root.light .workspace-shell .dashboard-canvas .workspace-card,
-  :root.light .workspace-shell .workspace-segmented-control {
+  :is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-header,
+  :is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-canvas .workspace-card,
+  :is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-control {
     border-color: #64748b !important;
   }
 }
@@ -1761,7 +1761,7 @@ input[data-date-picker-proxy] {
   }
 }
 
-:root.light .workspace-shell {
+:is(:root.light .workspace-shell, .workspace-shell.light) {
   --workspace-focus: rgba(51, 65, 85, .62);
   --workspace-material: rgba(255, 255, 255, .8);
   --workspace-material-solid: #ffffff;
@@ -1769,42 +1769,42 @@ input[data-date-picker-proxy] {
   --workspace-shadow: 0 18px 44px rgba(100, 116, 139, .15);
 }
 
-:root.light .workspace-main::before {
+:is(:root.light, .workspace-shell.light) .workspace-main::before {
   background:
     radial-gradient(circle at 78% 8%, rgba(148, 163, 184, .12), transparent 28rem),
     radial-gradient(circle at 28% 88%, rgba(203, 213, 225, .16), transparent 32rem);
 }
 
-:root.light .workspace-shell .workspace-card-interactive:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-card-interactive:hover {
   border-color: rgba(71, 85, 105, .24) !important;
   box-shadow: 0 20px 48px rgba(100, 116, 139, .18), inset 0 1px 0 #fff !important;
 }
 
-:root.light .workspace-topbar {
+:is(:root.light, .workspace-shell.light) .workspace-topbar {
   background: rgba(248, 250, 252, .82) !important;
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
 }
 
-:root.light .workspace-shell input::placeholder,
-:root.light .workspace-shell textarea::placeholder {
+:is(:root.light .workspace-shell, .workspace-shell.light) input::placeholder,
+:is(:root.light .workspace-shell, .workspace-shell.light) textarea::placeholder {
   color: #64748b;
 }
 
-:root.light .workspace-shell .workspace-table-header {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-table-header {
   background: rgba(226, 232, 240, .78) !important;
 }
 
-:root.light .workspace-shell .workspace-table-head {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-table-head {
   color: #475569 !important;
 }
 
-:root.light .workspace-shell .workspace-table-cell {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-table-cell {
   color: #263247 !important;
 }
 
-:root.light .workspace-shell .workspace-command-dialog,
-:root.light .workspace-shell .workspace-access-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-command-dialog,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-access-card {
   color: #172033 !important;
   background: rgba(255, 255, 255, .92) !important;
   border-color: rgba(71, 85, 105, .18) !important;
@@ -2056,7 +2056,7 @@ button {
   border-color: var(--skeleton-border);
 }
 
-:root.light .page-skeleton {
+:is(:root.light, .workspace-shell.light) .page-skeleton {
   --skeleton-block: rgb(203 213 225);
   --skeleton-highlight: rgb(241 245 249);
   --skeleton-panel: rgb(255 255 255);
@@ -2087,12 +2087,12 @@ button {
   animation: workspace-bootstrap-logo-spin 1.4s linear infinite;
 }
 
-:root.light .workspace-bootstrap-loader {
+:is(:root.light, .workspace-shell.light) .workspace-bootstrap-loader {
   background: #ffffff !important;
   color: #09090b !important;
 }
 
-:root.light .workspace-bootstrap-loader .relative::after {
+:is(:root.light, .workspace-shell.light) .workspace-bootstrap-loader .relative::after {
   background-image: url('/iris-logo-white-bg.png');
 }
 
@@ -2100,11 +2100,11 @@ button {
   display: none !important;
 }
 
-:root.light .integration-meta-logo-light {
+:is(:root.light, .workspace-shell.light) .integration-meta-logo-light {
   display: block !important;
 }
 
-:root.light .integration-meta-logo-dark {
+:is(:root.light, .workspace-shell.light) .integration-meta-logo-dark {
   display: none !important;
 }
 
@@ -2126,7 +2126,7 @@ button {
 
 /* Light workspace material policy: true black structure, white content, and
    light silver depth. Dark-grey fills are intentionally excluded. */
-:root.light {
+:is(:root.light, .workspace-shell.light) {
   --background: #ffffff;
   --card: #ffffff;
   --muted: #f4f6f9;
@@ -2135,50 +2135,50 @@ button {
   --surface-hover: #e5e9ef;
 }
 
-:root.light body,
-:root.light .workspace-shell,
-:root.light .workspace-main {
+:is(:root.light, .workspace-shell.light) body,
+:is(:root.light .workspace-shell, .workspace-shell.light),
+:is(:root.light, .workspace-shell.light) .workspace-main {
   background: #ffffff !important;
 }
 
-:root.light .workspace-main::before {
+:is(:root.light, .workspace-shell.light) .workspace-main::before {
   background:
     radial-gradient(circle at 78% 8%, rgba(226, 232, 240, .38), transparent 28rem),
     radial-gradient(circle at 28% 88%, rgba(241, 245, 249, .6), transparent 32rem) !important;
 }
 
-:root.light .workspace-topbar,
-:root.light .workspace-shell .workspace-card,
-:root.light .workspace-shell .dashboard-header,
-:root.light .workspace-shell .dashboard-canvas .workspace-card,
-:root.light .workspace-shell .workspace-segmented-control,
-:root.light .workspace-shell .workspace-command-dialog,
-:root.light .workspace-shell .workspace-access-card,
-:root.light .workspace-shell .bg-\[\#09090b\],
-:root.light .workspace-shell .bg-\[\#0b0c10\],
-:root.light .workspace-shell .bg-\[\#0d0e12\],
-:root.light .workspace-shell .bg-\[\#0d0e15\],
-:root.light .workspace-shell .bg-\[\#121215\],
-:root.light .workspace-shell .bg-zinc-950,
-:root.light .workspace-shell .bg-zinc-950\/40,
-:root.light .workspace-shell .bg-zinc-950\/20,
-:root.light .workspace-shell .bg-zinc-900,
-:root.light .workspace-shell .bg-zinc-900\/90,
-:root.light .workspace-shell .bg-zinc-900\/85,
-:root.light .workspace-shell .bg-zinc-900\/65,
-:root.light .workspace-shell .bg-zinc-900\/60,
-:root.light .workspace-shell .bg-zinc-900\/50,
-:root.light .workspace-shell .bg-zinc-900\/40,
-:root.light .workspace-shell .bg-zinc-900\/35,
-:root.light .workspace-shell .bg-zinc-900\/20,
-:root.light .workspace-shell thead,
-:root.light .workspace-shell .workspace-table-header {
+:is(:root.light, .workspace-shell.light) .workspace-topbar,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-card,
+:is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-header,
+:is(:root.light .workspace-shell, .workspace-shell.light) .dashboard-canvas .workspace-card,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-segmented-control,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-command-dialog,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-access-card,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-\[\#09090b\],
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-\[\#0b0c10\],
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-\[\#0d0e12\],
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-\[\#0d0e15\],
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-\[\#121215\],
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-950,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-950\/40,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-950\/20,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/90,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/85,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/65,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/60,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/50,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/40,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/35,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-900\/20,
+:is(:root.light .workspace-shell, .workspace-shell.light) thead,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-table-header {
   background: #ffffff !important;
 }
 
 /* Catch opacity variants generated from the workspace's legacy charcoal
    utilities without changing semantic colour fills such as success or danger. */
-:root.light .workspace-shell :where(
+:is(:root.light .workspace-shell, .workspace-shell.light) :where(
   [class^="bg-zinc-9"], [class*=" bg-zinc-9"],
   [class^="bg-neutral-9"], [class*=" bg-neutral-9"],
   [class^="bg-gray-9"], [class*=" bg-gray-9"],
@@ -2194,7 +2194,7 @@ button {
   background-image: none !important;
 }
 
-:root.light .workspace-shell :where(
+:is(:root.light .workspace-shell, .workspace-shell.light) :where(
   [class^="bg-zinc-8"], [class*=" bg-zinc-8"],
   [class^="bg-neutral-8"], [class*=" bg-neutral-8"],
   [class^="bg-gray-8"], [class*=" bg-gray-8"],
@@ -2206,7 +2206,7 @@ button {
   background-image: none !important;
 }
 
-:root.light .workspace-shell :where(
+:is(:root.light .workspace-shell, .workspace-shell.light) :where(
   [class^="bg-zinc-9"], [class*=" bg-zinc-9"],
   [class^="bg-zinc-8"], [class*=" bg-zinc-8"],
   [class^="bg-zinc-7"], [class*=" bg-zinc-7"],
@@ -2220,32 +2220,32 @@ button {
   color: #000000 !important;
 }
 
-:root.light .workspace-shell input:not([type='checkbox']):not([type='radio']):not([type='range']),
-:root.light .workspace-shell select,
-:root.light .workspace-shell textarea {
+:is(:root.light .workspace-shell, .workspace-shell.light) input:not([type='checkbox']):not([type='radio']):not([type='range']),
+:is(:root.light .workspace-shell, .workspace-shell.light) select,
+:is(:root.light .workspace-shell, .workspace-shell.light) textarea {
   background: #ffffff !important;
   border-color: #cbd2dc !important;
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, .06) !important;
 }
 
-:root.light .workspace-sidebar,
-:root.light .workspace-sidebar.bg-\[\#09090b\],
-:root.light .workspace-sidebar header,
-:root.light .workspace-sidebar .border-r,
-:root.light .workspace-sidebar .bg-zinc-950,
-:root.light .workspace-sidebar .bg-zinc-950\/40,
-:root.light .workspace-sidebar .bg-zinc-950\/20 {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar.bg-\[\#09090b\],
+:is(:root.light, .workspace-shell.light) .workspace-sidebar header,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .border-r,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-950,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-950\/40,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-950\/20 {
   background: linear-gradient(180deg, #111318 0%, #08090c 100%) !important;
   border-color: rgba(255, 255, 255, .16) !important;
 }
 
-:root.light .workspace-sidebar .bg-zinc-900,
-:root.light .workspace-sidebar .bg-zinc-900\/50 {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900\/50 {
   background: #191c22 !important;
   color: #f4f4f5 !important;
 }
 
-:root.light .workspace-sidebar :where(
+:is(:root.light, .workspace-shell.light) .workspace-sidebar :where(
   [class^="bg-[#09090b]"], [class*=" bg-[#09090b]"],
   [class^="bg-[#0b0c10]"], [class*=" bg-[#0b0c10]"],
   [class^="bg-[#0c0c0e]"], [class*=" bg-[#0c0c0e]"],
@@ -2258,24 +2258,24 @@ button {
   background-image: none !important;
 }
 
-:root.light .workspace-sidebar .bg-zinc-900.text-white,
-:root.light .workspace-sidebar .bg-zinc-900\/50.text-white,
-:root.light .workspace-sidebar .bg-zinc-900 .text-white,
-:root.light .workspace-sidebar .bg-zinc-900\/50 .text-white {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900.text-white,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900\/50.text-white,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900 .text-white,
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .bg-zinc-900\/50 .text-white {
   color: #f4f4f5 !important;
 }
 
 /* Keep the current location unmistakable when the workspace uses its light
    theme. The sidebar remains graphite for contrast, so use a silver rail and
    a raised surface rather than relying on the dark-theme background shift. */
-:root.light .workspace-sidebar .workspace-nav-link[aria-current='page'] {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .workspace-nav-link[aria-current='page'] {
   position: relative;
   border-color: rgba(226, 232, 240, .42) !important;
   background: linear-gradient(145deg, #353b46, #20242b) !important;
   box-shadow: 0 7px 16px rgba(0, 0, 0, .32), inset 0 1px 0 rgba(255, 255, 255, .18) !important;
 }
 
-:root.light .workspace-sidebar .workspace-nav-link[aria-current='page']::before {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .workspace-nav-link[aria-current='page']::before {
   content: '';
   position: absolute;
   left: -1px;
@@ -2287,29 +2287,29 @@ button {
   box-shadow: 0 0 8px rgba(255, 255, 255, .42);
 }
 
-:root.light .workspace-sidebar .workspace-nav-link[aria-current='page'] :is(svg, span) {
+:is(:root.light, .workspace-shell.light) .workspace-sidebar .workspace-nav-link[aria-current='page'] :is(svg, span) {
   color: #ffffff !important;
 }
 
-:root.light .workspace-shell .bg-zinc-800,
-:root.light .workspace-shell .bg-zinc-300,
-:root.light .workspace-shell .bg-zinc-200,
-:root.light .workspace-shell .bg-zinc-100 {
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-800,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-300,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-200,
+:is(:root.light .workspace-shell, .workspace-shell.light) .bg-zinc-100 {
   background: #eef1f5 !important;
 }
 
-:root.light .workspace-shell tbody tr:hover,
-:root.light .workspace-shell .hover\:bg-zinc-950:hover,
-:root.light .workspace-shell .hover\:bg-zinc-900:hover,
-:root.light .workspace-shell .hover\:bg-zinc-900\/80:hover,
-:root.light .workspace-shell .hover\:bg-zinc-800:hover,
-:root.light .workspace-shell .hover\:bg-zinc-800\/30:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) tbody tr:hover,
+:is(:root.light .workspace-shell, .workspace-shell.light) .hover\:bg-zinc-950:hover,
+:is(:root.light .workspace-shell, .workspace-shell.light) .hover\:bg-zinc-900:hover,
+:is(:root.light .workspace-shell, .workspace-shell.light) .hover\:bg-zinc-900\/80:hover,
+:is(:root.light .workspace-shell, .workspace-shell.light) .hover\:bg-zinc-800:hover,
+:is(:root.light .workspace-shell, .workspace-shell.light) .hover\:bg-zinc-800\/30:hover {
   background: #f4f6f9 !important;
 }
 
 /* The profile control stays visually quiet in light mode. This must follow
    the global hover mapping above, otherwise that generic rule fills it. */
-:root.light .workspace-shell .workspace-sidebar .workspace-profile-settings:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-sidebar .workspace-profile-settings:hover {
   background: transparent !important;
   background-image: none !important;
   border-color: rgba(255, 255, 255, .54) !important;
@@ -2322,15 +2322,15 @@ button {
   line-height: 1.25 !important;
 }
 
-:root.light .workspace-loading-overlay {
+:is(:root.light, .workspace-shell.light) .workspace-loading-overlay {
   background: #ffffff !important;
   opacity: 1 !important;
 }
 
 /* Miles opens frequently from the global launcher. Keep this loading surface
    fully opaque so a previous command-center frame can never bleed through. */
-:root.light .workspace-loading-overlay:has(.page-skeleton--atlas),
-:root.light .page-skeleton--atlas {
+:is(:root.light, .workspace-shell.light) .workspace-loading-overlay:has(.page-skeleton--atlas),
+:is(:root.light, .workspace-shell.light) .page-skeleton--atlas {
   background: #ffffff !important;
   opacity: 1 !important;
 }
@@ -2341,28 +2341,28 @@ button {
 
 .atlas-chat-avatar { border-radius: 9999px !important; }
 .atlas-chat-avatar-icon { color: #ffffff !important; }
-:root.light .atlas-chat-avatar-icon { color: #09090b !important; }
+:is(:root.light, .workspace-shell.light) .atlas-chat-avatar-icon { color: #09090b !important; }
 
-:root.light .workspace-loading-card {
+:is(:root.light, .workspace-shell.light) .workspace-loading-card {
   background: #ffffff !important;
   border-color: rgba(71, 85, 105, .24) !important;
   box-shadow: 0 22px 56px rgba(71, 85, 105, .18), inset 0 1px 0 #ffffff !important;
   color: #475569 !important;
 }
 
-:root.light .workspace-loading-card h2 {
+:is(:root.light, .workspace-shell.light) .workspace-loading-card h2 {
   color: #172033 !important;
 }
 
-:root.light .workspace-loading-card .border-zinc-700 {
+:is(:root.light, .workspace-shell.light) .workspace-loading-card .border-zinc-700 {
   border-color: #94a3b8 !important;
 }
 
-:root.light .workspace-loading-card .border-t-zinc-100 {
+:is(:root.light, .workspace-shell.light) .workspace-loading-card .border-t-zinc-100 {
   border-top-color: #334155 !important;
 }
 
-:root.light .workspace-shell .task-progress-slider {
+:is(:root.light .workspace-shell, .workspace-shell.light) .task-progress-slider {
   background: linear-gradient(
     to right,
     #000000 0%,
@@ -2372,15 +2372,15 @@ button {
   ) !important;
 }
 
-:root.light .workspace-shell .task-progress-rail-track {
+:is(:root.light .workspace-shell, .workspace-shell.light) .task-progress-rail-track {
   background: #dfe4eb;
 }
 
-:root.light .workspace-shell .task-progress-rail-fill {
+:is(:root.light .workspace-shell, .workspace-shell.light) .task-progress-rail-fill {
   background: #000000;
 }
 
-:root.light .workspace-shell .task-progress-rail-dot {
+:is(:root.light .workspace-shell, .workspace-shell.light) .task-progress-rail-dot {
   border-color: #dfe4eb;
   background: linear-gradient(145deg, #ffffff, #94a3b8);
   box-shadow: 0 2px 8px rgb(15 23 42 / 24%);
@@ -2389,7 +2389,7 @@ button {
 /* Hallmark · light-mode material pass · designed-as-app · contrast: pass (40–41)
  * Pre-emit critique: Philosophy 5 · Hierarchy 4 · Execution 5 · Specificity 5 · Restraint 5 · Variety 3
  * Typography, spacing, layout, and dark-mode styling are intentionally unchanged. */
-:root.light .workspace-shell {
+:is(:root.light .workspace-shell, .workspace-shell.light) {
   --light-metal-button:
     linear-gradient(145deg, #f8fafc 0%, #d8dee8 26%, #9aa6b7 49%, #eef2f7 72%, #b7c1cf 100%);
   --light-metal-button-hover:
@@ -2432,7 +2432,7 @@ button {
 
 /* Brushed metal controls are limited to light mode and retain all existing
    sizing and typography from the component classes. */
-:root.light .workspace-shell :is(
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(
   .workspace-button,
   .workspace-icon-control,
   .workspace-command-trigger,
@@ -2448,7 +2448,7 @@ button {
     0 3px 8px var(--light-metal-shadow) !important;
 }
 
-:root.light .workspace-shell :is(
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(
   .workspace-button,
   .workspace-icon-control,
   .workspace-command-trigger,
@@ -2463,7 +2463,7 @@ button {
     0 5px 12px var(--light-metal-shadow-hover) !important;
 }
 
-:root.light .workspace-shell :is(
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(
   .workspace-button,
   .workspace-icon-control,
   .workspace-command-trigger,
@@ -2475,7 +2475,7 @@ button {
     inset -2px -2px 5px var(--light-metal-inset-active-highlight) !important;
 }
 
-:root.light .workspace-shell :is(
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(
   .workspace-button,
   .workspace-icon-control,
   .workspace-command-trigger,
@@ -2487,7 +2487,7 @@ button {
 
 /* Neutral text-only labels, including the financial-year badge, use a dark blue
    enamel fill with white type instead of a blue outline on white. */
-:root.light .workspace-shell :is(.workspace-badge.badge-default, .workspace-badge.badge-secondary) {
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(.workspace-badge.badge-default, .workspace-badge.badge-secondary) {
   background: var(--light-label-neutral) !important;
   border-color: var(--light-label-neutral-border) !important;
   color: var(--light-label-neutral-ink) !important;
@@ -2496,55 +2496,55 @@ button {
     0 1px 2px var(--light-label-shadow);
 }
 
-:root.light .workspace-shell :is(.workspace-badge.badge-outline, .status-new) {
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(.workspace-badge.badge-outline, .status-new) {
   background: var(--light-label-info) !important;
   border-color: var(--light-label-info-border) !important;
   color: var(--light-label-info-ink) !important;
 }
 
-:root.light .workspace-shell :is(.workspace-badge.badge-risk-low, .status-closed, .meta-sdk-active, .team-alert-success),
-:root.light .workspace-shell :is(span, label)[class*="bg-emerald-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-green-"] {
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(.workspace-badge.badge-risk-low, .status-closed, .meta-sdk-active, .team-alert-success),
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-emerald-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-green-"] {
   background: var(--light-label-success) !important;
   border-color: var(--light-label-success-border) !important;
   color: var(--light-label-success-ink) !important;
 }
 
-:root.light .workspace-shell :is(.workspace-badge.badge-risk-medium, .status-cold-call, .sandbox-mode, .team-alert-warning),
-:root.light .workspace-shell :is(span, label)[class*="bg-amber-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-yellow-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-orange-"] {
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(.workspace-badge.badge-risk-medium, .status-cold-call, .sandbox-mode, .team-alert-warning),
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-amber-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-yellow-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-orange-"] {
   background: var(--light-label-warning) !important;
   border-color: var(--light-label-warning-border) !important;
   color: var(--light-label-warning-ink) !important;
 }
 
-:root.light .workspace-shell :is(.workspace-badge.badge-risk-high, .status-unqualified, .team-alert-danger),
-:root.light .workspace-shell :is(span, label)[class*="bg-rose-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-red-"] {
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(.workspace-badge.badge-risk-high, .status-unqualified, .team-alert-danger),
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-rose-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-red-"] {
   background: var(--light-label-danger) !important;
   border-color: var(--light-label-danger-border) !important;
   color: var(--light-label-danger-ink) !important;
 }
 
-:root.light .workspace-shell :is(span, label)[class*="bg-blue-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-sky-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-cyan-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-indigo-"] {
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-blue-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-sky-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-cyan-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-indigo-"] {
   background: var(--light-label-info) !important;
   border-color: var(--light-label-info-border) !important;
   color: var(--light-label-info-ink) !important;
 }
 
-:root.light .workspace-shell :is(span, label)[class*="bg-violet-"],
-:root.light .workspace-shell :is(span, label)[class*="bg-purple-"] {
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-violet-"],
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-purple-"] {
   background: var(--light-label-violet) !important;
   border-color: var(--light-label-violet-border) !important;
   color: var(--light-label-violet-ink) !important;
 }
 
 /* Selected agency specializations need a clear affirmative state in light mode. */
-:root.light .workspace-shell .industry-specialization-card[data-selected="true"] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .industry-specialization-card[data-selected="true"] {
   background: var(--light-label-neutral) !important;
   border-color: var(--light-label-neutral-border) !important;
   color: var(--light-label-neutral-ink) !important;
@@ -2553,29 +2553,29 @@ button {
     0 2px 5px var(--light-label-shadow) !important;
 }
 
-:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-icon {
+:is(:root.light .workspace-shell, .workspace-shell.light) .industry-specialization-card[data-selected="true"] .industry-specialization-icon {
   background: var(--light-label-highlight) !important;
   color: var(--light-label-neutral-ink) !important;
 }
 
-:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-description {
+:is(:root.light .workspace-shell, .workspace-shell.light) .industry-specialization-card[data-selected="true"] .industry-specialization-description {
   color: var(--light-label-info-ink) !important;
 }
 
-:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-check {
+:is(:root.light .workspace-shell, .workspace-shell.light) .industry-specialization-card[data-selected="true"] .industry-specialization-check {
   background: var(--light-label-neutral-ink) !important;
   color: var(--light-label-neutral-border) !important;
 }
 
 /* A selected icon should remain a dark, high-contrast control in the light
    workspace. Dark mode intentionally keeps the existing white selected state. */
-:root.light .workspace-shell .workspace-selected-icon.bg-white {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-selected-icon.bg-white {
   background: linear-gradient(145deg, #3b4657, #1b222d) !important;
   border-color: #1b222d !important;
   color: #ffffff !important;
 }
 
-:root.light .workspace-shell .industry-specialization-card[data-selected="true"] .industry-specialization-icon.workspace-selected-icon {
+:is(:root.light .workspace-shell, .workspace-shell.light) .industry-specialization-card[data-selected="true"] .industry-specialization-icon.workspace-selected-icon {
   background: linear-gradient(145deg, #3b4657, #1b222d) !important;
   border-color: #1b222d !important;
   color: #ffffff !important;
@@ -2608,149 +2608,149 @@ button {
   box-shadow: none !important;
 }
 
-:root.light .workspace-shell .workspace-topbar-search-trigger {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-topbar-search-trigger {
   background: #ffffff !important;
   box-shadow: none !important;
   text-shadow: none !important;
 }
 
-:root.light .workspace-shell .workspace-topbar-search-trigger:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-topbar-search-trigger:hover {
   background: #f8fafc !important;
 }
 
-:root.light .workspace-shell .workspace-command-search-control .workspace-command-search-input {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-command-search-control .workspace-command-search-input {
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
   box-shadow: none !important;
 }
 
-:root.light .workspace-shell .workspace-command-search-control .workspace-command-search-input:focus,
-:root.light .workspace-shell .workspace-command-search-control .workspace-command-search-input:focus-visible {
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-command-search-control .workspace-command-search-input:focus,
+:is(:root.light .workspace-shell, .workspace-shell.light) .workspace-command-search-control .workspace-command-search-input:focus-visible {
   background: #f8fafc !important;
   border-color: #94a3b8 !important;
 }
 
 /* Invoice readiness is a warning state in both themes. In the light workspace
    it uses a dark mustard surface so it remains distinct from white content. */
-:root.light .workspace-shell .agency-billing-profile-notice {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-billing-profile-notice {
   background: linear-gradient(145deg, #4a3505, #312303) !important;
   border-color: #8a6514 !important;
   color: #fff2c5 !important;
 }
 
-:root.light .workspace-shell .agency-billing-profile-notice :is(svg, p) {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-billing-profile-notice :is(svg, p) {
   color: #fff0bd !important;
 }
 
-:root.light .workspace-shell .agency-billing-profile-notice a {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-billing-profile-notice a {
   background: #211804 !important;
   border-color: #b88a22 !important;
   color: #fff4c9 !important;
 }
 
-:root.light .workspace-shell .agency-billing-profile-notice a:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-billing-profile-notice a:hover {
   background: #332606 !important;
 }
 
 /* Light-theme lead pipeline: strong stage recognition with inset dark cards.
    Dark mode keeps the original restrained graphite treatment. */
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] {
   background: #ffffff !important;
   border-color: #d6dce5 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='warm'] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='warm'] {
   background: #6b4705 !important;
   border-color: #6b4705 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='cold'] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='cold'] {
   background: #172554 !important;
   border-color: #1e40af !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='lost'] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='lost'] {
   background: #7f1d1d !important;
   border-color: #7f1d1d !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='closed'] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='closed'] {
   background: #14532d !important;
   border-color: #14532d !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column > :first-child {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column > :first-child {
   border-color: rgba(255, 255, 255, .34) !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column > :first-child > span {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column > :first-child > span {
   color: #ffffff !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column .workspace-badge {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column .workspace-badge {
   background: rgba(4, 8, 18, .34) !important;
   border-color: rgba(255, 255, 255, .42) !important;
   color: #ffffff !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-card {
   background: rgba(5, 9, 18, .7) !important;
   border-color: rgba(255, 255, 255, .25) !important;
   box-shadow: 0 8px 20px rgba(0, 0, 0, .18) !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-card:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-card:hover {
   background: rgba(9, 15, 28, .84) !important;
   border-color: rgba(255, 255, 255, .48) !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
   color: #ffffff !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column .border-dashed {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column .border-dashed {
   border-color: rgba(255, 255, 255, .42) !important;
   color: rgba(255, 255, 255, .88) !important;
 }
 
 /* Procured remains the neutral entry stage in the light workspace. */
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] {
   background: #ffffff !important;
   border-color: #d6dce5 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] > :first-child {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] > :first-child {
   border-color: #d6dce5 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] > :first-child > span {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] > :first-child > span {
   color: #172033 !important;
   text-shadow: none;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .workspace-badge {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] .workspace-badge {
   background: #f1f5f9 !important;
   border-color: #cbd5e1 !important;
   color: #334155 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card {
   background: #ffffff !important;
   border-color: #d6dce5 !important;
   box-shadow: 0 8px 20px rgba(71, 85, 105, .1) !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card:hover {
   background: #f8fafc !important;
   border-color: #94a3b8 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
   color: #263247 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .border-dashed {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] .border-dashed {
   border-color: #cbd5e1 !important;
   color: #64748b !important;
 }
@@ -2769,7 +2769,7 @@ button {
   --portfolio-chart-hover: rgba(167, 139, 250, .1);
 }
 
-:root.light .workspace-shell .client-portfolio-value-chart {
+:is(:root.light .workspace-shell, .workspace-shell.light) .client-portfolio-value-chart {
   --portfolio-chart-violet: #7c3aed;
   --portfolio-chart-cyan: #0284c7;
   --portfolio-chart-amber: #d97706;
@@ -2923,12 +2923,12 @@ button {
   }
 }
 
-:root.light .workspace-shell .project-client-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .project-client-card {
   --client-identity-accent: var(--client-identity-light);
   --client-identity-name: var(--client-identity-light-name);
 }
 
-:root.light .workspace-shell .project-client-icon {
+:is(:root.light .workspace-shell, .workspace-shell.light) .project-client-icon {
   background: color-mix(in srgb, var(--client-identity-accent) 10%, white) !important;
   border-color: color-mix(in srgb, var(--client-identity-accent) 35%, white) !important;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--client-identity-accent) 13%, transparent);
@@ -3053,43 +3053,43 @@ button:not([data-duplicate-sensitive]) :is(.animate-spin, [class*="loadingSpinne
 
 /* Override the former stage-filled light-theme treatment at equal-or-greater
    specificity; configurable colours remain accents only. */
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] {
   background: #ffffff !important;
   border-color: var(--stage-color) !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] > :first-child {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] > :first-child {
   border-color: #dbe3ed !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] > :first-child > .agency-leads-kanban-title {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] > :first-child > .agency-leads-kanban-title {
   color: var(--stage-color) !important;
   text-shadow: none !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .workspace-badge {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] .workspace-badge {
   background: #f1f5f9 !important;
   border-color: #cbd5e1 !important;
   color: #334155 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card,
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card,
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage='procured'] .agency-leads-kanban-card {
   background: #f8fafc !important;
   border-color: #dbe3ed !important;
   color: #172033 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card:hover {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card:hover {
   background: #ffffff !important;
   border-color: color-mix(in srgb, var(--stage-color) 58%, #cbd5e1) !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] .agency-leads-kanban-card :is(span, button:not(.workspace-button), svg) {
   color: #263247 !important;
 }
 
-:root.light .workspace-shell .agency-leads-kanban-column[data-stage] .border-dashed {
+:is(:root.light .workspace-shell, .workspace-shell.light) .agency-leads-kanban-column[data-stage] .border-dashed {
   border-color: #cbd5e1 !important;
   background: #f8fafc !important;
   color: #64748b !important;
@@ -3111,26 +3111,26 @@ button:not([data-duplicate-sensitive]) :is(.animate-spin, [class*="loadingSpinne
 }
 
 /* International phone controls follow the active surface contrast. */
-:root.light .country-phone-code-button,
-:root.light .country-phone-number-input,
-:root.light .country-phone-dropdown,
-:root.light .country-phone-search {
+:is(:root.light, .workspace-shell.light) .country-phone-code-button,
+:is(:root.light, .workspace-shell.light) .country-phone-number-input,
+:is(:root.light, .workspace-shell.light) .country-phone-dropdown,
+:is(:root.light, .workspace-shell.light) .country-phone-search {
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #09090b !important;
 }
 
-:root.light .country-phone-dropdown input,
-:root.light .country-phone-option {
+:is(:root.light, .workspace-shell.light) .country-phone-dropdown input,
+:is(:root.light, .workspace-shell.light) .country-phone-option {
   color: #09090b !important;
 }
 
-:root.light .country-phone-option:hover {
+:is(:root.light, .workspace-shell.light) .country-phone-option:hover {
   background: #f1f5f9 !important;
 }
 
-:root.light .country-phone-dropdown input::placeholder,
-:root.light .country-phone-number-input::placeholder {
+:is(:root.light, .workspace-shell.light) .country-phone-dropdown input::placeholder,
+:is(:root.light, .workspace-shell.light) .country-phone-number-input::placeholder {
   color: #64748b !important;
 }
 
@@ -3195,29 +3195,29 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   outline-offset: 2px;
 }
 
-:root.light input[type='checkbox']:not(.sr-only) {
+:is(:root.light, .workspace-shell.light) input[type='checkbox']:not(.sr-only) {
   border-color: #94a3b8;
   background: #ffffff !important;
   color: #ffffff;
 }
 
-:root.light input[type='checkbox']:not(.sr-only):checked {
+:is(:root.light, .workspace-shell.light) input[type='checkbox']:not(.sr-only):checked {
   border-color: #2563eb !important;
   background: #2563eb !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 }
 
-:root.light input[type='checkbox']:not(.sr-only):focus-visible {
+:is(:root.light, .workspace-shell.light) input[type='checkbox']:not(.sr-only):focus-visible {
   outline-color: #2563eb;
 }
 
-:root.light label:has(> input[type='checkbox']:not(.sr-only):checked) {
+:is(:root.light, .workspace-shell.light) label:has(> input[type='checkbox']:not(.sr-only):checked) {
   border-color: #2563eb !important;
   background: rgba(37, 99, 235, 0.1) !important;
   color: #0f172a;
 }
 
-:root.light label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
+:is(:root.light, .workspace-shell.light) label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   outline-color: #2563eb;
 }
 
@@ -3231,7 +3231,7 @@ label:has(> input[type='checkbox']:not(.sr-only):focus-visible) {
   transform: scale(0.97);
 }
 
-:root.light .specialization-chip {
+:is(:root.light, .workspace-shell.light) .specialization-chip {
   background: #2563eb;
   color: #ffffff;
 }
@@ -4110,7 +4110,7 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   color: var(--workspace-text);
 }
 
-:root.light .workspace-shell .atlas-topbar-menu-card {
+:is(:root.light .workspace-shell, .workspace-shell.light) .atlas-topbar-menu-card {
   border-color: var(--workspace-edge) !important;
   background: var(--workspace-material-solid) !important;
   color: var(--workspace-text) !important;
@@ -4426,7 +4426,7 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   --dashboard-finance-receivables: oklch(82% 0.12 88);
 }
 
-:root.light .dashboard-executive-layout {
+:is(:root.light, .workspace-shell.light) .dashboard-executive-layout {
   --dashboard-finance-revenue: oklch(43% 0.13 158);
   --dashboard-finance-profit: oklch(43% 0.13 158);
   --dashboard-finance-mrr: oklch(43% 0.13 158);
