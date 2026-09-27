@@ -43,42 +43,59 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authorization = await getMessagingUser(request);
-  if ('error' in authorization) {
-    return NextResponse.json({ error: authorization.error }, { status: authorization.status });
+  try {
+    const authorization = await getMessagingUser(request);
+    if ('error' in authorization) {
+      return NextResponse.json({ error: authorization.error }, { status: authorization.status });
+    }
+    const parsed = createConversationSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ error: 'Choose a valid participant.' }, { status: 400 });
+
+    const { user } = authorization;
+    const participant = await prisma.user.findFirst({
+      where: { id: parsed.data.participantUserId, orgId: user.orgId },
+      select: { id: true, name: true, email: true, role: true, avatarUrl: true },
+    });
+    if (!participant) return NextResponse.json({ error: 'Participant not found.' }, { status: 404 });
+    if (!isAllowedDirectPair(user.role, participant.role)) {
+      return NextResponse.json({ error: 'Clients and team members can only message an agency owner.' }, { status: 403 });
+    }
+
+    const participantKey = directParticipantKey(user.id, participant.id);
+    const createConversation = () => prisma.messagingConversation.upsert({
+      where: { orgId_participantKey: { orgId: user.orgId, participantKey } },
+      create: {
+        orgId: user.orgId,
+        participantKey,
+        createdById: user.id,
+        members: { create: [{ userId: user.id }, { userId: participant.id }] },
+      },
+      update: {},
+      select: { id: true, updatedAt: true },
+    });
+
+    let conversation: Awaited<ReturnType<typeof createConversation>>;
+    try {
+      conversation = await createConversation();
+    } catch (error) {
+      const isParticipantKeyRace = Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'P2002');
+      if (!isParticipantKeyRace) throw error;
+      const winner = await prisma.messagingConversation.findUnique({
+        where: { orgId_participantKey: { orgId: user.orgId, participantKey } },
+        select: { id: true, updatedAt: true },
+      });
+      if (!winner) throw error;
+      conversation = winner;
+    }
+
+    return NextResponse.json({ conversation: { ...conversation, participant } }, { status: 201, headers: messagingNoStoreHeaders() });
+  } catch (error) {
+    console.error('Unable to start messaging conversation:', error);
+    if (isTransientDatabaseConnectionError(error)) {
+      return NextResponse.json({ error: 'Secure messaging is temporarily unavailable. Please retry.' }, { status: 503, headers: { ...messagingNoStoreHeaders(), 'Retry-After': '2' } });
+    }
+    return NextResponse.json({ error: 'Unable to start conversation.' }, { status: 500, headers: messagingNoStoreHeaders() });
   }
-  const parsed = createConversationSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: 'Choose a valid participant.' }, { status: 400 });
-
-  const { user } = authorization;
-  const participant = await prisma.user.findFirst({
-    where: { id: parsed.data.participantUserId, orgId: user.orgId },
-    select: { id: true, name: true, email: true, role: true, avatarUrl: true },
-  });
-  if (!participant) return NextResponse.json({ error: 'Participant not found.' }, { status: 404 });
-  if (!isAllowedDirectPair(user.role, participant.role)) {
-    return NextResponse.json({
-      error: 'Clients and team members can only message an agency owner.',
-    }, { status: 403 });
-  }
-
-  const participantKey = directParticipantKey(user.id, participant.id);
-  const conversation = await prisma.messagingConversation.upsert({
-    where: { orgId_participantKey: { orgId: user.orgId, participantKey } },
-    create: {
-      orgId: user.orgId,
-      participantKey,
-      createdById: user.id,
-      members: { create: [{ userId: user.id }, { userId: participant.id }] },
-    },
-    update: {},
-    select: { id: true, updatedAt: true },
-  });
-
-  return NextResponse.json({ conversation: { ...conversation, participant } }, {
-    status: 201,
-    headers: messagingNoStoreHeaders(),
-  });
 }
 
 export async function DELETE(request: NextRequest) {

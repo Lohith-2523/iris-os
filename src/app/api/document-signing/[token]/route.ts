@@ -53,7 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     });
     if (!fullySignedAt) {
       const admins = await tx.user.findMany({ where: { orgId: document.orgId, role: { equals: 'admin', mode: 'insensitive' }, accessRevokedAt: null }, select: { id: true } });
-      const notification = recipientSignatureNotification({ kind: document.kind, title: document.title, documentNumber: document.documentNumber, recipientSignerName: parsed.data.signerName });
+      const notification = recipientSignatureNotification({ id: document.id, kind: document.kind, title: document.title, documentNumber: document.documentNumber, recipientSignerName: parsed.data.signerName });
       if (admins.length) await tx.notification.createMany({ data: admins.map(admin => ({ ...notification, orgId: document.orgId, userId: admin.id })) });
     }
     return signedDocument;

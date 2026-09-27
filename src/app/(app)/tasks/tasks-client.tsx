@@ -93,6 +93,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
   const [loading, setLoading] = React.useState(false);
   const [viewMode, setViewMode] = React.useState<'kanban' | 'list'>('list');
   const [kanbanGrouping, setKanbanGrouping] = React.useState<'status' | 'stage'>('status');
+  const [selectedStageIds, setSelectedStageIds] = React.useState<string[]>([]);
   const [uiScope] = React.useState<WorkspaceUiScope | null>({ userId: initialData.currentUser.id, orgId: initialData.currentUser.orgId });
   const [updatingTaskIds, setUpdatingTaskIds] = React.useState<Set<string>>(new Set());
   const taskWritesInFlight = React.useRef(new Set<string>());
@@ -147,6 +148,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
     if (selectedProjectId === 'all') {
       setKanbanGrouping('status');
     }
+    setSelectedStageIds([]);
   }, [selectedProjectId]);
 
   React.useEffect(() => {
@@ -471,8 +473,18 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
 
 
   // Retrieve current active project's stages
-  const activeProjectObj = projects.find(p => p.id === selectedProjectId);
-  const activeProjectStages = activeProjectObj?.stages || [];
+  const activeProjectObj = React.useMemo(() => projects.find(p => p.id === selectedProjectId), [projects, selectedProjectId]);
+  const activeProjectStages = React.useMemo(() => activeProjectObj?.stages || [], [activeProjectObj]);
+  const filterableStages = React.useMemo(() => {
+    const stages = selectedProjectId === 'all'
+      ? projects.flatMap((project) => project.stages || [])
+      : activeProjectStages;
+    return [...new Map(stages.map((stage: any) => [stage.id, stage])).values()];
+  }, [activeProjectStages, projects, selectedProjectId]);
+  const listTasks = React.useMemo(() => selectedStageIds.length === 0
+    ? tasks
+    : tasks.filter((task) => selectedStageIds.includes(task.stageId || 'backlog')),
+  [selectedStageIds, tasks]);
 
   // Categorize status tasks for Status Board
   const classifiedTasks = React.useMemo(() => {
@@ -588,6 +600,27 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                 </button>
               </div>
             </div>
+          )}
+
+          {viewMode === 'list' && (
+            <details className="relative">
+              <summary className="flex h-8 cursor-pointer list-none items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 text-[9px] font-bold uppercase tracking-wider text-zinc-300">
+                <Layers className="h-3.5 w-3.5" />Stages{selectedStageIds.length > 0 && <Badge variant="outline" className="h-4 rounded-full px-1.5 text-[8px]">{selectedStageIds.length}</Badge>}
+              </summary>
+              <div className="absolute right-0 z-40 mt-2 w-64 space-y-1 rounded-xl border border-zinc-800 bg-zinc-950 p-2 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-zinc-800 px-2 pb-2">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Filter by stage</span>
+                  {selectedStageIds.length > 0 && <button type="button" onClick={() => setSelectedStageIds([])} className="text-[9px] font-semibold text-zinc-400 hover:text-white">Clear</button>}
+                </div>
+                {[...filterableStages, { id: 'backlog', name: 'Backlog', color: '#71717A' }].map((stage: any) => (
+                  <label key={stage.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 hover:bg-zinc-900">
+                    <input type="checkbox" checked={selectedStageIds.includes(stage.id)} onChange={(event) => setSelectedStageIds((current) => event.target.checked ? [...current, stage.id] : current.filter((id) => id !== stage.id))} className="accent-white" />
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color || '#94A3B8' }} />
+                    <span className="truncate text-[11px] font-semibold text-zinc-300">{stage.name}</span>
+                  </label>
+                ))}
+              </div>
+            </details>
           )}
 
           {/* Create Task Button */}
@@ -730,7 +763,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map((task, index) => (
+                {listTasks.map((task, index) => (
                   <TableRow
                     key={task.id}
                     className="cursor-pointer hover:bg-zinc-900/30"
@@ -739,7 +772,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                     <TableCell className="font-semibold text-white">{index + 1}. {task.title}</TableCell>
                     <TableCell className="text-zinc-400 font-semibold">{task.client?.name}</TableCell>
                     <TableCell className="text-zinc-500 font-medium">{task.project?.name || 'N/A'}</TableCell>
-                    <TableCell className="text-zinc-450 font-mono">{task.stage?.name || 'Backlog'}</TableCell>
+                    <TableCell><span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] font-semibold" style={{ borderColor: task.stage?.color || '#71717A', color: task.stage?.color || '#A1A1AA', backgroundColor: `${task.stage?.color || '#71717A'}18` }}><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: task.stage?.color || '#71717A' }} />{task.stage?.name || 'Backlog'}</span></TableCell>
                     <TableCell className="text-zinc-400">{task.assignedTo?.name || 'Unassigned'}</TableCell>
                     <TableCell className="font-mono text-zinc-450">{task.timeline || 'N/A'}</TableCell>
                     <TableCell>
@@ -833,7 +866,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                     <option value="">-- No Stage Assigned (Backlog) --</option>
                     {activeProjectStages.map((stage: any) => (
                       <option key={stage.id} value={stage.id}>
-                        {stage.name} ({new Date(stage.startDate).toLocaleDateString()} to {new Date(stage.endDate).toLocaleDateString()})
+                        {stage.name}
                       </option>
                     ))}
                   </select>
@@ -1165,7 +1198,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                     <option value="">-- No Stage Assigned (Backlog) --</option>
                     {projects.find(p => p.id === selectedTask.projectId)?.stages?.map((stage: any) => (
                       <option key={stage.id} value={stage.id}>
-                        {stage.name} ({new Date(stage.startDate).toLocaleDateString()} to {new Date(stage.endDate).toLocaleDateString()})
+                        {stage.name}
                       </option>
                     ))}
                   </select>
@@ -1509,7 +1542,7 @@ function KanbanColumn({
               <div className="flex justify-between items-start gap-1">
                 <span className="block text-[8px] text-zinc-550 uppercase font-bold font-mono truncate">{task.client?.name}</span>
                 {task.stage && (
-                  <span className="text-[7.5px] bg-zinc-900 border border-zinc-850 px-1 text-zinc-450 truncate font-mono uppercase">
+                  <span className="truncate rounded-full border px-1.5 text-[7.5px] font-semibold uppercase" style={{ borderColor: task.stage.color || '#71717A', color: task.stage.color || '#A1A1AA', backgroundColor: `${task.stage.color || '#71717A'}18` }}>
                     {task.stage.name}
                   </span>
                 )}

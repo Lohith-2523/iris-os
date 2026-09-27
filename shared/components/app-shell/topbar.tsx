@@ -57,6 +57,9 @@ const workspaceCommands: CommandItem[] = [
   { name: 'Security & Roles', category: 'Administration', description: 'Manage roles, page access, permissions, and offboarding.', href: '/settings/security', keywords: ['security', 'roles', 'permissions', 'access', 'core member', 'offboarding', 'users'] },
   { name: 'Team Dashboard', category: 'Workspace', description: 'Open the specialist team-member command center.', href: '/teams-dashboard', keywords: ['member dashboard', 'specialist', 'assigned work', 'team workspace'] },
   { name: 'Client Dashboard', category: 'Workspace', description: 'Open the client-facing performance and delivery portal.', href: '/client-dashboard', keywords: ['client portal', 'campaigns', 'client workspace', 'clearance'] },
+  { name: 'Client Projects & Tasks', category: 'Workspace', description: 'Track client-scoped project delivery and task progress.', href: '/client-projects', keywords: ['client projects', 'client tasks', 'delivery progress'] },
+  { name: 'Client Documents', category: 'Workspace', description: 'View client invoices, proposals, and contracts.', href: '/client-documents', keywords: ['client invoices', 'proposals', 'contracts', 'esign'] },
+  { name: 'Client Deliverables & Approvals', category: 'Workspace', description: 'Review deliverables and manage change requests.', href: '/client-deliverables', keywords: ['client approvals', 'deliverables', 'change request'] },
 ];
 
 const commandSearchText = (item: CommandItem) => [item.name, item.category, item.description, ...item.keywords].join(' ').toLowerCase();
@@ -66,7 +69,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
   const router = runtime.router;
   const pathname = runtime.pathname;
   const fetch = runtime.fetch;
-  const isClient = pathname === '/client-dashboard';
+  const isClient = pathname.startsWith('/client-');
   const [isCommandOpen, setIsCommandOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [atlasQuery, setAtlasQuery] = React.useState('');

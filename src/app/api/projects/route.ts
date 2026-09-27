@@ -4,6 +4,7 @@ import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { parseProjectCommercials } from '@/lib/projects/commercial';
 import {
   createAndSendProjectInvoice,
+  createHistoricalProjectInvoices,
   InvoiceServiceError,
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
@@ -12,6 +13,8 @@ import { cursorHeaders, readCursorPage } from '@/lib/cursor-pagination';
 import { getRequestSecurityContext } from '@/server/security/request-security-context';
 import { listProjects } from '@/server/domains/project-service';
 import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+import { parseInitialProjectTasks } from '@/server/domains/initial-project-tasks';
+import { normalizeProjectStageColor } from '@/lib/projects/stages';
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,7 +60,8 @@ export async function POST(request: NextRequest) {
       metaIntegrationEnabled,
       clientId,
       memberIds, // array of User IDs
-      deliverables, // array of strings for initial tasks
+      deliverables, // legacy array of strings for initial tasks
+      tasks,
       stages // array of stage names (strings) or objects
     } = body;
 
@@ -78,6 +82,12 @@ export async function POST(request: NextRequest) {
     if (commercials.error) {
       return NextResponse.json({ error: commercials.error }, { status: 400 });
     }
+    const legacyDeliverables = Array.isArray(deliverables)
+      ? deliverables.map((title: unknown) => ({ title, stagePosition: 0 }))
+      : [];
+    const initialTasksResult = parseInitialProjectTasks(tasks ?? legacyDeliverables);
+    if (initialTasksResult.error) return NextResponse.json({ error: initialTasksResult.error }, { status: 400 });
+    const initialTasks = initialTasksResult.tasks ?? [];
 
     // Resolve organization ID from the client
     const client = await prisma.client.findUnique({
@@ -122,11 +132,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create project members
+    // Create project members and retain the first selected specialist as the
+    // default assignee for every task initialized with this project.
+    const assignedMemberIds: string[] = [];
     if (memberIds && Array.isArray(memberIds)) {
       for (const userId of memberIds) {
         const member = await prisma.user.findUnique({ where: { id: userId } });
         if (!member || member.orgId !== orgId) continue;
+        assignedMemberIds.push(member.id);
         await prisma.projectMember.create({
           data: {
             projectId: newProject.id,
@@ -140,24 +153,16 @@ export async function POST(request: NextRequest) {
     const createdStages: any[] = [];
     if (stages && Array.isArray(stages)) {
       const validStages = stages.slice(0, 8);
-      const numStages = validStages.length;
-      const start = startDate ? new Date(startDate) : new Date();
-      const end = endDate ? new Date(endDate) : new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
-      const totalMs = end.getTime() - start.getTime();
-      const msPerStage = totalMs / numStages;
-
-      for (let i = 0; i < numStages; i++) {
+      for (let i = 0; i < validStages.length; i++) {
         const stageItem = validStages[i];
         const sName = typeof stageItem === 'string' ? stageItem : stageItem.name;
-        const sStart = typeof stageItem === 'object' && stageItem.startDate ? new Date(stageItem.startDate) : new Date(start.getTime() + i * msPerStage);
-        const sEnd = typeof stageItem === 'object' && stageItem.endDate ? new Date(stageItem.endDate) : new Date(start.getTime() + (i + 1) * msPerStage);
+        const color = normalizeProjectStageColor(typeof stageItem === 'object' ? stageItem.color : undefined, i);
 
         const newStage = await prisma.projectStage.create({
           data: {
             name: sName,
+            color,
             position: i,
-            startDate: sStart,
-            endDate: sEnd,
             projectId: newProject.id
           }
         });
@@ -165,21 +170,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create initial deliverables as tasks
-    if (deliverables && Array.isArray(deliverables)) {
-      // Map initial deliverables to Stage 1 (index 0) if stages exist
-      const initialStageId = createdStages.length > 0 ? createdStages[0].id : null;
-
-      for (const deliv of deliverables) {
+    if (initialTasks.length > 0) {
+      for (const task of initialTasks) {
         await prisma.clientTask.create({
           data: {
-            title: deliv,
-            description: `Initial deliverable for project: ${name}`,
+            title: task.title,
+            description: `Task for project: ${name}`,
             status: 'TODO',
             progress: 0,
             clientId,
             projectId: newProject.id,
-            stageId: initialStageId,
+            stageId: createdStages[task.stagePosition]?.id ?? createdStages[0]?.id ?? null,
+            assignedToId: assignedMemberIds[0] || null,
+            deadline: task.deadline,
           }
         });
       }
@@ -207,15 +210,20 @@ export async function POST(request: NextRequest) {
     let invoiceWarning: string | null = null;
     {
       try {
-        invoice = await createAndSendProjectInvoice({
-          projectId: newProject.id,
-          orgId,
-          baseUrl: publicAppUrl(request),
-          automationKey: `project-initialization:${newProject.id}`,
-          source: 'PROJECT_INITIALIZATION',
-          issuedDate: newProject.paymentStartDate || undefined,
-          sendEmail: newProject.autoGenerateInvoice,
-        });
+        const isHistoricalRetainer = newProject.paymentType === 'RETAINER'
+          && newProject.paymentStartDate
+          && newProject.paymentStartDate < new Date(new Date().setHours(0, 0, 0, 0));
+        invoice = isHistoricalRetainer
+          ? await createHistoricalProjectInvoices({ projectId: newProject.id, orgId, baseUrl: publicAppUrl(request) })
+          : await createAndSendProjectInvoice({
+              projectId: newProject.id,
+              orgId,
+              baseUrl: publicAppUrl(request),
+              automationKey: `project-initialization:${newProject.id}`,
+              source: 'PROJECT_INITIALIZATION',
+              issuedDate: newProject.paymentStartDate || undefined,
+              sendEmail: newProject.autoGenerateInvoice,
+            });
       } catch (error) {
         invoiceWarning = error instanceof InvoiceServiceError
           ? error.message
@@ -262,7 +270,7 @@ export async function PUT(request: NextRequest) {
       autoGenerateInvoice,
       metaIntegrationEnabled,
       memberIds,
-      stages // Array<{ id?: string, name: string, startDate?: string, endDate?: string }>
+      stages // Array<{ id?: string, name: string, color?: string }>
     } = body;
 
     if (!projectId) {
@@ -341,35 +349,26 @@ export async function PUT(request: NextRequest) {
         }
       });
 
-      // Divide timeline equally for stages that don't have dates specified
-      const start = startDate ? new Date(startDate) : currentProject.startDate;
-      const end = endDate ? new Date(endDate) : (currentProject.endDate || new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000));
-      const totalMs = end.getTime() - start.getTime();
-      const msPerStage = totalMs / validStages.length;
-
       for (let i = 0; i < validStages.length; i++) {
         const stageData = validStages[i];
         const sName = stageData.name;
-        const sStart = stageData.startDate ? new Date(stageData.startDate) : new Date(start.getTime() + i * msPerStage);
-        const sEnd = stageData.endDate ? new Date(stageData.endDate) : new Date(start.getTime() + (i + 1) * msPerStage);
+        const color = normalizeProjectStageColor(stageData.color, i);
 
         if (stageData.id) {
           await prisma.projectStage.update({
             where: { id: stageData.id },
             data: {
               name: sName,
+              color,
               position: i,
-              startDate: sStart,
-              endDate: sEnd
             }
           });
         } else {
           await prisma.projectStage.create({
             data: {
               name: sName,
+              color,
               position: i,
-              startDate: sStart,
-              endDate: sEnd,
               projectId
             }
           });

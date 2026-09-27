@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Plus, Trash2, X } from 'lucide-react';
 import ClientDetailDashboard from '@/components/clients/client-detail-dashboard';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrencyFor } from '@/lib/utils';
 import { collectAssignedSpecialists, type AssignedSpecialist } from '@/lib/clients/assigned-specialists';
 import type { ClientsReadModel } from '@/server/read-models/workspace-pages';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
@@ -207,7 +207,7 @@ export default function ClientsPage({ initialData }: { initialData: ClientsReadM
                             <AssignedSpecialists specialists={assignedSpecialists} />
                           </TableCell>
                           <TableCell className="text-right font-mono text-xs font-semibold text-zinc-200">
-                            {formatCurrency(Number(c.contractValue || 0))}
+                            {formatCurrencyFor(Number(c.contractValue || 0), initialData.currency)}
                           </TableCell>
                           {canManageClients && (
                             <TableCell className="text-right">

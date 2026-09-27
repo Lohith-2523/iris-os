@@ -47,7 +47,8 @@ export const getTasksReadModel = cache(async (ctx: RequestSecurityContext, proje
 });
 
 export const getClientsReadModel = cache(async (ctx: RequestSecurityContext) => {
-  const [clients, team] = await Promise.all([
+  const [workspace, clients, team] = await Promise.all([
+    getWorkspaceReadModel(ctx),
     listWorkspaceClients(ctx),
     listWorkspaceTeam(ctx),
   ]);
@@ -55,6 +56,7 @@ export const getClientsReadModel = cache(async (ctx: RequestSecurityContext) => 
   return serializable({
     clients,
     team,
+    currency: workspace.organization.currency,
     canManageClients: ctx.role.toLowerCase() === 'admin',
   });
 });

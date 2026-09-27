@@ -16,6 +16,7 @@ import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import { ConfettiCelebration } from '@/components/ui/confetti-celebration';
 import { ClientLogoAvatar, ClientLogoPicker } from '@/components/clients/client-logo-picker';
+import { MetaLogo } from '@/components/integrations/meta-brand-lockup';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -30,7 +31,9 @@ import {
   Info,
   ChevronDown,
   X,
-  Loader2
+  Loader2,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 const AGENCY_TYPES = [
@@ -121,7 +124,7 @@ const createInitialFormData = () => ({
   projectTaskDeadline: '',
   projectMemberIds: [] as string[],
   projectStages: [
-    { name: 'Initial Stage', startDate: '', endDate: '' },
+    { name: 'Initial Stage', color: '#94A3B8' },
   ],
 });
 
@@ -147,6 +150,7 @@ export default function ClientOnboardPage() {
 
   // Form State
   const [formData, setFormData] = React.useState(createInitialFormData);
+  const [showProjectStageEditor, setShowProjectStageEditor] = React.useState(false);
 
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [closedLeadOptions, setClosedLeadOptions] = React.useState<ClosedLeadOption[]>([]);
@@ -287,36 +291,10 @@ export default function ClientOnboardPage() {
     }
   }, [draftStorageKey, formData, hydratedDraftKey, step, submitStatus]);
 
-  const recalculateStages = (stagesList: any[], startDateStr: string, endDateStr: string) => {
-    if (!startDateStr || !endDateStr) {
-      return stagesList.map((stage) => ({ ...stage, startDate: '', endDate: '' }));
-    }
-    const start = new Date(startDateStr);
-    const end = new Date(endDateStr);
-    const totalMs = end.getTime() - start.getTime();
-    const msPerStage = totalMs / Math.max(stagesList.length, 1);
-
-    return stagesList.map((stage, i) => {
-      const sStart = new Date(start.getTime() + i * msPerStage);
-      const sEnd = new Date(start.getTime() + (i + 1) * msPerStage);
-      return {
-        ...stage,
-        startDate: sStart.toISOString().split('T')[0],
-        endDate: sEnd.toISOString().split('T')[0]
-      };
-    });
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      const nextData = { ...prev, [name]: value };
-      if (name === 'projectStartDate' || name === 'projectDeadline') {
-        const start = name === 'projectStartDate' ? value : prev.projectStartDate;
-        const end = name === 'projectDeadline' ? value : prev.projectDeadline;
-        nextData.projectStages = recalculateStages(prev.projectStages, start, end);
-      }
-      return nextData;
+      return { ...prev, [name]: value };
     });
     setFormError('');
   };
@@ -377,19 +355,12 @@ export default function ClientOnboardPage() {
       setFormData(prev => {
         const projStart = prev.projectStartDate || defaultStartStr;
         const projEnd = prev.projectDeadline;
-        const baseStages = prev.projectStages.map(s => s.name);
-        const updatedStages = recalculateStages(
-          baseStages.map((name) => ({ name, startDate: '', endDate: '' })),
-          projStart,
-          projEnd,
-        );
-
         return {
           ...prev,
           projectStartDate: projStart,
           projectDeadline: projEnd,
           projectName: prev.projectName || `${prev.name} Initial Campaign`,
-          projectStages: updatedStages
+          projectStages: prev.projectStages
         };
       });
     }
@@ -907,7 +878,7 @@ export default function ClientOnboardPage() {
             <ArrowLeft className="h-4.5 w-4.5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white silver-text-gradient">Client Onboarding Portal</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white silver-text-gradient">Client Onboarding Portal</h1>
             <p className="text-[10px] text-zinc-500 mt-0.5">Administrator Terminal | Step {step} of {reviewStep}</p>
           </div>
         </div>
@@ -950,7 +921,7 @@ export default function ClientOnboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <Building className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Universal Client Information - Company details</h2>
+                    <h2 className="text-lg font-bold text-white">Universal Client Information - Company details</h2>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -1046,7 +1017,7 @@ export default function ClientOnboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <User className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Primary Client Contact</h2>
+                    <h2 className="text-lg font-bold text-white">Primary Client Contact</h2>
                   </div>
 
                   <div className="space-y-1.5">
@@ -1108,7 +1079,7 @@ export default function ClientOnboardPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="font-semibold text-zinc-400 block">Client Phone</label>
+                      <label className="font-semibold text-zinc-400 block">Client Phone <span className="text-rose-500" aria-hidden="true">*</span></label>
                       <CountryPhoneInput name="clientPhone" required value={formData.clientPhone} onChange={(clientPhone) => setFormData((current: any) => ({ ...current, clientPhone }))} />
                     </div>
                   </div>
@@ -1120,7 +1091,7 @@ export default function ClientOnboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <Wallet className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Create Initial Project & Commercials</h2>
+                    <h2 className="text-lg font-bold text-white">Create Initial Project & Commercials</h2>
                   </div>
 
                   <AgencyBillingProfileNotice missingFields={agencyBillingMissingFields} />
@@ -1156,9 +1127,12 @@ export default function ClientOnboardPage() {
                       </div>
 
                       <div className="flex items-center justify-between gap-4 rounded border border-zinc-850 bg-zinc-950/45 p-3">
-                        <span>
-                          <span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
-                          <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls to this client workspace.</span>
+                        <span className="flex min-w-0 items-center gap-3">
+                          <MetaLogo className="h-5 w-7.5" />
+                          <span className="min-w-0">
+                            <span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
+                            <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls to this client workspace.</span>
+                          </span>
                         </span>
                         <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={formData.projectMetaIntegrationEnabled} onClick={() => setFormData((current) => ({ ...current, projectMetaIntegrationEnabled: !current.projectMetaIntegrationEnabled }))} className="meta-integration-switch-hitbox grid h-11 w-11 shrink-0 place-items-center rounded-full">
                           <span aria-hidden="true" className={`meta-integration-switch relative block h-5 w-9 overflow-hidden rounded-full border transition-colors ${formData.projectMetaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
@@ -1291,18 +1265,28 @@ export default function ClientOnboardPage() {
 
                       {/* Project Stages Section */}
                       <div className="space-y-3 pt-3 border-t border-zinc-900/60">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <span className="block text-sm font-bold text-zinc-200">Project stages</span>
+                            <span className="mt-1 block text-xs text-zinc-500">One default stage is ready. Customize names, colours, and order only when needed.</span>
+                          </div>
+                          <Button type="button" variant="outline" size="sm" onClick={() => setShowProjectStageEditor((open) => !open)}>
+                            {showProjectStageEditor ? 'Done customizing' : 'Customize stages'}
+                          </Button>
+                        </div>
+                        {showProjectStageEditor && <div className="space-y-3 rounded-xl border border-zinc-850 bg-zinc-950/35 p-3">
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold text-zinc-350 text-xs">Project Development Stages (Max 8)</span>
+                          <span className="font-bold text-zinc-300 text-xs">Stage names & colours (Max 8)</span>
                           <div className="flex gap-2">
                             <button
                               type="button"
                               onClick={() => {
                                 setFormData((prev) => {
                                   if (prev.projectStages.length >= 8) return prev;
-                                  const newStages = [...prev.projectStages, { name: `Phase ${prev.projectStages.length + 1}`, startDate: '', endDate: '' }];
+                                  const newStages = [...prev.projectStages, { name: `Phase ${prev.projectStages.length + 1}`, color: '#94A3B8' }];
                                   return {
                                     ...prev,
-                                    projectStages: recalculateStages(newStages, prev.projectStartDate, prev.projectDeadline)
+                                    projectStages: newStages
                                   };
                                 });
                               }}
@@ -1310,18 +1294,6 @@ export default function ClientOnboardPage() {
                               className="h-6 px-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 text-white text-[10px] font-semibold flex items-center gap-1"
                             >
                               <span>+ Add Stage</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  projectStages: recalculateStages(prev.projectStages, prev.projectStartDate, prev.projectDeadline)
-                                }));
-                              }}
-                              className="h-6 px-2 border border-zinc-850 hover:bg-zinc-900 text-zinc-450 hover:text-white text-[10px] font-semibold"
-                            >
-                              Distribute Equally
                             </button>
                           </div>
                         </div>
@@ -1345,35 +1317,31 @@ export default function ClientOnboardPage() {
                                 }}
                                 className="flex-1 text-[11px] bg-zinc-900 border border-zinc-850 px-2 py-1 text-white outline-none focus:border-zinc-750"
                               />
-                              <div className="flex items-center gap-1.5 text-[10px] text-zinc-550 shrink-0">
-                                <DateInput
-                                  value={stage.startDate}
-                                  onChange={(dateVal) => {
-                                    setFormData((prev) => {
-                                      const nextStages = prev.projectStages.map((s, sIdx) => 
-                                        sIdx === idx ? { ...s, startDate: dateVal } : s
-                                      );
-                                      return { ...prev, projectStages: nextStages };
-                                    });
-                                  }}
-                                  containerClassName="w-35 shrink-0"
-                                  className="text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
-                                />
-                                <span>to</span>
-                                <DateInput
-                                  value={stage.endDate}
-                                  onChange={(dateVal) => {
-                                    setFormData((prev) => {
-                                      const nextStages = prev.projectStages.map((s, sIdx) => 
-                                        sIdx === idx ? { ...s, endDate: dateVal } : s
-                                      );
-                                      return { ...prev, projectStages: nextStages };
-                                    });
-                                  }}
-                                  containerClassName="w-35 shrink-0"
-                                  className="text-[10px] bg-zinc-900 border border-zinc-850 px-1 py-0.5 text-zinc-300 font-mono outline-none"
-                                />
-                              </div>
+                              <label className="flex shrink-0 items-center gap-2 text-[10px] text-zinc-500">Colour<input type="color" value={stage.color} onChange={(event) => setFormData((prev) => ({ ...prev, projectStages: prev.projectStages.map((item, itemIndex) => itemIndex === idx ? { ...item, color: event.target.value } : item) }))} className="h-8 w-12 cursor-pointer rounded border border-zinc-800 bg-zinc-900 p-1" aria-label={`${stage.name || `Stage ${idx + 1}`} colour`} /></label>
+                              <button
+                                type="button"
+                                onClick={() => setFormData((prev) => {
+                                  if (idx === 0) return prev;
+                                  const stages = [...prev.projectStages];
+                                  [stages[idx - 1], stages[idx]] = [stages[idx], stages[idx - 1]];
+                                  return { ...prev, projectStages: stages };
+                                })}
+                                disabled={idx === 0}
+                                className="p-1 text-zinc-500 hover:text-white disabled:opacity-30"
+                                aria-label={`Move ${stage.name || `stage ${idx + 1}`} up`}
+                              ><ArrowUp className="h-3.5 w-3.5" /></button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData((prev) => {
+                                  if (idx >= prev.projectStages.length - 1) return prev;
+                                  const stages = [...prev.projectStages];
+                                  [stages[idx], stages[idx + 1]] = [stages[idx + 1], stages[idx]];
+                                  return { ...prev, projectStages: stages };
+                                })}
+                                disabled={idx === formData.projectStages.length - 1}
+                                className="p-1 text-zinc-500 hover:text-white disabled:opacity-30"
+                                aria-label={`Move ${stage.name || `stage ${idx + 1}`} down`}
+                              ><ArrowDown className="h-3.5 w-3.5" /></button>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1382,7 +1350,7 @@ export default function ClientOnboardPage() {
                                     const newStages = prev.projectStages.filter((_, sIdx) => sIdx !== idx);
                                     return {
                                       ...prev,
-                                      projectStages: recalculateStages(newStages, prev.projectStartDate, prev.projectDeadline),
+                                      projectStages: newStages,
                                       projectTaskStagePosition: Math.min(prev.projectTaskStagePosition, newStages.length - 1),
                                     };
                                   });
@@ -1395,21 +1363,23 @@ export default function ClientOnboardPage() {
                             </div>
                           ))}
                         </div>
+                        </div>}
                       </div>
 
                       <div className="space-y-2 border-t border-zinc-900/60 pt-3">
-                        <span className="font-semibold text-zinc-350 block">Initial Project Task</span>
+                        <span className="text-[1.05rem] font-bold text-zinc-200 block">Create task for project</span>
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
                           <label className="space-y-1.5"><span className="font-semibold text-zinc-400 block">Task name</span><input name="projectTaskName" value={formData.projectTaskName} onChange={handleInputChange} placeholder="e.g. Prepare campaign brief" className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none" /></label>
                           <label className="space-y-1.5"><span className="font-semibold text-zinc-400 block">Stage</span><select name="projectTaskStagePosition" value={formData.projectTaskStagePosition} onChange={(event) => setFormData((current) => ({ ...current, projectTaskStagePosition: Number(event.target.value) }))} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none">{formData.projectStages.map((stage, index) => <option key={index} value={index}>{index + 1}. {stage.name || `Stage ${index + 1}`}</option>)}</select></label>
                           <label className="space-y-1.5"><span className="font-semibold text-zinc-400 block">Due date</span><DateInput value={formData.projectTaskDeadline} onChange={(value) => setFormData((current) => ({ ...current, projectTaskDeadline: value }))} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white focus:border-zinc-750 focus:outline-none font-mono" /></label>
                         </div>
-                        <p className="text-xs text-zinc-500">The task defaults to Stage 1 and can be assigned to any stage defined above.</p>
+                        <p className="text-xs text-zinc-500">Choose any project stage. The first selected project specialist is assigned to the task automatically.</p>
                       </div>
 
                       {/* Members Multi-select Grid */}
                       <div className="space-y-2 pt-2">
-                        <span className="font-semibold text-zinc-400 block">Allocate Team Specialists to Project</span>
+                        <span className="text-sm font-bold text-zinc-200 block">Project assignees</span>
+                        <span className="block text-xs text-zinc-500">The first selected specialist becomes the default assignee for every task created in this project.</span>
                         <div className="grid gap-2.5 sm:grid-cols-3">
                           {teamMembers
                             .filter((t: any) => t.role?.toLowerCase() !== 'client')
@@ -1455,7 +1425,7 @@ export default function ClientOnboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <CheckCircle className="h-4 w-4 text-zinc-400" />
-                    <h2 className="text-sm font-semibold text-white">Review Client Registration Details</h2>
+                    <h2 className="text-lg font-bold text-white">Review Client Registration Details</h2>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2 text-[11px] font-sans">
@@ -1529,11 +1499,8 @@ export default function ClientOnboardPage() {
                       <div className="mt-2 pt-2 border-t border-zinc-900/65 space-y-1">
                         <span className="block text-[8px] text-zinc-500 uppercase font-bold">Planned Development Stages:</span>
                         {formData.projectStages.map((stage, idx) => (
-                          <div key={idx} className="flex justify-between text-[10px]">
-                            <span className="text-zinc-300">{idx + 1}. {stage.name}</span>
-                            <span className="text-zinc-500 font-mono">
-                              {stage.startDate && stage.endDate ? `${stage.startDate} to ${stage.endDate}` : 'Dates not scheduled'}
-                            </span>
+                          <div key={idx} className="flex text-[10px]">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-semibold" style={{ borderColor: stage.color, color: stage.color, backgroundColor: `${stage.color}18` }}><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: stage.color }} />{idx + 1}. {stage.name || `Stage ${idx + 1}`}</span>
                           </div>
                         ))}
                       </div>
@@ -1667,7 +1634,7 @@ export default function ClientOnboardPage() {
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-zinc-700 bg-zinc-950 text-zinc-100 shadow-inner">
                     <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                   </div>
-                  <h2 className="mt-4 text-sm font-semibold text-white">Creating client workspace</h2>
+                  <h2 className="mt-4 text-lg font-bold text-white">Creating client workspace</h2>
                   <p className="mt-2 text-xs leading-5 text-zinc-400">
                     Saving the company profile, client contact, and project-level commercial terms. This can take a moment.
                   </p>

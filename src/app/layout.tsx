@@ -8,6 +8,7 @@ import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { HelpCenter } from "@/components/help/help-center";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
+import { RouteThemeSync } from "@/components/app-shell/route-theme-sync";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -101,6 +102,7 @@ export default function RootLayout({
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {`(function(){var root=document.documentElement;root.classList.remove('light');root.classList.add('dark');var path=window.location.pathname;var workspacePaths=${serializedWorkspaceThemePaths};var isWorkspace=workspacePaths.some(function(workspacePath){return path===workspacePath||path.indexOf(workspacePath+'/')===0;});if(!isWorkspace)return;var theme=document.cookie.match(/(?:^|; )crystal_theme=(light|dark)(?:;|$)/);if(theme&&theme[1]==='light'){root.classList.add('light');root.classList.remove('dark')}})();`}
         </Script>
+        <RouteThemeSync />
         {children}
         <HelpCenter />
         <SpeedInsights />

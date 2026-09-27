@@ -44,9 +44,17 @@ export function DemoModeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const request = React.useCallback<typeof fetch>((input, init) => (
-    handleIrisDemoRequest(stateRef.current, updateState, input, init, showNotice)
-  ), [showNotice, updateState]);
+  const request = React.useCallback<typeof fetch>((input, init) => {
+    const method = String(init?.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+      showNotice('This is a view-only demo. Creating, editing, sending, and deleting are disabled.');
+      return Promise.resolve(new Response(JSON.stringify({ demo: true, error: 'The landing-page demo is view-only.' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+    }
+    return handleIrisDemoRequest(stateRef.current, updateState, input, init, showNotice);
+  }, [showNotice, updateState]);
 
   const reset = React.useCallback(() => {
     const restored = createIrisDemoState();

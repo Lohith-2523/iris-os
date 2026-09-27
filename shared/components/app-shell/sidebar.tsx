@@ -31,6 +31,7 @@ import {
   ReceiptText,
   FilePenLine,
   MessageSquare,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -234,6 +235,9 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       return [{
         label: 'Workspace',
         items: [
+          { name: 'Projects & Tasks', href: '/client-projects', icon: FolderKanban },
+          { name: 'Documents', href: '/client-documents', icon: FileText },
+          { name: 'Deliverables & Approvals', href: '/client-deliverables', icon: CheckCircle2 },
           { name: 'Calendar', href: '/calendar', icon: Calendar },
           { name: 'Messages', href: '/messages', icon: MessageSquare },
         ],
@@ -263,7 +267,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   }, [deliveryWorkspace, navigationGroups, resolvedPermissions, resolvedRole]);
 
   const dashboardItem = React.useMemo<NavigationItem | null>(() => {
-    if (resolvedRole === 'client') return resolvedPlan === 'BASIC' ? null : { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard };
+    if (resolvedRole === 'client') return { name: 'Client Dashboard', href: '/client-dashboard', icon: LayoutDashboard };
     if (resolvedRole === 'member') return { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard };
     if (resolvedRole === 'sub_admin') {
       if (deliveryWorkspace) return { name: 'Teams Dashboard', href: '/teams-dashboard', icon: LayoutDashboard };

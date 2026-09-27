@@ -26,6 +26,7 @@ import {
   type InvoiceLineItemInput,
 } from './calculations';
 import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
 
 export class InvoiceServiceError extends Error {
   constructor(message: string, readonly status = 400, readonly invoiceId?: string) {
@@ -387,6 +388,81 @@ export async function createAndSendProjectInvoice(input: {
     source: input.source,
     sendEmail: input.sendEmail,
   });
+}
+
+export async function createHistoricalProjectInvoices(input: {
+  projectId: string;
+  orgId: string;
+  baseUrl: string;
+  through?: Date;
+}) {
+  const project = await prisma.project.findFirst({
+    where: { id: input.projectId, orgId: input.orgId },
+    select: {
+      id: true,
+      clientId: true,
+      name: true,
+      paymentType: true,
+      paymentAmount: true,
+      paymentFrequency: true,
+      paymentStartDate: true,
+    },
+  });
+  if (!project) throw new InvoiceServiceError('Project not found.', 404);
+  if (project.paymentType !== 'RETAINER' || !project.paymentStartDate || !project.paymentFrequency || !project.paymentAmount) return [];
+
+  const today = input.through || new Date();
+  const startOfToday = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const strictlyBeforeToday = new Date(startOfToday.getTime() - 1);
+  const occurrences = generateRecurringOccurrences(
+    project.paymentStartDate,
+    project.paymentAmount,
+    project.paymentFrequency,
+    strictlyBeforeToday,
+  );
+  const invoices = [];
+  for (const occurrence of occurrences) {
+    const dateKey = occurrence.date.toISOString().slice(0, 10);
+    const invoice = await createAndSendProjectInvoice({
+      projectId: project.id,
+      orgId: input.orgId,
+      baseUrl: input.baseUrl,
+      automationKey: `project-history:${project.id}:${dateKey}`,
+      source: 'PROJECT_INITIALIZATION',
+      issuedDate: occurrence.date,
+      sendEmail: false,
+    });
+    const existingRevenue = await prisma.transaction.findFirst({
+      where: { orgId: input.orgId, invoiceId: invoice.id, category: 'Revenue' },
+      select: { id: true },
+    });
+    if (!existingRevenue) {
+      await prisma.$transaction([
+        prisma.invoice.update({
+          where: { id: invoice.id },
+          data: { paidAmount: invoice.amount, status: 'FULLY_PAID' },
+        }),
+        prisma.transaction.create({
+          data: {
+            orgId: input.orgId,
+            clientId: project.clientId,
+            invoiceId: invoice.id,
+            date: occurrence.date,
+            details: `Historical retainer revenue: ${project.name}`,
+            category: 'Revenue',
+            type: 'Others',
+            transactorAccount: project.name,
+            yourAccount: 'Historical revenue',
+            amount: invoice.amount,
+            referenceNumber: invoice.invoiceNumber,
+            comments: 'Automatically logged from historical project MRR.',
+          },
+        }),
+      ]);
+    }
+    invoices.push(invoice);
+  }
+  return invoices;
 }
 
 export async function createAndSendProformaInvoice(input: {

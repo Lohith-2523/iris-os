@@ -51,6 +51,7 @@ export function pageSkeletonVariantForPath(pathname: string): PageSkeletonVarian
   if (pathname.startsWith('/agency-leads')) return 'leads';
   if (pathname.startsWith('/client-leads')) return 'client-leads';
   if (pathname.startsWith('/client-dashboard')) return 'client-portal';
+  if (pathname.startsWith('/client-projects') || pathname.startsWith('/client-documents') || pathname.startsWith('/client-deliverables')) return 'client-portal';
   if (pathname.startsWith('/clients/onboard')) return 'onboarding';
   if (pathname.startsWith('/clients')) return 'clients';
   if (pathname.startsWith('/settings/security')) return 'security';

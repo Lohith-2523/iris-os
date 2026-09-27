@@ -971,27 +971,24 @@ async function main() {
     stageAether1 = await prisma.projectStage.create({
       data: {
         name: 'Strategy & Creative Brief',
+        color: '#A78BFA',
         position: 0,
-        startDate: new Date('2026-07-01T00:00:00Z'),
-        endDate: new Date('2026-07-31T23:59:59Z'),
         projectId: projAether.id
       }
     });
     stageAether2 = await prisma.projectStage.create({
       data: {
         name: 'Asset Design & Development',
+        color: '#60A5FA',
         position: 1,
-        startDate: new Date('2026-08-01T00:00:00Z'),
-        endDate: new Date('2026-08-31T23:59:59Z'),
         projectId: projAether.id
       }
     });
     stageAether3 = await prisma.projectStage.create({
       data: {
         name: 'Ad Launch & Optimization',
+        color: '#2DD4BF',
         position: 2,
-        startDate: new Date('2026-09-01T00:00:00Z'),
-        endDate: new Date('2026-09-30T23:59:59Z'),
         projectId: projAether.id
       }
     });
@@ -1021,27 +1018,24 @@ async function main() {
     stageVertex1 = await prisma.projectStage.create({
       data: {
         name: 'Store Audit & Planning',
+        color: '#94A3B8',
         position: 0,
-        startDate: new Date('2026-06-01T00:00:00Z'),
-        endDate: new Date('2026-06-30T23:59:59Z'),
         projectId: projVertex.id
       }
     });
     stageVertex2 = await prisma.projectStage.create({
       data: {
         name: 'Theme Setup & Development',
+        color: '#A78BFA',
         position: 1,
-        startDate: new Date('2026-07-01T00:00:00Z'),
-        endDate: new Date('2026-07-31T23:59:59Z'),
         projectId: projVertex.id
       }
     });
     stageVertex3 = await prisma.projectStage.create({
       data: {
         name: 'UAT & Launch',
+        color: '#2DD4BF',
         position: 2,
-        startDate: new Date('2026-08-01T00:00:00Z'),
-        endDate: new Date('2026-08-31T23:59:59Z'),
         projectId: projVertex.id
       }
     });
@@ -1070,18 +1064,16 @@ async function main() {
     stageSolaria1 = await prisma.projectStage.create({
       data: {
         name: 'Keyword Audit',
+        color: '#F59E0B',
         position: 0,
-        startDate: new Date('2026-06-15T00:00:00Z'),
-        endDate: new Date('2026-09-15T23:59:59Z'),
         projectId: projSolaria.id
       }
     });
     stageSolaria2 = await prisma.projectStage.create({
       data: {
         name: 'SEO Implementation',
+        color: '#60A5FA',
         position: 1,
-        startDate: new Date('2026-09-16T00:00:00Z'),
-        endDate: new Date('2026-12-15T23:59:59Z'),
         projectId: projSolaria.id
       }
     });
@@ -1110,18 +1102,16 @@ async function main() {
     stagePulse1 = await prisma.projectStage.create({
       data: {
         name: 'Brand Discovery & Guidelines',
+        color: '#F472B6',
         position: 0,
-        startDate: new Date('2026-05-01T00:00:00Z'),
-        endDate: new Date('2026-06-07T23:59:59Z'),
         projectId: projPulse.id
       }
     });
     stagePulse2 = await prisma.projectStage.create({
       data: {
         name: 'Social Media Concept Storyboards',
+        color: '#A78BFA',
         position: 1,
-        startDate: new Date('2026-06-08T00:00:00Z'),
-        endDate: new Date('2026-07-15T23:59:59Z'),
         projectId: projPulse.id
       }
     });

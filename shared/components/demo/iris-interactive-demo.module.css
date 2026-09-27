@@ -21,6 +21,10 @@
 .toolbar svg { width: 1rem; height: 1rem; flex: 0 0 auto; color: #d4d4d8; }
 .toolbar strong { margin-right: 0.4rem; color: #f4f4f5; }
 
+.readOnlyBadge { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .45rem; border: 1px solid #3f3f46; border-radius: 999px; padding: .45rem .7rem; color: #d4d4d8; font-weight: 700; }
+.readOnlyBadge svg { width: .85rem; height: .85rem; }
+.viewportCanvas :global(input), .viewportCanvas :global(textarea), .viewportCanvas :global(select), .viewportCanvas :global([contenteditable='true']) { cursor: not-allowed !important; }
+
 .viewportFrame {
   position: relative;
   width: 100%;

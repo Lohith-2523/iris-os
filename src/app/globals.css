@@ -2962,6 +2962,38 @@ button {
   color: #334155 !important;
 }
 
+/* Keep the full pipeline stage frame visible within common laptop and tablet
+   viewports. Cards scroll inside their stage instead of pushing the page down. */
+.workspace-shell .agency-leads-kanban-board {
+  height: clamp(32rem, calc(100dvh - 19rem), 44rem);
+  min-height: 0 !important;
+}
+
+.workspace-shell .agency-leads-kanban-column {
+  min-height: 0 !important;
+  height: 100%;
+}
+
+.workspace-shell .agency-leads-kanban-list {
+  min-height: 0;
+  max-height: none !important;
+}
+
+@media (max-width: 1599px) {
+  .workspace-shell .agency-leads-kanban-board {
+    height: clamp(29rem, calc(100dvh - 17rem), 40rem);
+    gap: .7rem;
+  }
+
+  .workspace-shell .agency-leads-kanban-column {
+    padding: .65rem;
+  }
+
+  .workspace-shell .agency-leads-kanban-card {
+    padding: .65rem;
+  }
+}
+
 .workspace-shell .agency-leads-kanban-card {
   background: #0a0a0a !important;
   border-color: #27272a !important;

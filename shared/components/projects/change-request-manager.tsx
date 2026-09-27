@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Loader2, MessageSquareText, Save, Sparkles } from 'lucide-react';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,7 @@ interface ChangeRequestManagerProps {
   requests: any[];
   canManage?: boolean;
   showProjectName?: boolean;
+  focusRequestId?: string | null;
   onUpdated?: (changeRequest: any) => void | Promise<void>;
 }
 
@@ -45,7 +47,9 @@ function draftFor(request: any): ChangeRequestDraft {
   };
 }
 
-export function ChangeRequestManager({ requests, canManage = false, showProjectName = false, onUpdated }: ChangeRequestManagerProps) {
+export function ChangeRequestManager({ requests, canManage = false, showProjectName = false, focusRequestId, onUpdated }: ChangeRequestManagerProps) {
+  const searchParams = useSearchParams();
+  const activeFocusRequestId = focusRequestId || searchParams.get('changeRequestId');
   const [localRequests, setLocalRequests] = React.useState<any[]>(requests);
   const [drafts, setDrafts] = React.useState<Record<string, ChangeRequestDraft>>(() => Object.fromEntries(requests.map((request) => [request.id, draftFor(request)])));
   const [busyId, setBusyId] = React.useState('');
@@ -103,7 +107,7 @@ export function ChangeRequestManager({ requests, canManage = false, showProjectN
         const draft = drafts[request.id] || draftFor(request);
         const isBusy = busyId === request.id;
         return (
-          <Card key={request.id}>
+          <Card id={`change-request-${request.id}`} key={request.id} className={request.id === activeFocusRequestId ? 'ring-2 ring-white/50 ring-offset-4 ring-offset-zinc-950' : ''}>
             <CardContent className="space-y-5 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>

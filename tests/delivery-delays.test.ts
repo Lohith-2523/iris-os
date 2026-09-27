@@ -10,20 +10,20 @@ describe('delivery delays', () => {
     expect(isTaskDelayed({ status: 'TODO', deadline: '2026-08-01T12:00:00.000Z' }, now)).toBe(false);
   });
 
-  it('flags a past stage when one of its tasks remains incomplete', () => {
-    const stage = { id: 'stage-1', name: 'Launch', endDate: '2026-07-29T12:00:00.000Z' };
+  it('does not infer stage delays now that stages have no date range', () => {
+    const stage = { id: 'stage-1', name: 'Launch' };
     const tasks = [{ status: 'BLOCKED', stageId: 'stage-1' }];
-    expect(isStageDelayed(stage, tasks, now)).toBe(true);
+    expect(isStageDelayed(stage, tasks, now)).toBe(false);
   });
 
   it('returns separate stage and task delay counts', () => {
     const summary = getDeliveryDelaySummary({
-      stages: [{ id: 'stage-1', name: 'Launch', endDate: '2026-07-29T12:00:00.000Z' }],
+      stages: [{ id: 'stage-1', name: 'Launch' }],
       tasks: [{ title: 'Publish', status: 'IN_PROGRESS', stageId: 'stage-1', deadline: '2026-07-30T12:00:00.000Z' }],
     }, now);
 
-    expect(summary.delayedStages).toHaveLength(1);
+    expect(summary.delayedStages).toHaveLength(0);
     expect(summary.delayedTasks).toHaveLength(1);
-    expect(summary.total).toBe(2);
+    expect(summary.total).toBe(1);
   });
 });

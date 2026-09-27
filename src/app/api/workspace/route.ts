@@ -7,19 +7,7 @@ import { isTransientDatabaseConnectionError } from '@/lib/database-resilience';
 import { getRequestSecurityContext } from '@/server/security/request-security-context';
 import { getWorkspaceReadModel } from '@/server/workspace/workspace-service';
 import { MAJOR_CURRENCY_CODES } from '@/lib/currencies';
-
-function validateWelcomeBackground(value: unknown) {
-  if (value === null || value === undefined || value === '') return true;
-  if (typeof value !== 'string') return false;
-  const match = value.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
-  if (!match) return false;
-  const bytes = Buffer.from(match[2], 'base64');
-  if (bytes.length === 0 || bytes.length > 2 * 1024 * 1024) return false;
-  const isPng = bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[bytes.length - 2] === 0xff && bytes[bytes.length - 1] === 0xd9;
-  const isWebp = bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
-  return (match[1] === 'image/png' && isPng) || (match[1] === 'image/jpeg' && isJpeg) || (match[1] === 'image/webp' && isWebp);
-}
+import { validateWelcomeBackgroundDataUrl } from '@/lib/welcome-background';
 
 const patchSchema = z.object({
   organization: z.object({
@@ -69,8 +57,9 @@ export async function PATCH(request: Request) {
     }
 
     const update = parsed.data;
-    if (update.organization?.preferences && 'welcomeCardBackgroundDataUrl' in update.organization.preferences && !validateWelcomeBackground(update.organization.preferences.welcomeCardBackgroundDataUrl)) {
-      return NextResponse.json({ error: 'Welcome-card backgrounds must be PNG, JPEG, or WebP images no larger than 2 MB after processing.' }, { status: 400 });
+    if (update.organization?.preferences && 'welcomeCardBackgroundDataUrl' in update.organization.preferences) {
+      const background = validateWelcomeBackgroundDataUrl(update.organization.preferences.welcomeCardBackgroundDataUrl);
+      if ('error' in background) return NextResponse.json({ error: background.error }, { status: 400 });
     }
     if ((update.organization || update.onboarding) && !isOrganizationAdmin(user)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

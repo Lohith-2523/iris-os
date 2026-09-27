@@ -20,8 +20,8 @@ export type WorkspaceLayoutFamily = 'dashboard' | 'planner' | 'records' | 'studi
 
 const WORKSPACE_FAMILIES: Record<WorkspaceLayoutFamily, ReadonlySet<string>> = {
   dashboard: new Set(['dashboard', 'client-dashboard', 'teams-dashboard', 'analytics', 'finance', 'reporting']),
-  planner: new Set(['calendar', 'tasks', 'projects', 'team']),
-  records: new Set(['clients', 'client-leads', 'agency-leads', 'invoices', 'proposals', 'messages']),
+  planner: new Set(['calendar', 'tasks', 'projects', 'client-projects', 'team']),
+  records: new Set(['clients', 'client-leads', 'client-documents', 'client-deliverables', 'agency-leads', 'invoices', 'proposals', 'messages']),
   studio: new Set(['atlas', 'strategy', 'documents', 'explorer']),
   settings: new Set(['settings']),
 };

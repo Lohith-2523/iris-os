@@ -231,12 +231,11 @@ export function ProjectBreakdownDrawer({
                       <div className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-muted font-bold">{index + 1}</div>
                       <div>
                         <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="text-lg font-semibold">{stage.name}</h3>
+                          <h3 className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold" style={{ borderColor: stage.color, color: stage.color, backgroundColor: `${stage.color}18` }}><span className="h-2 w-2 rounded-full" style={{ backgroundColor: stage.color }} />{stage.name}</h3>
                           <Badge variant={stage.status === 'COMPLETED' ? 'risk-low' : 'outline'}>{statusLabel(stage.status || 'NOT_STARTED')}</Badge>
                           <Badge variant="outline">{stageTasks.length} tasks</Badge>
                           <Badge variant="outline">{stageDeliverables.length} deliverables</Badge>
                         </div>
-                        <p className="mt-2 text-sm text-muted-foreground">{dateLabel(stage.startDate)} to {dateLabel(stage.endDate)}</p>
                       </div>
                       <div>
                         <div className="mb-2 flex justify-between text-sm"><span className="text-muted-foreground">Stage progress</span><span className="font-semibold">{stageProgress}%</span></div>

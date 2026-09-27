@@ -16,9 +16,11 @@ export function workspaceRouteRestriction(
   const role = principal.role.toLowerCase();
 
   if (role === 'client') {
-    if (principal.plan === 'BASIC' && pathname === '/client-dashboard') return 'plan';
     const allowed = pathname === '/client-dashboard'
       || pathname === '/client-leads'
+      || pathname === '/client-projects'
+      || pathname === '/client-documents'
+      || pathname === '/client-deliverables'
       || pathname === '/clients/onboard'
       || pathname === '/settings'
       || pathname === '/calendar'
@@ -47,7 +49,7 @@ export function workspaceRouteRestriction(
     return pathname === '/settings' || teamWorkspacePage || assignedPage ? null : 'sub_admin';
   }
 
-  if (role === 'admin' && ['/client-dashboard', '/client-leads', '/teams-dashboard'].includes(pathname)) {
+  if (role === 'admin' && ['/client-dashboard', '/client-leads', '/client-projects', '/client-documents', '/client-deliverables', '/teams-dashboard'].includes(pathname)) {
     return 'admin';
   }
 

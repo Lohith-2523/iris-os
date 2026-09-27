@@ -115,13 +115,19 @@ async function sendDocument(record: { id: string; kind: string; title: string; d
 export async function GET(request: Request) {
   const user = await getRequestUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (user.role.toLowerCase() === 'client') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const isClient = user.role.toLowerCase() === 'client';
+  if (isClient && !user.clientId) return NextResponse.json({ error: 'Client account is not linked.' }, { status: 403 });
   const family = new URL(request.url).searchParams.get('family');
-  const kinds = family === 'PROPOSAL' ? ['PROPOSAL'] : ['CONTRACT', 'SOW'];
+  const kinds = isClient ? ['PROPOSAL', 'CONTRACT', 'SOW'] : family === 'PROPOSAL' ? ['PROPOSAL'] : ['CONTRACT', 'SOW'];
   const pageRequest = readCursorPage(request);
   const [documents, clients, leads] = await Promise.all([
     prisma.generatedDocument.findMany({
-      where: { orgId: user.orgId, kind: { in: kinds }, ...descendingCursorWhere(pageRequest.cursor, 'createdAt') },
+      where: {
+        orgId: user.orgId,
+        kind: { in: kinds },
+        ...(isClient ? { recipientType: 'CLIENT', recipientId: user.clientId!, sentAt: { not: null } } : {}),
+        ...descendingCursorWhere(pageRequest.cursor, 'createdAt'),
+      },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: pageRequest.take,
       select: {
@@ -129,11 +135,12 @@ export async function GET(request: Request) {
         recipientName: true, recipientEmail: true, createdAt: true, sentAt: true,
         approvedAt: true, approvedByName: true, artifactsGeneratedAt: true,
         recipientSignedAt: true, agencySignedAt: true, fullySignedAt: true,
+        signingToken: true, signingTokenExpiresAt: true,
         automationStatus: true, automationError: true,
       },
     }),
-    prisma.client.findMany({ where: { orgId: user.orgId, status: { not: 'DELETED' } }, select: { id: true, name: true, contacts: { select: { name: true, email: true }, orderBy: { createdAt: 'asc' }, take: 1 } }, orderBy: { name: 'asc' }, take: 100 }),
-    prisma.agencyLead.findMany({ where: { orgId: user.orgId }, select: { id: true, fullName: true, email: true }, orderBy: { fullName: 'asc' }, take: 100 }),
+    isClient ? Promise.resolve([]) : prisma.client.findMany({ where: { orgId: user.orgId, status: { not: 'DELETED' } }, select: { id: true, name: true, contacts: { select: { name: true, email: true }, orderBy: { createdAt: 'asc' }, take: 1 } }, orderBy: { name: 'asc' }, take: 100 }),
+    isClient ? Promise.resolve([]) : prisma.agencyLead.findMany({ where: { orgId: user.orgId }, select: { id: true, fullName: true, email: true }, orderBy: { fullName: 'asc' }, take: 100 }),
   ]);
   const page = finishCursorPage(documents, pageRequest.limit, (document) => document.createdAt);
   return NextResponse.json({

@@ -2,11 +2,10 @@
 
 import * as React from 'react';
 import dynamic from 'next/dynamic';
-import { RotateCcw, ShieldCheck } from 'lucide-react';
+import { Eye, ShieldCheck } from 'lucide-react';
 import { DemoModeProvider, useDemoMode } from '@/components/demo/demo-mode-provider';
 import { WorkspaceShell } from '@/components/app-shell/workspace-shell';
 import DashboardClient from '@/app/(app)/dashboard/dashboard-client';
-import { Button } from '@/components/ui/button';
 import styles from './iris-interactive-demo.module.css';
 
 const ClientsClient = dynamic(() => import('@/app/(app)/clients/clients-client'), { loading: () => <DemoPageSkeleton /> });
@@ -89,13 +88,29 @@ function DemoWorkspace() {
     else demo.showNotice('External links and production-connected actions are disabled in the interactive demo.');
   };
 
+  const blockEditing = (event: React.SyntheticEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    const labelControl = target.closest('label')?.querySelector('input, textarea, select');
+    const datePickerButton = target.closest('[data-date-input-root] button');
+    if (!target.closest('input, textarea, select, [contenteditable="true"]') && !labelControl && !datePickerButton) return;
+    event.preventDefault();
+    event.stopPropagation();
+    demo.showNotice('This is a view-only demo. Form editing is disabled.');
+  };
+
+  const blockSubmission = (event: React.FormEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    demo.showNotice('This is a view-only demo. Creating and sending are disabled.');
+  };
+
   return <>
     <div className={styles.toolbar}>
-      <div><ShieldCheck aria-hidden="true" /><span><strong>Safe demo</strong></span></div>
-      <Button type="button" variant="outline" size="sm" onClick={demo.reset}><RotateCcw className="h-3.5 w-3.5" />Reset Demo</Button>
+      <div><ShieldCheck aria-hidden="true" /><span><strong>View-only demo</strong> Explore every workspace without changing data.</span></div>
+      <span className={styles.readOnlyBadge}><Eye aria-hidden="true" />Browse & inspect</span>
     </div>
     <div ref={frameRef} className={styles.viewportFrame} style={{ '--demo-scale': scale } as React.CSSProperties}>
-      <div className={styles.viewportCanvas} onClickCapture={interceptNavigation}>
+      <div className={styles.viewportCanvas} onClickCapture={(event) => { interceptNavigation(event); blockEditing(event); }} onKeyDownCapture={blockEditing} onPasteCapture={blockEditing} onSubmitCapture={blockSubmission}>
         <WorkspaceShell initialWorkspace={demo.state.workspace}>
           <DemoRoute />
         </WorkspaceShell>

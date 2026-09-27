@@ -8,7 +8,6 @@ export type DeliveryTaskLike = {
 export type DeliveryStageLike = {
   id: string;
   name?: string;
-  endDate: Date | string;
 };
 
 export type DeliveryProjectLike = {
@@ -32,21 +31,16 @@ export function isStageDelayed(
   tasks: DeliveryTaskLike[],
   now = new Date(),
 ) {
-  const endDate = dateValue(stage.endDate);
-  const stageTasks = tasks.filter((task) => task.stageId === stage.id);
-  return Boolean(
-    endDate
-      && endDate < now
-      && stageTasks.length > 0
-      && stageTasks.some((task) => task.status !== 'COMPLETED'),
-  );
+  void stage;
+  void tasks;
+  void now;
+  return false;
 }
 
 export function getDeliveryDelaySummary(project: DeliveryProjectLike, now = new Date()) {
   const tasks = project.tasks || [];
-  const stages = project.stages || [];
   const delayedTasks = tasks.filter((task) => isTaskDelayed(task, now));
-  const delayedStages = stages.filter((stage) => isStageDelayed(stage, tasks, now));
+  const delayedStages: DeliveryStageLike[] = [];
 
   return {
     delayedTasks,

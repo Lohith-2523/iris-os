@@ -16,13 +16,13 @@ type SignatureRecord = {
   signedContentHash: string | null;
 };
 
-export function recipientSignatureNotification(document: { kind: string; title: string; documentNumber: string; recipientSignerName: string }) {
+export function recipientSignatureNotification(document: { id: string; kind: string; title: string; documentNumber: string; recipientSignerName: string }) {
   const kindLabel = document.kind === 'SOW' ? 'statement of work' : 'contract';
   return {
     type: 'APPROVAL' as const,
     title: `Client signed ${kindLabel}`,
     body: `${document.recipientSignerName} signed ${document.title} (${document.documentNumber}). Countersign it to finalize the document.`,
-    href: '/documents',
+    href: `/documents?documentId=${document.id}`,
     actionLabel: 'Countersign now',
   };
 }
@@ -130,7 +130,7 @@ export async function runSignedDocumentAutomation(documentId: string) {
             },
           });
           projectId = project.id;
-          const stage = await tx.projectStage.create({ data: { name: 'Delivery', position: 0, startDate, endDate, projectId: project.id } });
+          const stage = await tx.projectStage.create({ data: { name: 'Delivery', color: '#94A3B8', position: 0, projectId: project.id } });
           await tx.clientTask.createMany({ data: content.deliverables.map(item => ({ title: item.name, description: item.scope, status: 'TODO', progress: 0, clientId: client!.id, projectId: project.id, stageId: stage.id })) });
         } else {
           automationStatus = 'NEEDS_REVIEW';
@@ -140,7 +140,7 @@ export async function runSignedDocumentAutomation(documentId: string) {
 
       await tx.generatedDocument.update({ where: { id: document.id }, data: { onboardedClientId: client.id, onboardedProjectId: projectId, automationStatus, automationError } });
       const admins = await tx.user.findMany({ where: { orgId: document.orgId, role: { equals: 'admin', mode: 'insensitive' } }, select: { id: true } });
-      if (admins.length) await tx.notification.createMany({ data: admins.map(admin => ({ orgId: document.orgId, userId: admin.id, type: automationStatus === 'COMPLETED' ? 'UPDATE' : 'ISSUE', title: automationStatus === 'COMPLETED' ? 'Miles onboarding completed' : 'Miles onboarding needs review', body: automationError || `${client!.name} was onboarded${projectId ? ' and its signed SOW was converted into a project' : ''}.`, href: projectId ? '/projects' : '/clients', actionLabel: projectId ? 'View project' : 'View client' })) });
+      if (admins.length) await tx.notification.createMany({ data: admins.map(admin => ({ orgId: document.orgId, userId: admin.id, type: automationStatus === 'COMPLETED' ? 'UPDATE' : 'ISSUE', title: automationStatus === 'COMPLETED' ? 'Miles onboarding completed' : 'Miles onboarding needs review', body: automationError || `${client!.name} was onboarded${projectId ? ' and its signed SOW was converted into a project' : ''}.`, href: projectId ? `/projects?projectId=${projectId}` : `/clients?clientId=${client!.id}`, actionLabel: projectId ? 'View project' : 'View client' })) });
     }, { timeout: 10_000 });
   } catch (error) {
     await prisma.generatedDocument.updateMany({ where: { id: documentId }, data: { automationStatus: 'FAILED', automationError: error instanceof Error ? error.message.slice(0, 1000) : 'Miles onboarding failed.' } });

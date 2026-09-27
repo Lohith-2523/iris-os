@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         deliverable = await createDeliverable;
       }
       const clientUsers = await prisma.user.findMany({ where: { clientId: client.id, accessRevokedAt: null }, select: { id: true } });
-      await Promise.all(clientUsers.map((recipient) => createNotification({ orgId: user.orgId, userId: recipient.id, type: needsApproval ? 'APPROVAL' : 'UPDATE', title: needsApproval ? 'Deliverable needs your approval' : 'New deliverable available', body: `${body.title} was submitted for ${client.name}.`, href: '/client-dashboard?tab=approvals', actionLabel: needsApproval ? 'Review deliverable' : 'Open deliverable' })));
+      await Promise.all(clientUsers.map((recipient) => createNotification({ orgId: user.orgId, userId: recipient.id, type: needsApproval ? 'APPROVAL' : 'UPDATE', title: needsApproval ? 'Deliverable needs your approval' : 'New deliverable available', body: `${body.title} was submitted for ${client.name}.`, href: `/client-deliverables?deliverableId=${deliverable.id}`, actionLabel: needsApproval ? 'Review deliverable' : 'Open deliverable' })));
       return NextResponse.json({ success: true, deliverable });
     }
 
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       }
       if (!body.projectId) return NextResponse.json({ error: 'A project is required for change requests' }, { status: 400 });
       const changeRequest = await prisma.changeRequest.create({ data: { title: body.title, details: body.note, status: 'PROPOSED', requestedById: user.id, requestedByName: user.name, orgId: user.orgId, clientId: client.id, projectId: body.projectId, taskId: body.taskId || null } });
-      await notifyOrganizationAdmins({ orgId: user.orgId, type: 'ISSUE', title: 'Project change proposed', body: `${user.name} proposed: ${body.title}`, href: `/clients?clientId=${client.id}&tab=changes`, actionLabel: 'Review proposal' });
+      await notifyOrganizationAdmins({ orgId: user.orgId, type: 'ISSUE', title: 'Project change proposed', body: `${user.name} proposed: ${body.title}`, href: `/clients?clientId=${client.id}&tab=changes&changeRequestId=${changeRequest.id}`, actionLabel: 'Review proposal' });
       return NextResponse.json({ success: true, changeRequest });
     }
 
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
         type: requestedStatus === 'FINALIZED' ? 'APPROVAL' : 'UPDATE',
         title: `Change request ${requestedStatus.toLowerCase()}`,
         body: requestedStatus === 'FINALIZED' ? `${updated.title} was finalized and added to the project plan.` : `${updated.title} moved to discussion.`,
-        href: '/client-dashboard?tab=approvals',
+        href: `/client-deliverables?changeRequestId=${finalChangeRequest?.id || updated.id}`,
         actionLabel: 'View request',
       })));
       return NextResponse.json({ success: true, changeRequest: finalChangeRequest, atlas });
@@ -211,8 +211,8 @@ export async function POST(request: NextRequest) {
     } else {
       updated = await updateDeliverable;
     }
-    await notifyOrganizationAdmins({ orgId: user.orgId, type: 'APPROVAL', title: approved ? 'Deliverable approved' : 'Changes requested', body: `${user.name} ${approved ? 'approved' : 'requested changes to'} ${deliverable.title}.`, href: '/tasks', actionLabel: 'Open task' });
-    if (deliverable.submittedById) await createNotification({ orgId: user.orgId, userId: deliverable.submittedById, type: 'APPROVAL', title: approved ? 'Your deliverable was approved' : 'Client requested changes', body: `${user.name} ${approved ? 'approved' : 'requested changes to'} ${deliverable.title}.`, href: deliverable.taskId ? `/tasks?taskId=${deliverable.taskId}` : '/tasks', actionLabel: 'Open deliverable' });
+    await notifyOrganizationAdmins({ orgId: user.orgId, type: 'APPROVAL', title: approved ? 'Deliverable approved' : 'Changes requested', body: `${user.name} ${approved ? 'approved' : 'requested changes to'} ${deliverable.title}.`, href: deliverable.taskId ? `/tasks?taskId=${deliverable.taskId}` : `/clients?clientId=${deliverable.clientId}`, actionLabel: deliverable.taskId ? 'Open task' : 'Open client' });
+    if (deliverable.submittedById) await createNotification({ orgId: user.orgId, userId: deliverable.submittedById, type: 'APPROVAL', title: approved ? 'Your deliverable was approved' : 'Client requested changes', body: `${user.name} ${approved ? 'approved' : 'requested changes to'} ${deliverable.title}.`, href: deliverable.taskId ? `/tasks?taskId=${deliverable.taskId}` : `/clients?clientId=${deliverable.clientId}`, actionLabel: deliverable.taskId ? 'Open task' : 'Open client' });
     return NextResponse.json({ success: true, deliverable: updated });
   } catch (error) {
     console.error('Unable to update deliverables:', error);

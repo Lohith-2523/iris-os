@@ -50,7 +50,7 @@ export async function listProjects(
       return {
         ...project,
         deliveryDelays: {
-          stages: delays.delayedStages.map((stage) => ({ id: stage.id, name: stage.name, endDate: stage.endDate })),
+          stages: delays.delayedStages.map((stage) => ({ id: stage.id, name: stage.name })),
           tasks: delays.delayedTasks.map((task) => ({ title: task.title, deadline: task.deadline, stageId: task.stageId })),
           total: delays.total,
         },

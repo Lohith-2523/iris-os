@@ -8,6 +8,7 @@ import { recipientSignatureNotification } from './signing';
 describe('recipient signature notifications', () => {
   it('directs the agency user to countersign a client-signed contract', () => {
     expect(recipientSignatureNotification({
+      id: 'document-1',
       kind: 'CONTRACT',
       title: 'Growth Services Agreement',
       documentNumber: 'CTR-2026-014',
@@ -16,7 +17,7 @@ describe('recipient signature notifications', () => {
       type: 'APPROVAL',
       title: 'Client signed contract',
       body: 'Avery Morgan signed Growth Services Agreement (CTR-2026-014). Countersign it to finalize the document.',
-      href: '/documents',
+      href: '/documents?documentId=document-1',
       actionLabel: 'Countersign now',
     });
   });

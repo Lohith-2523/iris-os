@@ -1197,10 +1197,9 @@ model TaskComment {
 model ProjectStage {
   id        String       @id @default(uuid())
   name      String
+  color     String       @default("#94A3B8")
   status    String       @default("NOT_STARTED") // Derived from tasks: NOT_STARTED, IN_PROGRESS, COMPLETED.
   position  Int // 0-based order index
-  startDate DateTime
-  endDate   DateTime
   projectId String
   project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks     ClientTask[]

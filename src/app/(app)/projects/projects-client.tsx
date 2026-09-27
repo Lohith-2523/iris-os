@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,11 +39,12 @@ import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
-import { getDeliveryDelaySummary, isStageDelayed, isTaskDelayed } from '@/lib/delivery-delays';
+import { getDeliveryDelaySummary, isTaskDelayed } from '@/lib/delivery-delays';
 import { agencyServiceLines } from '@/lib/agency-specializations';
 import { ProjectBreakdownDrawer } from '@/components/projects/project-breakdown-drawer';
 import type { ProjectsReadModel } from '@/server/read-models/workspace-pages';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { MetaLogo } from '@/components/integrations/meta-brand-lockup';
 
 const clientIdentityIcons: LucideIcon[] = [
   Building2,
@@ -107,6 +109,8 @@ const newQuickTaskDraft = (stageId = ''): QuickTaskDraft => ({
 });
 
 export default function ProjectsPage({ initialData }: { initialData: ProjectsReadModel }) {
+  const searchParams = useSearchParams();
+  const requestedProjectId = searchParams.get('projectId');
   const { router, fetch } = useWorkspaceRuntime();
   const initialServiceLines = agencyServiceLines(initialData.workspace.organization.agencyTypes);
   const [projects, setProjects] = React.useState<any[]>(initialData.projects);
@@ -122,11 +126,21 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
   const [quickTaskDrafts, setQuickTaskDrafts] = React.useState<QuickTaskDraft[]>([]);
   const [creatingQuickTasks, setCreatingQuickTasks] = React.useState(false);
   const [quickTaskError, setQuickTaskError] = React.useState('');
+  const [showCreationStageEditor, setShowCreationStageEditor] = React.useState(false);
   const gridRef = React.useRef<HTMLDivElement>(null);
 
   // Detail Drawer State
   const [selectedProject, setSelectedProject] = React.useState<any | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!requestedProjectId) return;
+    const project = projects.find((item) => item.id === requestedProjectId);
+    if (!project) return;
+    setExpandedClientId(project.clientId);
+    setSelectedProject(project);
+    setIsEditing(false);
+  }, [projects, requestedProjectId]);
   const [editForm, setEditForm] = React.useState<any>({
     name: '',
     serviceLine: initialServiceLines[0] || '',
@@ -167,32 +181,13 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
     status: 'IN_PROGRESS',
     riskLevel: 'LOW',
     memberIds: [] as string[],
-    deliverables: '',
+    taskName: '',
+    taskStagePosition: 0,
+    taskDeadline: '',
     stages: [
-      { name: 'Discovery & Plan', startDate: '', endDate: '' },
-      { name: 'Creative Design', startDate: '', endDate: '' },
-      { name: 'Execution & Launch', startDate: '', endDate: '' },
-      { name: 'Optimization', startDate: '', endDate: '' },
+      { name: 'Initial Stage', color: '#94A3B8' },
     ]
   });
-
-  // Date and stage timeline auto-division helper
-  const recalculateStages = (stagesList: any[], startDateStr: string, endDateStr: string) => {
-    const start = startDateStr ? new Date(startDateStr) : new Date();
-    const end = endDateStr ? new Date(endDateStr) : new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
-    const totalMs = end.getTime() - start.getTime();
-    const msPerStage = totalMs / Math.max(stagesList.length, 1);
-
-    return stagesList.map((stage, i) => {
-      const sStart = new Date(start.getTime() + i * msPerStage);
-      const sEnd = new Date(start.getTime() + (i + 1) * msPerStage);
-      return {
-        ...stage,
-        startDate: sStart.toISOString().split('T')[0],
-        endDate: sEnd.toISOString().split('T')[0]
-      };
-    });
-  };
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -275,11 +270,6 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
   const handleCreationInputChange = (name: string, value: any) => {
     setNewProjectForm(prev => {
       const nextData = { ...prev, [name]: value };
-      if (name === 'startDate' || name === 'deadline') {
-        const start = name === 'startDate' ? value : prev.startDate;
-        const end = name === 'deadline' ? value : prev.deadline;
-        nextData.stages = recalculateStages(prev.stages, start, end);
-      }
       return nextData;
     });
   };
@@ -288,10 +278,11 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
   const addCreationStage = () => {
     setNewProjectForm(prev => {
       if (prev.stages.length >= 8) return prev;
-      const newStages = [...prev.stages, { name: `Phase ${prev.stages.length + 1}`, startDate: '', endDate: '' }];
+      const newStages = [...prev.stages, { name: `Phase ${prev.stages.length + 1}`, color: '#94A3B8' }];
       return {
         ...prev,
-        stages: recalculateStages(newStages, prev.startDate, prev.deadline)
+        stages: newStages,
+        taskStagePosition: Math.min(prev.taskStagePosition, newStages.length - 1),
       };
     });
   };
@@ -302,7 +293,8 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       const newStages = prev.stages.filter((_, i) => i !== idx);
       return {
         ...prev,
-        stages: recalculateStages(newStages, prev.startDate, prev.deadline)
+        stages: newStages,
+        taskStagePosition: Math.min(prev.taskStagePosition, newStages.length - 1),
       };
     });
   };
@@ -317,7 +309,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       newStages[nextIdx] = temp;
       return {
         ...prev,
-        stages: recalculateStages(newStages, prev.startDate, prev.deadline)
+        stages: newStages
       };
     });
   };
@@ -326,11 +318,6 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
   const handleEditInputChange = (name: string, value: any) => {
     setEditForm((prev: any) => {
       const nextData = { ...prev, [name]: value };
-      if (name === 'startDate' || name === 'endDate') {
-        const start = name === 'startDate' ? value : prev.startDate;
-        const end = name === 'endDate' ? value : prev.endDate;
-        nextData.stages = recalculateStages(prev.stages, start, end);
-      }
       return nextData;
     });
   };
@@ -339,10 +326,10 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
   const addEditStage = () => {
     setEditForm((prev: any) => {
       if (prev.stages.length >= 8) return prev;
-      const newStages = [...prev.stages, { name: `Phase ${prev.stages.length + 1}`, startDate: '', endDate: '' }];
+      const newStages = [...prev.stages, { name: `Phase ${prev.stages.length + 1}`, color: '#94A3B8' }];
       return {
         ...prev,
-        stages: recalculateStages(newStages, prev.startDate, prev.endDate)
+        stages: newStages
       };
     });
   };
@@ -353,7 +340,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       const newStages = prev.stages.filter((_: any, i: number) => i !== idx);
       return {
         ...prev,
-        stages: recalculateStages(newStages, prev.startDate, prev.endDate)
+        stages: newStages
       };
     });
   };
@@ -368,7 +355,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       newStages[nextIdx] = temp;
       return {
         ...prev,
-        stages: recalculateStages(newStages, prev.startDate, prev.endDate)
+        stages: newStages
       };
     });
   };
@@ -389,6 +376,10 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
     }
     if (!paymentAmount || Number(paymentAmount) <= 0 || !paymentStartDate) {
       setFormError('A positive client payment and invoice date are required.');
+      return;
+    }
+    if (!newProjectForm.startDate) {
+      setFormError('A project start date is required.');
       return;
     }
 
@@ -414,9 +405,11 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
           status: newProjectForm.status,
           riskLevel: newProjectForm.riskLevel,
           memberIds: newProjectForm.memberIds,
-          deliverables: newProjectForm.deliverables 
-            ? newProjectForm.deliverables.split(',').map(d => d.trim()).filter(Boolean) 
-            : [],
+          tasks: newProjectForm.taskName.trim() ? [{
+            title: newProjectForm.taskName.trim(),
+            stagePosition: newProjectForm.taskStagePosition,
+            deadline: newProjectForm.taskDeadline || null,
+          }] : [],
           stages: newProjectForm.stages
         })
       });
@@ -446,14 +439,14 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
           status: 'IN_PROGRESS',
           riskLevel: 'LOW',
           memberIds: [],
-          deliverables: '',
+          taskName: '',
+          taskStagePosition: 0,
+          taskDeadline: '',
           stages: [
-            { name: 'Discovery & Plan', startDate: '', endDate: '' },
-            { name: 'Creative Design', startDate: '', endDate: '' },
-            { name: 'Execution & Launch', startDate: '', endDate: '' },
-            { name: 'Optimization', startDate: '', endDate: '' },
+            { name: 'Initial Stage', color: '#94A3B8' },
           ]
         });
+        setShowCreationStageEditor(false);
       } else {
         const err = await res.json();
         setFormError(err.error || 'Failed to create project.');
@@ -468,7 +461,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
     setNewProjectForm((current) => ({
       ...current,
       clientId,
-      stages: recalculateStages(current.stages, current.startDate, current.deadline),
+      stages: current.stages,
     }));
     setFormError('');
     setIsCreateOpen(true);
@@ -629,13 +622,6 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
         </div>
         <Button
           onClick={() => {
-            // Re-calc equal dates for new stages
-            const start = newProjectForm.startDate;
-            const end = newProjectForm.deadline;
-            setNewProjectForm(prev => ({
-              ...prev,
-              stages: recalculateStages(prev.stages, start, end)
-            }));
             setIsCreateOpen(true);
           }}
           className="h-8 rounded-none bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-semibold px-4 flex items-center gap-1.5"
@@ -677,7 +663,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
 
         <Card className={stats.delayCount > 0 ? 'border-rose-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(244,63,94,0.65)]' : 'border-emerald-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(52,211,153,0.55)]'}>
           <CardHeader className="pb-1.5">
-            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><TimerReset className="h-4 w-4 text-rose-300" />Stage & task delays</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><TimerReset className="h-4 w-4 text-rose-300" />Task delays</CardTitle>
           </CardHeader>
           <CardContent className="flex items-center gap-2">
             <div className={`text-xl font-bold font-mono tracking-tight ${stats.delayCount > 0 ? 'text-rose-450' : 'text-emerald-450'}`}>
@@ -933,21 +919,21 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       {/* --- CREATE PROJECT MODAL --- */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-850 w-full max-w-4xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Initialize Program Project</h3>
-              <button onClick={() => setIsCreateOpen(false)} className="text-zinc-500 hover:text-white">
+          <div className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl border border-zinc-850 bg-zinc-950 shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-900 bg-zinc-950/95 px-6 py-4 backdrop-blur-md">
+              <div><h3 className="text-lg font-bold text-white">Create Project & Commercials</h3><p className="mt-1 text-[10px] text-zinc-500">Use the same delivery and billing setup used during client onboarding.</p></div>
+              <button onClick={() => setIsCreateOpen(false)} aria-label="Close project creation" className="grid h-9 w-9 place-items-center rounded-full border border-zinc-800 text-zinc-500 hover:text-white">
                 <X className="h-4.5 w-4.5" />
               </button>
             </div>
 
             {formError && (
-              <div className="p-3 bg-rose-950/15 border border-rose-900/35 text-rose-455 text-[11px] mb-4 font-semibold">
+              <div className="mx-6 mt-4 rounded border border-rose-900/35 bg-rose-950/15 p-3 text-[11px] font-semibold text-rose-455">
                 {formError}
               </div>
             )}
 
-            <form onSubmit={handleCreateProject} className="space-y-4">
+            <form onSubmit={handleCreateProject} className="space-y-4 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Project Name <span className="text-rose-500" aria-hidden="true">*</span></label>
@@ -978,7 +964,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="max-w-xl">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Specialization</label>
                   <select
@@ -992,22 +978,13 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   </select>
                   {availableServiceLines.length === 0 && <p className="text-[9px] text-amber-400">Select an agency specialization in Settings first.</p>}
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Timeline Description</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 6 Months, Q3-Q4"
-                    value={newProjectForm.timeline}
-                    onChange={(e) => handleCreationInputChange('timeline', e.target.value)}
-                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700"
-                  />
-                </div>
               </div>
 
-              <div className="flex items-center justify-between gap-4 border border-zinc-850 bg-zinc-950/50 p-3">
-                <span>
-                  <span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
-                  <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls for this project&apos;s client.</span>
+              <div className="flex items-center justify-between gap-4 rounded border border-zinc-850 bg-zinc-950/50 p-3">
+                <span className="flex min-w-0 items-center gap-3">
+                  <MetaLogo className="h-5 w-7.5" />
+                  <span className="min-w-0"><span className="block text-[11px] font-semibold text-white">Enable Meta integration</span>
+                  <span className="mt-1 block text-[9px] leading-relaxed text-zinc-500">Adds Meta ads, campaign metrics, and lead controls for this project&apos;s client.</span></span>
                 </span>
                 <button type="button" role="switch" aria-label="Enable Meta integration" aria-checked={newProjectForm.metaIntegrationEnabled} onClick={() => handleCreationInputChange('metaIntegrationEnabled', !newProjectForm.metaIntegrationEnabled)} className="meta-integration-switch-hitbox grid h-11 w-11 shrink-0 place-items-center rounded-full">
                   <span aria-hidden="true" className={`meta-integration-switch relative block h-5 w-9 overflow-hidden rounded-full border transition-colors ${newProjectForm.metaIntegrationEnabled ? 'border-white bg-white' : 'border-zinc-700 bg-zinc-900'}`}>
@@ -1102,7 +1079,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 </label>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Internal Budget ({getCurrencySymbol(currencyState)})</label>
                   <input
@@ -1116,6 +1093,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Start Date</label>
                   <DateInput
+                    required
                     value={newProjectForm.startDate}
                     onChange={(value) => handleCreationInputChange('startDate', value)}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-mono"
@@ -1129,24 +1107,22 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-mono"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Risk Assessment</label>
-                  <select
-                    value={newProjectForm.riskLevel}
-                    onChange={(e) => handleCreationInputChange('riskLevel', e.target.value)}
-                    className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700 font-semibold"
-                  >
-                    <option value="LOW">Low Risk</option>
-                    <option value="MEDIUM">Medium Risk</option>
-                    <option value="HIGH">High Risk</option>
-                  </select>
-                </div>
               </div>
 
               {/* Project Stages Section */}
               <div className="space-y-3 pt-3 border-t border-zinc-900">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Project stages</label>
+                    <p className="mt-1 text-[10px] text-zinc-600">One default stage is ready. Open the editor to rename, colour, reorder, or add up to eight stages.</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowCreationStageEditor((open) => !open)}>
+                    {showCreationStageEditor ? 'Done customizing' : 'Customize stages'}
+                  </Button>
+                </div>
+                {showCreationStageEditor && <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/35 p-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Project Stages (Max 8)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Stage names & colours</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -1155,18 +1131,6 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                       className="h-6 px-2 bg-zinc-800 text-[10px] font-bold hover:bg-zinc-700 text-white rounded-none disabled:opacity-40"
                     >
                       + Add Stage
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewProjectForm(prev => ({
-                          ...prev,
-                          stages: recalculateStages(prev.stages, prev.startDate, prev.deadline)
-                        }));
-                      }}
-                      className="h-6 px-2 border border-zinc-800 text-[10px] font-bold hover:bg-zinc-900 text-zinc-350 hover:text-white"
-                    >
-                      Divide Timelines
                     </button>
                   </div>
                 </div>
@@ -1188,31 +1152,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                         }}
                         className="flex-1 text-xs bg-zinc-900 border border-zinc-800 px-2 py-1 text-white outline-none"
                       />
-                      <div className="flex items-center gap-1 text-[10px] text-zinc-550 shrink-0 font-mono">
-                        <DateInput
-                          value={stage.startDate}
-                          onChange={(dateVal) => {
-                            setNewProjectForm(prev => {
-                              const newStages = prev.stages.map((s, i) => i === idx ? { ...s, startDate: dateVal } : s);
-                              return { ...prev, stages: newStages };
-                            });
-                          }}
-                          containerClassName="w-35 shrink-0"
-                          className="bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
-                        />
-                        <span>to</span>
-                        <DateInput
-                          value={stage.endDate}
-                          onChange={(dateVal) => {
-                            setNewProjectForm(prev => {
-                              const newStages = prev.stages.map((s, i) => i === idx ? { ...s, endDate: dateVal } : s);
-                              return { ...prev, stages: newStages };
-                            });
-                          }}
-                          containerClassName="w-35 shrink-0"
-                          className="bg-zinc-900 border border-zinc-800 px-1 py-0.5 text-zinc-300 text-[9px] outline-none"
-                        />
-                      </div>
+                      <label className="flex shrink-0 items-center gap-2 text-[10px] text-zinc-500">Colour<input type="color" value={stage.color} onChange={(event) => setNewProjectForm((prev) => ({ ...prev, stages: prev.stages.map((item, itemIndex) => itemIndex === idx ? { ...item, color: event.target.value } : item) }))} className="h-8 w-12 cursor-pointer rounded border border-zinc-800 bg-zinc-900 p-1" aria-label={`${stage.name || `Stage ${idx + 1}`} colour`} /></label>
                       <div className="flex gap-0.5 shrink-0">
                         <button
                           type="button"
@@ -1242,22 +1182,24 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                     </div>
                   ))}
                 </div>
+                </div>}
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Initial Deliverables Checklist (Comma-separated)</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Design wireframes, Set up Shopify mapping, Sync inventory logs"
-                  value={newProjectForm.deliverables}
-                  onChange={(e) => setNewProjectForm({ ...newProjectForm, deliverables: e.target.value })}
-                  className="w-full text-xs bg-zinc-900 border border-zinc-800 p-2.5 text-white outline-none rounded-none focus:border-zinc-700"
-                />
+              <div className="space-y-2 border-t border-zinc-900 pt-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-300">Create task for project</label>
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                  <input type="text" placeholder="e.g. Prepare campaign brief" value={newProjectForm.taskName} onChange={(event) => handleCreationInputChange('taskName', event.target.value)} className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white outline-none focus:border-zinc-700" aria-label="Task name" />
+                  <select value={newProjectForm.taskStagePosition} onChange={(event) => handleCreationInputChange('taskStagePosition', Number(event.target.value))} className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white outline-none focus:border-zinc-700" aria-label="Task stage">
+                    {newProjectForm.stages.map((stage, index) => <option key={index} value={index}>{index + 1}. {stage.name || `Stage ${index + 1}`}</option>)}
+                  </select>
+                  <DateInput value={newProjectForm.taskDeadline} onChange={(value) => handleCreationInputChange('taskDeadline', value)} className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white outline-none focus:border-zinc-700" />
+                </div>
+                <p className="text-[10px] text-zinc-600">The first selected specialist below is assigned to this task automatically.</p>
               </div>
 
               {/* Members Selection */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Allocate Specialist Staff</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Project assignees</label>
                 <div className="grid gap-2 sm:grid-cols-3 max-h-[120px] overflow-y-auto p-1 bg-zinc-950 border border-zinc-900">
                   {teamMembers.map(member => {
                     const isAllocated = newProjectForm.memberIds.includes(member.id);
@@ -1297,9 +1239,9 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-none text-xs font-semibold px-6"
+                  className="bg-white px-6 text-xs font-semibold text-zinc-950 hover:bg-zinc-200"
                 >
-                  Initialize Project
+                  Create Project
                 </Button>
               </div>
             </form>
@@ -1537,18 +1479,6 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                         >
                           + Add Stage
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditForm((prev: any) => ({
-                              ...prev,
-                              stages: recalculateStages(prev.stages, prev.startDate, prev.endDate)
-                            }));
-                          }}
-                          className="h-5 px-1.5 border border-zinc-800 text-[9px] font-bold hover:bg-zinc-900 text-zinc-450 hover:text-white"
-                        >
-                          Divide Timelines
-                        </button>
                       </div>
                     </div>
 
@@ -1569,31 +1499,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                             }}
                             className="flex-1 text-[10px] bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 text-white outline-none"
                           />
-                          <div className="flex items-center gap-0.5 text-[9px] text-zinc-550 shrink-0 font-mono">
-                            <DateInput
-                              value={stage.startDate ? stage.startDate.split('T')[0] : ''}
-                              onChange={(dateVal) => {
-                                setEditForm((prev: any) => {
-                                  const newStages = prev.stages.map((s: any, i: number) => i === idx ? { ...s, startDate: dateVal } : s);
-                                  return { ...prev, stages: newStages };
-                                });
-                              }}
-                              containerClassName="w-36 shrink-0"
-                              className="bg-zinc-900 border border-zinc-800 px-0.5 text-zinc-300 text-[8px] outline-none"
-                            />
-                            <span>to</span>
-                            <DateInput
-                              value={stage.endDate ? stage.endDate.split('T')[0] : ''}
-                              onChange={(dateVal) => {
-                                setEditForm((prev: any) => {
-                                  const newStages = prev.stages.map((s: any, i: number) => i === idx ? { ...s, endDate: dateVal } : s);
-                                  return { ...prev, stages: newStages };
-                                });
-                              }}
-                              containerClassName="w-36 shrink-0"
-                              className="bg-zinc-900 border border-zinc-800 px-0.5 text-zinc-300 text-[8px] outline-none"
-                            />
-                          </div>
+                          <label className="flex shrink-0 items-center gap-1 text-[9px] text-zinc-500">Colour<input type="color" value={stage.color || '#94A3B8'} onChange={(event) => setEditForm((prev: any) => ({ ...prev, stages: prev.stages.map((item: any, itemIndex: number) => itemIndex === idx ? { ...item, color: event.target.value } : item) }))} className="h-7 w-10 cursor-pointer border border-zinc-800 bg-zinc-900 p-1" aria-label={`${stage.name || `Stage ${idx + 1}`} colour`} /></label>
                           <div className="flex gap-0.5 shrink-0">
                             <button
                               type="button"
@@ -1726,19 +1632,15 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   <span className="text-[8px] text-zinc-600 uppercase font-bold block">Development Stage Gates</span>
                   <div className="space-y-2">
                     {selectedProject.stages?.map((stage: any, idx: number) => {
-                      const stageDelayed = isStageDelayed(stage, selectedProject.tasks || []);
                       const stageTaskCount = (selectedProject.tasks || []).filter((task: any) => task.stageId === stage.id).length;
                       return (
                       <div key={stage.id} className="p-2 border border-zinc-900 bg-zinc-950/30 flex justify-between items-center">
                         <div>
-                          <span className="font-semibold text-white text-[11px]">{idx + 1}. {stage.name}</span>
+                          <span className="inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] font-semibold" style={{ borderColor: stage.color, color: stage.color, backgroundColor: `${stage.color}18` }}><span className="h-2 w-2 rounded-full" style={{ backgroundColor: stage.color }} />{idx + 1}. {stage.name}</span>
                           <Badge variant={stage.status === 'COMPLETED' ? 'risk-low' : 'outline'}>{stage.status === 'COMPLETED' ? 'Completed' : stage.status === 'IN_PROGRESS' ? 'In progress' : 'Not started'}</Badge>
-                          <span className="block text-[8px] text-zinc-550 font-mono mt-0.5">
-                            {new Date(stage.startDate).toLocaleDateString()} to {new Date(stage.endDate).toLocaleDateString()}
-                          </span>
                         </div>
-                        <Badge variant={stageDelayed ? 'risk-high' : 'outline'} className="text-[8px] font-mono rounded-none uppercase">
-                          {stageDelayed ? 'Stage delayed' : `${stageTaskCount} Tasks`}
+                        <Badge variant="outline" className="text-[8px] font-mono rounded-none uppercase">
+                          {stageTaskCount} Tasks
                         </Badge>
                       </div>
                     )})}

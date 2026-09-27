@@ -6,6 +6,7 @@ import {
   createAndSendProjectInvoice,
 } from '@/lib/invoices/service';
 import { parseProjectCommercials } from '@/lib/projects/commercial';
+import { normalizeProjectStageColor } from '@/lib/projects/stages';
 import { generateReportWithGemini } from './gemini-automations';
 import type { AtlasTokenBudgetContext } from './token-budget';
 import type { AutomationWorkflowState } from './automation-workflow';
@@ -85,8 +86,7 @@ export async function executeAtlasAutomation(input: {
           create: stageNames.map((name, position) => ({
             name,
             position,
-            startDate: new Date(startDate.getTime() + (duration * position) / stageNames.length),
-            endDate: new Date(startDate.getTime() + (duration * (position + 1)) / stageNames.length),
+            color: normalizeProjectStageColor(undefined, position),
           })),
         },
       },

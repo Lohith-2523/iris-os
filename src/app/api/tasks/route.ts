@@ -75,12 +75,14 @@ export async function POST(request: NextRequest) {
       if (!client || client.orgId !== requestUser.orgId) {
         return NextResponse.json({ error: 'Unauthorized client scope' }, { status: 403 });
       }
+      let projectDefaultAssigneeId: string | null = null;
       if (projectId) {
         const project = await prisma.project.findFirst({
           where: { id: projectId, clientId, client: { orgId: requestUser.orgId } },
-          select: { id: true },
+          select: { id: true, members: { orderBy: { createdAt: 'asc' }, take: 1, select: { userId: true } } },
         });
         if (!project) return NextResponse.json({ error: 'Project must belong to the selected client.' }, { status: 400 });
+        projectDefaultAssigneeId = project.members[0]?.userId || null;
       }
       const requestedStatus = status || 'TODO';
       const requestedProgress = progress !== undefined ? Number(progress) : 0;
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
           clientId,
           projectId: projectId || null,
           stageId: stageId || null,
-          assignedToId: assignedToId || null,
+          assignedToId: assignedToId || projectDefaultAssigneeId,
           timeline: timeline || null,
           deadline: deadline ? new Date(deadline) : null,
           approvalStatus: requestedStatus === 'NEEDS_CLIENT_APPROVAL' || approvalStatus === 'NEEDS_CLIENT_APPROVAL' ? 'NEEDS_CLIENT_APPROVAL' : 'NOT_REQUIRED',
@@ -114,8 +116,8 @@ export async function POST(request: NextRequest) {
 
       if (deadline) {
         const scheduledAt = new Date(deadline);
-        await notifyOrganizationAdmins({ orgId: requestUser.orgId, type: 'DELAY', title: 'Task deadline reached', body: `${title} is due now. Review its progress and resolve any delay.`, href: `/tasks?projectId=${projectId || ''}`, actionLabel: 'Review task', scheduledAt });
-        if (assignedToId) await createNotification({ orgId: requestUser.orgId, userId: assignedToId, type: 'REMINDER', title: 'Task follow-up due', body: `${title} is due now. Add a progress update or complete it.`, href: `/tasks?projectId=${projectId || ''}`, actionLabel: 'Update task', scheduledAt });
+        await notifyOrganizationAdmins({ orgId: requestUser.orgId, type: 'DELAY', title: 'Task deadline reached', body: `${title} is due now. Review its progress and resolve any delay.`, href: `/tasks?taskId=${newTask.id}`, actionLabel: 'Review task', scheduledAt });
+        if (assignedToId) await createNotification({ orgId: requestUser.orgId, userId: assignedToId, type: 'REMINDER', title: 'Task follow-up due', body: `${title} is due now. Add a progress update or complete it.`, href: `/tasks?taskId=${newTask.id}`, actionLabel: 'Update task', scheduledAt });
       }
 
       return NextResponse.json({ success: true, task: newTask });
@@ -240,7 +242,7 @@ export async function POST(request: NextRequest) {
         throw error;
       }
 
-      if (status === 'BLOCKED') await notifyOrganizationAdmins({ orgId: requestUser.orgId, type: 'ISSUE', title: 'Task blocked', body: `${updatedTask.title} is blocked${blocker ? `: ${blocker}` : '.'}`, href: `/tasks?projectId=${updatedTask.projectId || ''}`, actionLabel: 'Review task' });
+      if (status === 'BLOCKED') await notifyOrganizationAdmins({ orgId: requestUser.orgId, type: 'ISSUE', title: 'Task blocked', body: `${updatedTask.title} is blocked${blocker ? `: ${blocker}` : '.'}`, href: `/tasks?taskId=${updatedTask.id}`, actionLabel: 'Review task' });
       return NextResponse.json({ success: true, task: updatedTask });
     }
 

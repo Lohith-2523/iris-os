@@ -55,10 +55,11 @@ export function NotificationCenter() {
     return response.ok;
   };
 
-  const openNotification = async (item: Notification) => {
-    if (!item.readAt) await post({ action: 'mark_read', id: item.id });
+  const openNotification = (item: Notification) => {
     setOpen(false);
+    setPopup(null);
     if (item.href) router.push(item.href);
+    if (!item.readAt) void post({ action: 'mark_read', id: item.id });
   };
 
   const createReminder = async (event: React.FormEvent) => {
@@ -74,14 +75,16 @@ export function NotificationCenter() {
     return <button
       key={item.id}
       data-priority={tone.priority.toLowerCase()}
-      onClick={() => void openNotification(item)}
+      onClick={() => openNotification(item)}
       className={`block w-full border-b border-zinc-900 px-4 py-3 text-left transition-colors hover:bg-zinc-900/60 ${item.readAt ? 'opacity-60' : 'bg-zinc-900/25'}`}
     >
       <div className="flex items-start gap-3">
         <span aria-hidden="true" className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.readAt ? 'bg-zinc-700' : 'bg-white'}`} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className={`truncate font-semibold ${tone.title}`}>{item.title}</div>
+          <div className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-400">{item.body}</div>
           <div className="mt-1 text-xs text-zinc-600">{new Date(item.createdAt).toLocaleString()}</div>
+          {item.href && <div className="mt-2 text-[10px] font-bold uppercase tracking-wider text-zinc-300">{item.actionLabel || 'Open item'} →</div>}
         </div>
       </div>
     </button>;
@@ -90,7 +93,7 @@ export function NotificationCenter() {
   return <div className="relative">
     {popup && <div role="alert" data-priority={notificationTone(popup.type).priority.toLowerCase()} className={`fixed right-5 top-20 z-[100] w-[min(92vw,410px)] rounded-2xl border border-zinc-700 bg-zinc-950 p-4 text-white shadow-2xl ${notificationTone(popup.type).glow}`}>
       <div className="flex items-start justify-between gap-4"><div className={`font-bold ${notificationTone(popup.type).title}`}>{popup.title}</div><button type="button" onClick={() => setPopup(null)} aria-label="Dismiss notification" className="text-zinc-500 hover:text-white"><X className="h-4 w-4" /></button></div>
-      <Button type="button" size="sm" className="mt-3" onClick={() => { setPopup(null); void openNotification(popup); }}>{popup.actionLabel}</Button>
+      <Button type="button" size="sm" className="mt-3" onClick={() => openNotification(popup)}>{popup.actionLabel || 'Open item'}</Button>
     </div>}
     <button type="button" onClick={() => setOpen((value) => !value)} className="relative grid h-11 w-11 place-items-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}>
       <Bell className="h-5 w-5" />

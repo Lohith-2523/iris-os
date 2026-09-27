@@ -29,6 +29,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
   const [busy, setBusy] = React.useState('');
   const [message, setMessage] = React.useState('');
   const [requestedLeadId, setRequestedLeadId] = React.useState('');
+  const [requestedDocumentId, setRequestedDocumentId] = React.useState('');
   const [approvalTarget, setApprovalTarget] = React.useState<DocumentRow | null>(null);
   const [downloadMenu, setDownloadMenu] = React.useState<{ document: DocumentRow; left: number; top: number } | null>(null);
   const prefillApplied = React.useRef(false);
@@ -44,6 +45,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const leadId = family === 'PROPOSAL' ? params.get('leadId')?.trim() || '' : '';
+    setRequestedDocumentId(params.get('documentId')?.trim() || '');
     if (leadId) {
       setRequestedLeadId(leadId);
       setTab('create');
@@ -62,6 +64,13 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
     setAtlasLeadKey(lead.id);
     prefillApplied.current = true;
   }, [recipients, requestedLeadId]);
+
+  React.useEffect(() => {
+    if (!requestedDocumentId || !documents.some(document => document.id === requestedDocumentId)) return;
+    setTab('list');
+    const frame = window.requestAnimationFrame(() => document.getElementById(`document-${requestedDocumentId}`)?.scrollIntoView({ block: 'center' }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [documents, requestedDocumentId]);
 
   React.useEffect(() => {
     if (!downloadMenu) return;
@@ -174,7 +183,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
   const renderDocumentRow = (document: DocumentRow) => {
     const needsApproval = (document.kind === 'PROPOSAL' || document.kind === 'CONTRACT') && !document.approvedAt;
     const canDownload = document.kind !== 'PROPOSAL' || Boolean(document.approvedAt);
-    return <tr key={document.id} className="border-b border-border text-foreground">
+    return <tr id={`document-${document.id}`} key={document.id} className={`border-b border-border text-foreground ${document.id === requestedDocumentId ? 'bg-white/[.06] ring-1 ring-inset ring-white/30' : ''}`}>
       <td className="px-3 py-4"><div className="font-semibold">{document.title}</div><div className="text-muted-foreground">{document.kind === 'SOW' ? 'SOW' : document.kind} · {document.documentNumber}</div></td>
       <td className="px-3 py-4"><div>{document.recipientName}</div><div className="text-muted-foreground">{document.recipientEmail}</div></td>
       <td className="px-3 py-4"><span className={`rounded-full border px-2 py-1 text-sm font-medium ${document.approvedAt && !document.sentAt ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : needsApproval ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-border bg-muted/40 text-foreground'}`}>{document.status.replaceAll('_', ' ')}</span>{document.approvedAt && <div className="mt-2 text-sm text-muted-foreground">Approved by {document.approvedByName || 'team member'}</div>}{document.kind !== 'PROPOSAL' && <div className="mt-1 text-sm text-muted-foreground">Recipient: {document.recipientSignedAt ? 'signed' : 'pending'} · Agency: {document.agencySignedAt ? 'signed' : 'pending'}</div>}{document.automationStatus === 'NEEDS_REVIEW' && <div className="mt-1 text-sm text-amber-500">Miles review required</div>}</td>

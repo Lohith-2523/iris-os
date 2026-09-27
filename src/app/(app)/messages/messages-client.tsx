@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams } from 'next/navigation';
 import { isMessagingTeamRole } from '@/lib/messaging/roles';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { CalendarPlus, Check, ChevronDown, CircleCheck, Clock3, Ellipsis, FileText, Link2, LockKeyhole, MapPin, MessageCircle, Paperclip, Plus, Send, ShieldCheck, ShieldAlert, Trash2, X } from 'lucide-react';
@@ -201,6 +202,9 @@ function CreateMeetingDialog({ participant, onClose, onCreate }: {
 
 export default function MessagesClient({ initialInbox }: { initialInbox: InboxPayload }) {
   const runtime = useWorkspaceRuntime();
+  const searchParams = useSearchParams();
+  const requestedConversationId = searchParams.get('conversationId');
+  const requestedMessageId = searchParams.get('messageId');
   const fetch = runtime.fetch;
   const [directory, setDirectory] = React.useState<Person[]>(initialInbox.directory);
   const [conversations, setConversations] = React.useState<Conversation[]>(initialInbox.conversations);
@@ -235,6 +239,22 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   const decryptedMessageCacheRef = React.useRef(new Map<string, DisplayMessage>());
   const threadMessageCacheRef = React.useRef(new Map<string, DisplayMessage[]>());
   const attachmentFileCacheRef = React.useRef(new Map<string, Promise<LoadedChatFile>>());
+
+  React.useEffect(() => {
+    if (!requestedConversationId) return;
+    const conversation = conversations.find((item) => item.id === requestedConversationId);
+    if (!conversation) return;
+    if (conversation.participant && currentUserRole.toLowerCase() === 'admin') {
+      setAudience(conversation.participant.role.toLowerCase() === 'client' ? 'clients' : 'team');
+    }
+    setSelected(conversation);
+  }, [conversations, currentUserRole, requestedConversationId]);
+
+  React.useEffect(() => {
+    if (!requestedMessageId || !messages.some((message) => message.id === requestedMessageId)) return;
+    const frame = window.requestAnimationFrame(() => document.getElementById(`message-${requestedMessageId}`)?.scrollIntoView({ block: 'center' }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [messages, requestedMessageId]);
 
   React.useEffect(() => {
     attachmentFileCacheRef.current.clear();
@@ -521,8 +541,9 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ participantUserId: person.id }),
     });
-    const payload = await response.json();
+    const payload = await response.json().catch(() => ({ error: 'Unable to start conversation.' }));
     if (!response.ok) return setError(payload.error || 'Unable to start conversation.');
+    if (!payload.conversation?.id) return setError('Unable to start conversation.');
     const conversation: Conversation = { ...payload.conversation, lastMessage: null, messages: [], receiptStates: [] };
     threadMessageCacheRef.current.set(conversation.id, []);
     setSelected(conversation);
@@ -843,7 +864,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                 ) : messages.map((message) => {
                   const meeting = parseMeetingMessage(message.plaintext);
                   const meetingExpanded = expandedMeetingId === message.id;
-                  return <div key={message.id} className={`${styles.bubble} ${meeting ? styles.meetingBubble : ''} ${message.senderUserId === currentUserId ? styles.mine : ''}`}>
+                  return <div id={`message-${message.id}`} key={message.id} className={`${styles.bubble} ${meeting ? styles.meetingBubble : ''} ${message.senderUserId === currentUserId ? styles.mine : ''} ${message.id === requestedMessageId ? 'ring-2 ring-white/50 ring-offset-4 ring-offset-zinc-950' : ''}`}>
                     {meeting ? <div className={styles.meetingMessage}>
                       <button type="button" className={styles.meetingMessageHeading} aria-expanded={meetingExpanded} onClick={() => setExpandedMeetingId(meetingExpanded ? '' : message.id)}><span className={styles.meetingMessageIcon}><CalendarPlus size={17} /></span><span><strong>{meeting.title}</strong><small>{meetingTime(meeting)}</small></span><ChevronDown className={meetingExpanded ? styles.meetingChevronOpen : ''} size={16} /></button>
                       {meetingExpanded && <div className={styles.meetingDetails}>

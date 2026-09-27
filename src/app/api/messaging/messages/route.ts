@@ -200,8 +200,8 @@ export async function POST(request: NextRequest) {
           type: 'MESSAGE',
           title: `New message from ${user.name}`,
           body: 'New message received.',
-          href: `/messages?conversationId=${input.conversationId}`,
-          actionLabel: null,
+          href: `/messages?conversationId=${input.conversationId}&messageId=${created.id}`,
+          actionLabel: 'Open message',
         })),
       });
     }

@@ -13,6 +13,9 @@ export async function GET() {
     const user = await getRequestUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const clientMetadata = user.client?.metadata && typeof user.client.metadata === 'object' && !Array.isArray(user.client.metadata)
+      ? user.client.metadata as Record<string, unknown>
+      : {};
     return NextResponse.json({
       id: user.id,
       email: user.email,
@@ -29,6 +32,7 @@ export async function GET() {
         id: user.client.id,
         name: user.client.name,
         logoDataUrl: user.client.logoDataUrl,
+        workspaceBannerDataUrl: typeof clientMetadata.workspaceBannerDataUrl === 'string' ? clientMetadata.workspaceBannerDataUrl : null,
       } : null,
       organization: {
         id: user.organization.id,

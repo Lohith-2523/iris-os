@@ -22,7 +22,7 @@ describe('IrisOS demo fixtures', () => {
     expect(second.clients).toHaveLength(4);
   });
 
-  it('simulates calendar mutations locally without calling production services', async () => {
+  it('blocks calendar mutations and preserves the view-only dataset', async () => {
     const demo = demoHarness();
     const response = await demo.request('/api/calendar', {
       method: 'POST',
@@ -35,8 +35,8 @@ describe('IrisOS demo fixtures', () => {
       }),
     });
 
-    expect(response.status).toBe(201);
-    expect(demo.state.calendarEvents.at(-1)?.title).toBe('Demo planning review');
+    expect(response.status).toBe(403);
+    expect(demo.state.calendarEvents).toHaveLength(3);
     expect(createIrisDemoState().calendarEvents).toHaveLength(3);
   });
 

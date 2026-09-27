@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams } from 'next/navigation';
 import { WhatsappLogo } from '@phosphor-icons/react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,7 @@ import { DateInput, DateTimeInput } from '@/components/ui/date-input';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { LEAD_EXPORT_TIMEFRAMES, resolveLeadExportTimeframe, type LeadExportTimeframe } from '@/lib/lead-export-timeframe';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { MetaLogo } from '@/components/integrations/meta-brand-lockup';
 
 interface AgencyLead {
   id: string;
@@ -110,6 +112,8 @@ interface MetaConnectionData {
 }
 
 export default function AgencyLeadsPage() {
+  const searchParams = useSearchParams();
+  const requestedLeadId = searchParams.get('lead');
   const runtime = useWorkspaceRuntime();
   const router = runtime.router;
   const fetch = runtime.fetch;
@@ -157,6 +161,11 @@ export default function AgencyLeadsPage() {
 
   // Selected lead for detail modal
   const [selectedLead, setSelectedLead] = React.useState<AgencyLead | null>(null);
+  React.useEffect(() => {
+    if (!requestedLeadId) return;
+    const lead = leads.find((item) => item.id === requestedLeadId || item.leadId === requestedLeadId);
+    if (lead) { setActiveTab('pipeline'); setSelectedLead(lead); }
+  }, [leads, requestedLeadId]);
   const [leadDraft, setLeadDraft] = React.useState<any>(null);
   const [leadStages, setLeadStages] = React.useState<LeadStage[]>(DEFAULT_LEAD_STAGES);
   const [workspacePreferences, setWorkspacePreferences] = React.useState<Record<string, unknown>>({});
@@ -1468,7 +1477,7 @@ export default function AgencyLeadsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button onClick={connectMeta} disabled={metaBusy || !agencyMeta?.metaAccessConsent} className="w-full">
-                  {metaConnection ? 'Reconnect Meta' : 'Connect Meta account'}
+                  <MetaLogo className="h-4 w-6" />{metaConnection ? 'Reconnect Meta' : 'Connect Meta'}
                 </Button>
                 {metaConnection && (
                   <div className="flex gap-2">

@@ -118,7 +118,7 @@ export async function applyFinalizedChangeRequest(input: FinalizedChangeRequestI
     const rankedStages = project.stages
       .map((stage) => ({ stage, score: overlapScore(action, stage.name) }))
       .sort((left, right) => right.score - left.score);
-    const stage = rankedStages[0]?.score > 0 ? rankedStages[0].stage : project.stages.find((item) => item.endDate >= new Date()) || project.stages[0];
+    const stage = rankedStages[0]?.score > 0 ? rankedStages[0].stage : project.stages[0];
     operations.push(prisma.clientTask.create({
       data: {
         title: taskTitle(action),
@@ -128,7 +128,7 @@ export async function applyFinalizedChangeRequest(input: FinalizedChangeRequestI
         clientId: input.clientId,
         projectId: input.projectId,
         stageId: stage?.id || null,
-        deadline: stage?.endDate || project.endDate,
+        deadline: project.endDate,
       },
     }));
     created += 1;

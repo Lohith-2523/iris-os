@@ -1,5 +1,18 @@
 [
   {
+    "date": "2026-09-27",
+    "scope": "client dashboard and client workspace routes",
+    "macrostructure": "Client Operations Workbench with metric rail and two three-panel ledgers",
+    "theme": "studied-DNA (source: supplied IrisOS client dashboard reference) within locked IrisOS graphite and metallic silver",
+    "axes": ["four-card client summary rail", "equal operational ledgers", "separate project document and approval workspaces"],
+    "nav": "existing Iris workspace rail with client-scoped destinations",
+    "footer": "none",
+    "enrichment": "admin-derived welcome banner without date-range control",
+    "critique": "P5 H5 E4 S5 R5 V4",
+    "slop": "pass (desktop and responsive code audit; production build verified)",
+    "brief": "Rebuild the client portal around projects, tasks, documents, approvals, deliverables, progression, change requests, and in-workspace contract e-signing"
+  },
+  {
     "date": "2026-09-26",
     "scope": "landing interactive IrisOS product demo",
     "macrostructure": "Shared Production Workbench in a bounded demo viewport",

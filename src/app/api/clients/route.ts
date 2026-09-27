@@ -14,6 +14,7 @@ import {
 import { clientOnboardingEmail } from '@/lib/email/iris-templates';
 import {
   createAndSendProjectInvoice,
+  createHistoricalProjectInvoices,
   InvoiceServiceError,
 } from '@/lib/invoices/service';
 import { publicAppUrl } from '@/lib/app-url';
@@ -24,6 +25,8 @@ import { purgeClientData } from '@/server/domains/client-deletion-service';
 import { createAuthenticationUserDeleter } from '@/server/domains/auth-user-deletion';
 import { parseInitialProjectTasks } from '@/server/domains/initial-project-tasks';
 import { validateClientLogoDataUrl } from '@/lib/client-logo';
+import { normalizeProjectStageColor } from '@/lib/projects/stages';
+import { validateWelcomeBackgroundDataUrl } from '@/lib/welcome-background';
 
 class ClientPlanLimitError extends Error {}
 
@@ -85,8 +88,8 @@ export async function PATCH(request: NextRequest) {
     if (!clientId) {
       return NextResponse.json({ error: 'Missing clientId parameter' }, { status: 400 });
     }
-    if (!isAdmin && Object.keys(body).some((key) => !['clientId', 'logoDataUrl'].includes(key))) {
-      return NextResponse.json({ error: 'Client users may only update their company logo.' }, { status: 403 });
+    if (!isAdmin && Object.keys(body).some((key) => !['clientId', 'logoDataUrl', 'workspaceBannerDataUrl'].includes(key))) {
+      return NextResponse.json({ error: 'Client users may only update their workspace branding.' }, { status: 403 });
     }
 
     const hasLogoUpdate = Object.prototype.hasOwnProperty.call(body, 'logoDataUrl');
@@ -94,10 +97,15 @@ export async function PATCH(request: NextRequest) {
     if (logoResult && 'error' in logoResult) {
       return NextResponse.json({ error: logoResult.error }, { status: 400 });
     }
+    const hasBannerUpdate = Object.prototype.hasOwnProperty.call(body, 'workspaceBannerDataUrl');
+    const bannerResult = hasBannerUpdate ? validateWelcomeBackgroundDataUrl(body.workspaceBannerDataUrl) : null;
+    if (bannerResult && 'error' in bannerResult) {
+      return NextResponse.json({ error: bannerResult.error }, { status: 400 });
+    }
 
     const existingClient = await prisma.client.findFirst({
       where: { id: clientId, orgId: user.orgId },
-      select: { id: true, projects: { select: { metaIntegrationEnabled: true } } },
+      select: { id: true, metadata: true, projects: { select: { metaIntegrationEnabled: true } } },
     });
     if (!existingClient) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
@@ -133,6 +141,10 @@ export async function PATCH(request: NextRequest) {
         data: {
           adAccountId: hasAdAccountUpdate ? adAccountId : undefined,
           logoDataUrl: logoResult ? logoResult.value : undefined,
+          metadata: bannerResult ? {
+            ...(existingClient.metadata && typeof existingClient.metadata === 'object' && !Array.isArray(existingClient.metadata) ? existingClient.metadata : {}),
+            workspaceBannerDataUrl: bannerResult.value,
+          } : undefined,
           legalEntityName: typeof body.legalEntityName === 'string' ? body.legalEntityName.trim() || null : undefined,
           billingAddressLine1: typeof body.billingAddressLine1 === 'string' ? body.billingAddressLine1.trim() || null : undefined,
           billingAddressLine2: typeof body.billingAddressLine2 === 'string' ? body.billingAddressLine2.trim() || null : undefined,
@@ -145,6 +157,7 @@ export async function PATCH(request: NextRequest) {
         select: {
           id: true,
           logoDataUrl: true,
+          metadata: true,
           adAccountId: true,
           legalEntityName: true,
           billingAddressLine1: true,
@@ -398,12 +411,15 @@ export async function POST(request: NextRequest) {
         const requestedMemberIds: string[] = Array.isArray(initialProject.memberIds)
           ? Array.from(new Set((initialProject.memberIds as unknown[]).filter((id): id is string => typeof id === 'string')))
           : [];
+        let assignedMemberIds: string[] = [];
         if (requestedMemberIds.length > 0) {
           const organizationMembers = await tx.user.findMany({
             where: { id: { in: requestedMemberIds }, orgId: org.id },
             select: { id: true },
           });
           if (organizationMembers.length > 0) {
+            const validMemberIds = new Set(organizationMembers.map(({ id }) => id));
+            assignedMemberIds = requestedMemberIds.filter((id) => validMemberIds.has(id));
             await tx.projectMember.createMany({
               data: organizationMembers.map(({ id }) => ({ projectId: project!.id, userId: id })),
               skipDuplicates: true,
@@ -417,16 +433,13 @@ export async function POST(request: NextRequest) {
         );
         const createdStages = [] as { id: string }[];
         if (validStages.length > 0) {
-          const scheduleEnd = projectEnd || new Date(projectStart.getTime() + 90 * 24 * 60 * 60 * 1000);
-          const msPerStage = (scheduleEnd.getTime() - projectStart.getTime()) / validStages.length;
           for (const [position, item] of validStages.entries()) {
-            const stage = typeof item === 'string' ? { name: item } : item as { name: string; startDate?: string; endDate?: string };
+            const stage = typeof item === 'string' ? { name: item } : item as { name: string; color?: string };
             const createdStage = await tx.projectStage.create({
               data: {
                 name: stage.name.trim(),
+                color: normalizeProjectStageColor(stage.color, position),
                 position,
-                startDate: stage.startDate ? new Date(stage.startDate) : new Date(projectStart.getTime() + position * msPerStage),
-                endDate: stage.endDate ? new Date(stage.endDate) : new Date(projectStart.getTime() + (position + 1) * msPerStage),
                 projectId: project!.id,
               }
             });
@@ -444,6 +457,7 @@ export async function POST(request: NextRequest) {
               clientId: newClient.id,
               projectId: project!.id,
               stageId: createdStages[task.stagePosition]?.id ?? createdStages[0]?.id ?? null,
+              assignedToId: assignedMemberIds[0] || null,
               deadline: task.deadline,
             })),
           });
@@ -483,15 +497,21 @@ export async function POST(request: NextRequest) {
     let invoiceWarning: string | null = null;
     if (result.project && initialProject) {
       try {
-        invoice = await createAndSendProjectInvoice({
-          projectId: result.project.id,
-          orgId: org.id,
-          baseUrl: publicAppUrl(request),
-          automationKey: `project-initialization:${result.project.id}`,
-          source: 'PROJECT_INITIALIZATION',
-          issuedDate: projectCommercials.data?.paymentStartDate || undefined,
-          sendEmail: Boolean(initialProject.autoGenerateInvoice),
-        });
+        const invoiceDate = projectCommercials.data?.paymentStartDate;
+        const isHistoricalRetainer = projectCommercials.data?.paymentType === 'RETAINER'
+          && invoiceDate
+          && invoiceDate < new Date(new Date().setHours(0, 0, 0, 0));
+        invoice = isHistoricalRetainer
+          ? await createHistoricalProjectInvoices({ projectId: result.project.id, orgId: org.id, baseUrl: publicAppUrl(request) })
+          : await createAndSendProjectInvoice({
+              projectId: result.project.id,
+              orgId: org.id,
+              baseUrl: publicAppUrl(request),
+              automationKey: `project-initialization:${result.project.id}`,
+              source: 'PROJECT_INITIALIZATION',
+              issuedDate: invoiceDate || undefined,
+              sendEmail: Boolean(initialProject.autoGenerateInvoice),
+            });
       } catch (error) {
         invoiceWarning = error instanceof InvoiceServiceError
           ? error.message

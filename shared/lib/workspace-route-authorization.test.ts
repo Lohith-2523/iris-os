@@ -4,8 +4,11 @@ import { canRenderWorkspaceRoute, workspaceRouteRestriction } from './workspace-
 describe('workspace route authorization', () => {
   it('preserves client and member route restrictions', () => {
     expect(workspaceRouteRestriction({ role: 'client', plan: 'BASIC' }, '/finance')).toBe('client');
-    expect(workspaceRouteRestriction({ role: 'client', plan: 'BASIC' }, '/client-dashboard')).toBe('plan');
+    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'BASIC' }, '/client-dashboard')).toBe(true);
     expect(canRenderWorkspaceRoute({ role: 'client', plan: 'PRO' }, '/client-dashboard')).toBe(true);
+    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'BASIC' }, '/client-projects')).toBe(true);
+    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'BASIC' }, '/client-documents')).toBe(true);
+    expect(canRenderWorkspaceRoute({ role: 'client', plan: 'BASIC' }, '/client-deliverables')).toBe(true);
     expect(workspaceRouteRestriction({ role: 'member', plan: 'BASIC' }, '/projects')).toBe('member');
     expect(canRenderWorkspaceRoute({ role: 'member', plan: 'BASIC' }, '/tasks')).toBe(true);
   });

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarDays, FolderKanban, Gauge, ListChecks, Menu, MessageSquare, Users } from 'lucide-react';
+import { CalendarDays, CheckCircle2, FileText, FolderKanban, Gauge, ListChecks, Menu, MessageSquare, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
@@ -10,10 +10,10 @@ type Destination = { href: string; label: string; icon: typeof Gauge };
 
 function destinationsFor(role: string, plan: string): Destination[] {
   if (role === 'client') return [
-    ...(plan === 'BASIC' ? [] : [{ href: '/client-dashboard', label: 'Home', icon: Gauge }]),
-    { href: '/client-leads', label: 'Leads', icon: Users },
-    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-    { href: '/messages', label: 'Messages', icon: MessageSquare },
+    { href: '/client-dashboard', label: 'Home', icon: Gauge },
+    { href: '/client-projects', label: 'Projects', icon: FolderKanban },
+    { href: '/client-documents', label: 'Documents', icon: FileText },
+    { href: '/client-deliverables', label: 'Approvals', icon: CheckCircle2 },
   ];
   if (role === 'member') return [
     { href: '/teams-dashboard', label: 'Home', icon: Gauge },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { DATE_INPUT_PATTERN, DateInput, formatDateForInput, formatDateWhileTyping, parseTypedDate } from './date-input';
 
 describe('date input formatting', () => {
@@ -25,7 +25,7 @@ describe('date input formatting', () => {
     expect(parseTypedDate('31/04/2026')).toBeNull();
   });
 
-  it('keeps the calendar button inside the date input bounds', () => {
+  it('keeps the calendar button inside the date input bounds without a native picker proxy', () => {
     const { container } = render(React.createElement(DateInput, {
       value: '2026-08-07',
       onChange: () => undefined,
@@ -37,9 +37,17 @@ describe('date input formatting', () => {
     expect(screen.getByRole('textbox')).toHaveClass('col-start-1', 'row-start-1', 'block', 'w-full', 'max-w-full', 'box-border', 'pr-10');
     expect(screen.getByRole('button', { name: 'Choose date from calendar' })).toHaveClass('col-start-1', 'row-start-1', 'justify-self-end', 'self-stretch');
 
-    const pickerProxy = container.querySelector('input[type="date"]');
-    expect(pickerProxy).toHaveAttribute('data-date-picker-proxy', 'true');
-    expect(pickerProxy).toHaveClass('absolute', 'right-0', 'top-0', 'h-full', 'w-10');
-    expect(pickerProxy).not.toHaveClass('fixed', 'left-0');
+    expect(container.querySelector('input[type="date"]')).toBeNull();
+  });
+
+  it('drills from days to months to years and back down', () => {
+    render(React.createElement(DateInput, { value: '2026-08-07', onChange: () => undefined }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose date from calendar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose month' }));
+    expect(screen.getByRole('button', { name: 'Choose year' })).toHaveTextContent('2026');
+    fireEvent.click(screen.getByRole('button', { name: 'Choose year' }));
+    fireEvent.click(screen.getByRole('button', { name: '2028' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Jan' }));
+    expect(screen.getByRole('button', { name: 'Choose month' })).toHaveTextContent('January 2028');
   });
 });

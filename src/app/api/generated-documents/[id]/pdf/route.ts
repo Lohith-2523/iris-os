@@ -10,7 +10,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const user = await getRequestUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
-  const document = await prisma.generatedDocument.findFirst({ where: { id, orgId: user.orgId } });
+  const isClient = user.role.toLowerCase() === 'client';
+  const document = await prisma.generatedDocument.findFirst({
+    where: {
+      id,
+      orgId: user.orgId,
+      ...(isClient ? { recipientType: 'CLIENT', recipientId: user.clientId || '__none__', sentAt: { not: null } } : {}),
+    },
+  });
   if (!document) return NextResponse.json({ error: 'Document not found.' }, { status: 404 });
   try {
     const pdf = document.kind === 'PROPOSAL'

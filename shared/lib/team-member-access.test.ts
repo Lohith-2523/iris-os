@@ -12,8 +12,8 @@ describe('team member workspace access', () => {
     expect(teamMemberWorkspaceHome({ role: 'sub_admin', plan: 'PRO', accessPermissions: ['finance', 'reporting'] })).toBe('/finance');
   });
 
-  it('keeps the client dashboard unavailable on the Free plan', () => {
-    expect(teamMemberWorkspaceHome({ role: 'client', plan: 'BASIC' })).toBe('/calendar');
+  it('uses the client dashboard as the client home on every plan', () => {
+    expect(teamMemberWorkspaceHome({ role: 'client', plan: 'BASIC' })).toBe('/client-dashboard');
     expect(teamMemberWorkspaceHome({ role: 'client', plan: 'PRO' })).toBe('/client-dashboard');
   });
 

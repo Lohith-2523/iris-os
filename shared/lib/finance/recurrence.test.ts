@@ -38,6 +38,20 @@ describe('generateRecurringOccurrences', () => {
   it('does not recognize revenue before the retainer starts', () => {
     expect(generateRecurringOccurrences('2027-01-01', 1000, 'monthly', '2026-12-31')).toEqual([]);
   });
+
+  it('can stop immediately before the current day for historical MRR', () => {
+    const occurrences = generateRecurringOccurrences(
+      '2026-06-27',
+      1000,
+      'monthly',
+      new Date('2026-09-26T23:59:59.999Z'),
+    );
+    expect(occurrences.map(({ date }) => date.toISOString().slice(0, 10))).toEqual([
+      '2026-06-27',
+      '2026-07-27',
+      '2026-08-27',
+    ]);
+  });
 });
 
 describe('recurringOccurrenceId', () => {

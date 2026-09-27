@@ -57,12 +57,12 @@ export function IrisPricingComparison({
                   </div>
                 )}
                 <div className={`${styles.summaryPrice} ${plan.listAmount > plan.baseAmount ? '' : styles.summaryPriceNoDiscount}`}>
-                  <strong>{plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}</strong>
-                  {plan.baseAmount > 0 && <span>/month</span>}
+                  <strong>{formatPlanMoney(plan.baseAmount, plan.currency)}</strong>
+                  <span>/month</span>
                 </div>
                 <p>{plan.description}</p>
                 <ul>
-                  {plan.features.slice(0, 3).map((feature) => <li key={feature.label}><span>{feature.label}</span><strong>{feature.value}</strong></li>)}
+                  {plan.features.slice(0, 6).map((feature) => <li key={feature.label}><span>{feature.label}</span><strong>{feature.value}</strong></li>)}
                 </ul>
                 <Link className={styles.viewMore} href={`/pricing#plan-${plan.id.toLowerCase()}`}>
                   View more <ArrowRight aria-hidden="true" />
@@ -131,8 +131,8 @@ export function IrisPricingComparison({
                       </span>
                     )}
                     <strong>
-                      {plan.baseAmount === 0 ? 'Free' : formatPlanMoney(plan.baseAmount, plan.currency)}
-                      {plan.baseAmount > 0 && <small>/mo</small>}
+                      {formatPlanMoney(plan.baseAmount, plan.currency)}
+                      <small>/mo</small>
                     </strong>
                   </div>
                 </div>

@@ -14,7 +14,7 @@ export function isDeliveryTeamMember(principal: Pick<TeamMemberAccessPrincipal, 
 
 export function teamMemberWorkspaceHome(principal: TeamMemberAccessPrincipal) {
   const role = principal.role.toLowerCase();
-  if (role === 'client') return principal.plan === 'BASIC' ? '/calendar' : '/client-dashboard';
+  if (role === 'client') return '/client-dashboard';
   if (role === 'admin') return '/dashboard';
   if (isDeliveryTeamMember(principal)) return '/teams-dashboard';
 

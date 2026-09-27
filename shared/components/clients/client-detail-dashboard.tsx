@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { MetricCard } from '@/components/ui/metric-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
+import { MetaEnabledLabel } from '@/components/integrations/meta-brand-lockup';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
@@ -392,6 +393,7 @@ export default function ClientDetailDashboard({
   onClientUpdated,
 }: ClientDetailDashboardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = React.useState<any[]>([]);
   const [projectData, setProjectData] = React.useState<any[]>(Array.isArray(client.projects) ? client.projects : []);
   const [selectedProject, setSelectedProject] = React.useState<any | null>(null);
@@ -403,6 +405,10 @@ export default function ClientDetailDashboard({
     const requestedTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
     return requestedTab === 'approvals' || requestedTab === 'changes' || requestedTab === 'meta' ? requestedTab : 'overview';
   });
+  React.useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (requestedTab === 'approvals' || requestedTab === 'changes' || requestedTab === 'meta') setActiveWorkspaceTab(requestedTab);
+  }, [searchParams]);
   const [deliveryData, setDeliveryData] = React.useState<{ deliverables: any[]; changeRequests: any[] }>({ deliverables: [], changeRequests: [] });
 
   // Meta Portal Relocated States
@@ -764,6 +770,7 @@ export default function ClientDetailDashboard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          {hasMetaEnabledProject && <div className="flex w-[11rem] items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950/55 px-3 py-1"><MetaEnabledLabel className="w-full justify-center" /></div>}
           <Badge variant={client.status === 'ACTIVE' ? 'risk-low' : 'outline'}>
             Status: {client.status}
           </Badge>
@@ -970,7 +977,6 @@ export default function ClientDetailDashboard({
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Meta Integration Controls</CardTitle>
                 <CardDescription className="text-[10px] text-zinc-500 mt-0.5 font-sans">Verify access roles and synchronize campaign metrics.</CardDescription>
               </div>
-              <Megaphone className="h-4 w-4 text-zinc-500" />
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
               {canManageMetaAccounts && (

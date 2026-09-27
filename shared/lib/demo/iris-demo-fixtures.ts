@@ -34,7 +34,7 @@ const projects = clients.flatMap((client, clientIndex) => client.projects.map((p
   budget: project.paymentAmount * 6,
   currency: 'USD',
   priority: clientIndex === 2 ? 'HIGH' : 'MEDIUM',
-  stages: [{ id: `${project.id}-stage-1`, name: 'Delivery', order: 1 }],
+  stages: [{ id: `${project.id}-stage-1`, name: 'Delivery', color: '#94A3B8', position: 0 }],
   tasks: tasks.filter((task) => task.projectId === project.id),
 })));
 
@@ -160,6 +160,7 @@ export function createIrisDemoState() {
 }
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+const isDemoMutation = (method: string) => method !== 'GET' && method !== 'HEAD';
 
 export async function handleIrisDemoRequest(
   state: IrisDemoState,
@@ -170,6 +171,10 @@ export async function handleIrisDemoRequest(
 ) {
   const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url, 'https://demo.irisos.local');
   const method = (init?.method || 'GET').toUpperCase();
+  if (isDemoMutation(method)) {
+    showNotice('This is a view-only demo. Creating, editing, sending, and deleting are disabled.');
+    return json({ demo: true, error: 'The landing-page demo is view-only.' }, 403);
+  }
   const body = typeof init?.body === 'string' ? JSON.parse(init.body || '{}') : {};
 
   if (url.pathname === '/api/workspace') {

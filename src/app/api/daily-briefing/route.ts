@@ -99,7 +99,7 @@ async function generateDailyBriefing(
         status: true,
         progress: true,
         tasks: { select: { title: true, status: true, deadline: true, stageId: true } },
-        stages: { select: { id: true, name: true, endDate: true } },
+        stages: { select: { id: true, name: true } },
       },
       orderBy: { updatedAt: 'desc' },
     }),

@@ -4,16 +4,11 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/client';
 import { isWorkspaceThemePath } from '@/lib/theme-routes';
-import { applyWorkspaceTheme, readWorkspaceTheme } from '@/lib/workspace-theme';
 
 export function AuthSync() {
   const supabase = React.useMemo(() => createClient(), []);
   const pathname = usePathname();
   const bootstrapPromise = React.useRef<Promise<void> | null>(null);
-
-  React.useEffect(() => {
-    applyWorkspaceTheme(isWorkspaceThemePath(pathname) ? readWorkspaceTheme() : 'dark');
-  }, [pathname]);
 
   React.useEffect(() => {
     // Login and signup explicitly await bootstrap before navigating. Running the

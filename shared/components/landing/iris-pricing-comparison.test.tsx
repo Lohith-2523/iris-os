@@ -1,6 +1,6 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { pricingCatalog } from '@/lib/plan-pricing';
+import { formatPlanMoney, pricingCatalog } from '@/lib/plan-pricing';
 import { IrisPricingComparison } from './iris-pricing-comparison';
 
 describe('IrisPricingComparison', () => {
@@ -19,8 +19,9 @@ describe('IrisPricingComparison', () => {
     expect(container.querySelectorAll('del')).toHaveLength(2);
     const freeCard = screen.getByRole('heading', { name: 'Free' }).closest('article');
     expect(freeCard).not.toBeNull();
-    expect(within(freeCard!).queryByText('/month')).not.toBeInTheDocument();
-    expect(container.textContent).not.toContain('0/month');
+    expect(within(freeCard!).getByText(formatPlanMoney(0, 'INR'))).toBeInTheDocument();
+    expect(within(freeCard!).getByText('/month')).toBeInTheDocument();
+    expect(within(freeCard!).getAllByRole('listitem')).toHaveLength(6);
   });
 
   it('shows the same early-bird treatment in the full pricing comparison', () => {
@@ -32,7 +33,7 @@ describe('IrisPricingComparison', () => {
     expect(container.querySelectorAll('del')).toHaveLength(2);
     const freeCard = screen.getByRole('heading', { name: 'Free' }).closest('article');
     expect(freeCard).not.toBeNull();
-    expect(within(freeCard!).queryByText('/mo')).not.toBeInTheDocument();
-    expect(container.textContent).not.toContain('$0/mo');
+    expect(within(freeCard!).getByText('$0')).toBeInTheDocument();
+    expect(within(freeCard!).getByText('/mo')).toBeInTheDocument();
   });
 });
