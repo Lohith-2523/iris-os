@@ -46,11 +46,16 @@ export async function GET(request: NextRequest) {
         const range = start && end
           ? (start <= end ? { start, end } : { start: end, end: start })
           : undefined;
-        return NextResponse.json(await getDashboardMetrics(ctx, range));
+        return NextResponse.json(await getDashboardMetrics(ctx, range, timeframe));
       }
 
       case 'finance': {
-        return NextResponse.json(await getFinanceOverview(ctx, timeframe));
+        const start = validDate(searchParams.get('start'));
+        const end = validDate(searchParams.get('end'));
+        const range = start && end
+          ? (start <= end ? { start, end } : { start: end, end: start })
+          : undefined;
+        return NextResponse.json(await getFinanceOverview(ctx, timeframe, range));
       }
 
       case 'clients': {

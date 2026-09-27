@@ -442,6 +442,7 @@ h6,
 
   /* LOW RISK / SUCCESS STATUS OVERRIDES */
   .badge-risk-low,
+  .badge-success,
   .status-closed,
   .meta-sdk-active,
   .team-alert-success {
@@ -2502,7 +2503,7 @@ button {
   color: var(--light-label-info-ink) !important;
 }
 
-:is(:root.light .workspace-shell, .workspace-shell.light) :is(.workspace-badge.badge-risk-low, .status-closed, .meta-sdk-active, .team-alert-success),
+:is(:root.light .workspace-shell, .workspace-shell.light) :is(.workspace-badge.badge-risk-low, .workspace-badge.badge-success, .status-closed, .meta-sdk-active, .team-alert-success),
 :is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-emerald-"],
 :is(:root.light .workspace-shell, .workspace-shell.light) :is(span, label)[class*="bg-green-"] {
   background: var(--light-label-success) !important;
@@ -3070,6 +3071,24 @@ button {
   .workspace-shell .agency-leads-tabs,
   .workspace-shell .agency-leads-utilities {
     min-width: 0;
+  }
+
+  /* Tasks follows the same two-band hierarchy as Agency Leads: workspace
+     context above, interaction controls below. */
+  .workspace-shell .tasks-header-primary {
+    display: grid;
+    grid-template-columns: minmax(12rem, .55fr) minmax(0, 2fr);
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .workspace-shell .tasks-project-context {
+    justify-self: stretch;
+  }
+
+  .workspace-shell .tasks-header-controls {
+    width: 100%;
+    background: var(--workspace-inset);
   }
 }
 
@@ -3815,6 +3834,148 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
   [data-layout-mode='large-tablet']
 ) :is(.agency-leads-summary-card, .agency-leads-tabs, .agency-leads-utilities) {
   min-width: 0;
+}
+
+/* Keep the Tasks header in two stable tiers for constrained and unusually
+   proportioned workspace viewports. Each tier owns its own wrapping rules. */
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone'],
+  [data-layout-mode='small-tablet'],
+  [data-layout-mode='tablet-portrait'],
+  [data-layout-mode='tablet-landscape'],
+  [data-layout-mode='large-tablet']
+) :is(.tasks-header-primary, .tasks-project-context, .tasks-header-controls) {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  justify-items: stretch;
+  gap: .75rem;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone'],
+  [data-layout-mode='small-tablet'],
+  [data-layout-mode='tablet-portrait'],
+  [data-layout-mode='tablet-landscape'],
+  [data-layout-mode='large-tablet']
+) :is(.tasks-project-picker, .tasks-view-tools, .tasks-create-action) {
+  width: 100%;
+  min-width: 0;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone'],
+  [data-layout-mode='small-tablet'],
+  [data-layout-mode='tablet-portrait'],
+  [data-layout-mode='tablet-landscape'],
+  [data-layout-mode='large-tablet']
+) .tasks-project-picker select {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='small-tablet'],
+  [data-layout-mode='tablet-portrait'],
+  [data-layout-mode='tablet-landscape'],
+  [data-layout-mode='large-tablet']
+) .tasks-project-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone'],
+  [data-layout-mode='small-tablet'],
+  [data-layout-mode='tablet-portrait'],
+  [data-layout-mode='tablet-landscape'],
+  [data-layout-mode='large-tablet']
+) .tasks-project-divider {
+  display: none;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='small-tablet'],
+  [data-layout-mode='tablet-portrait'],
+  [data-layout-mode='tablet-landscape'],
+  [data-layout-mode='large-tablet']
+) .tasks-view-tools {
+  display: grid;
+  grid-template-columns: minmax(11rem, .8fr) minmax(9rem, 1.2fr);
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone']
+) .tasks-view-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone']
+) :is(.tasks-view-toggle, .tasks-stage-filter, .tasks-stage-filter > summary) {
+  width: 100%;
+  min-width: 0;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone']
+) .tasks-view-tools > div:not(.tasks-view-toggle) {
+  width: 100%;
+  min-width: 0;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone']
+) .tasks-view-tools > div:not(.tasks-view-toggle) > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone']
+) .tasks-project-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone']
+) .tasks-create-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  text-align: center;
+}
+
+.workspace-shell:is(
+  [data-layout-mode='compact-phone'],
+  [data-layout-mode='standard-phone'],
+  [data-layout-mode='large-phone']
+) .tasks-create-action .workspace-button {
+  width: 100%;
 }
 
 .workspace-shell:is(

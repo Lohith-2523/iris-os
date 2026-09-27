@@ -7,6 +7,7 @@ import { listWorkspaceClients, listWorkspaceTeam } from '@/server/domains/worksp
 import type { RequestSecurityContext } from '@/server/security/request-security-context';
 import { getWorkspaceReadModel } from '@/server/workspace/workspace-service';
 import { getDashboardMetrics, getFinanceOverview } from '@/server/domains/finance-read-service';
+import type { FinancialTimeframe } from '@/lib/finance/financial-history';
 
 const firstPage = { cursor: null, limit: 50, take: 51 } as const;
 
@@ -61,19 +62,19 @@ export const getClientsReadModel = cache(async (ctx: RequestSecurityContext) => 
   });
 });
 
-export const getDashboardReadModel = cache(async (ctx: RequestSecurityContext, range?: { start: string; end: string }) => {
+export const getDashboardReadModel = cache(async (ctx: RequestSecurityContext, range?: { start: string; end: string }, timeframe: FinancialTimeframe = 'Six Months') => {
   const [workspace, dashboard, clients, tasks] = await Promise.all([
     getWorkspaceReadModel(ctx),
-    getDashboardMetrics(ctx, range),
+    getDashboardMetrics(ctx, range, timeframe),
     listWorkspaceClients(ctx),
     listTasks(ctx, firstPage),
   ]);
   return serializable({ dashboard, clients, tasks: tasks.items, workspace });
 });
 
-export const getFinanceReadModel = cache(async (ctx: RequestSecurityContext) => {
+export const getFinanceReadModel = cache(async (ctx: RequestSecurityContext, range?: { start: string; end: string }) => {
   const workspace = await getWorkspaceReadModel(ctx);
-  const finance = await getFinanceOverview(ctx, 'All Time');
+  const finance = await getFinanceOverview(ctx, 'All Time', range);
   const clients = await listWorkspaceClients(ctx);
   return serializable({ finance, clients, workspace });
 });

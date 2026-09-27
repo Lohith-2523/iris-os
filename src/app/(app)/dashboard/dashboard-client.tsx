@@ -59,6 +59,7 @@ import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import type { DashboardReadModel } from '@/server/read-models/workspace-pages';
 import { financialValueClass } from '@/lib/financial-value';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { financialRangeLabel, isAllTimeFinancialRange, type FinancialDateRange } from '@/lib/finance/fiscal-quarter';
 
 type FinanceMetricKey = 'revenue' | 'profit' | 'mrr' | 'expenses' | 'receivables';
 type OverviewTab = 'leads' | 'clients' | 'actions' | 'tasks' | 'meetings';
@@ -112,20 +113,7 @@ function resolveLeadStages(value: unknown): LeadStage[] {
   return stages.length ? stages : DEFAULT_LEAD_STAGES;
 }
 
-function dashboardRangeLabel(startValue: string, endValue: string) {
-  const start = new Date(`${startValue}T00:00:00.000Z`);
-  const end = new Date(`${endValue}T00:00:00.000Z`);
-  const months = Math.max(1, (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + end.getUTCMonth() - start.getUTCMonth() + 1);
-  const fiscalYear = start.getUTCMonth() >= 3 ? start.getUTCFullYear() : start.getUTCFullYear() - 1;
-  if (months === 1) return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(start);
-  if (months <= 3) {
-    const quarter = Math.floor(((start.getUTCMonth() + 9) % 12) / 3) + 1;
-    return `Q${quarter} FY ${fiscalYear}`;
-  }
-  return `${start.getUTCMonth() >= 3 && start.getUTCMonth() <= 8 ? 'Start' : 'End'} of FY ${fiscalYear}`;
-}
-
-export default function DashboardPage({ initialData, range }: { initialData: DashboardReadModel; range: { start: string; end: string } }) {
+export default function DashboardPage({ initialData, range }: { initialData: DashboardReadModel; range: FinancialDateRange }) {
   const runtime = useWorkspaceRuntime();
   const router = runtime.router;
   const fetch = runtime.fetch;
@@ -192,11 +180,11 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
     primeWorkspaceJson('/api/data?domain=clients', initialData.clients);
     primeWorkspaceJson('/api/data?domain=clients&include=contacts', initialData.clients);
     primeWorkspaceJson('/api/tasks', initialData.tasks);
-    primeWorkspaceJson(
-      `/api/data?domain=dashboard&start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}`,
-      initialData.dashboard,
-    );
-  }, [initialData, range.end, range.start, runtime.isDemo]);
+    const rangeQuery = isAllTimeFinancialRange(range)
+      ? '&timeframe=All%20Time'
+      : `&start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}`;
+    primeWorkspaceJson(`/api/data?domain=dashboard${rangeQuery}`, initialData.dashboard);
+  }, [initialData, range, runtime.isDemo]);
 
   // Onboarding states
   const [needsOnboarding, setNeedsOnboarding] = React.useState(
@@ -325,9 +313,12 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   React.useEffect(() => {
     async function load() {
       try {
+        const leadRangeQuery = isAllTimeFinancialRange(range)
+          ? ''
+          : `?start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}`;
         const [calendarRes, agencyLeadsRes] = await Promise.all([
           fetch('/api/calendar'),
-          fetch(`/api/agency-leads?start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}`),
+          fetch(`/api/agency-leads${leadRangeQuery}`),
         ]);
 
         const [calendar, agencyLeads] = await Promise.all([
@@ -342,7 +333,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       }
     }
     load();
-  }, [fetch, range.end, range.start]);
+  }, [fetch, range]);
 
   React.useEffect(() => {
     setDraftRange(range);
@@ -350,7 +341,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   }, [range]);
 
   const applyDashboardRange = () => {
-    if (!draftRange.start || !draftRange.end || draftRange.start > draftRange.end) {
+    if (!isAllTimeFinancialRange(draftRange) && (!draftRange.start || !draftRange.end || draftRange.start > draftRange.end)) {
       setRangeError('Choose a start date that is on or before the end date.');
       return;
     }
@@ -361,8 +352,15 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       return;
     }
     const params = new URLSearchParams(searchParams.toString());
-    params.set('start', draftRange.start);
-    params.set('end', draftRange.end);
+    if (isAllTimeFinancialRange(draftRange)) {
+      params.set('range', 'all-time');
+      params.delete('start');
+      params.delete('end');
+    } else {
+      params.delete('range');
+      params.set('start', draftRange.start);
+      params.set('end', draftRange.end);
+    }
     startRangeTransition(() => router.push(`/dashboard?${params.toString()}`));
   };
 
@@ -628,7 +626,6 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
     () => formatCurrency(monthlyRecurringRevenue),
     [formatCurrency, monthlyRecurringRevenue],
   );
-
   const priorityTasks = React.useMemo(() => {
     if (!tasksList || tasksList.length === 0) return [];
     return [...tasksList]
@@ -767,17 +764,28 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
         <div className="z-10 flex min-w-0 max-w-full flex-wrap items-center justify-start gap-3 md:col-start-2 md:row-start-1 md:justify-self-end">
           <Popover.Root>
             <Popover.Trigger asChild>
-              <button type="button" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${dashboardRangeLabel(appliedRange.start, appliedRange.end)}`}>
-                <Calendar className="h-4 w-4" aria-hidden="true" />{dashboardRangeLabel(appliedRange.start, appliedRange.end)}
+              <button type="button" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${financialRangeLabel(appliedRange)}`}>
+                <Calendar className="h-4 w-4" aria-hidden="true" />{financialRangeLabel(appliedRange)}
               </button>
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-white shadow-2xl">
                 <h2 className="text-sm font-semibold">Dashboard range</h2>
                 <p className="mt-1 text-xs text-zinc-500">Choose the period used for finance and pipeline reporting.</p>
+                <fieldset className="mt-4 grid grid-cols-2 gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-1.5">
+                  <legend className="sr-only">Dashboard reporting period</legend>
+                  <label className={`flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold transition-colors ${!isAllTimeFinancialRange(draftRange) ? 'border-zinc-600 bg-zinc-800 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
+                    <input type="radio" name="dashboard-range-mode" checked={!isAllTimeFinancialRange(draftRange)} onChange={() => setDraftRange((current) => ({ start: current.start, end: current.end }))} className="accent-zinc-100" />
+                    Selected dates
+                  </label>
+                  <label className={`flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold transition-colors ${isAllTimeFinancialRange(draftRange) ? 'border-zinc-600 bg-zinc-800 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
+                    <input type="radio" name="dashboard-range-mode" checked={isAllTimeFinancialRange(draftRange)} onChange={() => setDraftRange((current) => ({ ...current, mode: 'all-time' }))} className="accent-zinc-100" />
+                    All time
+                  </label>
+                </fieldset>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Start date<DateInput value={draftRange.start} max={draftRange.end} onChange={(start) => setDraftRange((current) => ({ ...current, start }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
-                  <label className="space-y-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">End date<DateInput value={draftRange.end} min={draftRange.start} onChange={(end) => setDraftRange((current) => ({ ...current, end }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                  <label className={`space-y-1.5 text-[10px] font-bold uppercase tracking-wider ${isAllTimeFinancialRange(draftRange) ? 'text-zinc-600' : 'text-zinc-400'}`}>Start date<DateInput disabled={isAllTimeFinancialRange(draftRange)} value={draftRange.start} max={draftRange.end} onChange={(start) => setDraftRange((current) => ({ ...current, start }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                  <label className={`space-y-1.5 text-[10px] font-bold uppercase tracking-wider ${isAllTimeFinancialRange(draftRange) ? 'text-zinc-600' : 'text-zinc-400'}`}>End date<DateInput disabled={isAllTimeFinancialRange(draftRange)} value={draftRange.end} min={draftRange.start} onChange={(end) => setDraftRange((current) => ({ ...current, end }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
                 </div>
                 <p className="mt-2 min-h-4 text-[10px] text-rose-400" role="status">{rangeError}</p>
                 <Button type="button" disabled={isRangePending} onClick={applyDashboardRange} className="mt-2 w-full">{isRangePending ? 'Updating range' : 'Apply range'}</Button>

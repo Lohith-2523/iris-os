@@ -99,7 +99,11 @@ function financeMetrics(
   };
 }
 
-export async function getDashboardMetrics(ctx: RequestSecurityContext, requestedRange?: { start: string; end: string }) {
+export async function getDashboardMetrics(
+  ctx: RequestSecurityContext,
+  requestedRange?: { start: string; end: string },
+  timeframe: FinancialTimeframe = 'Six Months',
+) {
   const role = ctx.role.toLowerCase();
   const range = requestedRange ? {
     start: new Date(`${requestedRange.start}T00:00:00.000Z`),
@@ -136,13 +140,21 @@ export async function getDashboardMetrics(ctx: RequestSecurityContext, requested
     projectRisks: projects
       .filter((project) => project.riskLevel === 'HIGH' || project.riskLevel === 'MEDIUM')
       .map((project) => ({ id: project.id, name: project.name, riskLevel: project.riskLevel, riskDescription: project.riskDescription || '' })),
-    ...financeMetrics(invoices, transactions, 'Six Months', range),
+    ...financeMetrics(invoices, transactions, timeframe, range),
   };
 }
 
-export async function getFinanceOverview(ctx: RequestSecurityContext, timeframe: FinancialTimeframe) {
+export async function getFinanceOverview(
+  ctx: RequestSecurityContext,
+  timeframe: FinancialTimeframe,
+  requestedRange?: { start: string; end: string },
+) {
   const role = ctx.role.toLowerCase();
   const revenueClientScope = role === 'client' && ctx.clientId ? { clientId: ctx.clientId } : {};
+  const range = requestedRange ? {
+    start: new Date(`${requestedRange.start}T00:00:00.000Z`),
+    end: new Date(`${requestedRange.end}T23:59:59.999Z`),
+  } : undefined;
   const [invoices, transactions] = await Promise.all([
     prisma.invoice.findMany({ where: { orgId: ctx.orgId, ...revenueClientScope }, orderBy: { issuedDate: 'desc' }, include: { client: true } }),
     prisma.transaction.findMany({
@@ -150,8 +162,9 @@ export async function getFinanceOverview(ctx: RequestSecurityContext, timeframe:
       include: { client: true },
     }),
   ]);
-  const metrics = financeMetrics(invoices, transactions, timeframe);
+  const metrics = financeMetrics(invoices, transactions, timeframe, range);
   const visibleExpenseTransactions = ledgerExpenseEntries(transactions).filter((transaction) => {
+    if (range) return transaction.date >= range.start && transaction.date <= range.end;
     if (timeframe === 'All Time') return true;
     const cutoff = new Date();
     if (timeframe === 'Monthly') cutoff.setDate(cutoff.getDate() - 30);

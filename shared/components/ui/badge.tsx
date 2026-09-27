@@ -5,7 +5,20 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'secondary' | 'outline' | 'risk-low' | 'risk-medium' | 'risk-high';
 }
 
-function Badge({ className, variant = 'default', ...props }: BadgeProps) {
+function readableBadgeText(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(readableBadgeText).join(' ');
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) return readableBadgeText(node.props.children);
+  return '';
+}
+
+export function isSuccessStatusLabel(node: React.ReactNode) {
+  return /\b(?:approved|completed)\b/i.test(readableBadgeText(node));
+}
+
+function Badge({ className, variant = 'default', children, ...props }: BadgeProps) {
+  const isSuccessStatus = isSuccessStatusLabel(children);
+
   return (
     <div
       className={cn(
@@ -16,10 +29,13 @@ function Badge({ className, variant = 'default', ...props }: BadgeProps) {
         variant === 'risk-low' && 'badge-risk-low border-zinc-800 bg-zinc-900/60 text-zinc-400',
         variant === 'risk-medium' && 'badge-risk-medium border-amber-900/40 bg-amber-950/20 text-amber-200',
         variant === 'risk-high' && 'badge-risk-high border-rose-900/40 bg-rose-950/20 text-rose-200',
-        className
+        className,
+        isSuccessStatus && 'badge-success border-emerald-400/60 bg-emerald-950/80 text-emerald-200'
       )}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 }
 

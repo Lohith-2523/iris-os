@@ -506,56 +506,59 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
   if (loading) return <PageSkeleton variant="tasks" />;
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden font-sans text-xs">
+    <div className="tasks-page flex h-full min-h-0 min-w-0 flex-col overflow-hidden font-sans text-xs">
       {/* Top Header Control Panel */}
-      <div className="w-full border-b border-zinc-800/50 pt-1 pb-4 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-6">
-          <div>
+      <div className="tasks-header mb-2 flex w-full shrink-0 flex-col gap-3 border-b border-zinc-800/50 pb-4 pt-1">
+        <div className="tasks-header-primary flex min-w-0 flex-wrap items-center justify-between gap-4">
+          <div className="tasks-heading min-w-0">
             <span className="text-[9px] font-bold text-zinc-550 uppercase tracking-widest font-mono">Control Desk</span>
             <h2 className="text-sm font-bold text-white uppercase mt-0.5">Tasks Workspace</h2>
           </div>
 
-          {/* Project dropdown selection */}
-          <div className="flex items-center gap-2">
-            <label className="text-[9px] font-semibold uppercase tracking-wider text-zinc-500 shrink-0">Project:</label>
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="w-48 text-[11px] bg-zinc-900/60 border border-zinc-800 p-2 text-white outline-none rounded-md font-medium focus:border-zinc-750 cursor-pointer transition-all"
-            >
-              <option value="all">-- All Agency Projects --</option>
-              {projects.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Project Details quick view */}
-          {selectedProjectId !== 'all' && activeProjectObj && (
-            <div className="flex items-center gap-4 border border-zinc-800/80 rounded-xl px-3 py-1.5 bg-zinc-900/20 text-[10px] animate-fadeIn">
-              <div>
-                <span className="text-zinc-500 font-semibold mr-1">Client:</span>
-                <span className="text-zinc-300 font-medium">{activeProjectObj.client?.name}</span>
-              </div>
-              <div className="h-3 w-px bg-zinc-800" />
-              <div>
-                <span className="text-zinc-500 font-semibold mr-1">Budget:</span>
-                <span className="text-zinc-300 font-mono font-medium">{formatCurrency(activeProjectObj.budget || 0)}</span>
-              </div>
-              <div className="h-3 w-px bg-zinc-800" />
-              <div>
-                <span className="text-zinc-500 font-semibold mr-1">Timeline:</span>
-                <span className="text-zinc-400 font-medium">{activeProjectObj.timeline || 'N/A'}</span>
-              </div>
+          <div className="tasks-project-context flex min-w-0 flex-wrap items-center justify-end gap-3">
+            {/* Project dropdown selection */}
+            <div className="tasks-project-picker flex min-w-0 items-center gap-2">
+              <label className="shrink-0 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Project:</label>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                className="min-w-0 w-52 text-[11px] bg-zinc-900/60 border border-zinc-800 p-2 text-white outline-none rounded-md font-medium focus:border-zinc-750 cursor-pointer transition-all"
+              >
+                <option value="all">-- All Agency Projects --</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+
+            {/* Project Details quick view */}
+            {selectedProjectId !== 'all' && activeProjectObj && (
+              <div className="tasks-project-summary flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/20 px-3 py-1.5 text-[10px] animate-fadeIn">
+                <div className="min-w-0">
+                  <span className="mr-1 font-semibold text-zinc-500">Client:</span>
+                  <span className="font-medium text-zinc-300">{activeProjectObj.client?.name}</span>
+                </div>
+                <div className="tasks-project-divider h-3 w-px bg-zinc-800" />
+                <div>
+                  <span className="mr-1 font-semibold text-zinc-500">Budget:</span>
+                  <span className="font-mono font-medium text-zinc-300">{formatCurrency(activeProjectObj.budget || 0)}</span>
+                </div>
+                <div className="tasks-project-divider h-3 w-px bg-zinc-800" />
+                <div>
+                  <span className="mr-1 font-semibold text-zinc-500">Timeline:</span>
+                  <span className="font-medium text-zinc-400">{activeProjectObj.timeline || 'N/A'}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="tasks-header-controls flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/55 p-2.5">
+          <div className="tasks-view-tools flex min-w-0 flex-wrap items-center gap-3">
           {/* View Toggles */}
-          <div className="flex border border-zinc-800 rounded-md overflow-hidden text-[9px] uppercase font-bold shrink-0 w-44">
+          <div className="tasks-view-toggle flex w-44 shrink-0 overflow-hidden rounded-md border border-zinc-800 text-[9px] font-bold uppercase">
             <button
               onClick={() => setViewMode('kanban')}
               className={`flex-1 py-1.5 flex items-center justify-center gap-1 transition-all ${viewMode === 'kanban' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-500 hover:text-zinc-300 bg-zinc-900/10'}`}
@@ -603,7 +606,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
           )}
 
           {viewMode === 'list' && (
-            <details className="relative">
+            <details className="tasks-stage-filter relative">
               <summary className="flex h-8 cursor-pointer list-none items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/60 px-3 text-[9px] font-bold uppercase tracking-wider text-zinc-300">
                 <Layers className="h-3.5 w-3.5" />Stages{selectedStageIds.length > 0 && <Badge variant="outline" className="h-4 rounded-full px-1.5 text-[8px]">{selectedStageIds.length}</Badge>}
               </summary>
@@ -622,9 +625,10 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
               </div>
             </details>
           )}
+          </div>
 
           {/* Create Task Button */}
-          <div className="shrink-0 flex items-center gap-2">
+          <div className="tasks-create-action flex shrink-0 items-center gap-2">
             <Button
               disabled={selectedProjectId === 'all'}
               onClick={() => setIsCreateOpen(true)}

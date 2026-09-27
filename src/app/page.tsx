@@ -199,7 +199,7 @@ function Hero() {
             margin: 0,
           }}
         >
-          IrisOS is the focal point of agency execution. Just as the physical iris regulates light to clarify vision, our platform synthesizes client portals, financial ledgers, creative workflows, and campaign metrics into one unified, crystal-clear operational view.
+          IrisOS is the operating system built to run your agency. Connect clients, projects, people, finances, campaigns, and creative workflows in one place. Get a complete view of your business, eliminate disconnected tools, and stay in control of everything that keeps your agency moving.
         </p>
       </ScrollReveal>
 
@@ -340,7 +340,7 @@ function About() {
               marginBottom: '20px',
             }}
           >
-            The Lens of Execution
+            Operational Core
           </span>
           <h2
             style={{
@@ -353,13 +353,32 @@ function About() {
             }}
             className="gradient-text"
           >
-            The focal point of modern agency operations.
+            The operational core of your agency.
           </h2>
           <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8, marginBottom: '20px' }}>
-            We created IrisOS because agency owners are tired of navigating a fragmented stack of disconnected applications. Creative firms lose margin and time juggling client communications, financial tracking, and campaign execution across isolated tools.
+            We built IrisOS because running an agency shouldn&apos;t mean managing a maze of disconnected tools.
           </p>
-          <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8 }}>
-            IrisOS acts as the operational iris of your firm — regulating the flow of information, aligning client expectations, and focusing delivery coordination. By consolidating your client portals, invoices, campaign metrics, and creative pipelines into one elegant environment, we bring absolute clarity to your agency&apos;s growth.
+          <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8, marginBottom: '20px' }}>
+            Today, agency teams juggle client communication, projects, finances, campaigns, people, and creative workflows across multiple platforms. Information gets scattered, teams lose time, and business owners lose visibility into what&apos;s actually happening.
+          </p>
+          <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.72)', lineHeight: 1.8, marginBottom: '20px', fontWeight: 600 }}>
+            IrisOS brings it all together.
+          </p>
+          <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8, marginBottom: '20px' }}>
+            From client management and project delivery to financial tracking, campaign performance, team coordination, and creative workflows, IrisOS gives your agency one connected environment to run the business.
+          </p>
+          <p style={{ fontFamily: BODY, fontSize: '16px', color: 'rgba(232,232,232,0.5)', lineHeight: 1.8, marginBottom: '20px' }}>
+            Think of it as the operational intelligence of your agency &mdash; bringing people, processes, clients, and numbers into focus.
+          </p>
+          <div style={{ display: 'grid', gap: '6px', marginBottom: '20px' }}>
+            {['Less switching.', 'Less scattered information.', 'More clarity.', 'More control.'].map((line) => (
+              <p key={line} style={{ margin: 0, fontFamily: JBMONO, fontSize: '12px', fontWeight: 600, letterSpacing: '0.04em', color: 'rgba(232,232,232,0.68)' }}>
+                {line}
+              </p>
+            ))}
+          </div>
+          <p style={{ margin: 0, fontFamily: BODY, fontSize: '16px', color: '#e8e8e8', lineHeight: 1.8, fontWeight: 600 }}>
+            One OS for the way modern agencies work
           </p>
         </div>
 
@@ -385,7 +404,7 @@ function About() {
             </div>
           ))}
           <p className="sm:col-span-2" style={{ margin: 0, fontFamily: JBMONO, fontSize: '10px', color: 'rgba(232,232,232,0.3)', lineHeight: 1.6 }}>
-            Illustrative benchmark: the same 12-step agency workflow modeled in IrisOS and a comparable multi-tool software stack. Validate against your own process before relying on projected savings.
+            These figures are illustrative benchmarks based on modeled agency workflows. Actual savings and efficiency gains will vary based on your processes, team structure, and usage of IrisOS.
           </p>
         </div>
       </div>

@@ -25,7 +25,8 @@ import {
   Upload,
   Sparkles,
   Trash2,
-  Loader2
+  Loader2,
+  Calendar,
 } from 'lucide-react';
 import { AtlasAIService } from '@/lib/atlas-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
@@ -41,8 +42,10 @@ import { useSearchParams } from 'next/navigation';
 import type { FinanceReadModel } from '@/server/read-models/workspace-pages';
 import { financialValueClass } from '@/lib/financial-value';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { Popover } from 'radix-ui';
+import { financialRangeLabel, isAllTimeFinancialRange, type FinancialDateRange } from '@/lib/finance/fiscal-quarter';
 
-export default function FinancePage({ initialData }: { initialData: FinanceReadModel }) {
+export default function FinancePage({ initialData, range }: { initialData: FinanceReadModel; range: FinancialDateRange }) {
   const runtime = useWorkspaceRuntime();
   const router = runtime.router;
   const fetch = runtime.fetch;
@@ -56,7 +59,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
   const [loadingIntegrations, setLoadingIntegrations] = React.useState(false);
 
   const [dbData, setDbData] = React.useState<any>(initialData.finance);
-  const [loadingFinanceTimeframe, setLoadingFinanceTimeframe] = React.useState(false);
+  const [loadingFinanceRange, setLoadingFinanceRange] = React.useState(false);
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState] = React.useState(initialData.workspace.organization.currency || 'USD');
   const [uiScope] = React.useState<WorkspaceUiScope | null>({ userId: initialData.workspace.user.id, orgId: initialData.workspace.organization.id });
@@ -81,7 +84,10 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
   const [formCategory, setFormCategory] = React.useState('Revenue');
   const [formInvoiceId, setFormInvoiceId] = React.useState('');
   const [formClientId, setFormClientId] = React.useState('');
-  const [timeFrame, setTimeFrame] = React.useState('All Time');
+  const [draftRange, setDraftRange] = React.useState(range);
+  const [appliedRange, setAppliedRange] = React.useState(range);
+  const [rangeError, setRangeError] = React.useState('');
+  const [isRangePending, startRangeTransition] = React.useTransition();
 
   const formatLedgerDate = (value: unknown) => {
     if (!value) return '—';
@@ -237,44 +243,50 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     const saved = readWorkspaceUiPreference(
       uiScope,
       'finance',
-      { activeTab: 'overview' as const, timeFrame: 'All Time', reportXAxis: 'Client', reportYAxis: 'Revenue', reportTimeframe: 'All Time' },
-      (value): value is { activeTab: 'overview' | 'manual' | 'stripe' | 'paypal' | 'razorpay'; timeFrame: string; reportXAxis: string; reportYAxis: string; reportTimeframe: string } => {
+      { activeTab: 'overview' as const, reportXAxis: 'Client', reportYAxis: 'Revenue', reportTimeframe: 'All Time' },
+      (value): value is { activeTab: 'overview' | 'manual' | 'stripe' | 'paypal' | 'razorpay'; reportXAxis: string; reportYAxis: string; reportTimeframe: string } => {
         if (!value || typeof value !== 'object') return false;
         const stored = value as Record<string, unknown>;
         return ['overview', 'manual', 'stripe', 'paypal', 'razorpay'].includes(String(stored.activeTab)) &&
-          typeof stored.timeFrame === 'string' && typeof stored.reportXAxis === 'string' &&
-          typeof stored.reportYAxis === 'string' && typeof stored.reportTimeframe === 'string';
+          typeof stored.reportXAxis === 'string' && typeof stored.reportYAxis === 'string' &&
+          typeof stored.reportTimeframe === 'string';
       },
     );
     setActiveTab(searchParams.get('tab') === 'manual' ? 'manual' : saved.activeTab);
-    setTimeFrame(saved.timeFrame);
     setReportXAxis(saved.reportXAxis === 'Channel Source' ? 'Ledger Type' : saved.reportXAxis);
     setReportYAxis(saved.reportYAxis);
     setReportTimeframe(saved.reportTimeframe);
   }, [searchParams, uiScope]);
 
   React.useEffect(() => {
-    writeWorkspaceUiPreference(uiScope, 'finance', { activeTab, timeFrame, reportXAxis, reportYAxis, reportTimeframe });
-  }, [uiScope, activeTab, timeFrame, reportXAxis, reportYAxis, reportTimeframe]);
+    writeWorkspaceUiPreference(uiScope, 'finance', { activeTab, reportXAxis, reportYAxis, reportTimeframe });
+  }, [uiScope, activeTab, reportXAxis, reportYAxis, reportTimeframe]);
 
   const isInTimeFrame = React.useCallback((dateString: string) => {
-    if (timeFrame === 'All Time' || !dateString) return true;
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return true;
-    const diffDays = (new Date().getTime() - d.getTime()) / (1000 * 3600 * 24);
-    if (timeFrame === 'Monthly') return diffDays <= 30;
-    if (timeFrame === 'Quarterly') return diffDays <= 90;
-    if (timeFrame === 'Yearly') return diffDays <= 365;
-    return true;
-  }, [timeFrame]);
+    if (!dateString) return true;
+    if (isAllTimeFinancialRange(appliedRange)) return true;
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return true;
+    const start = new Date(`${appliedRange.start}T00:00:00.000Z`);
+    const end = new Date(`${appliedRange.end}T23:59:59.999Z`);
+    return date >= start && date <= end;
+  }, [appliedRange]);
 
   const refreshFinanceOverview = React.useCallback(async () => {
-    const response = await fetch(`/api/data?domain=finance&timeframe=${encodeURIComponent(timeFrame)}`, {
-      cache: 'no-store',
-      headers: { 'X-Workspace-Cache-Background': '1' },
-    });
-    if (response.ok) setDbData(await response.json());
-  }, [fetch, timeFrame]);
+    setLoadingFinanceRange(true);
+    try {
+      const rangeQuery = isAllTimeFinancialRange(appliedRange)
+        ? ''
+        : `&start=${encodeURIComponent(appliedRange.start)}&end=${encodeURIComponent(appliedRange.end)}`;
+      const response = await fetch(`/api/data?domain=finance&timeframe=All%20Time${rangeQuery}`, {
+        cache: 'no-store',
+        headers: { 'X-Workspace-Cache-Background': '1' },
+      });
+      if (response.ok) setDbData(await response.json());
+    } finally {
+      setLoadingFinanceRange(false);
+    }
+  }, [appliedRange, fetch]);
 
 
   const fetchManualTransactions = React.useCallback(async () => {
@@ -722,30 +734,35 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
     fetchSubscriptions();
   }, [fetchIntegrations, fetchManualTransactions, fetchOutstandingInvoices, fetchSubscriptions, runtime.isDemo]);
 
-  const hasMountedFinanceTimeframe = React.useRef(false);
   React.useEffect(() => {
-    if (!hasMountedFinanceTimeframe.current) {
-      hasMountedFinanceTimeframe.current = true;
+    setDbData(initialData.finance);
+    setDraftRange(range);
+    setAppliedRange(range);
+  }, [initialData.finance, range]);
+
+  const applyFinanceRange = () => {
+    if (!isAllTimeFinancialRange(draftRange) && (!draftRange.start || !draftRange.end || draftRange.start > draftRange.end)) {
+      setRangeError('Choose a start date that is on or before the end date.');
       return;
     }
-    let isCurrent = true;
-    setLoadingFinanceTimeframe(true);
-    void fetch(`/api/data?domain=finance&timeframe=${encodeURIComponent(timeFrame)}`, {
-      cache: 'no-store',
-      headers: { 'X-Workspace-Cache-Background': '1' },
-    })
-      .then(async (response) => response.ok ? response.json() : Promise.reject(new Error('Unable to load finance timeframe.')))
-      .then((data) => {
-        if (isCurrent) setDbData(data);
-      })
-      .catch((error) => {
-        if (isCurrent) console.error(error);
-      })
-      .finally(() => {
-        if (isCurrent) setLoadingFinanceTimeframe(false);
-      });
-    return () => { isCurrent = false; };
-  }, [fetch, timeFrame]);
+    setRangeError('');
+    if (runtime.isDemo) {
+      setAppliedRange(draftRange);
+      runtime.demo?.showNotice('Finance range updated using the demo dataset.');
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    if (isAllTimeFinancialRange(draftRange)) {
+      params.set('range', 'all-time');
+      params.delete('start');
+      params.delete('end');
+    } else {
+      params.delete('range');
+      params.set('start', draftRange.start);
+      params.set('end', draftRange.end);
+    }
+    startRangeTransition(() => router.push(`/finance?${params.toString()}`));
+  };
 
   const aiLeakText = React.useMemo(() => {
     if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Miles AI...');
@@ -1178,16 +1195,36 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
           <p className="text-xs text-zinc-500">Track ledger-recognized revenue, invoice statuses, and gateway connection activity.</p>
         </div>
         <div className="flex items-center gap-3">
-          <select
-            value={timeFrame}
-            onChange={(e) => setTimeFrame(e.target.value)}
-            className="h-8 rounded border border-zinc-800 bg-zinc-900/40 px-2 text-xs text-zinc-300 focus:border-zinc-750 focus:bg-zinc-900 focus:outline-none transition-all cursor-pointer"
-          >
-            <option value="All Time">All Time</option>
-            <option value="Yearly">Yearly</option>
-            <option value="Quarterly">Quarterly</option>
-            <option value="Monthly">Monthly</option>
-          </select>
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button type="button" className="dashboard-range-trigger min-h-9 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Finance date range: ${financialRangeLabel(appliedRange)}`}>
+                <Calendar className="h-4 w-4" aria-hidden="true" />{financialRangeLabel(appliedRange)}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-white shadow-2xl">
+                <h2 className="text-sm font-semibold">Finance range</h2>
+                <p className="mt-1 text-xs text-zinc-500">Choose the period used for finance totals, charts, and expense reporting.</p>
+                <fieldset className="mt-4 grid grid-cols-2 gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 p-1.5">
+                  <legend className="sr-only">Finance reporting period</legend>
+                  <label className={`flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold transition-colors ${!isAllTimeFinancialRange(draftRange) ? 'border-zinc-600 bg-zinc-800 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
+                    <input type="radio" name="finance-range-mode" checked={!isAllTimeFinancialRange(draftRange)} onChange={() => setDraftRange((current) => ({ start: current.start, end: current.end }))} className="accent-zinc-100" />
+                    Selected dates
+                  </label>
+                  <label className={`flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold transition-colors ${isAllTimeFinancialRange(draftRange) ? 'border-zinc-600 bg-zinc-800 text-white' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}>
+                    <input type="radio" name="finance-range-mode" checked={isAllTimeFinancialRange(draftRange)} onChange={() => setDraftRange((current) => ({ ...current, mode: 'all-time' }))} className="accent-zinc-100" />
+                    All time
+                  </label>
+                </fieldset>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className={`space-y-1.5 text-[10px] font-bold uppercase tracking-wider ${isAllTimeFinancialRange(draftRange) ? 'text-zinc-600' : 'text-zinc-400'}`}>Start date<DateInput disabled={isAllTimeFinancialRange(draftRange)} value={draftRange.start} max={draftRange.end} onChange={(start) => setDraftRange((current) => ({ ...current, start }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                  <label className={`space-y-1.5 text-[10px] font-bold uppercase tracking-wider ${isAllTimeFinancialRange(draftRange) ? 'text-zinc-600' : 'text-zinc-400'}`}>End date<DateInput disabled={isAllTimeFinancialRange(draftRange)} value={draftRange.end} min={draftRange.start} onChange={(end) => setDraftRange((current) => ({ ...current, end }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                </div>
+                <p className="mt-2 min-h-4 text-[10px] text-rose-400" role="status">{rangeError}</p>
+                <Button type="button" disabled={isRangePending} onClick={applyFinanceRange} className="mt-2 w-full">{isRangePending ? 'Updating range' : 'Apply range'}</Button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
           <Button 
             variant="outline" 
             size="sm" 
@@ -1245,7 +1282,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                  <span>Filtered by selected timeframe</span>
+                  <span>Filtered by selected range</span>
                 </div>
               </CardContent>
             </Card>
@@ -1323,7 +1360,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-rose-400 font-semibold">
                   <ArrowDownRight className="h-3.5 w-3.5" />
-                  <span>Filtered by selected timeframe</span>
+                  <span>Filtered by selected range</span>
                 </div>
               </CardContent>
             </ExpandableCard>
@@ -1357,7 +1394,7 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
                     </div>
                   ) : (
                     <div className="flex items-center justify-center h-[320px] text-zinc-500 text-xs font-medium">
-                      No AI Subscription expenses found in selected timeframe.
+                      No AI Subscription expenses found in the selected range.
                     </div>
                   )}
                   <p className="text-[10px] text-zinc-500 text-center max-w-sm mx-auto leading-relaxed">
@@ -1593,11 +1630,11 @@ export default function FinancePage({ initialData }: { initialData: FinanceReadM
             <div className="min-h-[560px] flex flex-col">
               <div className="flex-1">
                 <RevenueLineChart
-                  data={loadingFinanceTimeframe ? [] : revenueLineData}
+                  data={loadingFinanceRange ? [] : revenueLineData}
                   title="Overall Revenue, Expenses & Receivables"
-                  description={loadingFinanceTimeframe
-                    ? `Loading ${timeFrame.toLowerCase()} data…`
-                    : `${timeFrame} view · recognized revenue, recorded expenses, and running invoice balances.`}
+                  description={loadingFinanceRange
+                    ? `Loading ${financialRangeLabel(appliedRange)} data…`
+                    : `${financialRangeLabel(appliedRange)} view · recognized revenue, recorded expenses, and running invoice balances.`}
                   currencyRate={1}
                   className="h-full min-h-[560px] w-full"
                   contentClassName="h-[430px] md:h-[452px]"

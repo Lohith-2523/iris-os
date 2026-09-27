@@ -105,7 +105,7 @@ export function ScrollSplitCard({
       <div className={cn("sticky top-[6.5rem] flex w-full items-center justify-center overflow-hidden [perspective:1200px]", styles.stage)}>
         {/* Starting Text indicator */}
         <motion.div
-          className={cn("absolute top-[20%] left-0 right-0 text-center", styles.startLabel)}
+          className={cn("absolute left-0 right-0 text-center", styles.startLabel)}
           initial={false}
           animate={{ opacity: reduceMotion || startLabelDismissed ? 0 : 1 }}
           transition={reduceMotion ? { duration: 0 } : { duration: 1.4, ease: "easeOut" }}
@@ -200,7 +200,7 @@ export function ScrollSplitCard({
 
         {/* Ending Text fixed in the sticky viewport */}
         <motion.div
-          className={cn("absolute bottom-[32%] left-0 right-0 text-center", styles.endLabel)}
+          className={cn("absolute left-0 right-0 text-center", styles.endLabel)}
           style={{
             opacity: textOpacity,
             y: textY,

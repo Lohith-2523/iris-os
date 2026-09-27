@@ -25,6 +25,7 @@ const AtlasClient = dynamic(() => import('@/app/(app)/atlas/atlas-client'), { lo
 const SettingsClient = dynamic(() => import('@/app/(app)/settings/page'), { loading: () => <DemoPageSkeleton /> });
 
 const supportedRoutes = new Set(['/dashboard', '/agency-leads', '/clients', '/projects', '/finance', '/invoices', '/tasks', '/team', '/calendar', '/messages', '/proposals', '/documents', '/reporting', '/strategy', '/analytics', '/atlas', '/settings']);
+const demoFiscalRange = { start: '2026-07-01', end: '2026-09-30' } as const;
 
 function DemoPageSkeleton() {
   return <div className={styles.pageSkeleton} aria-label="Loading demo workspace"><span /><span /><span /><span /></div>;
@@ -36,13 +37,13 @@ function DemoRoute() {
   const key = `${demo.pathname}-${demo.resetVersion}`;
 
   if (demo.pathname === '/dashboard') {
-    return <DashboardClient key={key} initialData={{ dashboard: demo.state.dashboard, clients: demo.state.clients, tasks: demo.state.tasks, workspace: demo.state.workspace } as never} range={{ start: '2026-04-01', end: '2026-09-30' }} />;
+    return <DashboardClient key={key} initialData={{ dashboard: demo.state.dashboard, clients: demo.state.clients, tasks: demo.state.tasks, workspace: demo.state.workspace } as never} range={demoFiscalRange} />;
   }
   if (demo.pathname === '/clients') {
     return <ClientsClient key={key} initialData={{ clients: demo.state.clients, team: demo.state.team, canManageClients: true } as never} />;
   }
   if (demo.pathname === '/finance') {
-    return <FinanceClient key={key} initialData={{ finance: demo.state.finance, clients: demo.state.clients, workspace: demo.state.workspace } as never} />;
+    return <FinanceClient key={key} initialData={{ finance: demo.state.finance, clients: demo.state.clients, workspace: demo.state.workspace } as never} range={demoFiscalRange} />;
   }
   if (demo.pathname === '/calendar') return <CalendarClient key={key} />;
   if (demo.pathname === '/agency-leads') return <AgencyLeadsClient key={key} />;
@@ -58,7 +59,7 @@ function DemoRoute() {
   if (demo.pathname === '/atlas') return <AtlasClient key={key} initialData={demo.state.atlas as never} />;
   if (demo.pathname === '/settings') return <SettingsClient key={key} />;
 
-  return <DashboardClient key={key} initialData={{ dashboard: demo.state.dashboard, clients: demo.state.clients, tasks: demo.state.tasks, workspace: demo.state.workspace } as never} range={{ start: '2026-04-01', end: '2026-09-30' }} />;
+  return <DashboardClient key={key} initialData={{ dashboard: demo.state.dashboard, clients: demo.state.clients, tasks: demo.state.tasks, workspace: demo.state.workspace } as never} range={demoFiscalRange} />;
 }
 
 function DemoWorkspace() {

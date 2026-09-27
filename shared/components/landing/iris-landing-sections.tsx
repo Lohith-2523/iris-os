@@ -124,7 +124,7 @@ export function MilesAiSection() {
           className={styles.milesSplit}
           imageSrc="/workspace_banner_dark.png"
           cards={milesCards}
-          startLabel="Scroll to open the Miles intelligence layer"
+          startLabel="Scroll down to see Miles AI intelligence layer"
           endLabel="Ask. Understand. Create. Act."
           scrollLengthVh={300}
         />

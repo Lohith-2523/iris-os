@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Activity, BadgeDollarSign, BarChart3, Bug, Check, Coins, Copy, Headphones, KeyRound, LayoutDashboard, LogOut, Settings, ShieldCheck, TicketPercent, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { isSuccessStatusLabel } from '@/components/ui/badge';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
 import type { AdminDashboardData } from '@/server/admin/dashboard';
@@ -47,7 +48,7 @@ function credits(value: number) { return new Intl.NumberFormat('en', { notation:
 function percent(value: number) { return new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 }).format(value); }
 
 function Pill({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[11px] font-medium text-zinc-300">{children}</span>;
+  return <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${isSuccessStatusLabel(children) ? 'badge-success border-emerald-400/60 bg-emerald-950/80 text-emerald-200' : 'border-zinc-800 bg-zinc-900 text-zinc-300'}`}>{children}</span>;
 }
 function Panel({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return <section className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 shadow-sm"><header className="border-b border-zinc-800/80 px-5 py-4"><h2 className="font-medium text-zinc-100">{title}</h2>{description && <p className="mt-1 text-xs text-zinc-500">{description}</p>}</header>{children}</section>;
