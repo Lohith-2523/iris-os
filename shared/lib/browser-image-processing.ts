@@ -1,3 +1,5 @@
+import { WORKSPACE_BANNER_HEIGHT, WORKSPACE_BANNER_RATIO, WORKSPACE_BANNER_WIDTH } from '@/lib/workspace-banner';
+
 export const MAX_SOURCE_IMAGE_BYTES = 10 * 1024 * 1024;
 export const MAX_PROCESSED_IMAGE_BYTES = 512 * 1024;
 export const MAX_WELCOME_BACKGROUND_BYTES = 2 * 1024 * 1024;
@@ -37,13 +39,13 @@ export function calculateImageGeometry(width: number, height: number, kind: Imag
   }
 
   if (kind === 'welcome-background') {
-    // Crop to the dashboard's 728:90 ratio, then retain a 4x banner canvas.
-    // A standard 600x200 Canva export becomes a sharp 2912x360 working image.
-    const targetRatio = 728 / 90;
+    // Match the native default workspace banner so uploads and Canva designs
+    // share the exact same crop and browser cover behavior.
+    const targetRatio = WORKSPACE_BANNER_RATIO;
     const sourceRatio = width / height;
     const sourceWidth = sourceRatio > targetRatio ? height * targetRatio : width;
     const sourceHeight = sourceRatio > targetRatio ? height : width / targetRatio;
-    const scale = Math.min(6, 2912 / sourceWidth, 360 / sourceHeight);
+    const scale = Math.min(6, WORKSPACE_BANNER_WIDTH / sourceWidth, WORKSPACE_BANNER_HEIGHT / sourceHeight);
     return {
       sourceX: (width - sourceWidth) / 2,
       sourceY: (height - sourceHeight) / 2,

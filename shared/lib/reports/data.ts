@@ -31,6 +31,7 @@ async function atlasNarrative(input: {
   context: string;
   metrics: ReportMetric[];
   highlights: string[];
+  focus?: string;
   tokenBudget: AtlasTokenBudgetContext;
 }) {
   if (!input.enabled) return deterministicNarrative(input.kind, input.metrics, input.highlights);
@@ -38,7 +39,9 @@ async function atlasNarrative(input: {
     return await generateReportWithGemini({
       title: input.title,
       type: input.kind,
-      focus: 'Provide a concise executive narrative grounded only in the supplied verified metrics and records.',
+      focus: input.focus
+        ? `Address this requested report brief in detail, grounded only in the supplied verified metrics and records: ${input.focus}`
+        : 'Provide a concise executive narrative grounded only in the supplied verified metrics and records.',
       workspaceContext: input.context,
       tokenBudget: input.tokenBudget,
     });
@@ -48,7 +51,14 @@ async function atlasNarrative(input: {
   }
 }
 
-export async function buildAtlasReportDocument(orgId: string, userId: string, userRole: string, kind: ReportKind, clientId?: string): Promise<AtlasReportDocument> {
+export async function buildAtlasReportDocument(
+  orgId: string,
+  userId: string,
+  userRole: string,
+  kind: ReportKind,
+  clientId?: string,
+  request?: { title?: string; focus?: string },
+): Promise<AtlasReportDocument> {
   const organization = await prisma.organization.findUnique({ where: { id: orgId } });
   if (!organization) throw new Error('Organization not found.');
   const currency = organization.currency;
@@ -207,7 +217,9 @@ export async function buildAtlasReportDocument(orgId: string, userId: string, us
     context = JSON.stringify({ metrics, highlights, roster: sections[0].rows, assignments: sections[1].rows });
   }
 
-  const title = titleFor(kind, clientName);
+  const requestedTitle = request?.title?.trim();
+  const requestedFocus = request?.focus?.trim();
+  const title = requestedTitle || titleFor(kind, clientName);
   const narrative = await atlasNarrative({
     enabled: organization.aiSharingConsent && entitlementsFor(organization.plan).aiFeatures,
     title,
@@ -215,6 +227,7 @@ export async function buildAtlasReportDocument(orgId: string, userId: string, us
     context,
     metrics,
     highlights,
+    focus: requestedFocus,
     tokenBudget: { orgId, userId, userRole, plan: normalizePlan(organization.plan) },
   });
   const recommendations = highlights.slice(0, 3).map((item, index) => `${index + 1}. Review the supporting records for this signal: ${item}`);
@@ -225,6 +238,7 @@ export async function buildAtlasReportDocument(orgId: string, userId: string, us
     generatedAt: new Date().toISOString(),
     periodLabel: 'Current workspace snapshot',
     ...(clientId ? { clientId, clientName } : {}),
+    ...(requestedFocus ? { requestedFocus } : {}),
     atlasNarrative: narrative,
     metrics,
     highlights,

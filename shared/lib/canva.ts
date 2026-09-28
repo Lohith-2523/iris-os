@@ -4,6 +4,7 @@ import { createHash, createPublicKey, randomBytes, timingSafeEqual, verify } fro
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { decryptIntegrationCredentials, encryptIntegrationCredentials } from '@/lib/integration-secrets';
+import { WORKSPACE_BANNER_HEIGHT, WORKSPACE_BANNER_WIDTH } from '@/lib/workspace-banner';
 
 const CANVA_AUTHORIZATION_ENDPOINT = 'https://www.canva.com/api/oauth/authorize';
 const CANVA_TOKEN_ENDPOINT = 'https://api.canva.com/rest/v1/oauth/token';
@@ -13,8 +14,12 @@ const CANVA_KEYS_ENDPOINT = 'https://api.canva.com/rest/v1/connect/keys';
 const MAX_BANNER_BYTES = 2 * 1024 * 1024;
 
 export const CANVA_OAUTH_COOKIE = 'crystal_canva_oauth';
-export const CANVA_BANNER_WIDTH = 2912;
-export const CANVA_BANNER_HEIGHT = 360;
+export const CANVA_BANNER_WIDTH = WORKSPACE_BANNER_WIDTH;
+export const CANVA_BANNER_HEIGHT = WORKSPACE_BANNER_HEIGHT;
+
+export type CanvaBannerTarget =
+  | { kind: 'organization' }
+  | { clientId: string; kind: 'client' };
 
 type CanvaOAuthState = {
   expiresAt: number;
@@ -30,6 +35,7 @@ type CanvaOAuthAttempt = CanvaOAuthState & {
 };
 
 type CanvaReturnState = {
+  bannerTarget: CanvaBannerTarget;
   canvaTeamId: string;
   canvaUserId: string;
   correlationState: string;
@@ -37,6 +43,7 @@ type CanvaReturnState = {
   expiresAt: number;
   orgId: string;
   returnOrigin: string;
+  returnPath: '/dashboard' | '/client-dashboard';
   userId: string;
 };
 
@@ -262,8 +269,10 @@ async function validAccessToken(orgId: string) {
 }
 
 export async function createCanvaBannerDesign(input: {
+  bannerTarget: CanvaBannerTarget;
   orgId: string;
   returnOrigin: string;
+  returnPath: '/dashboard' | '/client-dashboard';
   userId: string;
 }) {
   const accessToken = await validAccessToken(input.orgId);
@@ -309,6 +318,7 @@ export async function createCanvaBannerDesign(input: {
   }
   const correlationState = `${input.orgId}.${randomBytes(9).toString('base64url')}`;
   const returnState: CanvaReturnState = {
+    bannerTarget: input.bannerTarget,
     canvaTeamId,
     canvaUserId,
     correlationState,
@@ -316,6 +326,7 @@ export async function createCanvaBannerDesign(input: {
     expiresAt: Date.now() + 24 * 60 * 60 * 1000,
     orgId: input.orgId,
     returnOrigin: input.returnOrigin,
+    returnPath: input.returnPath,
     userId: input.userId,
   };
   await prisma.integrationConnection.update({
@@ -470,12 +481,17 @@ export async function exportCanvaBannerToWorkspace(correlationJwt: string) {
   if (
     state.expiresAt <= Date.now() ||
     state.correlationState !== correlationState ||
-    state.designId !== designId ||
-    state.canvaUserId !== claims.sub ||
-    state.canvaTeamId !== claims.team_id
+    state.designId !== designId
   ) {
     throw new CanvaIntegrationError('The Canva banner session does not match.', 'invalid_return_token', 400);
   }
+
+  // `sub` and `team_id` identify the Canva account that clicked Return. They
+  // are not stable ownership assertions for a design: a design can be opened
+  // and returned by another member of the same Canva team. The signed design
+  // id plus our high-entropy, one-time correlation state are the binding
+  // values required for this export. Requiring the original creator ids here
+  // incorrectly rejected legitimate Return-to-IrisOS callbacks.
 
   const accessToken = await validAccessToken(orgId);
   if (!accessToken) {
@@ -490,34 +506,61 @@ export async function exportCanvaBannerToWorkspace(correlationJwt: string) {
     throw new CanvaIntegrationError('The exported banner exceeds the 2 MB workspace limit.', 'export_too_large', 413);
   }
 
-  const organization = await prisma.organization.findUnique({
-    where: { id: orgId },
-    select: { preferences: true },
-  });
-  if (!organization) {
-    throw new CanvaIntegrationError('The destination workspace was not found.', 'workspace_missing', 404);
-  }
-  const preferences = jsonRecord(organization.preferences);
-  await prisma.$transaction([
-    prisma.organization.update({
-      where: { id: orgId },
-      data: {
-        preferences: {
-          ...preferences,
-          welcomeCardBackgroundDataUrl: `data:image/jpeg;base64,${imageBytes.toString('base64')}`,
-          welcomeCardBackgroundPosition: { x: 50, y: 50 },
-          welcomeCardBackgroundZoom: 1,
+  const bannerDataUrl = `data:image/jpeg;base64,${imageBytes.toString('base64')}`;
+  const bannerTarget = state.bannerTarget || { kind: 'organization' };
+
+  await prisma.$transaction(async (tx) => {
+    if (bannerTarget.kind === 'client') {
+      const client = await tx.client.findFirst({
+        where: { id: bannerTarget.clientId, orgId },
+        select: { id: true, metadata: true },
+      });
+      if (!client) {
+        throw new CanvaIntegrationError('The destination client workspace was not found.', 'workspace_missing', 404);
+      }
+      await tx.client.update({
+        where: { id: client.id },
+        data: {
+          metadata: {
+            ...jsonRecord(client.metadata),
+            workspaceBannerDataUrl: bannerDataUrl,
+            workspaceBannerPosition: { x: 50, y: 50 },
+            workspaceBannerZoom: 1,
+          },
         },
-      },
-    }),
-    prisma.integrationConnection.update({
+      });
+    } else {
+      const organization = await tx.organization.findUnique({
+        where: { id: orgId },
+        select: { preferences: true },
+      });
+      if (!organization) {
+        throw new CanvaIntegrationError('The destination workspace was not found.', 'workspace_missing', 404);
+      }
+      await tx.organization.update({
+        where: { id: orgId },
+        data: {
+          preferences: {
+            ...jsonRecord(organization.preferences),
+            welcomeCardBackgroundDataUrl: bannerDataUrl,
+            welcomeCardBackgroundPosition: { x: 50, y: 50 },
+            welcomeCardBackgroundZoom: 1,
+          },
+        },
+      });
+    }
+
+    await tx.integrationConnection.update({
       where: { id: connection.id },
       data: {
         lastSync: new Date(),
         status: 'CONNECTED',
-        syncLogs: `Exported Canva design ${designId} to the dashboard banner.`,
+        syncLogs: `Exported Canva design ${designId} to the ${bannerTarget.kind === 'client' ? 'client' : 'admin'} dashboard banner.`,
       },
-    }),
-  ]);
-  return state.returnOrigin;
+    });
+  });
+  return {
+    returnOrigin: state.returnOrigin,
+    returnPath: state.returnPath || '/dashboard',
+  };
 }

@@ -49,6 +49,9 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
   const [selectedClientId, setSelectedClientId] = React.useState('');
   const [selectedReport, setSelectedReport] = React.useState<ReportArchive | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [loadingOlder, setLoadingOlder] = React.useState(false);
+  const [nextCursor, setNextCursor] = React.useState<string | null>(initialData.reportPagination.nextCursor);
+  const [hasMore, setHasMore] = React.useState(initialData.reportPagination.hasMore);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -56,15 +59,40 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
     setLoading(true);
     try {
       const [reportResponse, clientResponse] = await Promise.all([
-        fetch('/api/reports'),
+        fetch('/api/reports?limit=50'),
         fetch('/api/data?domain=clients'),
       ]);
-      if (reportResponse.ok) setReports(await reportResponse.json());
+      if (reportResponse.ok) {
+        setReports(await reportResponse.json());
+        setNextCursor(reportResponse.headers.get('X-Next-Cursor'));
+        setHasMore(reportResponse.headers.get('X-Has-More') === 'true');
+      }
       if (clientResponse.ok) setClients(await clientResponse.json());
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetch]);
+
+  const loadOlderReports = async () => {
+    if (!hasMore || !nextCursor || loadingOlder) return;
+    setLoadingOlder(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/reports?limit=50&cursor=${encodeURIComponent(nextCursor)}`);
+      const olderReports = await response.json();
+      if (!response.ok) throw new Error(olderReports.error || 'Unable to load older reports.');
+      setReports((current) => {
+        const known = new Set(current.map((report) => report.id));
+        return [...current, ...olderReports.filter((report: ReportArchive) => !known.has(report.id))];
+      });
+      setNextCursor(response.headers.get('X-Next-Cursor'));
+      setHasMore(response.headers.get('X-Has-More') === 'true');
+    } catch (loadError) {
+      setError(formatUserMessage(loadError instanceof Error ? loadError.message : 'Unable to load older reports.'));
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
 
   const generateReport = async () => {
     setIsGenerating(true);
@@ -181,7 +209,7 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
                       <TableCell><div className="max-w-60 truncate font-semibold text-white">{report.title}</div><div className="mt-1 text-[9px] uppercase tracking-wider text-zinc-600">{report.type}</div></TableCell>
                       <TableCell className="text-xs text-zinc-400">{report.client}</TableCell>
                       <TableCell className="whitespace-nowrap text-xs text-zinc-500">{report.date}</TableCell>
-                      <TableCell className="font-mono text-xs text-zinc-500">{report.pageCount || 'Legacy'}</TableCell>
+                      <TableCell className="font-mono text-xs text-zinc-500">{report.pageCount || 'Dynamic'}</TableCell>
                       <TableCell className="text-right"><div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" disabled={!report.pdfUrl} onClick={() => setSelectedReport(report)} className="h-8 w-8 text-zinc-400 hover:text-white" title="View PDF"><Eye className="h-3.5 w-3.5" /></Button>
                         <Button variant="ghost" size="icon" disabled={!report.pdfUrl} onClick={() => downloadReport(report)} className="h-8 w-8 text-zinc-400 hover:text-white" title="Download PDF"><Download className="h-3.5 w-3.5" /></Button>
@@ -191,6 +219,7 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
                 </TableBody>
               </Table>
             </div>
+            {hasMore && <div className="border-t border-zinc-850 p-3 text-center"><Button type="button" variant="ghost" size="sm" disabled={loadingOlder} onClick={() => void loadOlderReports()} className="h-8 gap-2 text-xs text-zinc-400 hover:text-white">{loadingOlder && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{loadingOlder ? 'Loading older reports...' : 'Load older reports'}</Button></div>}
           </CardContent>
         </Card>
 

@@ -8,12 +8,34 @@ import { usePathname } from 'next/navigation';
 const BODY = 'var(--font-geist-sans), sans-serif';
 const IRIS_LOGO = '/iris-logo-black-bg.png';
 
-export function IrisMarketingHeader() {
+export function useKnownDeviceAccess(enabled = true) {
+  const [knownDevice, setKnownDevice] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const controller = new AbortController();
+    void fetch('/api/auth/device-access', { cache: 'no-store', signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((device: { knownDevice?: boolean } | null) => setKnownDevice(device?.knownDevice === true))
+      .catch((error) => {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Unable to check direct access:', error);
+          setKnownDevice(false);
+        }
+      });
+    return () => controller.abort();
+  }, [enabled]);
+
+  return knownDevice;
+}
+
+export function IrisMarketingHeader({ knownDevice: knownDeviceProp }: { knownDevice?: boolean } = {}) {
   const pathname = usePathname();
   const isHome = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [hasIdentificationToken, setHasIdentificationToken] = useState(false);
+  const detectedKnownDevice = useKnownDeviceAccess(knownDeviceProp === undefined);
+  const knownDevice = knownDeviceProp ?? detectedKnownDevice;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -31,19 +53,8 @@ export function IrisMarketingHeader() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMobileMenuOpen]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetch('/api/auth/device-access', { cache: 'no-store', signal: controller.signal })
-      .then(async (response) => response.ok ? response.json() : null)
-      .then((device: { knownDevice?: boolean } | null) => setHasIdentificationToken(device?.knownDevice === true))
-      .catch((error) => {
-        if ((error as Error).name !== 'AbortError') console.error('Unable to check direct access:', error);
-      });
-    return () => controller.abort();
-  }, []);
-
-  const accessHref = hasIdentificationToken ? '/login' : '/waitlist';
-  const accessLabel = hasIdentificationToken ? 'Login / Sign up' : 'Join the Waitlist';
+  const accessHref = knownDevice ? '/login' : '/waitlist';
+  const accessLabel = knownDevice ? 'Login / Sign up' : 'Join the Waitlist';
 
   const navLinks = [
     { label: 'Preview', href: isHome ? '#video' : '/#video' },
@@ -110,7 +121,7 @@ export function IrisMarketingHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link
+          {knownDevice === null ? <span aria-label="Loading account access" className="block h-[43px] w-[142px] animate-pulse rounded-full bg-zinc-800" /> : <Link
             href={accessHref}
             prefetch={false}
             className="neo-button-accent inline-block"
@@ -127,7 +138,7 @@ export function IrisMarketingHeader() {
             }}
           >
             {accessLabel}
-          </Link>
+          </Link>}
         </div>
 
         <button
@@ -191,7 +202,7 @@ export function IrisMarketingHeader() {
         </div>
 
         <div className="flex flex-col gap-2 border-t border-zinc-900 pt-6">
-          <Link
+          {knownDevice === null ? <span aria-label="Loading account access" className="block h-[48px] w-full animate-pulse rounded-full bg-zinc-800" /> : <Link
             href={accessHref}
             prefetch={false}
             onClick={() => setIsMobileMenuOpen(false)}
@@ -199,7 +210,7 @@ export function IrisMarketingHeader() {
             style={{ fontFamily: BODY, textDecoration: 'none', color: '#0a0a0a' }}
           >
             {accessLabel}
-          </Link>
+          </Link>}
         </div>
       </div>
     </header>

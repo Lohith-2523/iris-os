@@ -6,7 +6,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { IrisLandingSkeleton } from '@/components/landing/iris-landing-skeleton';
-import { IrisMarketingHeader } from '@/components/landing/iris-marketing-header';
+import { IrisMarketingHeader, useKnownDeviceAccess } from '@/components/landing/iris-marketing-header';
 import { IrisPricingComparison } from '@/components/landing/iris-pricing-comparison';
 import { ConsoleEcosystem, MilesAiSection } from '@/components/landing/iris-landing-sections';
 import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
@@ -1273,8 +1273,9 @@ function Footer() {
 // â”€â”€â”€ App Root â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function App() {
   const { region, plans, loading } = usePlanPricing();
+  const knownDevice = useKnownDeviceAccess();
 
-  if (loading) return <IrisLandingSkeleton />;
+  if (loading || knownDevice === null) return <IrisLandingSkeleton />;
 
   return (
     <div
@@ -1289,7 +1290,7 @@ export default function App() {
         `,
       }}
     >
-      <IrisMarketingHeader />
+      <IrisMarketingHeader knownDevice={knownDevice} />
       <Hero />
       <VideoSection />
       <About />

@@ -30,6 +30,7 @@ export type AtlasReportDocument = {
   periodLabel: string;
   clientId?: string;
   clientName?: string;
+  requestedFocus?: string;
   atlasNarrative: string;
   metrics: ReportMetric[];
   highlights: string[];

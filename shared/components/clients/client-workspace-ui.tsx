@@ -2,17 +2,38 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, ImageUp, Loader2, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ArrowRight, ImageUp, Loader2, MoreHorizontal, Move, RotateCcw, Trash2 } from 'lucide-react';
 import { Popover } from 'radix-ui';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MAX_SOURCE_IMAGE_BYTES, processBrowserImage } from '@/lib/browser-image-processing';
 import { validateBrowserFile } from '@/lib/file-security';
+import type { WorkspaceBannerPosition } from '@/lib/workspace-banner';
 
-export function ClientWorkspaceBanner({ name, backgroundDataUrl, onBackgroundChange }: { name: string; backgroundDataUrl?: string | null; onBackgroundChange: (dataUrl: string | null) => Promise<void> }) {
+const CLIENT_CANVA_BANNER_URL = '/api/canva/designs/banner?target=client';
+
+export function ClientWorkspaceBanner({ name, backgroundDataUrl, position, zoom, onBackgroundChange, onLayoutChange }: {
+  name: string;
+  backgroundDataUrl?: string | null;
+  position: WorkspaceBannerPosition;
+  zoom: number;
+  onBackgroundChange: (dataUrl: string | null) => Promise<void>;
+  onLayoutChange: (position: WorkspaceBannerPosition, zoom: number) => Promise<void>;
+}) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [isRepositioning, setIsRepositioning] = React.useState(false);
+  const [draftPosition, setDraftPosition] = React.useState(position);
+  const [savedPosition, setSavedPosition] = React.useState(position);
+  const [draftZoom, setDraftZoom] = React.useState(zoom);
+  const [savedZoom, setSavedZoom] = React.useState(zoom);
+  const pointerRef = React.useRef<{ pointerId: number; x: number; y: number; start: WorkspaceBannerPosition } | null>(null);
+
+  React.useEffect(() => { setDraftPosition(position); setSavedPosition(position); }, [position]);
+  React.useEffect(() => { setDraftZoom(zoom); setSavedZoom(zoom); }, [zoom]);
 
   const upload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -24,7 +45,38 @@ export function ClientWorkspaceBanner({ name, backgroundDataUrl, onBackgroundCha
       if (!validation.ok) throw new Error(validation.error);
       const processed = await processBrowserImage(file, 'welcome-background');
       await onBackgroundChange(processed.dataUrl);
+      setDraftPosition({ x: 50, y: 50 }); setSavedPosition({ x: 50, y: 50 });
+      setDraftZoom(1); setSavedZoom(1);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The banner could not be uploaded.'); }
+    finally { setSaving(false); }
+  };
+
+  const moveFromPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = pointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    setDraftPosition({
+      x: Math.min(100, Math.max(0, drag.start.x + ((event.clientX - drag.x) / bounds.width) * 100)),
+      y: Math.min(100, Math.max(0, drag.start.y + ((event.clientY - drag.y) / bounds.height) * 100)),
+    });
+  };
+
+  const saveLayout = async () => {
+    setSaving(true); setError('');
+    try {
+      await onLayoutChange(draftPosition, draftZoom);
+      setSavedPosition(draftPosition); setSavedZoom(draftZoom); setIsRepositioning(false);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The banner layout could not be saved.'); }
+    finally { setSaving(false); }
+  };
+
+  const removeBanner = async () => {
+    setSaving(true); setError('');
+    try {
+      await onBackgroundChange(null);
+      setDraftPosition({ x: 50, y: 50 }); setSavedPosition({ x: 50, y: 50 });
+      setDraftZoom(1); setSavedZoom(1); setIsRepositioning(false);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'The banner could not be removed.'); }
     finally { setSaving(false); }
   };
 
@@ -32,8 +84,9 @@ export function ClientWorkspaceBanner({ name, backgroundDataUrl, onBackgroundCha
     <section className="dashboard-header dashboard-command-center relative isolate grid min-w-0 max-w-full grid-cols-1 items-center gap-4 overflow-hidden border-b border-zinc-800/60 p-4 sm:p-5 md:grid-cols-[minmax(0,1fr)_auto]">
       {backgroundDataUrl ? <>
         <div aria-hidden="true" className="dashboard-command-center-banner-backdrop pointer-events-none absolute inset-0" style={{ backgroundImage: `url(${backgroundDataUrl})` }} />
-        <div aria-hidden="true" className="dashboard-command-center-banner-artwork pointer-events-none absolute inset-0" style={{ backgroundImage: `url(${backgroundDataUrl})` }} />
+        <div aria-hidden="true" className="dashboard-command-center-banner-artwork pointer-events-none absolute inset-0" style={{ backgroundImage: `url(${backgroundDataUrl})`, transform: `translate3d(${draftPosition.x - 50}%, ${draftPosition.y - 50}%, 0) scale(${draftZoom})` }} />
       </> : <div aria-hidden="true" className="dashboard-command-center-banner pointer-events-none absolute inset-0" />}
+      {isRepositioning && backgroundDataUrl && <div aria-label="Drag to reposition banner" className="absolute inset-0 z-[15] cursor-grab touch-none" role="application" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); pointerRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, start: draftPosition }; event.currentTarget.classList.replace('cursor-grab', 'cursor-grabbing'); }} onPointerMove={moveFromPointer} onPointerUp={(event) => { pointerRef.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); event.currentTarget.classList.replace('cursor-grabbing', 'cursor-grab'); }} onPointerCancel={(event) => { pointerRef.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); }} />}
       <div className="relative z-10 min-w-0">
         <div className="dashboard-welcome-card inline-flex max-w-full items-center rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
           <h1 className="truncate text-xl font-bold tracking-tight text-white silver-text-gradient sm:text-2xl">Welcome, {name}</h1>
@@ -43,11 +96,12 @@ export function ClientWorkspaceBanner({ name, backgroundDataUrl, onBackgroundCha
         <Popover.Trigger asChild><button type="button" className="dashboard-banner-menu absolute right-2 top-2 z-20 grid place-items-center border border-zinc-700/70 bg-zinc-950/65 p-0 text-zinc-300 backdrop-blur-md" aria-label="Banner options"><MoreHorizontal className="h-2.5 w-2.5" /></button></Popover.Trigger>
         <Popover.Portal><Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-72 rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-white shadow-2xl">
           <h2 className="text-sm font-bold">Client workspace banner</h2><p className="mt-1 text-xs leading-relaxed text-zinc-500">Upload a PNG, JPEG, or WebP image for this workspace.</p>
-          <div className="mt-4 space-y-2"><button type="button" disabled={saving} onClick={() => inputRef.current?.click()} className="dashboard-menu-item w-full"><ImageUp className="h-4 w-4" />{saving ? 'Saving banner…' : backgroundDataUrl ? 'Replace banner' : 'Upload banner'}{saving && <Loader2 className="ml-auto h-3.5 w-3.5 animate-spin" />}</button>{backgroundDataUrl && <button type="button" disabled={saving} onClick={() => { setSaving(true); setError(''); void onBackgroundChange(null).catch(reason => setError(reason instanceof Error ? reason.message : 'The banner could not be removed.')).finally(() => setSaving(false)); }} className="dashboard-menu-item w-full"><Trash2 className="h-4 w-4" />Remove banner</button>}</div>
+          <div className="mt-4 space-y-2"><button type="button" disabled={saving} onClick={() => inputRef.current?.click()} className="dashboard-menu-item w-full"><ImageUp className="h-4 w-4" />{saving ? 'Saving banner…' : backgroundDataUrl ? 'Replace banner' : 'Upload banner'}{saving && <Loader2 className="ml-auto h-3.5 w-3.5 animate-spin" />}</button>{backgroundDataUrl && <button type="button" disabled={saving} onClick={() => setIsRepositioning(true)} className="dashboard-menu-item w-full"><Move className="h-4 w-4" />Resize and reposition</button>}<a href={CLIENT_CANVA_BANNER_URL} className="dashboard-menu-item w-full"><Image src="/canva-icon.svg" alt="" width={16} height={16} className="canva-logo" aria-hidden="true" />Create with Canva</a>{backgroundDataUrl && <button type="button" disabled={saving} onClick={() => void removeBanner()} className="dashboard-menu-item w-full"><Trash2 className="h-4 w-4" />Remove banner</button>}</div>
           {error && <p role="alert" className="mt-3 text-[11px] text-rose-300">{error}</p>}
           <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={upload} />
         </Popover.Content></Popover.Portal>
       </Popover.Root>
+      {isRepositioning && backgroundDataUrl && <div className="absolute inset-x-3 bottom-3 z-30 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-700 bg-zinc-950/90 p-2.5 shadow-2xl backdrop-blur-md"><div className="flex flex-wrap items-center gap-3"><label className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Horizontal<input type="range" min="0" max="100" value={Math.round(draftPosition.x)} onChange={(event) => setDraftPosition((current) => ({ ...current, x: Number(event.target.value) }))} className="w-16 accent-zinc-200" /></label><label className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Vertical<input type="range" min="0" max="100" value={Math.round(draftPosition.y)} onChange={(event) => setDraftPosition((current) => ({ ...current, y: Number(event.target.value) }))} className="w-16 accent-zinc-200" /></label><label className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">Zoom<input type="range" min="50" max="400" value={Math.round(draftZoom * 100)} onChange={(event) => setDraftZoom(Number(event.target.value) / 100)} className="w-20 accent-zinc-200" /></label></div><div className="flex items-center gap-2"><button type="button" aria-label="Reset banner layout" onClick={() => { setDraftPosition({ x: 50, y: 50 }); setDraftZoom(1); }} className="grid h-7 w-7 place-items-center rounded-md border border-zinc-800 text-zinc-400 hover:text-white"><RotateCcw className="h-3.5 w-3.5" /></button><Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[10px]" onClick={() => { setDraftPosition(savedPosition); setDraftZoom(savedZoom); setIsRepositioning(false); }}>Cancel</Button><Button type="button" size="sm" disabled={saving} className="h-7 px-2 text-[10px]" onClick={() => void saveLayout()}>{saving ? 'Saving…' : 'Save layout'}</Button></div></div>}
     </section>
   );
 }

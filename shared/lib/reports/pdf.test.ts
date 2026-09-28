@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { describe, expect, it } from 'vitest';
-import { generateAtlasReportPdf } from './pdf';
+import { generateAtlasReportPdf, generateMilesTextReportPdf } from './pdf';
 import type { AtlasReportDocument } from './types';
 
 const documentData: AtlasReportDocument = {
@@ -32,5 +32,20 @@ describe('generateAtlasReportPdf', () => {
     const outputDirectory = path.join(process.cwd(), 'tmp', 'pdfs');
     await mkdir(outputDirectory, { recursive: true });
     await writeFile(path.join(outputDirectory, 'atlas-report-template-qa.pdf'), bytes);
+  });
+
+  it('renders every saved Miles text report as a paginated PDF', async () => {
+    const content = Array.from({ length: 180 }, (_, index) => `- Specific finding ${index + 1}: verified workspace detail ${index + 1}.`).join('\n');
+    const bytes = await generateMilesTextReportPdf({
+      content,
+      createdAt: '2026-09-28T00:00:00.000Z',
+      title: 'Historical Miles Report',
+      type: 'FINANCIAL',
+    }, { name: 'Studio North', color: '#4A435F' });
+    const parsed = await PDFDocument.load(new Uint8Array(bytes));
+
+    expect(parsed.getPageCount()).toBeGreaterThan(3);
+    expect(parsed.getTitle()).toBe('Historical Miles Report');
+    expect(bytes.length).toBeGreaterThan(10_000);
   });
 });

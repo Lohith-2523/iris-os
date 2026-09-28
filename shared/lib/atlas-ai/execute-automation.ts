@@ -7,7 +7,8 @@ import {
 } from '@/lib/invoices/service';
 import { parseProjectCommercials } from '@/lib/projects/commercial';
 import { normalizeProjectStageColor } from '@/lib/projects/stages';
-import { generateReportWithGemini } from './gemini-automations';
+import { buildAtlasReportDocument } from '@/lib/reports/data';
+import type { ReportKind } from '@/lib/reports/types';
 import type { AtlasTokenBudgetContext } from './token-budget';
 import type { AutomationWorkflowState } from './automation-workflow';
 
@@ -34,6 +35,24 @@ function exactName<T extends { name: string }>(items: T[], name: string, label: 
     );
   }
   return matches[0];
+}
+
+export function reportKindForAutomation(reportType: string, reportFocus = ''): ReportKind {
+  const explicitType = reportType.trim().toUpperCase();
+  if (/\b(FINANCIAL|FINANCE|EXECUTIVE)\b/.test(explicitType)) return 'EXECUTIVE';
+  if (/\b(MARKETING|CAMPAIGN|ADVERTISING|ADS|CREATIVE)\b/.test(explicitType)) return 'MARKETING';
+  if (/\b(LEAD|LEADS|PIPELINE|SALES)\b/.test(explicitType)) return 'LEADS';
+  if (/\b(CLIENT|CLIENTS|ACCOUNT|ACCOUNTS|CUSTOMER|CUSTOMERS)\b/.test(explicitType)) return 'CLIENTS';
+  if (/\b(PROJECT|PROJECTS|OPERATIONS|DELIVERY|MILESTONE|MILESTONES)\b/.test(explicitType)) return 'PROJECTS';
+  if (/\b(TEAM|CAPACITY|RESOURCE|RESOURCING|WORKLOAD|PEOPLE)\b/.test(explicitType)) return 'TEAM';
+
+  const description = reportFocus.toUpperCase();
+  if (/\b(MARKETING|CAMPAIGN|ADVERTISING|ADS|CREATIVE)\b/.test(description)) return 'MARKETING';
+  if (/\b(LEAD|LEADS|PIPELINE|SALES)\b/.test(description)) return 'LEADS';
+  if (/\b(CLIENT|CLIENTS|ACCOUNT|ACCOUNTS|CUSTOMER|CUSTOMERS)\b/.test(description)) return 'CLIENTS';
+  if (/\b(PROJECT|PROJECTS|OPERATIONS|DELIVERY|MILESTONE|MILESTONES)\b/.test(description)) return 'PROJECTS';
+  if (/\b(TEAM|CAPACITY|RESOURCE|RESOURCING|WORKLOAD|PEOPLE)\b/.test(description)) return 'TEAM';
+  return 'EXECUTIVE';
 }
 
 export async function executeAtlasAutomation(input: {
@@ -231,19 +250,22 @@ export async function executeAtlasAutomation(input: {
     };
   }
 
-  const content = await generateReportWithGemini({
-    title: draft.title,
-    type: draft.reportType,
-    focus: draft.reportFocus,
-    workspaceContext: input.workspaceContext,
-    tokenBudget: input.tokenBudget,
-  });
+  const reportKind = reportKindForAutomation(draft.reportType, draft.reportFocus);
+  const document = await buildAtlasReportDocument(
+    input.orgId,
+    input.userId,
+    input.tokenBudget.userRole,
+    reportKind,
+    undefined,
+    { title: draft.title, focus: draft.reportFocus },
+  );
   const report = await prisma.report.create({
     data: {
-      title: draft.title,
-      type: draft.reportType,
+      title: document.title,
+      type: document.kind,
       status: 'READY',
-      summary: content,
+      summary: JSON.stringify(document),
+      filePath: 'DYNAMIC_PDF_V1',
       createdById: input.userId,
       orgId: input.orgId,
     },

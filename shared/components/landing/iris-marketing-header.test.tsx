@@ -27,6 +27,8 @@ describe('IrisMarketingHeader', () => {
 
     render(<IrisMarketingHeader />);
 
+    expect(screen.getAllByLabelText('Loading account access')).toHaveLength(2);
+    expect(screen.queryByRole('link', { name: 'Join the Waitlist' })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('link', { name: 'Login / Sign up' })).toBeInTheDocument());
     expect(screen.queryByRole('link', { name: 'Join the Waitlist' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Login / Sign up' })).toHaveAttribute('href', '/login');
@@ -41,8 +43,21 @@ describe('IrisMarketingHeader', () => {
 
     render(<IrisMarketingHeader />);
 
+    expect(screen.getAllByLabelText('Loading account access')).toHaveLength(2);
+    expect(screen.queryByRole('link', { name: 'Join the Waitlist' })).not.toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/auth/device-access', expect.objectContaining({ cache: 'no-store' })));
-    expect(screen.getByRole('link', { name: 'Join the Waitlist' })).toHaveAttribute('href', '/waitlist');
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Join the Waitlist' })).toHaveAttribute('href', '/waitlist'));
     expect(screen.queryByRole('link', { name: 'Login / Sign up' })).not.toBeInTheDocument();
+  });
+
+  it('renders a resolved access action immediately without another request', () => {
+    const request = vi.fn();
+    vi.stubGlobal('fetch', request);
+
+    render(<IrisMarketingHeader knownDevice />);
+
+    expect(screen.getByRole('link', { name: 'Login / Sign up' })).toHaveAttribute('href', '/login');
+    expect(screen.queryByLabelText('Loading account access')).not.toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 });

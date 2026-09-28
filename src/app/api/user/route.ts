@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { validateProfileAvatarDataUrl } from '@/lib/profile-avatar';
+import { resolveWorkspaceBannerPosition, resolveWorkspaceBannerZoom } from '@/lib/workspace-banner';
 
 const updateProfileSchema = z.object({
   avatarDataUrl: z.string().nullable(),
@@ -33,6 +34,8 @@ export async function GET() {
         name: user.client.name,
         logoDataUrl: user.client.logoDataUrl,
         workspaceBannerDataUrl: typeof clientMetadata.workspaceBannerDataUrl === 'string' ? clientMetadata.workspaceBannerDataUrl : null,
+        workspaceBannerPosition: resolveWorkspaceBannerPosition(clientMetadata.workspaceBannerPosition),
+        workspaceBannerZoom: resolveWorkspaceBannerZoom(clientMetadata.workspaceBannerZoom),
       } : null,
       organization: {
         id: user.organization.id,

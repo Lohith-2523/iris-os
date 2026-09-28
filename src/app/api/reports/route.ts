@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     client: document?.clientName || 'Agency-wide',
     author: report.createdBy.name,
     pageCount: document ? 3 : null,
-    pdfUrl: document ? `/api/reports/${report.id}/pdf` : null,
+    pdfUrl: `/api/reports/${report.id}/pdf`,
     date: report.createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
   }; }), { headers: cursorHeaders(page, pageRequest.limit) });
 }

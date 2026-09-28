@@ -27,6 +27,7 @@ import { parseInitialProjectTasks } from '@/server/domains/initial-project-tasks
 import { validateClientLogoDataUrl } from '@/lib/client-logo';
 import { normalizeProjectStageColor } from '@/lib/projects/stages';
 import { validateWelcomeBackgroundDataUrl } from '@/lib/welcome-background';
+import { resolveWorkspaceBannerPosition, resolveWorkspaceBannerZoom } from '@/lib/workspace-banner';
 
 class ClientPlanLimitError extends Error {}
 
@@ -88,7 +89,7 @@ export async function PATCH(request: NextRequest) {
     if (!clientId) {
       return NextResponse.json({ error: 'Missing clientId parameter' }, { status: 400 });
     }
-    if (!isAdmin && Object.keys(body).some((key) => !['clientId', 'logoDataUrl', 'workspaceBannerDataUrl'].includes(key))) {
+    if (!isAdmin && Object.keys(body).some((key) => !['clientId', 'logoDataUrl', 'workspaceBannerDataUrl', 'workspaceBannerPosition', 'workspaceBannerZoom'].includes(key))) {
       return NextResponse.json({ error: 'Client users may only update their workspace branding.' }, { status: 403 });
     }
 
@@ -102,6 +103,10 @@ export async function PATCH(request: NextRequest) {
     if (bannerResult && 'error' in bannerResult) {
       return NextResponse.json({ error: bannerResult.error }, { status: 400 });
     }
+    const hasBannerPositionUpdate = Object.prototype.hasOwnProperty.call(body, 'workspaceBannerPosition');
+    const bannerPosition = hasBannerPositionUpdate ? resolveWorkspaceBannerPosition(body.workspaceBannerPosition) : null;
+    const hasBannerZoomUpdate = Object.prototype.hasOwnProperty.call(body, 'workspaceBannerZoom');
+    const bannerZoom = hasBannerZoomUpdate ? resolveWorkspaceBannerZoom(body.workspaceBannerZoom) : null;
 
     const existingClient = await prisma.client.findFirst({
       where: { id: clientId, orgId: user.orgId },
@@ -141,9 +146,11 @@ export async function PATCH(request: NextRequest) {
         data: {
           adAccountId: hasAdAccountUpdate ? adAccountId : undefined,
           logoDataUrl: logoResult ? logoResult.value : undefined,
-          metadata: bannerResult ? {
+          metadata: bannerResult || bannerPosition || bannerZoom !== null ? {
             ...(existingClient.metadata && typeof existingClient.metadata === 'object' && !Array.isArray(existingClient.metadata) ? existingClient.metadata : {}),
-            workspaceBannerDataUrl: bannerResult.value,
+            ...(bannerResult ? { workspaceBannerDataUrl: bannerResult.value } : {}),
+            ...(bannerPosition ? { workspaceBannerPosition: bannerPosition } : {}),
+            ...(bannerZoom !== null ? { workspaceBannerZoom: bannerZoom } : {}),
           } : undefined,
           legalEntityName: typeof body.legalEntityName === 'string' ? body.legalEntityName.trim() || null : undefined,
           billingAddressLine1: typeof body.billingAddressLine1 === 'string' ? body.billingAddressLine1.trim() || null : undefined,

@@ -31,11 +31,11 @@ describe('browser image processing geometry', () => {
   it('center-crops welcome backgrounds to the dashboard ratio', () => {
     expect(calculateImageGeometry(2400, 1600, 'welcome-background')).toEqual({
       sourceX: 0,
-      sourceY: 651.6483516483516,
+      sourceY: 510.9069117059529,
       sourceWidth: 2400,
-      sourceHeight: 296.7032967032967,
-      outputWidth: 2912,
-      outputHeight: 360,
+      sourceHeight: 578.1861765880942,
+      outputWidth: 2503,
+      outputHeight: 603,
     });
     expect(MAX_WELCOME_BACKGROUND_BYTES).toBe(2 * 1024 * 1024);
   });
@@ -43,11 +43,11 @@ describe('browser image processing geometry', () => {
   it('crops and upscales a standard 600 by 200 Canva banner', () => {
     expect(calculateImageGeometry(600, 200, 'welcome-background')).toEqual({
       sourceX: 0,
-      sourceY: 62.91208791208791,
+      sourceY: 27.726727926488223,
       sourceWidth: 600,
-      sourceHeight: 74.17582417582418,
-      outputWidth: 2912,
-      outputHeight: 360,
+      sourceHeight: 144.54654414702355,
+      outputWidth: 2503,
+      outputHeight: 603,
     });
   });
 });

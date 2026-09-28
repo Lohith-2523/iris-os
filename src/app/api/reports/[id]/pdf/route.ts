@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { parseAtlasReportDocument } from '@/lib/reports/types';
-import { generateAtlasReportPdf } from '@/lib/reports/pdf';
+import { generateAtlasReportPdf, generateMilesTextReportPdf } from '@/lib/reports/pdf';
 
 export const runtime = 'nodejs';
 
@@ -17,12 +17,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   });
   if (!report) return Response.json({ error: 'Report not found' }, { status: 404 });
   const document = parseAtlasReportDocument(report.summary);
-  if (!document) return Response.json({ error: 'This legacy report does not have a PDF snapshot.' }, { status: 409 });
-  const pdf = await generateAtlasReportPdf(document, {
+  const brand = {
     name: report.organization.legalEntityName || report.organization.name,
     color: report.organization.invoiceBrandColor,
     logoDataUrl: report.organization.invoiceLogoDataUrl,
-  });
+  };
+  const pdf = document
+    ? await generateAtlasReportPdf(document, brand)
+    : await generateMilesTextReportPdf({
+        content: report.summary,
+        createdAt: report.createdAt,
+        title: report.title,
+        type: report.type,
+      }, brand);
   const filename = `${report.title.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
   const inline = request.nextUrl.searchParams.get('view') === '1';
   return new Response(new Uint8Array(pdf), {

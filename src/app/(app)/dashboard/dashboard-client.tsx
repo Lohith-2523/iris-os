@@ -60,11 +60,11 @@ import type { DashboardReadModel } from '@/server/read-models/workspace-pages';
 import { financialValueClass } from '@/lib/financial-value';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { financialRangeLabel, isAllTimeFinancialRange, type FinancialDateRange } from '@/lib/finance/fiscal-quarter';
+import { resolveWorkspaceBannerPosition, resolveWorkspaceBannerZoom, type WorkspaceBannerPosition } from '@/lib/workspace-banner';
 
 type FinanceMetricKey = 'revenue' | 'profit' | 'mrr' | 'expenses' | 'receivables';
 type OverviewTab = 'leads' | 'clients' | 'actions' | 'tasks' | 'meetings';
 type LeadStage = { id: string; label: string; color: string };
-type BannerPosition = { x: number; y: number };
 
 const DEFAULT_LEAD_STAGES: LeadStage[] = [
   { id: 'procured', label: 'Procured', color: '#A1A1AA' },
@@ -76,22 +76,6 @@ const DEFAULT_LEAD_STAGES: LeadStage[] = [
 
 const CANVA_BANNER_DESIGN_URL = '/api/canva/designs/banner';
 const DASHBOARD_ONBOARDING_ENABLED = false;
-
-function resolveBannerPosition(value: unknown): BannerPosition {
-  if (!value || typeof value !== 'object') return { x: 50, y: 50 };
-  const candidate = value as Record<string, unknown>;
-  const x = Number(candidate.x);
-  const y = Number(candidate.y);
-  return {
-    x: Number.isFinite(x) ? Math.min(100, Math.max(0, x)) : 50,
-    y: Number.isFinite(y) ? Math.min(100, Math.max(0, y)) : 50,
-  };
-}
-
-function resolveBannerZoom(value: unknown) {
-  const zoom = Number(value);
-  return Number.isFinite(zoom) ? Math.min(4, Math.max(0.5, zoom)) : 1;
-}
 
 function leadStageStatusAliases(stageId: string) {
   if (stageId === 'procured') return ['procured', 'new'];
@@ -153,17 +137,17 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
   const [currentUserName] = React.useState(initialData.workspace.user.name.split(' ')[0] || 'there');
   const [canManageWelcomeBackground] = React.useState(initialData.workspace.user.role.toLowerCase() === 'admin');
   const [welcomeBackground, setWelcomeBackground] = React.useState(typeof initialPreferences.welcomeCardBackgroundDataUrl === 'string' ? initialPreferences.welcomeCardBackgroundDataUrl : '');
-  const initialBannerPosition = resolveBannerPosition(initialPreferences.welcomeCardBackgroundPosition);
-  const initialBannerZoom = resolveBannerZoom(initialPreferences.welcomeCardBackgroundZoom);
-  const [bannerPosition, setBannerPosition] = React.useState<BannerPosition>(initialBannerPosition);
-  const [savedBannerPosition, setSavedBannerPosition] = React.useState<BannerPosition>(initialBannerPosition);
+  const initialBannerPosition = resolveWorkspaceBannerPosition(initialPreferences.welcomeCardBackgroundPosition);
+  const initialBannerZoom = resolveWorkspaceBannerZoom(initialPreferences.welcomeCardBackgroundZoom);
+  const [bannerPosition, setBannerPosition] = React.useState<WorkspaceBannerPosition>(initialBannerPosition);
+  const [savedBannerPosition, setSavedBannerPosition] = React.useState<WorkspaceBannerPosition>(initialBannerPosition);
   const [bannerZoom, setBannerZoom] = React.useState(initialBannerZoom);
   const [savedBannerZoom, setSavedBannerZoom] = React.useState(initialBannerZoom);
   const [isRepositioningBanner, setIsRepositioningBanner] = React.useState(false);
   const [organizationPreferences, setOrganizationPreferences] = React.useState<Record<string, unknown>>(initialPreferences);
   const [welcomeBackgroundStatus, setWelcomeBackgroundStatus] = React.useState<'idle' | 'saving' | 'error'>('idle');
   const welcomeBackgroundInputRef = React.useRef<HTMLInputElement>(null);
-  const bannerPointerRef = React.useRef<{ pointerId: number; x: number; y: number; start: BannerPosition } | null>(null);
+  const bannerPointerRef = React.useRef<{ pointerId: number; x: number; y: number; start: WorkspaceBannerPosition } | null>(null);
   const addReceivableAsRevenue = (invoice: any) => {
     const amount = Number(invoice.balanceDue ?? invoice.pendingAmount ?? 0);
     router.push(`/finance?tab=manual&invoiceId=${encodeURIComponent(invoice.id)}&amount=${encodeURIComponent(String(amount))}`);
@@ -212,6 +196,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       }
       if (searchParams.get('canva') === 'banner_exported') {
         router.replace('/dashboard');
+        router.refresh();
       }
     }
     if (searchParams.get('google_connected') === 'true') {
@@ -249,7 +234,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
     setWelcomeBackgroundStatus('idle');
   }, [fetch, organizationPreferences]);
 
-  const saveBannerTransform = React.useCallback(async (position: BannerPosition, zoom: number) => {
+  const saveBannerTransform = React.useCallback(async (position: WorkspaceBannerPosition, zoom: number) => {
     setWelcomeBackgroundStatus('saving');
     const preferences = {
       ...organizationPreferences,
@@ -690,7 +675,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
 
   const financialDetail = selectedFinanceMetric === 'revenue' ? (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between gap-4"><div><h3 className="text-base font-semibold text-white">Revenue by client</h3><p className="mt-1 text-xs text-zinc-500">Recognized revenue within the selected range.</p></div><Button type="button" size="sm" onClick={() => setIsRevenueModalOpen(true)}>Client chart</Button></div>
+      <div><h3 className="text-base font-semibold text-white">Revenue by client</h3><p className="mt-1 text-xs text-zinc-500">Recognized revenue within the selected range.</p></div>
       <div className="mt-5 min-h-0 flex-1 divide-y divide-zinc-800 overflow-y-auto">
         {(financeData?.revenueByClient || []).map((client: any) => <div key={client.id} className="flex items-center justify-between gap-4 py-3 text-xs"><span className="truncate font-semibold text-zinc-300">{client.name}</span><span className={`shrink-0 font-mono font-bold ${financialValueClass(Number(client.revenue))}`}>{formatCurrency(client.revenue)}</span></div>)}
         {!financeData?.revenueByClient?.length && <p className="py-8 text-center text-xs text-zinc-500">No recognized revenue in this range.</p>}
@@ -801,7 +786,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                 <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-56 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 text-white shadow-2xl">
                   <button type="button" disabled={welcomeBackgroundStatus === 'saving'} onClick={() => welcomeBackgroundInputRef.current?.click()} className="dashboard-menu-item"><ImageUp className="h-4 w-4" aria-hidden="true" />{welcomeBackground ? 'Replace wallpaper' : 'Upload wallpaper'}</button>
                   <button type="button" disabled={!welcomeBackground || welcomeBackgroundStatus === 'saving'} onClick={() => setIsRepositioningBanner(true)} className="dashboard-menu-item"><Move className="h-4 w-4" aria-hidden="true" />Resize and reposition</button>
-                  <a href={CANVA_BANNER_DESIGN_URL} target="_blank" rel="noreferrer" className="dashboard-menu-item"><Image src="/canva-icon.svg" alt="" width={16} height={16} className="canva-logo" aria-hidden="true" />Create with Canva</a>
+                  <a href={CANVA_BANNER_DESIGN_URL} className="dashboard-menu-item"><Image src="/canva-icon.svg" alt="" width={16} height={16} className="canva-logo" aria-hidden="true" />Create with Canva</a>
                   <button type="button" disabled={!welcomeBackground || welcomeBackgroundStatus === 'saving'} onClick={() => void saveWelcomeBackground('').catch((reason) => { setWelcomeBackgroundStatus('error'); window.alert(reason instanceof Error ? reason.message : 'The background could not be removed.'); })} className="dashboard-menu-item"><X className="h-4 w-4" aria-hidden="true" />Remove wallpaper</button>
                 </Popover.Content>
               </Popover.Portal>

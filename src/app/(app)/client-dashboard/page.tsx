@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { taskStatusLabel } from '@/lib/tasks/status-progress';
 import { ClientEmptyState, ClientMetricCard, ClientPanel, ClientWorkspaceBanner } from '@/components/clients/client-workspace-ui';
+import { resolveWorkspaceBannerPosition, resolveWorkspaceBannerZoom, type WorkspaceBannerPosition } from '@/lib/workspace-banner';
 
 type Project = { id: string; name: string; status: string; progress: number };
 type Task = { id: string; title: string; status: string; progress: number; project?: { id: string; name: string } | null };
@@ -14,7 +15,7 @@ type Deliverable = { id: string; title: string; url: string; status: string; cre
 type ChangeRequest = { id: string; title: string; status: string; project?: { name: string } | null };
 type Invoice = { id: string; invoiceNumber: string; project?: { name: string } | null };
 type DocumentRow = { id: string; title: string; kind: string; status: string };
-type UserPayload = { role: string; name: string; client?: { id: string; name: string; workspaceBannerDataUrl?: string | null } | null };
+type UserPayload = { role: string; name: string; client?: { id: string; name: string; workspaceBannerDataUrl?: string | null; workspaceBannerPosition?: WorkspaceBannerPosition; workspaceBannerZoom?: number } | null };
 
 function statusTone(status: string) {
   if (['COMPLETED', 'APPROVED', 'EXECUTED', 'FULLY_PAID', 'FINALIZED'].includes(status)) return 'risk-low' as const;
@@ -34,6 +35,8 @@ export default function ClientDashboardPage() {
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [documents, setDocuments] = React.useState<DocumentRow[]>([]);
   const [bannerDataUrl, setBannerDataUrl] = React.useState<string | null>(null);
+  const [bannerPosition, setBannerPosition] = React.useState<WorkspaceBannerPosition>({ x: 50, y: 50 });
+  const [bannerZoom, setBannerZoom] = React.useState(1);
 
   React.useEffect(() => {
     let active = true;
@@ -50,7 +53,7 @@ export default function ClientDashboardPage() {
         if (responses.some((response) => !response.ok)) throw new Error('The client workspace could not be loaded.');
         const [userData, projectData, taskData, deliveryData, invoiceData, documentData] = await Promise.all(responses.map((response) => response.json()));
         if (!active) return;
-        setUser(userData); setBannerDataUrl(userData.client?.workspaceBannerDataUrl || null); setProjects(projectData || []); setTasks(taskData || []);
+        setUser(userData); setBannerDataUrl(userData.client?.workspaceBannerDataUrl || null); setBannerPosition(resolveWorkspaceBannerPosition(userData.client?.workspaceBannerPosition)); setBannerZoom(resolveWorkspaceBannerZoom(userData.client?.workspaceBannerZoom)); setProjects(projectData || []); setTasks(taskData || []);
         setDeliverables(deliveryData.deliverables || []); setChangeRequests(deliveryData.changeRequests || []);
         setInvoices(invoiceData || []); setDocuments(documentData.documents || []);
       } catch (reason) {
@@ -75,14 +78,26 @@ export default function ClientDashboardPage() {
 
   const saveBanner = async (workspaceBannerDataUrl: string | null) => {
     if (!user.client?.id) throw new Error('This client workspace is not linked correctly.');
-    const response = await fetch('/api/clients', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: user.client.id, workspaceBannerDataUrl }) });
+    const nextPosition = { x: 50, y: 50 };
+    const response = await fetch('/api/clients', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: user.client.id, workspaceBannerDataUrl, workspaceBannerPosition: nextPosition, workspaceBannerZoom: 1 }) });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || 'The banner could not be saved.');
     setBannerDataUrl(workspaceBannerDataUrl);
+    setBannerPosition(nextPosition);
+    setBannerZoom(1);
+  };
+
+  const saveBannerLayout = async (workspaceBannerPosition: WorkspaceBannerPosition, workspaceBannerZoom: number) => {
+    if (!user.client?.id) throw new Error('This client workspace is not linked correctly.');
+    const response = await fetch('/api/clients', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: user.client.id, workspaceBannerPosition, workspaceBannerZoom }) });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'The banner layout could not be saved.');
+    setBannerPosition(workspaceBannerPosition);
+    setBannerZoom(workspaceBannerZoom);
   };
 
   return <div className="dashboard-canvas space-y-6">
-    <ClientWorkspaceBanner name={firstName} backgroundDataUrl={bannerDataUrl} onBackgroundChange={saveBanner} />
+    <ClientWorkspaceBanner name={firstName} backgroundDataUrl={bannerDataUrl} position={bannerPosition} zoom={bannerZoom} onBackgroundChange={saveBanner} onLayoutChange={saveBannerLayout} />
     {error && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">{error}</div>}
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Client workspace summary">
       <ClientMetricCard tone="projects" icon={FolderKanban} label="Projects" value={projects.length} detail={`${activeProjects.length} active`} href="/client-projects" />
