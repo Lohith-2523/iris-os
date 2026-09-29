@@ -546,7 +546,7 @@ export default function WaitlistPage() {
                   margin: 0,
                 }}
               >
-                Thank you{name ? `, ${name}` : ''}. We have registered <strong>{email}</strong> for early access. Your secure signup link will arrive within 1–2 days.
+                Thank you{name ? `, ${name}` : ''}. We have registered <strong>{email}</strong> for early access. We&apos;ll email you when your secure signup access is ready.
               </p>
 
               <Link

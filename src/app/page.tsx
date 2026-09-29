@@ -11,6 +11,7 @@ import { IrisPricingComparison } from '@/components/landing/iris-pricing-compari
 import { ConsoleEcosystem, MilesAiSection } from '@/components/landing/iris-landing-sections';
 import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
 import type { pricingCatalog, PricingRegion } from '@/lib/plan-pricing';
+import { isWaitlistGateActive } from '@/lib/waitlist-config';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -74,7 +75,7 @@ function ScrollReveal({ children, delay = '0s', className = '', id = '', style =
 // â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â”€â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function Hero() {
+function Hero({ waitlistGateActive }: { waitlistGateActive: boolean }) {
   return (
     <section
       style={{
@@ -210,7 +211,7 @@ function Hero() {
         style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}
       >
         <Link
-          href="/waitlist"
+          href={waitlistGateActive ? '/waitlist' : '/signup'}
           prefetch={false}
           className="neo-button-accent"
           style={{
@@ -225,7 +226,7 @@ function Hero() {
             textAlign: 'center',
           }}
         >
-          Join the Waitlist
+          {waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'}
         </Link>
         <a
           href="#video"
@@ -1159,7 +1160,7 @@ function Pricing({ region, plans }: {
 void PlaceholderCard;
 void Features;
 
-function Waitlist() {
+function Waitlist({ waitlistGateActive }: { waitlistGateActive: boolean }) {
   return (
     <section id="waitlist" style={{ padding: 'clamp(88px, 10vw, 120px) clamp(16px, 5vw, 32px) clamp(112px, 14vw, 160px)', maxWidth: '1200px', margin: '0 auto' }}>
       <div className="animate-fade-in-up" style={{ maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
@@ -1197,7 +1198,7 @@ function Waitlist() {
 
         <div className="neo-raised" style={{ padding: 'clamp(28px, 6vw, 48px) clamp(20px, 6vw, 40px)', display: 'flex', justifyContent: 'center' }}>
           <Link
-            href="/waitlist"
+            href={waitlistGateActive ? '/waitlist' : '/signup'}
             prefetch={false}
             className="neo-button-accent"
             style={{
@@ -1212,7 +1213,7 @@ function Waitlist() {
               textAlign: 'center',
             }}
           >
-            Join the Waitlist
+            {waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'}
           </Link>
         </div>
 
@@ -1274,6 +1275,7 @@ function Footer() {
 export default function App() {
   const { region, plans, loading } = usePlanPricing();
   const knownDevice = useKnownDeviceAccess();
+  const waitlistGateActive = isWaitlistGateActive();
 
   if (loading || knownDevice === null) return <IrisLandingSkeleton />;
 
@@ -1291,13 +1293,13 @@ export default function App() {
       }}
     >
       <IrisMarketingHeader knownDevice={knownDevice} />
-      <Hero />
+      <Hero waitlistGateActive={waitlistGateActive} />
       <VideoSection />
       <About />
       <ConsoleEcosystem />
       <MilesAiSection />
       <Pricing region={region} plans={plans} />
-      <Waitlist />
+      <Waitlist waitlistGateActive={waitlistGateActive} />
       <Footer />
     </div>
   )

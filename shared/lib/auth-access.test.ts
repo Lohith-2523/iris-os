@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   createAccessToken: vi.fn(),
+  upsertAccessToken: vi.fn(),
   findAccessToken: vi.fn(),
   consumeAccessToken: vi.fn(),
   createDeviceGrant: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     authAccessToken: {
       create: mocks.createAccessToken,
+      upsert: mocks.upsertAccessToken,
       findUnique: mocks.findAccessToken,
     },
     $transaction: async (callback: (tx: unknown) => unknown) => callback({
@@ -26,6 +28,8 @@ import {
   ADMIN_DIRECT_ACCESS_PURPOSE,
   createAdminDirectAccessLink,
   redeemAuthAccessToken,
+  scheduleWaitlistInvitation,
+  WAITLIST_SIGNUP_PURPOSE,
 } from './auth-access';
 import { verifyDeviceAccessCookieValue } from './auth-access-cookie';
 
@@ -74,5 +78,59 @@ describe('superadmin direct access links', () => {
 
     expect(result?.email).toBe('approved@example.com');
     expect(verifyDeviceAccessCookieValue(result?.cookieValue, now)?.landingPreference).toBe('HOME');
+  });
+
+  it('redeems a superadmin link before the public waitlist release', async () => {
+    const beforeLaunch = new Date('2026-10-01T00:00:00.000Z');
+    mocks.findAccessToken.mockResolvedValue({
+      id: 'access-1',
+      email: 'approved@example.com',
+      purpose: ADMIN_DIRECT_ACCESS_PURPOSE,
+      status: 'SENT',
+      expiresAt: new Date('2026-10-02T00:00:00.000Z'),
+      redeemedAt: null,
+    });
+    mocks.consumeAccessToken.mockResolvedValue({ count: 1 });
+    mocks.createDeviceGrant.mockResolvedValue({ id: 'grant-1' });
+
+    const result = await redeemAuthAccessToken('raw-access-token', beforeLaunch);
+
+    expect(result?.email).toBe('approved@example.com');
+    expect(verifyDeviceAccessCookieValue(result?.cookieValue, beforeLaunch)?.landingPreference).toBe('HOME');
+  });
+});
+
+describe('waitlist launch access', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubEnv('AUTH_ACCESS_SECRET', 'test-auth-access-secret-that-is-long-enough');
+    mocks.upsertAccessToken.mockResolvedValue({ id: 'waitlist-access-1' });
+  });
+
+  it('schedules every pre-launch registration for October 14', async () => {
+    await scheduleWaitlistInvitation(
+      { id: 'waitlist-1', email: 'person@example.com' },
+      new Date('2026-09-30T12:00:00.000Z'),
+    );
+
+    expect(mocks.upsertAccessToken).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        scheduledAt: new Date('2026-10-13T18:30:00.000Z'),
+      }),
+    }));
+  });
+
+  it('does not redeem a waitlist invitation before launch', async () => {
+    mocks.findAccessToken.mockResolvedValue({
+      id: 'waitlist-access-1',
+      email: 'person@example.com',
+      purpose: WAITLIST_SIGNUP_PURPOSE,
+      status: 'SENT',
+      expiresAt: new Date('2026-10-20T00:00:00.000Z'),
+      redeemedAt: null,
+    });
+
+    await expect(redeemAuthAccessToken('raw-access-token', new Date('2026-10-13T18:29:59.999Z'))).resolves.toBeNull();
+    expect(mocks.consumeAccessToken).not.toHaveBeenCalled();
   });
 });

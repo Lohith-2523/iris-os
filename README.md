@@ -95,15 +95,16 @@ APP_URL="https://irisos.app"
 ```
 
 The waitlist is enabled by `WAITLIST_ENABLED = true` in
-`shared/lib/waitlist-config.ts`. Public login and signup require a signed device
-grant from a waitlist invitation or a single-use link generated in the
-superadmin User access links page. Email verification remains required for
-signup.
+`shared/lib/waitlist-config.ts`. Until October 14, 2026 at 00:00 IST, public
+login and signup require a signed device grant from a waitlist invitation or a
+single-use link generated in the superadmin User access links page. The gate
+opens automatically for everyone at that release boundary. Email verification
+remains required for signup.
 
 `AUTH_ACCESS_SECRET` signs first-party device grants. Keep it stable across
-deployments; rotating it revokes existing grants. The daily waitlist cron
-uses `CRON_SECRET`, sends each signup invitation 24–48 hours after registration,
-and delivers the daily waitlist report.
+deployments; rotating it revokes existing grants. The daily waitlist cron uses
+`CRON_SECRET`, holds signup invitations until the October 14 release, and
+delivers the daily waitlist report.
 
 `MESSAGING_ENCRYPTION_KEY` encrypts account-scoped messaging private keys at rest. Keep it stable across deployments; changing or losing it makes stored message keyrings unreadable. When omitted, the app falls back to `INTEGRATION_ENCRYPTION_KEY` and then `AUTH_SECRET` for compatibility.
 

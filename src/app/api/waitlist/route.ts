@@ -1,4 +1,4 @@
-import { WAITLIST_ENABLED } from '@/lib/waitlist-config';
+import { isWaitlistGateActive } from '@/lib/waitlist-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { appendSheetRecord } from '@/lib/google-sheets';
@@ -15,7 +15,7 @@ function cleanOptionalText(value: unknown, maximumLength: number) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!WAITLIST_ENABLED) {
+  if (!isWaitlistGateActive()) {
     return NextResponse.json({ error: 'Waitlist registration is paused. Please sign up directly.' }, { status: 410 });
   }
   try {

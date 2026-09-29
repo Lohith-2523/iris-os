@@ -4,12 +4,14 @@ import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
+import { isWaitlistGateActive } from '@/lib/waitlist-config';
 
 const BODY = 'var(--font-geist-sans), sans-serif';
 
 export function MarketingHeader() {
   const [scrolled, setScrolled] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const waitlistGateActive = isWaitlistGateActive();
 
   React.useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -60,12 +62,12 @@ export function MarketingHeader() {
           </nav>
 
           <Link
-            href="/waitlist"
+            href={waitlistGateActive ? '/waitlist' : '/signup'}
             prefetch={false}
             className="neo-button-accent hidden px-[22px] py-2.5 text-[13px] font-semibold text-[#0a0a0a] no-underline md:block"
             style={{ fontFamily: BODY }}
           >
-            Join the Waitlist
+            {waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'}
           </Link>
 
           <button
@@ -102,13 +104,13 @@ export function MarketingHeader() {
             ))}
           </nav>
           <Link
-            href="/waitlist"
+            href={waitlistGateActive ? '/waitlist' : '/signup'}
             prefetch={false}
             onClick={() => setMobileMenuOpen(false)}
             className="neo-button-accent mt-2 p-3 text-center text-sm font-semibold text-[#0a0a0a] no-underline"
             style={{ fontFamily: BODY }}
           >
-            Join the Waitlist
+            {waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'}
           </Link>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const auth = vi.hoisted(() => ({
   getClaims: vi.fn(),
@@ -14,12 +14,16 @@ import { createDeviceAccessCookieValue, DEVICE_ACCESS_COOKIE } from './auth-acce
 
 describe('authentication proxy responses', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T00:00:00.000Z'));
     vi.clearAllMocks();
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'publishable-key');
     vi.stubEnv('AUTH_ACCESS_SECRET', 'test-auth-access-secret-that-is-long-enough');
     auth.getClaims.mockResolvedValue({ data: null, error: null });
   });
+
+  afterAll(() => vi.useRealTimers());
 
   it('returns JSON 401 for an unauthenticated protected API request', async () => {
     const response = await updateSession(new NextRequest('http://localhost:3000/api/messaging'));
@@ -44,7 +48,7 @@ describe('authentication proxy responses', () => {
     }
   });
 
-  it('allows an unexpired signed device grant to open the login page', async () => {
+  it('allows an existing unexpired device grant to open login before the public release', async () => {
     const request = new NextRequest('http://localhost:3000/login');
     request.cookies.set(DEVICE_ACCESS_COOKIE, createDeviceAccessCookieValue('grant-1', 'device-token', new Date(Date.now() + 60_000)));
     const response = await updateSession(request);

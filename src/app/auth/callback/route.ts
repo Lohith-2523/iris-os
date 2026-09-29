@@ -1,4 +1,4 @@
-import { WAITLIST_ENABLED } from '@/lib/waitlist-config';
+import { isWaitlistGateActive } from '@/lib/waitlist-config';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
       return response;
     }
 
-    if (WAITLIST_ENABLED) {
+    if (isWaitlistGateActive()) {
       const existingWorkspaceUser = await prisma.user.findFirst({
         where: { OR: [{ authUserId: session.user.id }, { email: email.toLowerCase() }] },
         select: { id: true },

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { isWaitlistGateActive } from '@/lib/waitlist-config';
 
 const BODY = 'var(--font-geist-sans), sans-serif';
 const IRIS_LOGO = '/iris-logo-black-bg.png';
@@ -53,8 +54,9 @@ export function IrisMarketingHeader({ knownDevice: knownDeviceProp }: { knownDev
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMobileMenuOpen]);
 
-  const accessHref = knownDevice ? '/login' : '/waitlist';
-  const accessLabel = knownDevice ? 'Login / Sign up' : 'Join the Waitlist';
+  const hasPublicAccess = !isWaitlistGateActive();
+  const accessHref = knownDevice || hasPublicAccess ? '/login' : '/waitlist';
+  const accessLabel = knownDevice || hasPublicAccess ? 'Login / Sign up' : 'Join the Waitlist';
 
   const navLinks = [
     { label: 'Preview', href: isHome ? '#video' : '/#video' },

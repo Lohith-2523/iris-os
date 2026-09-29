@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { sendIrisEmail } from '@/lib/email/iris-email';
 import { authAccessEmail } from '@/lib/email/iris-templates';
 import { createDeviceAccessCookieValue, verifyDeviceAccessCookieValue } from '@/lib/auth-access-cookie';
+import { WAITLIST_ACCESS_OPENS_AT } from '@/lib/waitlist-config';
 
 export const WAITLIST_SIGNUP_PURPOSE = 'WAITLIST_SIGNUP';
 export const ACCOUNT_LOGIN_PURPOSE = 'ACCOUNT_LOGIN';
@@ -51,9 +52,9 @@ export async function createAdminDirectAccessLink(
 }
 
 export async function scheduleWaitlistInvitation(waitlistEntry: { id: string; email: string }, now = new Date()) {
-  // The daily delivery run picks this up on its first pass after 24 hours,
-  // keeping delivery within the promised 24–48 hour window.
-  const scheduledAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  // Release every waitlist member together on launch day. Registrations made
+  // after launch are eligible on the next delivery pass.
+  const scheduledAt = now < WAITLIST_ACCESS_OPENS_AT ? WAITLIST_ACCESS_OPENS_AT : now;
   return prisma.authAccessToken.upsert({
     where: { dedupeKey: `waitlist:${waitlistEntry.id}` },
     create: {
@@ -121,17 +122,14 @@ export async function sendDueWaitlistInvitations(now = new Date()) {
   await prisma.authAccessToken.deleteMany({
     where: { status: { in: ['REDEEMED', 'EXPIRED'] }, updatedAt: { lt: retentionCutoff } },
   });
-  // Invitations created before the daily schedule was introduced may have a
-  // randomized due time. Make them eligible after 24 hours so none drift past
-  // the original 48-hour delivery promise while the new cadence takes effect.
+  // Clamp invitations created under the previous one-day policy to launch day.
   await prisma.authAccessToken.updateMany({
     where: {
       purpose: WAITLIST_SIGNUP_PURPOSE,
-      status: 'PENDING',
-      createdAt: { lte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
-      scheduledAt: { gt: now },
+      status: { in: ['PENDING', 'FAILED', 'SENDING'] },
+      scheduledAt: { lt: WAITLIST_ACCESS_OPENS_AT },
     },
-    data: { scheduledAt: now },
+    data: { scheduledAt: WAITLIST_ACCESS_OPENS_AT, status: 'PENDING', lockedAt: null },
   });
   const due = await prisma.authAccessToken.findMany({
     where: { purpose: WAITLIST_SIGNUP_PURPOSE, scheduledAt: { lte: now }, status: { in: ['PENDING', 'FAILED', 'SENDING'] } },
@@ -168,6 +166,7 @@ export async function requestExistingAccountAccess(email: string, now = new Date
 export async function redeemAuthAccessToken(token: string, now = new Date()) {
   const record = await prisma.authAccessToken.findUnique({ where: { tokenHash: hashToken(token) } });
   if (!record || record.status !== 'SENT' || !record.expiresAt || record.expiresAt <= now || record.redeemedAt) return null;
+  if (record.purpose === WAITLIST_SIGNUP_PURPOSE && now < WAITLIST_ACCESS_OPENS_AT) return null;
   const grantToken = rawToken();
   const expiresAt = new Date(now.getTime() + DEVICE_LIFETIME_MS);
   const result = await prisma.$transaction(async tx => {

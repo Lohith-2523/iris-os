@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const mocks = vi.hoisted(() => ({ waitlistEnabled: true, signUp: vi.fn(), signOut: vi.fn(), validateAccess: vi.fn(), bindGrant: vi.fn() }));
-vi.mock('@/lib/waitlist-config', () => ({ get WAITLIST_ENABLED() { return mocks.waitlistEnabled; } }));
+vi.mock('@/lib/waitlist-config', () => ({ isWaitlistGateActive: () => mocks.waitlistEnabled }));
 vi.mock('@/lib/server', () => ({ createClient: async () => ({ auth: { signUp: mocks.signUp, signOut: mocks.signOut } }) }));
 vi.mock('@/lib/auth-access', () => ({ validateDeviceAccess: mocks.validateAccess, bindDeviceGrantToAuthUser: mocks.bindGrant }));
 import { POST } from './route';

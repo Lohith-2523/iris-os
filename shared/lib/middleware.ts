@@ -1,4 +1,4 @@
-import { WAITLIST_ENABLED } from '@/lib/waitlist-config';
+import { isWaitlistGateActive } from '@/lib/waitlist-config';
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import {
@@ -51,15 +51,16 @@ export async function updateSession(request: NextRequest) {
     const user = data?.claims
 
     const pathname = request.nextUrl.pathname
-    if (!WAITLIST_ENABLED && pathname === '/waitlist') {
+    const waitlistGateActive = isWaitlistGateActive()
+    if (!waitlistGateActive && pathname === '/waitlist') {
       return NextResponse.redirect(new URL('/signup', request.url))
     }
-    if (!WAITLIST_ENABLED && pathname === '/api/waitlist') {
+    if (!waitlistGateActive && pathname === '/api/waitlist') {
       return NextResponse.json({ error: 'Waitlist registration is paused. Please sign up directly.' }, { status: 410 })
     }
     const isGuardedAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup')
     let hasDeviceAccess = false
-    if (WAITLIST_ENABLED && isGuardedAuthPage && !user) {
+    if (waitlistGateActive && isGuardedAuthPage && !user) {
       try {
         hasDeviceAccess = Boolean(verifyDeviceAccessCookieValue(request.cookies.get(DEVICE_ACCESS_COOKIE)?.value))
       } catch {
