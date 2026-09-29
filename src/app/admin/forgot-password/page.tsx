@@ -38,7 +38,7 @@ export default function AdminForgotPasswordPage() {
   };
 
   return (
-    <AuthShell title="Reset superadmin password" description="Request a secure password reset link for your invited IrisOS account.">
+    <AuthShell title="Reset superadmin password" description="Request a secure password reset link for your invited IrisOS account." appearance="dark">
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}
         {isSent ? <div className={styles.success} role="status">If an invited account exists for <strong>{email.trim()}</strong>, a reset link is on its way.</div> : (

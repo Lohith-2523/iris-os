@@ -35,7 +35,7 @@ export default function AdminResetPasswordPage() {
   };
 
   return (
-    <AuthShell title="Choose a new password" description="Create a new password for your IrisOS superadmin account.">
+    <AuthShell title="Choose a new password" description="Create a new password for your IrisOS superadmin account." appearance="dark">
       <div className={styles.content}>
         {errorMsg && <div className={styles.error} role="alert">{errorMsg}</div>}
         <form onSubmit={handleSubmit} className={styles.form} aria-busy={isLoading}>
