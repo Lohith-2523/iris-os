@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
-import { normalizePlan } from '@/lib/plan-entitlements';
+import { isPlanDowngrade, normalizePlan } from '@/lib/plan-entitlements';
 import { matchManagedCoupon } from '@/server/admin/managed-coupons';
 import { planPriceWithCoupon } from '@/lib/plan-pricing';
 import { pricingLocation } from '@/lib/request-country';
@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
 
   const input = inputSchema.safeParse(await request.json().catch(() => null));
   if (!input.success) return NextResponse.json({ error: 'Enter a valid coupon code.' }, { status: 400, headers: noStoreHeaders });
+  if (isPlanDowngrade(user.organization.plan, input.data.plan)) {
+    return NextResponse.json({ error: 'Paid plans can only be upgraded. Cancel the current plan to switch to Free.' }, { status: 409, headers: noStoreHeaders });
+  }
 
   const securityState = await prisma.planCouponSecurityState.findUnique({ where: { userId: user.id } });
   if (securityState?.lockedUntil && securityState.lockedUntil > new Date()) {
@@ -110,6 +113,7 @@ export async function POST(request: NextRequest) {
     const organization = await tx.organization.findUniqueOrThrow({ where: { id: user.orgId }, select: { plan: true } });
     const currentPlan = normalizePlan(organization.plan);
     const nextPlan = input.data.plan;
+    if (isPlanDowngrade(currentPlan, nextPlan)) return 'DOWNGRADE' as const;
     if (nextPlan !== currentPlan) await tx.organization.update({ where: { id: user.orgId }, data: { plan: nextPlan } });
     const previousRedemption = await tx.planCouponRedemption.findFirst({ where: { orgId: user.orgId, couponId: coupon.id, requestedPlan: input.data.plan }, select: { id: true } });
     if (!previousRedemption) {
@@ -126,5 +130,6 @@ export async function POST(request: NextRequest) {
   });
 
   if (!activatedPlan) return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: noStoreHeaders });
+  if (activatedPlan === 'DOWNGRADE') return NextResponse.json({ error: 'Paid plans can only be upgraded. Cancel the current plan to switch to Free.' }, { status: 409, headers: noStoreHeaders });
   return NextResponse.json({ success: true, plan: activatedPlan }, { headers: noStoreHeaders });
 }

@@ -46,7 +46,7 @@ function request(body: unknown) {
 describe('plan coupon redemption route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getRequestUser.mockResolvedValue({ id: 'user-1', orgId: 'org-1', role: 'admin' });
+    mocks.getRequestUser.mockResolvedValue({ id: 'user-1', orgId: 'org-1', role: 'admin', organization: { plan: 'BASIC' } });
     mocks.isOrganizationAdmin.mockReturnValue(true);
     mocks.securityFind.mockResolvedValue(null);
     mocks.organizationFind.mockResolvedValue({ plan: 'BASIC' });
@@ -126,12 +126,12 @@ describe('plan coupon redemption route', () => {
     expect(mocks.redemptionCreate).not.toHaveBeenCalled();
   });
 
-  it('allows a valid Pro coupon to downgrade an Advanced workspace', async () => {
+  it('rejects a valid Pro coupon that would downgrade an Advanced workspace', async () => {
     mocks.matchManagedCoupon.mockResolvedValue({ id: 'standard', discountPercent: 100 });
     mocks.organizationFind.mockResolvedValue({ plan: 'ADVANCED' });
     const response = await POST(request({ plan: 'PRO', coupon: 'typed-value' }));
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ success: true, plan: 'PRO' });
-    expect(mocks.organizationUpdate).toHaveBeenCalledWith({ where: { id: 'org-1' }, data: { plan: 'PRO' } });
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: 'Paid plans can only be upgraded. Cancel the current plan to switch to Free.' });
+    expect(mocks.organizationUpdate).not.toHaveBeenCalled();
   });
 });

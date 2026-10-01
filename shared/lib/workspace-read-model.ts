@@ -49,7 +49,6 @@ export type WorkspaceReadModel = {
     lastSync: string | null;
   }>;
   entitlements: {
-    specializationLimit: number;
     teamMemberLimit: number | null;
     coreTeamMemberLimit: number;
     clientLimit: number | null;

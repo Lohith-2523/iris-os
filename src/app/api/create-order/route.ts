@@ -5,6 +5,7 @@ import { createOrderSchema, getRazorpay, razorpayErrorResponse } from '@/lib/raz
 import { planPrice, planPriceWithCoupon } from '@/lib/plan-pricing';
 import { pricingLocation } from '@/lib/request-country';
 import { matchManagedCoupon } from '@/server/admin/managed-coupons';
+import { isPlanDowngrade } from '@/lib/plan-entitlements';
 
 export const runtime = 'nodejs';
 
@@ -15,6 +16,9 @@ export async function POST(request: NextRequest) {
     if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const input = createOrderSchema.safeParse(await request.json().catch(() => null));
     if (!input.success) return NextResponse.json({ error: 'Choose the Pro or Advanced plan.' }, { status: 400 });
+    if (isPlanDowngrade(user.organization.plan, input.data.plan)) {
+      return NextResponse.json({ error: 'Paid plans can only be upgraded. Cancel the current plan to switch to Free.' }, { status: 409 });
+    }
 
     const { client, keyId } = getRazorpay();
     const location = pricingLocation(request.headers);

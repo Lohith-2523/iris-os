@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 const mocks = vi.hoisted(() => ({
-  user: vi.fn(), admin: vi.fn(), create: vi.fn(), fetch: vi.fn(), update: vi.fn(), paymentUpsert: vi.fn(),
+  user: vi.fn(), admin: vi.fn(), create: vi.fn(), fetch: vi.fn(), paymentFetch: vi.fn(), update: vi.fn(), paymentUpsert: vi.fn(),
   matchCoupon: vi.fn(), redemptionFind: vi.fn(), redemptionCreate: vi.fn(),
 }));
 vi.mock('@/lib/org', () => ({ getRequestUser: mocks.user, isOrganizationAdmin: mocks.admin }));
@@ -18,7 +18,7 @@ vi.mock('@/lib/db', () => {
   };
   return { prisma: { ...tx, $transaction: (callback: (value: typeof tx) => unknown) => callback(tx) } };
 });
-vi.mock('razorpay', () => ({ default: class { orders = { create: mocks.create, fetch: mocks.fetch }; } }));
+vi.mock('razorpay', () => ({ default: class { orders = { create: mocks.create, fetch: mocks.fetch }; payments = { fetch: mocks.paymentFetch }; } }));
 import { POST as createOrder } from '@/app/api/create-order/route';
 import { POST as verifyPayment } from '@/app/api/verify-payment/route';
 
@@ -34,6 +34,7 @@ beforeEach(() => {
   mocks.user.mockResolvedValue({ id: 'user-1', orgId: 'org-1', organization: { plan: 'BASIC' } }); mocks.admin.mockReturnValue(true);
   mocks.create.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD' });
   mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD', notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
+  mocks.paymentFetch.mockResolvedValue({ order_id: 'order_123', status: 'captured', amount: 2_359, currency: 'USD' });
   mocks.update.mockResolvedValue({});
   mocks.matchCoupon.mockResolvedValue(null);
   mocks.redemptionFind.mockResolvedValue(null);
@@ -96,22 +97,33 @@ describe('Razorpay plan endpoints', () => {
     expect(mocks.update).toHaveBeenCalledWith({ where: { id: 'org-1' }, data: { plan: 'PRO' } });
   });
 
+  it('does not create a checkout order for a paid-plan downgrade', async () => {
+    mocks.user.mockResolvedValue({ id: 'user-1', orgId: 'org-1', organization: { plan: 'ADVANCED' } });
+
+    const response = await createOrder(request({ plan: 'PRO' }));
+
+    expect(response.status).toBe(409);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
   it('verifies and records a paid coupon redemption at the discounted original price', async () => {
     mocks.fetch.mockResolvedValue({
       id: 'order_123', amount: 169_814, currency: 'INR',
       notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INDIA', couponId: 'coupon-10', discountPercent: '10' },
     });
+    mocks.paymentFetch.mockResolvedValue({ order_id: 'order_123', status: 'captured', amount: 169_814, currency: 'INR' });
     const response = await verifyPayment(request(payment));
     expect(response.status).toBe(200);
     expect(mocks.paymentUpsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ baseAmount: 143_910, taxAmount: 25_904, totalAmount: 169_814 }) }));
     expect(mocks.redemptionCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ couponId: 'coupon-10', requestedPlan: 'PRO' }) });
   });
 
-  it('allows a verified Pro purchase to downgrade an Advanced workspace', async () => {
+  it('rejects a verified Pro purchase that would downgrade an Advanced workspace', async () => {
     mocks.user.mockResolvedValue({ id: 'user-1', orgId: 'org-1', organization: { plan: 'ADVANCED' } });
     const response = await verifyPayment(request(payment));
-    expect(await response.json()).toEqual(expect.objectContaining({ success: true, plan: 'PRO' }));
-    expect(mocks.update).toHaveBeenCalledWith({ where: { id: 'org-1' }, data: { plan: 'PRO' } });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'Paid plans can only be upgraded. Cancel the current plan to switch to Free.' });
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 
   it('rejects a mismatching signature without changing the plan', async () => {

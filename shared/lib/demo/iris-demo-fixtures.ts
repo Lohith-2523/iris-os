@@ -103,7 +103,7 @@ const workspace: WorkspaceReadModel = {
   user: { id: 'demo-user', orgId: 'demo-org', clientId: null, name: 'Alex Morgan', username: 'alex', email: 'alex@northstar.demo', role: 'admin', avatarUrl: null, accessPermissions: null, deliveryWorkspace: false, hasMetaAccount: true, client: null, preferences: {} },
   onboarding: { needsOnboarding: false, currentStep: 5, checklist: { skippedAll: false }, draft: {}, completedAt: '2026-04-04T00:00:00.000Z' },
   integrations: [{ provider: 'GOOGLE', status: 'CONNECTED', lastSync: '2026-09-26T07:15:00.000Z' }, { provider: 'META', status: 'CONNECTED', lastSync: '2026-09-26T06:40:00.000Z' }, { provider: 'CANVA', status: 'CONNECTED', lastSync: '2026-09-25T18:20:00.000Z' }],
-  entitlements: { specializationLimit: 12, teamMemberLimit: null, coreTeamMemberLimit: 25, clientLimit: null, projectLimit: null, activeLeadLimit: 500, dataTransferBytes: 10737418240, monthlyInvoiceLimit: null, dailyBriefing: true, strategyGeneration: true, aiFeatures: true, messaging: true, atlasCapabilities: ['ASK', 'ANALYZE', 'CREATE'], messagingLimits: {} },
+  entitlements: { teamMemberLimit: null, coreTeamMemberLimit: 25, clientLimit: null, projectLimit: null, activeLeadLimit: 500, dataTransferBytes: 10737418240, monthlyInvoiceLimit: null, dailyBriefing: true, strategyGeneration: true, aiFeatures: true, messaging: true, atlasCapabilities: ['ASK', 'ANALYZE', 'CREATE'], messagingLimits: {} },
 };
 
 const dashboard = {

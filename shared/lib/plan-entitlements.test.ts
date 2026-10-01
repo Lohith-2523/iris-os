@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { canUseAtlasCapability, entitlementsFor, normalizePlan, planIncludes } from './plan-entitlements';
+import { canUseAtlasCapability, entitlementsFor, isPlanDowngrade, isPlanUpgrade, normalizePlan, planIncludes } from './plan-entitlements';
 
 describe('plan entitlements', () => {
-  it('makes all ten specializations available to every plan', () => {
-    expect(entitlementsFor('BASIC').specializationLimit).toBe(10);
-    expect(entitlementsFor('PRO').specializationLimit).toBe(10);
-    expect(entitlementsFor('ADVANCED').specializationLimit).toBe(10);
+  it('does not treat agency specializations as a plan-limited resource', () => {
+    expect(entitlementsFor('BASIC')).not.toHaveProperty('specializationLimit');
+    expect(entitlementsFor('PRO')).not.toHaveProperty('specializationLimit');
+    expect(entitlementsFor('ADVANCED')).not.toHaveProperty('specializationLimit');
   });
 
   it('matches the published workspace capacity limits', () => {
@@ -64,6 +64,15 @@ describe('plan entitlements', () => {
     expect(planIncludes('PRO', 'PRO')).toBe(true);
     expect(planIncludes('PRO', 'ADVANCED')).toBe(false);
     expect(planIncludes('ADVANCED', 'PRO')).toBe(true);
+  });
+
+  it('distinguishes upgrades from prohibited downgrades', () => {
+    expect(isPlanUpgrade('BASIC', 'PRO')).toBe(true);
+    expect(isPlanUpgrade('PRO', 'ADVANCED')).toBe(true);
+    expect(isPlanDowngrade('PRO', 'BASIC')).toBe(true);
+    expect(isPlanDowngrade('ADVANCED', 'PRO')).toBe(true);
+    expect(isPlanUpgrade('PRO', 'PRO')).toBe(false);
+    expect(isPlanDowngrade('PRO', 'PRO')).toBe(false);
   });
 
   it('defaults unknown plans to Basic instead of granting access', () => {

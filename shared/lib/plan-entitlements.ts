@@ -60,7 +60,6 @@ function halfLimits(limits: MessagingLimits): MessagingLimits {
 
 export const PLAN_ENTITLEMENTS = {
   BASIC: {
-    specializationLimit: 10,
     teamMemberLimit: 0,
     coreTeamMemberLimit: 0,
     clientLimit: 5,
@@ -78,7 +77,6 @@ export const PLAN_ENTITLEMENTS = {
     messagingLimits: null,
   },
   PRO: {
-    specializationLimit: 10,
     teamMemberLimit: 5,
     coreTeamMemberLimit: 2,
     clientLimit: 25,
@@ -96,7 +94,6 @@ export const PLAN_ENTITLEMENTS = {
     messagingLimits: halfLimits(advancedMessagingLimits),
   },
   ADVANCED: {
-    specializationLimit: 10,
     teamMemberLimit: 15,
     coreTeamMemberLimit: 5,
     clientLimit: null,
@@ -125,8 +122,20 @@ export function entitlementsFor(plan: unknown) {
 }
 
 export function planIncludes(currentPlan: unknown, requiredPlan: PlanId) {
+  return planRank(currentPlan) >= planRank(requiredPlan);
+}
+
+export function planRank(plan: unknown) {
   const rank: Record<PlanId, number> = { BASIC: 0, PRO: 1, ADVANCED: 2 };
-  return rank[normalizePlan(currentPlan)] >= rank[requiredPlan];
+  return rank[normalizePlan(plan)];
+}
+
+export function isPlanDowngrade(currentPlan: unknown, requestedPlan: unknown) {
+  return planRank(requestedPlan) < planRank(currentPlan);
+}
+
+export function isPlanUpgrade(currentPlan: unknown, requestedPlan: unknown) {
+  return planRank(requestedPlan) > planRank(currentPlan);
 }
 
 export function canUseAtlasCapability(plan: unknown, capability: Exclude<AtlasCapability, 'ALL'>) {

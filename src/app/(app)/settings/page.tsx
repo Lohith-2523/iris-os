@@ -19,7 +19,7 @@ import { clearWorkspaceUiPreferences } from '@/lib/workspace-ui-storage';
 import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
 import { mergeAgencySpecializations } from '@/lib/agency-specializations';
 import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
-import { entitlementsFor, type PlanId } from '@/lib/plan-entitlements';
+import { entitlementsFor, isPlanDowngrade, type PlanId } from '@/lib/plan-entitlements';
 import { formatPlanMoney, planDisplayName } from '@/lib/plan-pricing';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
@@ -76,7 +76,6 @@ type WorkspaceUsage = {
   dataTransferBytes: number;
   monthlyInvoices: number;
   atlasTokensUsed: number;
-  atlasTokenLimit: number | null;
 };
 
 function IntegrationLogo({ provider }: { provider: string }) {
@@ -263,7 +262,7 @@ export default function SettingsPage() {
   const [cancelPlanError, setCancelPlanError] = React.useState('');
   const { region: pricingRegion, plans: settingsPlans, loading: pricingLoading } = usePlanPricing(!runtime.isDemo);
   const [hasAddon, setHasAddon] = React.useState(false);
-  const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, projects: 0, activeLeads: 0, teamMembers: 0, coreTeamMembers: 0, dataTransferBytes: 0, monthlyInvoices: 0, atlasTokensUsed: 0, atlasTokenLimit: null });
+  const [workspaceUsage, setWorkspaceUsage] = React.useState<WorkspaceUsage>({ clients: 0, projects: 0, activeLeads: 0, teamMembers: 0, coreTeamMembers: 0, dataTransferBytes: 0, monthlyInvoices: 0, atlasTokensUsed: 0 });
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
   const [specializationInput, setSpecializationInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
@@ -542,7 +541,6 @@ export default function SettingsPage() {
           dataTransferBytes: Number(planUsage?.dataTransferBytes || 0),
           monthlyInvoices: Number(planUsage?.monthlyInvoices || 0),
           atlasTokensUsed: Number(atlasUsage?.usage?.total || 0),
-          atlasTokenLimit: typeof atlasUsage?.limits?.total === 'number' ? atlasUsage.limits.total : null,
         });
       } catch (e) {
         console.error('Error loading organization:', e);
@@ -750,6 +748,8 @@ export default function SettingsPage() {
       setShowCancelPlanModal(false);
       invalidateWorkspaceDataTags(['workspace']);
       window.dispatchEvent(new Event('organization-updated'));
+      window.dispatchEvent(new Event('user-updated'));
+      router.refresh();
     } catch (error) {
       setCancelPlanStatus('error');
       setCancelPlanError(formatUserMessage(error instanceof Error ? error.message : 'Unable to cancel the plan.'));
@@ -819,8 +819,9 @@ export default function SettingsPage() {
     { label: 'Core team members', value: workspaceUsage.coreTeamMembers, limit: activeEntitlements.coreTeamMemberLimit, icon: UsersRound },
     { label: 'Data transfer', value: workspaceUsage.dataTransferBytes, limit: activeEntitlements.dataTransferBytes, icon: Gauge, format: formatDataBytes },
     { label: 'Invoices this month', value: workspaceUsage.monthlyInvoices, limit: activeEntitlements.monthlyInvoiceLimit, icon: FileText },
-    { label: 'Specializations', value: selectedTypes.length, limit: activeEntitlements.specializationLimit, icon: Target },
   ];
+  const atlasTokenLimit = activeEntitlements.atlasTokenLimits.total;
+  const selectablePlans = settingsPlans.filter((tier) => !isPlanDowngrade(plan, tier.id));
 
   if (isLoading) {
     return <PageSkeleton variant="settings" />;
@@ -1532,8 +1533,8 @@ export default function SettingsPage() {
                   </div>;
                 })}
                 <div className="min-w-0">
-                  <div className="mb-2 flex flex-col items-start gap-2 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Bot className="h-4 w-4 shrink-0 text-zinc-500" />Miles credits used</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.atlasTokensUsed.toLocaleString()} / {workspaceUsage.atlasTokenLimit?.toLocaleString() || 'Not included'}</span></div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label="Miles credits used" aria-valuemin={0} aria-valuemax={workspaceUsage.atlasTokenLimit || 1} aria-valuenow={workspaceUsage.atlasTokensUsed}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${workspaceUsage.atlasTokenLimit ? Math.min(100, (workspaceUsage.atlasTokensUsed / workspaceUsage.atlasTokenLimit) * 100) : 0}%` }} /></div>
+                  <div className="mb-2 flex flex-col items-start gap-2 text-xs sm:flex-row sm:items-center sm:justify-between"><span className="flex min-w-0 items-center gap-2 font-semibold text-zinc-300"><Bot className="h-4 w-4 shrink-0 text-zinc-500" />Miles credits used</span><span className="font-mono font-bold tabular-nums text-white">{workspaceUsage.atlasTokensUsed.toLocaleString()} / {atlasTokenLimit.toLocaleString()}</span></div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-850" role="progressbar" aria-label="Miles credits used" aria-valuemin={0} aria-valuemax={atlasTokenLimit} aria-valuenow={workspaceUsage.atlasTokensUsed}><div className="h-full rounded-full bg-zinc-300" style={{ width: `${Math.min(100, (workspaceUsage.atlasTokensUsed / atlasTokenLimit) * 100)}%` }} /></div>
                 </div>
               </div>
             </CardContent>
@@ -1541,8 +1542,8 @@ export default function SettingsPage() {
 
           <section aria-labelledby="settings-plan-options" className="space-y-4">
             <div><h2 id="settings-plan-options" className="text-base font-bold text-white">Plan options</h2><p className="mt-1 text-xs text-zinc-500">{pricingLoading ? 'Detecting regional pricing from your public IP country…' : `${pricingRegion === 'INDIA' ? 'Indian' : 'International'} pricing from your public IP country. Paid prices exclude 18% ${pricingRegion === 'INDIA' ? 'GST' : 'Tax'}.`}</p></div>
-            <div className="grid gap-4 lg:grid-cols-3">
-              {settingsPlans.map((tier) => {
+            <div className={`grid gap-4 ${selectablePlans.length > 2 ? 'lg:grid-cols-3' : selectablePlans.length > 1 ? 'lg:grid-cols-2' : ''}`}>
+              {selectablePlans.map((tier) => {
                 const isCurrent = tier.id === plan;
                 return <Card key={tier.id} className={`flex min-h-[290px] flex-col ${isCurrent ? 'border-zinc-500 bg-zinc-900/45' : 'border-zinc-850'}`}>
                   <CardHeader className="flex-1">
@@ -1575,9 +1576,6 @@ export default function SettingsPage() {
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest block">Current Plan</span>
                       <h3 className="text-base font-bold text-white uppercase">{planDisplayName(plan)} Plan</h3>
-                      <p className="text-zinc-500 text-[11px]">
-                        All 10 agency specializations
-                      </p>
                     </div>
                     <div className="sm:text-right">
                       <span className="font-mono text-2xl font-black text-white">
@@ -1606,14 +1604,14 @@ export default function SettingsPage() {
 
                   {/* Plan actions */}
                   <div className="pt-2 flex flex-wrap justify-start gap-3">
-                    <Button
+                    {plan !== 'ADVANCED' && <Button
                       type="button"
                       onClick={() => setPlanDialog({ feature: 'your workspace', requiredPlan: 'BASIC' })}
                       className="text-xs font-bold h-10 px-6 flex items-center justify-center gap-2 bg-white text-zinc-950 hover:bg-zinc-250 cursor-pointer animate-fade-in"
                     >
                       <RefreshCw className="h-4 w-4" />
                       <span>Change / Upgrade Billing Plan</span>
-                    </Button>
+                    </Button>}
                     {plan !== 'BASIC' && currentUser?.role.toLowerCase() === 'admin' && (
                       <Button
                         type="button"
@@ -2075,6 +2073,7 @@ export default function SettingsPage() {
         onPlanChanged={(nextPlan) => {
           setPlan(nextPlan);
           setPlanDialog(null);
+          router.refresh();
         }}
       />
 
@@ -2088,16 +2087,17 @@ export default function SettingsPage() {
             if (event.target === event.currentTarget && cancelPlanStatus !== 'saving') setShowCancelPlanModal(false);
           }}
         >
-          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-[#0d0e12] p-6 shadow-2xl">
-            <div className="flex items-start gap-3">
-              <div className="rounded-full border border-rose-900/60 bg-rose-950/40 p-2 text-rose-300">
-                <XCircle className="h-5 w-5" />
+          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-[#0d0e12] p-6 shadow-2xl sm:p-7">
+            <div className="flex items-start gap-4">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-rose-800/70 bg-rose-950/40 text-rose-300">
+                <X className="h-4 w-4" aria-hidden="true" />
               </div>
-              <div className="space-y-2">
-                <h2 id="cancel-plan-title" className="text-base font-bold text-white">Cancel your {planDisplayName(plan)} plan?</h2>
-                <p className="text-xs leading-5 text-zinc-400">
+              <div className="min-w-0 flex-1">
+                <h2 id="cancel-plan-title" className="text-base font-bold leading-6 text-white">Cancel your {planDisplayName(plan)} plan?</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
                   Your workspace will switch to the Free plan immediately. Free plan limits will apply to your workspace after cancellation.
                 </p>
+                <p className="mt-3 text-sm font-semibold leading-5 text-rose-300">Payments already made are non-refundable.</p>
               </div>
             </div>
 
@@ -2107,7 +2107,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"

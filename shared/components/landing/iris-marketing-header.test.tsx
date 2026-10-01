@@ -60,4 +60,12 @@ describe('IrisMarketingHeader', () => {
     expect(screen.queryByLabelText('Loading account access')).not.toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
+
+  it('routes the header pricing links to the pricing page', () => {
+    render(<IrisMarketingHeader knownDevice={false} />);
+
+    for (const link of screen.getAllByRole('link', { name: 'Pricing' })) {
+      expect(link).toHaveAttribute('href', '/pricing');
+    }
+  });
 });

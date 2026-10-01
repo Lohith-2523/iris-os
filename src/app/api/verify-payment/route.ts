@@ -3,7 +3,7 @@ import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { getRazorpay, razorpayErrorResponse, verifyPaymentSchema, verifyRazorpaySignature } from '@/lib/razorpay';
 import { planPrice, planPriceWithCoupon, type PricingRegion } from '@/lib/plan-pricing';
 import { prisma } from '@/lib/db';
-import { normalizePlan } from '@/lib/plan-entitlements';
+import { isPlanDowngrade, normalizePlan } from '@/lib/plan-entitlements';
 
 export const runtime = 'nodejs';
 
@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
 
     const currentPlan = normalizePlan(user.organization?.plan);
     const activePlan = purchasedPlan;
+    if (isPlanDowngrade(currentPlan, activePlan)) {
+      return NextResponse.json({ error: 'Paid plans can only be upgraded. Cancel the current plan to switch to Free.' }, { status: 409 });
+    }
     await prisma.$transaction(async (tx) => {
       if (activePlan !== currentPlan) {
         await tx.organization.update({ where: { id: user.orgId }, data: { plan: activePlan } });

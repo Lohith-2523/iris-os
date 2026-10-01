@@ -62,7 +62,7 @@ export function IrisMarketingHeader({ knownDevice: knownDeviceProp }: { knownDev
     { label: 'Preview', href: isHome ? '#video' : '/#video' },
     { label: 'About', href: isHome ? '#about' : '/#about' },
     { label: 'Features', href: isHome ? '#features' : '/#features' },
-    { label: 'Pricing', href: isHome ? '#pricing' : '/pricing' },
+    { label: 'Pricing', href: '/pricing' },
   ];
 
   return (
