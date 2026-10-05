@@ -4,6 +4,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import AtlasClient from './atlas-client';
 import { AtlasAIService } from '@/lib/atlas-ai/service';
 
+const navigation = vi.hoisted(() => ({ router: { push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), refresh: vi.fn() } }));
+vi.mock('next/navigation', () => ({ useRouter: () => navigation.router, usePathname: () => '/atlas' }));
+
 vi.mock('@/components/ui/formatted-markdown', () => ({ FormattedMarkdown: ({ text }: { text: string }) => <span>{text}</span> }));
 vi.mock('@/components/ui/profile-avatar', () => ({ ProfileAvatar: () => null }));
 vi.mock('@/lib/atlas-ai/service', () => ({ AtlasAIService: {
@@ -74,6 +77,26 @@ it('starts a new chat when a question arrives from the Miles top bar', async () 
   expect(await screen.findByText('Revenue is on plan.')).toBeInTheDocument();
 });
 
+it('holds the next voice reply until the previous reply finishes generating and playing', async () => {
+  render(<AtlasClient initialData={initialData} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Start voice conversation' }));
+  await waitFor(() => expect(peer.setRemoteDescription).toHaveBeenCalled());
+  act(() => peer.channel.onopen?.());
+
+  emit('conversation.item.input_audio_transcription.completed', { item_id: 'first-turn', transcript: 'Hello Miles.' });
+  emit('conversation.item.input_audio_transcription.completed', { item_id: 'next-turn', transcript: 'How are you today?' });
+  const creates = () => peer.channel.send.mock.calls.map(([data]) => JSON.parse(data)).filter(event => event.type === 'response.create');
+  expect(creates()).toHaveLength(1);
+  emit('response.created', { response: { id: 'first-reply' } });
+  emit('output_audio_buffer.started', { response_id: 'first-reply' });
+  emit('response.done', { response: { id: 'first-reply', output: [{ content: [{ type: 'audio' }] }] } });
+  expect(creates()).toHaveLength(1);
+  expect(peer.channel.send).not.toHaveBeenCalledWith(expect.stringContaining('response.cancel'));
+  emit('output_audio_buffer.stopped', { response_id: 'first-reply' });
+  expect(creates()).toHaveLength(2);
+  expect(creates()[1].event_id).toBe('atlas-turn:next-turn');
+});
+
 it('persists voice turns and executes multiple confirmed tool actions once in dependency order', async () => {
   vi.mocked(AtlasAIService.persistVoiceTurn)
     .mockResolvedValueOnce({ sessionId: 'voice-history-1', created: true })
@@ -105,6 +128,8 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   emit('response.output_audio_transcript.delta', { item_id: 'atlas-hi', delta: 'Hello! ' });
   emit('response.output_audio_transcript.done', { item_id: 'atlas-hi', transcript: 'Hello! How can I help?' });
   expect(screen.getByText('Hello! How can I help?')).toBeInTheDocument();
+  emit('response.done', { response: { id: 'response-hi', output: [{ content: [{ type: 'audio' }] }] } });
+  emit('output_audio_buffer.stopped', { response_id: 'response-hi' });
   expect(AtlasAIService.askAtlas).not.toHaveBeenCalled();
   await waitFor(() => expect(AtlasAIService.persistVoiceTurn).toHaveBeenCalledWith('user', 'Hi', undefined));
   await waitFor(() => expect(AtlasAIService.persistVoiceTurn).toHaveBeenCalledWith('assistant', 'Hello! How can I help?', 'voice-history-1'));
@@ -114,6 +139,8 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   emit('conversation.item.input_audio_transcription.completed', { item_id: 'user-1', transcript: 'Create a project and an invoice.' });
   emit('conversation.item.input_audio_transcription.completed', { item_id: 'user-1', transcript: 'Create a project and an invoice.' });
   emit('response.output_audio_transcript.done', { item_id: 'atlas-1', transcript: 'What details should I use for both actions?' });
+  emit('response.done', { response: { output: [{ content: [{ type: 'audio' }] }] } });
+  emit('output_audio_buffer.stopped');
   emit('input_audio_buffer.speech_started', { item_id: 'user-2' });
   emit('conversation.item.input_audio_transcription.completed', {
     item_id: 'user-2',
@@ -123,6 +150,8 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
     item_id: 'atlas-2',
     transcript: 'The Nova Launch project and its invoice are ready. Say Confirm to continue.',
   });
+  emit('response.done', { response: { output: [{ content: [{ type: 'audio' }] }] } });
+  emit('output_audio_buffer.stopped');
   expect(AtlasAIService.askAtlas).not.toHaveBeenCalled();
   expect(peer.channel.send).not.toHaveBeenCalledWith(expect.stringContaining('response.cancel'));
 
@@ -159,6 +188,7 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   expect(AtlasAIService.askAtlas).not.toHaveBeenCalled();
   emit('response.output_item.done', toolFields);
   emit('response.output_item.done', toolFields);
+  emit('response.done', { response: { output: [{ type: 'function_call' }] } });
 
   await waitFor(() => expect(AtlasAIService.askAtlas).toHaveBeenNthCalledWith(
     1,
@@ -196,8 +226,8 @@ it('persists voice turns and executes multiple confirmed tool actions once in de
   ));
   expect((await screen.findAllByText(/Project Nova Launch was created and saved/)).length).toBeGreaterThan(0);
   expect((await screen.findAllByText(/Invoice INV-VOICE-001 was created and saved/)).length).toBeGreaterThan(0);
-  expect(peer.channel.send).toHaveBeenCalledWith(expect.stringContaining('response.cancel'));
-  expect(peer.channel.send).toHaveBeenCalledWith(expect.stringContaining('output_audio_buffer.clear'));
+  expect(peer.channel.send).not.toHaveBeenCalledWith(expect.stringContaining('response.cancel'));
+  expect(peer.channel.send).not.toHaveBeenCalledWith(expect.stringContaining('output_audio_buffer.clear'));
   expect(AtlasAIService.askAtlas).toHaveBeenCalledTimes(2);
   expect(peer.channel.send).toHaveBeenCalledWith(expect.stringContaining('function_call_output'));
   expect(peer.channel.send).toHaveBeenCalledWith(expect.stringContaining('atlas_persisted_result'));

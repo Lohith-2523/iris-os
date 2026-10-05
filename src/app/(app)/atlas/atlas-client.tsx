@@ -18,6 +18,7 @@ import { extractChatFileArtifacts } from '@/lib/chat-file-artifacts';
 import { ATLAS_GUIDE_MESSAGES, ATLAS_GUIDE_SESSION_ID, ATLAS_GUIDE_TITLE } from '@/lib/atlas-ai/guide';
 import type { AtlasInitialReadModel } from '@/server/domains/atlas-read-service';
 import { hasMeaningfulEnglishSpeech } from '@/lib/atlas-ai/voice-input';
+import { RealtimeReplyQueue } from '@/lib/atlas-ai/realtime-reply-queue';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 
 interface Message {
@@ -143,6 +144,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   const realtimeAttemptRef = React.useRef<AbortController | null>(null);
   const realtimeWorkflowAbortRef = React.useRef<AbortController | null>(null);
   const realtimeTurnQueueRef = React.useRef(Promise.resolve());
+  const realtimeReplyQueueRef = React.useRef<RealtimeReplyQueue | null>(null);
   const realtimePersistenceQueueRef = React.useRef<Promise<void>>(Promise.resolve());
   const processedRealtimeTurnIdsRef = React.useRef(new Set<string>());
   const processedRealtimeToolCallIdsRef = React.useRef(new Set<string>());
@@ -150,7 +152,6 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   const voiceWorkflowActiveRef = React.useRef(false);
   const workflowRequestInFlightRef = React.useRef(false);
   const persistedNarrationStartedRef = React.useRef(false);
-  const ignoredRealtimeErrorIdsRef = React.useRef(new Set<string>());
   const currentSessionIdRef = React.useRef(currentSessionId);
   const [audioBlocked, setAudioBlocked] = React.useState(false);
 
@@ -552,6 +553,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
   const stopRealtimeVoice = React.useCallback(() => {
     voiceChatActiveRef.current = false;
+    realtimeReplyQueueRef.current?.close();
+    realtimeReplyQueueRef.current = null;
     realtimeAttemptRef.current?.abort();
     realtimeWorkflowAbortRef.current?.abort();
     realtimeChannelRef.current?.close();
@@ -567,7 +570,6 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     processedRealtimeToolCallIdsRef.current.clear();
     workflowRequestInFlightRef.current = false;
     persistedNarrationStartedRef.current = false;
-    ignoredRealtimeErrorIdsRef.current.clear();
     realtimeChannelRef.current = null;
     realtimePeerRef.current = null;
     realtimeStreamRef.current = null;
@@ -651,7 +653,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
       const speechText = spokenAtlasResult(combinedResult);
       if (speechText && channel.readyState === 'open') {
-        channel.send(JSON.stringify({
+        realtimeReplyQueueRef.current?.enqueue({
           type: 'response.create',
           response: {
             conversation: 'none',
@@ -665,7 +667,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
               content: [{ type: 'input_text', text: speechText }],
             }],
           },
-        }));
+        });
       } else {
         workflowRequestInFlightRef.current = false;
         setRealtimeState('listening');
@@ -692,7 +694,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             output: JSON.stringify({ success: false, error: errorMessage }),
           },
         }));
-        channel.send(JSON.stringify({
+        realtimeReplyQueueRef.current?.enqueue({
           type: 'response.create',
           response: {
             conversation: 'none',
@@ -706,7 +708,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
               content: [{ type: 'input_text', text: errorMessage }],
             }],
           },
-        }));
+        });
       } else {
         workflowRequestInFlightRef.current = false;
         setRealtimeState('listening');
@@ -733,7 +735,6 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     voiceActionTranscriptRef.current = [];
     workflowRequestInFlightRef.current = false;
     persistedNarrationStartedRef.current = false;
-    ignoredRealtimeErrorIdsRef.current.clear();
     realtimeTurnQueueRef.current = Promise.resolve();
     const attempt = new AbortController();
     realtimeAttemptRef.current = attempt;
@@ -774,6 +775,10 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
       const channel = peer.createDataChannel('oai-events');
       realtimeChannelRef.current = channel;
+      const replyQueue = new RealtimeReplyQueue((event) => {
+        if (!attempt.signal.aborted && channel.readyState === 'open') channel.send(JSON.stringify(event));
+      });
+      realtimeReplyQueueRef.current = replyQueue;
       channel.onopen = () => {
         if (attempt.signal.aborted) return;
         window.clearTimeout(timeout);
@@ -826,18 +831,12 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             ].slice(-40);
             if (voiceWorkflowActiveRef.current) {
               workflowRequestInFlightRef.current = true;
-              const cancelEventId = `atlas-workflow-cancel:${itemId}`;
-              const clearEventId = `atlas-workflow-clear:${itemId}`;
-              ignoredRealtimeErrorIdsRef.current.add(cancelEventId);
-              ignoredRealtimeErrorIdsRef.current.add(clearEventId);
-              channel.send(JSON.stringify({ type: 'response.cancel', event_id: cancelEventId }));
-              channel.send(JSON.stringify({ type: 'output_audio_buffer.clear', event_id: clearEventId }));
               realtimeTurnQueueRef.current = realtimeTurnQueueRef.current
                 .catch(() => undefined)
                 .then(() => realtimePersistenceQueueRef.current)
                 .then(() => processRealtimeTranscript(transcript, itemId, channel));
             } else {
-              channel.send(JSON.stringify({ type: 'response.create', event_id: `atlas-turn:${itemId}` }));
+              replyQueue.enqueue({ type: 'response.create', event_id: `atlas-turn:${itemId}` });
             }
           }
         } else if (type === 'response.output_item.done') {
@@ -862,12 +861,6 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           processedRealtimeToolCallIdsRef.current.add(callId);
           voiceWorkflowActiveRef.current = true;
           workflowRequestInFlightRef.current = true;
-          const cancelEventId = `atlas-tool-cancel:${callId}`;
-          const clearEventId = `atlas-tool-clear:${callId}`;
-          ignoredRealtimeErrorIdsRef.current.add(cancelEventId);
-          ignoredRealtimeErrorIdsRef.current.add(clearEventId);
-          channel.send(JSON.stringify({ type: 'response.cancel', event_id: cancelEventId }));
-          channel.send(JSON.stringify({ type: 'output_audio_buffer.clear', event_id: clearEventId }));
           const confirmationTranscript = voiceActionTranscriptRef.current.length >= 2
             ? [...voiceActionTranscriptRef.current]
             : [
@@ -924,14 +917,15 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             setRealtimeState('listening');
           }
         } else if (type === 'error') {
-          const eventId = String(event.event_id || '');
-          if (eventId && ignoredRealtimeErrorIdsRef.current.delete(eventId)) return;
           const details = event.error as { message?: string } | undefined;
           workflowRequestInFlightRef.current = false;
           persistedNarrationStartedRef.current = false;
           setVoiceError(details?.message || 'Miles realtime voice encountered an error.');
           setRealtimeState('listening');
         }
+        // Run after handling this event so finishing one narration cannot clear
+        // state already established for the next queued reply.
+        replyQueue.handle(event);
       };
       channel.onclose = () => {
         if (voiceChatActiveRef.current) stopRealtimeVoice();

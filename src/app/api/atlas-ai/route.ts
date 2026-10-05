@@ -39,7 +39,7 @@ import {
   AtlasAutomationExecutionError,
 } from '@/lib/atlas-ai/execute-automation';
 import { InvoiceServiceError } from '@/lib/invoices/service';
-import { calculateAgencyMetaMetrics } from '@/lib/agency-meta-metrics';
+import { getAtlasWorkspaceContext } from '@/lib/atlas-ai/workspace-context';
 import { canUseAtlasCapability, entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
 import {
   AtlasTokenLimitError,
@@ -460,56 +460,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
     const org = user.organization;
     const applyBillingCurrency = (value: string) => value.replaceAll('{currency}', org.currency);
 
-    let dbContextText = '';
-    if (org.aiSharingConsent) {
-      const [transactions, agencyLeads, invoices, expenses, agencyMetaAccounts] = await Promise.all([
-        prisma.transaction.findMany({ where: { orgId: org.id }, take: 20 }),
-        prisma.agencyLead.findMany({
-          where: { orgId: org.id, OR: [{ sourceProvider: null }, { sourceProvider: { not: 'META' } }] },
-          take: 20,
-        }),
-        prisma.invoice.findMany({ where: { orgId: org.id }, take: 10 }),
-        prisma.expense.findMany({ where: { orgId: org.id }, take: 10 }),
-        org.metaAccessConsent && org.atlasMetaAnalyticsConsent
-          ? prisma.agencyMetaAdAccount.findMany({ where: { orgId: org.id }, select: { adAccountId: true } })
-          : Promise.resolve([]),
-      ]);
-      const agencyMetaAccountIds = agencyMetaAccounts.map((account) => account.adAccountId);
-      const metaAds = agencyMetaAccountIds.length > 0
-        ? await prisma.metaAd.findMany({
-            where: { orgId: org.id, adAccountId: { in: agencyMetaAccountIds } },
-            select: { spend: true, reach: true, impressions: true, clicks: true, leadsCount: true },
-          })
-        : [];
-      const metaMetrics = calculateAgencyMetaMetrics(metaAds);
-      const metaMetricsText = org.metaAccessConsent && org.atlasMetaAnalyticsConsent
-        ? `\n--- CONSENTED META PERFORMANCE METRICS (AGGREGATES ONLY) ---\nSpend: ${org.currency} ${metaMetrics.spend.toFixed(2)}; Impressions: ${metaMetrics.impressions}; Reach: ${metaMetrics.reach}; Clicks: ${metaMetrics.clicks}; Leads: ${metaMetrics.leadsCount}; CTR: ${metaMetrics.ctr ?? 'N/A'}%; CPC: ${metaMetrics.cpc ?? 'N/A'}; CPM: ${metaMetrics.cpm ?? 'N/A'}; Cost per lead: ${metaMetrics.costPerLead ?? 'N/A'}.\nDo not infer or request raw Meta lead identities, form fields, credentials, or access tokens.`
-        : '\nMeta advertising metrics are excluded because specialized Miles Meta analytics consent is disabled.';
-      
-      dbContextText = `
-Here is the live workspace data retrieved from the PostgreSQL database (AI data sharing is explicitly enabled by the user):
-
---- FINANCIAL DATA ---
-Transactions:
-${transactions.map(t => `- [${t.date.toISOString().split('T')[0]}] ${t.details}: ${org.currency} ${t.amount} (${t.type})`).join('\n') || 'No transactions recorded.'}
-
-Invoices:
-${invoices.map(i => `- Invoice ${i.invoiceNumber}: ${org.currency} ${i.amount} (${i.status})`).join('\n') || 'No invoices recorded.'}
-
-Expenses:
-${expenses.map(e => `- ${e.category} (${e.merchant}): ${org.currency} ${e.amount} (${e.status})`).join('\n') || 'No expenses recorded.'}
-
---- AGENCY LEADS DATA ---
-Leads:
-${agencyLeads.map(l => `- ${l.fullName}: Status: ${l.status}, Email: ${l.email}`).join('\n') || 'No leads recorded.'}
-${metaMetricsText}
-`;
-    } else {
-      dbContextText = `
-IMPORTANT RULE: The user has disabled AI data-sharing consent. You must NOT access, simulate, or output their actual business transaction lists, lead names, or other personal financial stats.
-Please reply in general terms. Advise them politely that they have disabled "Miles AI Analysis" in Settings > AI Settings & Data Privacy, and must enable it to get analysis of their live dashboard data.
-`;
-    }
+    const dbContextText = await getAtlasWorkspaceContext(org);
 
     const geminiKey = process.env.GEMINI_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
