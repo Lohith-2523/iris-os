@@ -17,6 +17,7 @@ import { DateInput } from '@/components/ui/date-input';
 import { ConfettiCelebration } from '@/components/ui/confetti-celebration';
 import { ClientLogoAvatar, ClientLogoPicker } from '@/components/clients/client-logo-picker';
 import { MetaLogo } from '@/components/integrations/meta-brand-lockup';
+import { WORKSPACE_CLIENT_ONBOARDING_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 import {
   ShieldAlert,
   ArrowLeft,
@@ -150,6 +151,8 @@ export default function ClientOnboardPage() {
 
   // Form State
   const [formData, setFormData] = React.useState(createInitialFormData);
+  const [tourPreviewing, setTourPreviewing] = React.useState(false);
+  const tourPreviewSnapshotRef = React.useRef<ReturnType<typeof createInitialFormData> | null>(null);
   const [showProjectStageEditor, setShowProjectStageEditor] = React.useState(false);
 
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
@@ -161,6 +164,56 @@ export default function ClientOnboardPage() {
   const [formError, setFormError] = React.useState('');
   const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const reviewStep = 3;
+
+  React.useEffect(() => {
+    const showTourStep = (event: Event) => {
+      const previewStep = (event as CustomEvent<{ step?: number }>).detail?.step;
+      if (previewStep !== 1 && previewStep !== 2 && previewStep !== 3) return;
+      if (previewStep === 1) {
+        if (tourPreviewSnapshotRef.current) setFormData(tourPreviewSnapshotRef.current);
+        tourPreviewSnapshotRef.current = null;
+        setTourPreviewing(false);
+        setStep(1);
+        setFormError('');
+        return;
+      }
+      setFormData((current) => {
+        if (!tourPreviewSnapshotRef.current) tourPreviewSnapshotRef.current = current;
+        const today = new Date().toISOString().slice(0, 10);
+        return {
+          ...current,
+          name: current.name || 'Northstar Studio',
+          legalEntityName: current.legalEntityName || 'Northstar Studio Pvt Ltd',
+          billingAddressLine1: current.billingAddressLine1 || '12 Market Road',
+          billingCity: current.billingCity || 'Bengaluru',
+          billingState: current.billingState || 'Karnataka',
+          billingPostalCode: current.billingPostalCode || '560001',
+          clientName: current.clientName || 'Aarav Mehta',
+          clientDesignation: current.clientDesignation || 'Marketing Director',
+          clientEmail: current.clientEmail || 'aarav@example.com',
+          clientPhone: current.clientPhone || '+919876543210',
+          projectName: current.projectName || 'Brand launch',
+          projectServiceLine: current.projectServiceLine || availableServiceLines[0] || 'Brand Strategy & Positioning Agency',
+          projectBudget: current.projectBudget || '250000',
+          projectPaymentAmount: current.projectPaymentAmount || '250000',
+          projectPaymentStartDate: current.projectPaymentStartDate || today,
+          projectStartDate: current.projectStartDate || today,
+          projectTaskName: current.projectTaskName || 'Kickoff and discovery',
+          projectStages: current.projectStages.length > 1 ? current.projectStages : [
+            { name: 'Planning', color: '#94A3B8' },
+            { name: 'Production', color: '#64748B' },
+            { name: 'Review', color: '#475569' },
+            { name: 'Launch', color: '#334155' },
+          ],
+        };
+      });
+      setTourPreviewing(true);
+      setStep(previewStep);
+      setFormError('');
+    };
+    window.addEventListener(WORKSPACE_CLIENT_ONBOARDING_PREVIEW_EVENT, showTourStep);
+    return () => window.removeEventListener(WORKSPACE_CLIENT_ONBOARDING_PREVIEW_EVENT, showTourStep);
+  }, [availableServiceLines]);
 
   React.useEffect(() => {
     setPreselectedLeadId(new URLSearchParams(window.location.search).get('leadId'));
@@ -278,7 +331,7 @@ export default function ClientOnboardPage() {
   }, [draftStorageKey]);
 
   React.useEffect(() => {
-    if (!draftStorageKey || hydratedDraftKey !== draftStorageKey || submitStatus === 'success') return;
+    if (!draftStorageKey || hydratedDraftKey !== draftStorageKey || submitStatus === 'success' || tourPreviewing) return;
     try {
       window.localStorage.setItem(draftStorageKey, JSON.stringify({
         version: CLIENT_ONBOARDING_DRAFT_VERSION,
@@ -289,7 +342,7 @@ export default function ClientOnboardPage() {
     } catch (error) {
       console.warn('Unable to cache the client onboarding draft:', error);
     }
-  }, [draftStorageKey, formData, hydratedDraftKey, step, submitStatus]);
+  }, [draftStorageKey, formData, hydratedDraftKey, step, submitStatus, tourPreviewing]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -909,6 +962,11 @@ export default function ClientOnboardPage() {
             aria-busy={submitStatus === 'submitting'}
           >
             <CardContent className="p-6">
+              {tourPreviewing && (
+                <div role="status" className="mb-5 rounded-lg border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-xs text-zinc-300">
+                  Tour preview — sample details are shown here and will not be saved.
+                </div>
+              )}
               {formError && (
                 <div className="flex gap-2.5 rounded border border-rose-900/30 bg-rose-950/10 p-3.5 text-rose-400 mb-6 font-semibold">
                   <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -918,7 +976,7 @@ export default function ClientOnboardPage() {
 
               {/* Step 1: Universal details */}
               {step === 1 && (
-                <div className="space-y-4">
+                <div data-tour="client-form" className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <Building className="h-4 w-4 text-zinc-400" />
                     <h2 className="text-lg font-bold text-white">Universal Client Information - Company details</h2>
@@ -1088,7 +1146,7 @@ export default function ClientOnboardPage() {
 
               {/* Step 2: Initial Project Setup */}
               {step === 2 && (
-                <div className="space-y-4">
+                <div data-tour="client-project-preview" className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <Wallet className="h-4 w-4 text-zinc-400" />
                     <h2 className="text-lg font-bold text-white">Create Initial Project & Commercials</h2>
@@ -1141,7 +1199,7 @@ export default function ClientOnboardPage() {
                         </button>
                       </div>
 
-                      <div className="space-y-3 border-y border-zinc-900/60 py-4">
+                      <div data-tour="client-project-payment" className="space-y-3 border-y border-zinc-900/60 py-4">
                         <div>
                           <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Project Commercials</span>
                           <span className="text-[10px] text-zinc-600">These terms apply only to this project.</span>
@@ -1232,7 +1290,7 @@ export default function ClientOnboardPage() {
                         </label>
                       </div>
 
-                      <div className="grid gap-4 sm:grid-cols-3">
+                      <div data-tour="client-project-budget" className="grid gap-4 sm:grid-cols-3">
                         <div className="space-y-1.5">
                           <label className="font-semibold text-zinc-400 block">Internal Delivery Budget ({getCurrencySymbol(currencyState)})</label>
                           <input
@@ -1264,7 +1322,7 @@ export default function ClientOnboardPage() {
                       </div>
 
                       {/* Project Stages Section */}
-                      <div className="space-y-3 pt-3 border-t border-zinc-900/60">
+                      <div data-tour="client-project-stages" className="space-y-3 pt-3 border-t border-zinc-900/60">
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <span className="block text-sm font-bold text-zinc-200">Project stages</span>
@@ -1366,7 +1424,7 @@ export default function ClientOnboardPage() {
                         </div>}
                       </div>
 
-                      <div className="space-y-2 border-t border-zinc-900/60 pt-3">
+                      <div data-tour="client-project-task" className="space-y-2 border-t border-zinc-900/60 pt-3">
                         <span className="text-[1.05rem] font-bold text-zinc-200 block">Create task for project</span>
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
                           <label className="space-y-1.5"><span className="font-semibold text-zinc-400 block">Task name</span><input name="projectTaskName" value={formData.projectTaskName} onChange={handleInputChange} placeholder="e.g. Prepare campaign brief" className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2.5 text-white placeholder-zinc-600 focus:border-zinc-750 focus:outline-none" /></label>
@@ -1422,7 +1480,7 @@ export default function ClientOnboardPage() {
 
               {/* Final step: Review & finalize */}
               {step === reviewStep && (
-                <div className="space-y-4">
+                <div data-tour="client-review-preview" className="space-y-4">
                   <div className="flex items-center gap-2 border-b border-zinc-900 pb-3">
                     <CheckCircle className="h-4 w-4 text-zinc-400" />
                     <h2 className="text-lg font-bold text-white">Review Client Registration Details</h2>
@@ -1593,6 +1651,7 @@ export default function ClientOnboardPage() {
                       Skip project creation
                     </Button>
                     <Button
+                      data-tour="client-next"
                       type="button"
                       onClick={() => handleProjectStepDecision(true)}
                       className="h-9 font-semibold text-xs bg-white text-zinc-950 hover:bg-zinc-200"
@@ -1603,6 +1662,7 @@ export default function ClientOnboardPage() {
                   </div>
                 ) : step < reviewStep ? (
                   <Button
+                    data-tour="client-next"
                     type="button"
                     onClick={handleNextStep}
                     className="h-9 font-semibold text-xs flex items-center gap-1.5 bg-white text-zinc-950 hover:bg-zinc-200"
@@ -1612,6 +1672,7 @@ export default function ClientOnboardPage() {
                   </Button>
                 ) : (
                   <Button
+                    data-tour="create-client"
                     type="button"
                     disabled={submitStatus === 'submitting'}
                     onClick={handleFormSubmit}

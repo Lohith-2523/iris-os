@@ -777,7 +777,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
   };
 
   return (
-    <section className={styles.shell} aria-label="Secure messaging workspace">
+    <section data-tour="messages-workspace" className={styles.shell} aria-label="Secure messaging workspace">
       <div className={styles.frame}>
         <aside className={styles.rail}>
           <header className={styles.railHeader}>
@@ -801,7 +801,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
               {visibleDirectory.length === 0 && <span className={styles.directoryEmpty}>No {audience === 'team' ? 'team members' : 'clients'} available.</span>}
             </div>
           </div>
-          <div className={styles.threadList}>
+          <div data-tour="message-list" className={styles.threadList}>
             <div className={styles.sectionLabel}>{isAdmin ? `${audience === 'team' ? 'Team' : 'Client'} conversations` : 'Conversations'}</div>
             {visibleConversations.map((conversation) => conversation.participant && (
               <button
@@ -897,7 +897,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
                   </div>;
                 })}
               </div>
-              <div ref={composerWrapRef} className={styles.composerWrap}>
+              <div data-tour="message-composer" ref={composerWrapRef} className={styles.composerWrap}>
                 {!protocolReady && <div className={styles.protocolNotice}><ShieldAlert size={15} /><span>{protocolError || 'Restoring the encryption keys secured to your account. Sending remains locked until setup completes.'}</span></div>}
                 <div className={styles.composer}>
                   <input ref={attachmentInputRef} className={styles.fileInput} type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.avif,.mp3,.m4a,.ogg,.wav,.webm,.mp4,.mov,.pdf,.txt,.csv,.docx,.xlsx,.pptx,.zip" onChange={(event) => void queueAttachments(event.target.files)} />

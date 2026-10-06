@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Download, FileText, LayoutDashboard, ListPlus, Loader2, Pencil, Plus, ReceiptText, Send, Sparkles, Trash2, X } from 'lucide-react';
+import { downloadFileFromUrl } from '@/lib/browser-download';
 import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
 import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import { formatCurrency } from '@/lib/utils';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { WORKSPACE_INVOICES_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 
 type PageTab = 'OVERVIEW' | 'TAX' | 'PROFORMA';
 type LineItemForm = { description: string; quantity: number; unitPrice: number };
@@ -147,6 +149,15 @@ export default function InvoicesPage() {
   const [loading, setLoading] = React.useState(true);
   const [creating, setCreating] = React.useState(false);
   const [creatingProjectInvoice, setCreatingProjectInvoice] = React.useState(false);
+
+  React.useEffect(() => {
+    const showTourTab = (event: Event) => {
+      const tab = (event as CustomEvent<{ tab?: PageTab }>).detail?.tab;
+      if (tab === 'OVERVIEW' || tab === 'TAX' || tab === 'PROFORMA') setTab(tab);
+    };
+    window.addEventListener(WORKSPACE_INVOICES_PREVIEW_EVENT, showTourTab);
+    return () => window.removeEventListener(WORKSPACE_INVOICES_PREVIEW_EVENT, showTourTab);
+  }, []);
   const [error, setError] = React.useState('');
   const [success, setSuccess] = React.useState('');
   const [tab, setTab] = React.useState<PageTab>('OVERVIEW');
@@ -304,22 +315,7 @@ export default function InvoicesPage() {
     setDownloadingInvoiceId(invoice.id);
     setError('');
     try {
-      const response = await fetch(invoice.downloadUrl, { cache: 'no-store' });
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        throw new Error(result.error || 'Unable to download this invoice.');
-      }
-      const contentType = response.headers.get('content-type') || '';
-      const blob = await response.blob();
-      if (!contentType.includes('application/pdf') || blob.size < 500) throw new Error('The server returned an invalid invoice PDF.');
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${invoice.invoiceNumber || 'invoice'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      downloadFileFromUrl(invoice.downloadUrl, `${invoice.invoiceNumber || 'invoice'}.pdf`);
       return true;
     } catch (downloadError) {
       setError(downloadError instanceof Error ? downloadError.message : 'Unable to download this invoice.');
@@ -454,6 +450,7 @@ export default function InvoicesPage() {
             ['PROFORMA', ReceiptText, 'Proforma Invoice'],
           ] as const).map(([value, Icon, label]) => (
             <button
+              data-tour={value === 'TAX' ? 'create-invoice' : value === 'PROFORMA' ? 'create-proforma' : undefined}
               key={value}
               type="button"
               role="tab"
@@ -524,7 +521,7 @@ export default function InvoicesPage() {
             <CardDescription>Enter line items manually, then apply one tax rate to the invoice subtotal.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={createInvoice} className="space-y-5 text-xs">
+            <form data-tour="invoice-form" onSubmit={createInvoice} className="space-y-5 text-xs">
               <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
                 <label className="space-y-1.5"><RequiredLabel>Project</RequiredLabel>
                   <select required value={taxForm.projectId} onChange={(event) => setTaxForm((current) => ({ ...current, projectId: event.target.value }))} className={fieldClass}>
@@ -547,7 +544,7 @@ export default function InvoicesPage() {
                 <textarea value={taxForm.termsOfSale} onChange={(event) => setTaxForm((current) => ({ ...current, termsOfSale: event.target.value }))} maxLength={4000} rows={3} placeholder="Optional payment, delivery, or cancellation terms" className={fieldClass} />
               </label>
               <div className="flex justify-end">
-                <Button type="submit" disabled={creating || !canSubmitTax || agencyBillingMissingFields.length > 0} className="gap-2">
+                <Button data-tour="invoice-generate" type="submit" disabled={creating || !canSubmitTax || agencyBillingMissingFields.length > 0} className="gap-2">
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {creating ? 'Creating and sending…' : 'Create tax invoice'}
                 </Button>
@@ -565,9 +562,9 @@ export default function InvoicesPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={createInvoice} className="space-y-6 text-xs">
-              <section className="space-y-4">
+              <section data-tour="proforma-details" className="space-y-4">
                 <h3 className="border-b border-zinc-850 pb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Quotation details</h3>
-                <label className="block space-y-1.5">
+                <label data-tour="proforma-lead" className="block space-y-1.5">
                   <RequiredLabel>Lead</RequiredLabel>
                   <select
                     required
@@ -600,7 +597,7 @@ export default function InvoicesPage() {
                 <label className="block space-y-1.5"><RequiredLabel>Description</RequiredLabel><textarea required value={proformaForm.description} onChange={(event) => setProformaForm((current) => ({ ...current, description: event.target.value }))} maxLength={2000} rows={3} placeholder="Describe the proposed work or supply" className={fieldClass} /></label>
               </section>
 
-              <section className="space-y-4">
+              <section data-tour="proforma-billing" className="space-y-4">
                 <h3 className="border-b border-zinc-850 pb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Lead and billing details</h3>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   <label className="space-y-1.5"><RequiredLabel>Lead contact</RequiredLabel><input required readOnly value={proformaForm.customerName} maxLength={200} className={`${fieldClass} cursor-not-allowed opacity-70`} /></label>
@@ -617,7 +614,7 @@ export default function InvoicesPage() {
                 </div>
               </section>
 
-              <section className="space-y-4">
+              <section data-tour="proforma-items" className="space-y-4">
                 <div className="flex flex-col gap-3 border-b border-zinc-850 pb-2 sm:flex-row sm:items-end sm:justify-between">
                   <h3 className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Quotation items</h3>
                   <label className="w-full space-y-1.5 sm:w-48"><RequiredLabel>Tax on subtotal</RequiredLabel>
@@ -632,7 +629,7 @@ export default function InvoicesPage() {
 
               <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Terms and Conditions</span><textarea value={proformaForm.termsOfSale} onChange={(event) => setProformaForm((current) => ({ ...current, termsOfSale: event.target.value }))} maxLength={4000} rows={3} placeholder="Optional validity, delivery, payment, or cancellation terms" className={fieldClass} /></label>
               <div className="flex justify-end">
-                <Button type="submit" disabled={creating || !canSubmitProforma || agencyBillingMissingFields.length > 0} className="gap-2">
+                <Button data-tour="proforma-generate" type="submit" disabled={creating || !canSubmitProforma || agencyBillingMissingFields.length > 0} className="gap-2">
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {creating ? 'Creating and sending…' : 'Create proforma invoice'}
                 </Button>

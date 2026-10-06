@@ -1,4 +1,34 @@
 /* Hallmark · macrostructure: Narrative Workflow · tone: executive with restrained play · anchor hue: silver · pre-emit critique: P5 H5 E5 S5 R5 V4 · contrast: pass (40–41) · nav: N3 existing · footer: none · slop: pass (42–49) · mobile: pass (34, 49–57) */
+.page,
+.immersiveState {
+  --color-briefing-paper: var(--background);
+  --color-briefing-surface: var(--card);
+  --color-briefing-surface-raised: color-mix(in oklch, var(--card) 88%, var(--foreground));
+  --color-briefing-line: var(--border);
+  --color-briefing-line-strong: color-mix(in oklch, var(--border) 55%, var(--foreground));
+  --color-briefing-ink: var(--foreground);
+  --color-briefing-muted: var(--muted-foreground);
+  --color-briefing-card-ink: var(--card-foreground);
+  --color-briefing-card-muted: var(--muted-foreground);
+  --color-briefing-accent: var(--primary);
+  --color-briefing-accent-ink: var(--primary-foreground);
+  --color-briefing-attention: var(--muted-foreground);
+  --color-briefing-positive: var(--foreground);
+  --color-briefing-focus: var(--ring);
+  --color-briefing-shadow: var(--background);
+  --color-briefing-label-priority: var(--muted-foreground);
+  --color-briefing-label-revenue: var(--muted-foreground);
+  --color-briefing-label-meetings: var(--muted-foreground);
+  --color-briefing-label-receivables: var(--muted-foreground);
+  --color-briefing-label-delays: var(--muted-foreground);
+  --color-briefing-label-pipeline: var(--muted-foreground);
+  --color-briefing-label-renewals: var(--muted-foreground);
+  --color-briefing-label-blocked: var(--muted-foreground);
+  --font-briefing-display: var(--font-heading);
+  --font-briefing-body: var(--font-sans);
+  --font-briefing-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
 .page {
   position: relative;
   display: flex;
@@ -146,7 +176,8 @@
   color: var(--color-briefing-card-ink);
   text-align: start;
   box-shadow: 0 1.75rem 5rem color-mix(in oklch, var(--color-briefing-shadow) 72%, transparent), inset 0 1px 0 color-mix(in oklch, var(--color-briefing-ink) 10%, transparent);
-  transition: transform var(--dur-briefing-fast) var(--ease-briefing-out), border-color var(--dur-briefing-base) var(--ease-briefing-out);
+  transform-origin: center;
+  transition: transform 100ms var(--ease-briefing-out), border-color var(--dur-briefing-base) var(--ease-briefing-out);
 }
 
 .currentCard::after {
@@ -194,6 +225,11 @@
 .cardLabel svg {
   width: 1rem;
   height: 1rem;
+}
+
+.currentCard .cardLabel,
+.filedCard .cardLabel {
+  transform: translateY(-0.5rem);
 }
 
 .currentMetric {
@@ -251,23 +287,36 @@
 .filedCard {
   display: flex;
   min-width: 0;
-  min-height: 10.5rem;
+  min-height: 9rem;
   flex-direction: column;
   justify-content: space-between;
+  gap: var(--space-briefing-sm);
   border: var(--rule-briefing) solid var(--color-briefing-line);
-  border-radius: var(--radius-briefing-sm);
+  overflow: hidden;
+  border-radius: var(--radius-briefing-md);
   background: linear-gradient(145deg, var(--color-briefing-surface-raised), var(--color-briefing-surface));
-  padding: var(--space-briefing-md);
+  padding: var(--space-briefing-sm) var(--space-briefing-md);
   color: var(--color-briefing-card-ink);
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--color-briefing-ink) 5%, transparent);
 }
 
+.filedContent {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
 .filedMetric {
-  margin-block-start: var(--space-briefing-md);
+  margin-block-start: var(--space-briefing-sm);
   font-family: var(--font-briefing-display);
-  font-size: var(--text-briefing-lg);
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
   font-weight: 600;
   letter-spacing: -0.025em;
+  line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .filedTitle {
@@ -277,6 +326,7 @@
   color: var(--color-briefing-card-muted);
   font-size: var(--text-briefing-xs);
   line-height: 1.4;
+  text-align: center;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -289,7 +339,7 @@
   justify-content: center;
   gap: var(--space-briefing-sm);
   border: var(--rule-briefing) solid var(--color-briefing-line-strong);
-  border-radius: var(--radius-briefing-sm);
+  border-radius: var(--radius-briefing-md);
   color: var(--color-briefing-card-ink);
   font-family: var(--font-briefing-body);
   font-size: var(--text-briefing-xs);
@@ -297,7 +347,8 @@
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
-  transition: transform var(--dur-briefing-fast) var(--ease-briefing-out), background-color var(--dur-briefing-base) var(--ease-briefing-out);
+  transform-origin: center;
+  transition: transform 100ms var(--ease-briefing-out), background-color var(--dur-briefing-base) var(--ease-briefing-out);
 }
 
 .actionButton {
@@ -474,7 +525,7 @@
 @media (min-width: 60rem) {
   .stageGrid {
     grid-template-columns: minmax(12rem, 1fr) minmax(18rem, 1.35fr) minmax(12rem, 1fr);
-    grid-template-rows: minmax(10.5rem, 1fr) minmax(19rem, 1.35fr) minmax(10.5rem, 1fr);
+    grid-template-rows: minmax(9rem, 1fr) minmax(19rem, 1.35fr) minmax(9rem, 1fr);
   }
 
   .currentWrap,

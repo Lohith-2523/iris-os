@@ -1,0 +1,366 @@
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  pointer-events: none;
+  font-family: var(--font-sans);
+}
+
+.blocker {
+  position: fixed;
+  pointer-events: auto;
+}
+
+.spotlight {
+  position: fixed;
+  border: 2px solid color-mix(in oklch, var(--foreground) 78%, transparent);
+  border-radius: 0.875rem;
+  box-shadow: 0 0 0 0.3rem color-mix(in oklch, var(--foreground) 10%, transparent), 0 0 0 120vmax rgb(0 0 0 / 68%);
+  transition: inset 220ms cubic-bezier(0.2, 0.8, 0.2, 1), width 220ms cubic-bezier(0.2, 0.8, 0.2, 1), height 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: spotlightPulse 1.8s ease-in-out infinite;
+}
+
+.card {
+  position: fixed;
+  width: min(22rem, calc(100vw - 2rem));
+  pointer-events: auto;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--foreground) 18%, var(--border));
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--card) 94%, transparent);
+  color: var(--card-foreground);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 48%), inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent);
+  backdrop-filter: blur(1.5rem) saturate(150%);
+  animation: cardIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 1rem;
+}
+
+.eyebrow {
+  color: var(--muted-foreground);
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.stepCount {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.body {
+  padding: 1rem;
+}
+
+.title {
+  margin: 0;
+  color: var(--foreground);
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.description {
+  margin: 0.55rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.tip {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--muted) 68%, transparent);
+  padding: 0.75rem;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.tip svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  margin-top: 0.05rem;
+  color: var(--muted-foreground);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding: 0.8rem 1rem;
+}
+
+.skip,
+.previous,
+.next {
+  min-height: 2.5rem;
+  border-radius: 0.75rem;
+  padding: 0 0.85rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  transition: transform 100ms ease-out, background-color 140ms ease-out, color 140ms ease-out;
+}
+
+.next svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.skip {
+  color: var(--muted-foreground);
+}
+
+.navigation {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.previous {
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+
+.previous:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.skip:active,
+.previous:active,
+.next:active {
+  transform: scale(0.97);
+}
+
+.actionHint {
+  margin: 0 1rem 0.9rem;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  text-align: end;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .skip:hover,
+  .previous:hover {
+    background: var(--muted);
+    color: var(--foreground);
+  }
+
+  .next:hover {
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 39.999rem) {
+  .card {
+    right: 1rem !important;
+    bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    left: 1rem !important;
+    top: auto !important;
+    width: auto;
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .navigation,
+  .next,
+  .previous,
+  .skip {
+    width: 100%;
+  }
+
+  .next,
+  .previous {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight,
+  .card {
+    animation: none;
+    transition: opacity 120ms ease-out;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .card {
+    background: var(--card);
+    backdrop-filter: none;
+  }
+}
+
+@keyframes spotlightPulse {
+  50% { border-color: var(--foreground); }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(0.4rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.centerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 72%);
+  backdrop-filter: blur(0.75rem);
+}
+
+.center {
+  display: flex;
+  height: min(60rem, calc(100dvh - 2rem));
+  width: min(54rem, 100%);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--foreground) 18%, var(--border));
+  border-radius: 1.25rem;
+  background: color-mix(in oklch, var(--card) 97%, transparent);
+  box-shadow: 0 2rem 6rem rgb(0 0 0 / 55%);
+  animation: cardIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.centerHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding: 1.35rem 1.5rem;
+}
+
+.centerHeader h2 {
+  margin: 0.3rem 0 0;
+  color: var(--foreground);
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+
+.centerHeader p {
+  margin: 0.35rem 0 0;
+  max-width: 38rem;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.centerHeader > button {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.centerHeader > button:hover { background: var(--muted); color: var(--foreground); }
+.centerHeader > button svg { width: 1rem; height: 1rem; }
+
+.centerContent {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.25rem 1.5rem 1.5rem;
+  scrollbar-gutter: stable;
+}
+
+.tourGroup + .tourGroup { margin-top: 1.35rem; }
+.tourGroup h3 { margin: 0 0 0.55rem; color: var(--muted-foreground); font-size: 0.6875rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.tourList { display: grid; gap: 0.5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.tourList > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  padding: 0.75rem;
+  color: var(--foreground);
+  text-align: left;
+  transition: border-color 140ms ease, background-color 140ms ease, transform 100ms ease;
+}
+
+.tourList > button:hover { border-color: color-mix(in oklch, var(--foreground) 28%, var(--border)); background: var(--muted); }
+.tourList > button:active { transform: scale(0.985); }
+.tourList > button > svg { width: 0.875rem; height: 0.875rem; color: var(--muted-foreground); }
+.tourList strong, .tourList small { display: block; }
+.tourList strong { font-size: 0.8125rem; }
+.tourList small { margin-top: 0.2rem; color: var(--muted-foreground); font-size: 0.6875rem; line-height: 1.35; }
+
+.tourState {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--background);
+}
+.tourState svg { width: 0.875rem; height: 0.875rem; }
+
+.recovery {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 220;
+  display: grid;
+  width: min(30rem, calc(100vw - 2rem));
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  padding: 0.9rem;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 48%);
+  animation: cardIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.recovery > svg { width: 1rem; height: 1rem; color: var(--muted-foreground); }
+.recovery strong, .recovery span { display: block; }
+.recovery strong { color: var(--foreground); font-size: 0.75rem; }
+.recovery span { margin-top: 0.15rem; color: var(--muted-foreground); font-size: 0.6875rem; line-height: 1.4; }
+.recovery button { min-height: 2.25rem; border-radius: 0.7rem; background: var(--foreground); padding: 0 0.75rem; color: var(--background); font-size: 0.6875rem; font-weight: 700; }
+
+@media (max-width: 44rem) {
+  .tourList { grid-template-columns: 1fr; }
+  .centerHeader, .centerContent { padding-left: 1rem; padding-right: 1rem; }
+  .recovery { right: 1rem; bottom: 1rem; grid-template-columns: auto minmax(0, 1fr); }
+  .recovery button { grid-column: 1 / -1; }
+}

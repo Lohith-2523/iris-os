@@ -9,6 +9,7 @@ import { AtlasIcon } from '@/components/ui/atlas-icon';
 import { formatUserMessage } from '@/lib/utils';
 import { TranscribeButton } from '@/components/ui/transcribe-button';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { WORKSPACE_DOCUMENT_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 
 type Kind = 'PROPOSAL' | 'CONTRACT' | 'SOW';
 type Recipient = { id: string; type: 'LEAD' | 'CLIENT'; name: string; company: string; email: string };
@@ -33,6 +34,20 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
   const [approvalTarget, setApprovalTarget] = React.useState<DocumentRow | null>(null);
   const [downloadMenu, setDownloadMenu] = React.useState<{ document: DocumentRow; left: number; top: number } | null>(null);
   const prefillApplied = React.useRef(false);
+
+  React.useEffect(() => {
+    const showTourView = (event: Event) => {
+      const detail = (event as CustomEvent<{ family?: 'PROPOSAL' | 'LEGAL'; view?: 'list' | 'editor' }>).detail;
+      if (detail?.family !== family) return;
+      if (detail.view === 'list') setTab('list');
+      if (detail.view === 'editor') {
+        setTab('create');
+        setMode('advanced');
+      }
+    };
+    window.addEventListener(WORKSPACE_DOCUMENT_PREVIEW_EVENT, showTourView);
+    return () => window.removeEventListener(WORKSPACE_DOCUMENT_PREVIEW_EVENT, showTourView);
+  }, [family]);
 
   const load = React.useCallback(async () => {
     const response = await fetch(`/api/generated-documents?family=${family === 'PROPOSAL' ? 'PROPOSAL' : 'LEGAL'}`);

@@ -208,7 +208,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
 
         <div className="workspace-topbar-controls">
           {!isClient && atlasMenuEnabled && (
-            <div className="workspace-topbar-atlas">
+            <div data-tour="header-miles" className="workspace-topbar-atlas">
               <div className="workspace-topbar-search flex h-9 w-9 items-center justify-center gap-2.5 rounded-full border border-zinc-800 bg-zinc-900/40 transition-colors focus-within:border-zinc-700 focus-within:bg-zinc-900/80 md:w-full md:justify-start md:pl-3">
                 <AtlasTopbarMenu workspacePlan={workspacePlan} canManagePlan={canManagePlan} />
                 <form onSubmit={handleAtlasSubmit} className="hidden h-full min-w-0 flex-1 md:flex">
@@ -228,8 +228,9 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
 
           {(!atlasMenuEnabled || isClient) && <div className="workspace-topbar-atlas"><div className="workspace-topbar-search flex h-9 items-center justify-center gap-2 rounded-full border border-zinc-800 px-3 text-xs text-zinc-500" title="Miles AI is not enabled for this role" aria-label="Miles AI unavailable for this role"><AtlasIcon className="h-4 w-4" /><span className="hidden md:inline">Miles AI</span></div></div>}
           <div className="workspace-topbar-actions">
-            <NotificationCenter />
+            <div data-tour="header-notifications"><NotificationCenter /></div>
             <Button
+              data-tour="header-theme"
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
@@ -243,6 +244,7 @@ export function Topbar({ onMenuToggle, atlasMenuEnabled = true, workspacePlan, c
             </Button>
             {!isClient && (
               <button
+                data-tour="header-search"
                 type="button"
                 onClick={() => setIsCommandOpen(true)}
                 className="workspace-topbar-search-trigger grid h-11 w-11 place-items-center rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 transition-colors hover:text-white"

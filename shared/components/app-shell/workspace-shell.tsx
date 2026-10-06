@@ -30,6 +30,7 @@ import type { WorkspaceReadModel } from '@/lib/workspace-read-model';
 import { workspaceRouteRestriction } from '@/lib/workspace-route-authorization';
 import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { WorkspaceTour } from '@/components/workspace-tour/workspace-tour';
 
 prepareWorkspaceDataCacheForNavigation();
 
@@ -182,6 +183,7 @@ export function WorkspaceShell({
       data-layout-family={layoutFamily}
     >
       {!runtime.isDemo && <WorkspaceRuntime />}
+      {!runtime.isDemo && user && <WorkspaceTour pathname={pathname} userId={user.id} orgId={user.orgId} role={user.role} plan={user.plan} accessPermissions={user.accessPermissions} deliveryWorkspace={user.deliveryWorkspace} />}
       {/* Desktop Sidebar */}
       <Sidebar className="workspace-desktop-sidebar hidden md:flex shrink-0" workspacePlan={user?.plan} workspaceRole={user?.role} workspaceOrganizationName={user?.organizationName} workspaceOrganizationLogoDataUrl={user?.organizationLogoDataUrl} workspaceDeliveryWorkspace={user?.deliveryWorkspace} workspaceAccessPermissions={user?.accessPermissions} workspaceUserName={user?.name} />
 
@@ -310,7 +312,7 @@ export function WorkspaceShell({
               </div>
             </div>
           ) : (
-            <div key={pathname} className={`workspace-page ${pathname === '/atlas' ? 'workspace-page-contained' : ''}`}>
+            <div key={pathname} data-tour="workspace-content" className={`workspace-page ${pathname === '/atlas' ? 'workspace-page-contained' : ''}`}>
               {children}
             </div>
           )}

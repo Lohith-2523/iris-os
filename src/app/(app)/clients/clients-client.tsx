@@ -128,6 +128,7 @@ export default function ClientsPage({ initialData }: { initialData: ClientsReadM
     return (
       <ClientDetailDashboard
         client={selectedClient}
+        currency={initialData.currency}
         teamMembers={team}
         onBack={() => setSelectedClientId(null)}
         canManageMetaAccounts={canManageClients}
@@ -149,7 +150,7 @@ export default function ClientsPage({ initialData }: { initialData: ClientsReadM
         </div>
         <div className="flex items-center gap-3">
 
-          <Link href="/clients/onboard" prefetch={false}>
+          <Link href="/clients/onboard" prefetch={false} data-tour="add-client">
             <Button variant="default" size="sm" className="h-8 gap-1.5 font-semibold">
               <Plus className="h-3.5 w-3.5" />
               <span>Add Client</span>
@@ -162,7 +163,7 @@ export default function ClientsPage({ initialData }: { initialData: ClientsReadM
 
 
       {/* Main Split */}
-      <div className="grid gap-6">
+      <div data-tour="clients-overview" className="grid gap-6">
         {/* Table of clients */}
         <div className="space-y-6">
           <Card>

@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MetricCard } from '@/components/ui/metric-card';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrencyFor } from '@/lib/utils';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { ChangeRequestManager } from '@/components/projects/change-request-manager';
 
@@ -28,6 +28,7 @@ type BreakdownTab = 'overview' | 'workflow' | 'tasks' | 'deliverables' | 'change
 
 interface ProjectBreakdownDrawerProps {
   project: any;
+  currency: string;
   onClose: () => void;
   onEdit?: () => void;
   onOpenTasks?: () => void;
@@ -54,6 +55,7 @@ const taskProgress = (tasks: any[]) => {
 
 export function ProjectBreakdownDrawer({
   project,
+  currency,
   onClose,
   onEdit,
   onOpenTasks,
@@ -101,8 +103,8 @@ export function ProjectBreakdownDrawer({
   ];
 
   const metrics = [
-    { label: 'Revenue', value: formatCurrency(revenue), icon: CircleDollarSign },
-    { label: 'Receivables', value: formatCurrency(receivables), icon: ReceiptText },
+    { label: 'Revenue', value: formatCurrencyFor(revenue, currency), icon: CircleDollarSign },
+    { label: 'Receivables', value: formatCurrencyFor(receivables, currency), icon: ReceiptText },
     { label: 'Team members', value: members.length.toString(), icon: Users },
     { label: 'Number of tasks', value: tasks.length.toString(), icon: ClipboardList },
     { label: 'Overall progress', value: `${progress}%`, icon: CheckCircle2 },
@@ -182,7 +184,7 @@ export function ProjectBreakdownDrawer({
                     <Detail label="Start date" value={dateLabel(project.startDate)} icon={CalendarDays} />
                     <Detail label="Target date" value={dateLabel(project.endDate)} icon={CalendarDays} />
                     <Detail label="Timeline" value={project.timeline || 'Not configured'} />
-                    <Detail label="Internal budget" value={project.budget ? formatCurrency(Number(project.budget)) : 'Not configured'} />
+                    <Detail label="Internal budget" value={project.budget ? formatCurrencyFor(Number(project.budget), currency) : 'Not configured'} />
                   </div>
                 </CardContent>
               </Card>
@@ -211,7 +213,7 @@ export function ProjectBreakdownDrawer({
               <Card className="lg:col-span-2">
                 <CardContent className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-4">
                   <Detail label="Payment type" value={project.paymentType === 'ONE_TIME' ? 'One-time' : 'Retainer'} />
-                  <Detail label="Payment amount" value={project.paymentAmount ? formatCurrency(Number(project.paymentAmount)) : 'Not configured'} />
+                  <Detail label="Payment amount" value={project.paymentAmount ? formatCurrencyFor(Number(project.paymentAmount), currency) : 'Not configured'} />
                   <Detail label="Frequency" value={project.paymentFrequency || (project.paymentType === 'ONE_TIME' ? 'One-time' : 'Not configured')} />
                   <Detail label="Payment start" value={dateLabel(project.paymentStartDate)} />
                 </CardContent>

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { invoicePaymentStatus } from '@/lib/invoices/billing-profile';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
+import { randomUUID } from 'node:crypto';
 
 function parseImportedDate(value: unknown) {
   if (value instanceof Date) return value;
@@ -68,9 +69,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const clients = await prisma.client.findMany({
       where: { orgId: org.id },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        legalEntityName: true,
+        billingAddressLine1: true,
+        billingAddressLine2: true,
+        billingCity: true,
+        billingState: true,
+        billingPostalCode: true,
+        billingCountry: true,
+        gstNumber: true,
+      },
     });
     const clientsById = new Map(clients.map((client) => [client.id, client]));
+    const clientsByImportReference = new Map(clients.flatMap((client) => [
+      [client.id.toLocaleLowerCase(), client] as const,
+      [`${client.name} [${client.id}]`.toLocaleLowerCase(), client] as const,
+    ]));
     const allowedCategories = new Set(['Revenue', 'Expense']);
     const allowedTypes = new Set(['UPI', 'IMPS', 'NEFT', 'Cash', 'Others']);
     if (body.bulk && Array.isArray(body.transactions)) {
@@ -117,6 +133,7 @@ export async function POST(request: NextRequest) {
         clientId: string | null;
         invoiceId: string | null;
         orgId: string;
+        historicalRevenue: boolean;
       }> = [];
       const rejectedRows: Array<{ row: number | null; reason: string }> = [];
 
@@ -167,10 +184,15 @@ export async function POST(request: NextRequest) {
           continue;
         }
         const invoiceNumber = String(t.invoiceNumber || '').trim();
-        const selectedInvoice = category === 'Revenue'
+        const isHistoricalRevenue = body.historicalRevenue === true && t.historicalRevenue === true;
+        if (isHistoricalRevenue && finalAmount <= 0) {
+          rejectedRows.push({ row, reason: 'Historical revenue amount must be greater than zero.' });
+          continue;
+        }
+        const selectedInvoice = category === 'Revenue' && !isHistoricalRevenue
           ? invoicesByNumber.get(invoiceNumber.toLocaleLowerCase()) || null
           : null;
-        if (category === 'Revenue' && !selectedInvoice) {
+        if (category === 'Revenue' && !isHistoricalRevenue && !selectedInvoice) {
           rejectedRows.push({ row, reason: 'Select a current unpaid or partially paid invoice number.' });
           continue;
         }
@@ -178,9 +200,22 @@ export async function POST(request: NextRequest) {
           rejectedRows.push({ row, reason: 'Bank account is required for revenue.' });
           continue;
         }
+        const historicalClient = isHistoricalRevenue
+          ? clientsByImportReference.get(String(t.clientReference || '').trim().toLocaleLowerCase()) || null
+          : null;
+        if (isHistoricalRevenue && !historicalClient) {
+          rejectedRows.push({ row, reason: 'Select a valid client from the Historical Revenue template.' });
+          continue;
+        }
+        if (isHistoricalRevenue && !String(t.details || '').trim()) {
+          rejectedRows.push({ row, reason: 'Description is required for historical revenue.' });
+          continue;
+        }
         transactionData.push({
           date,
-          details: category === 'Revenue'
+          details: isHistoricalRevenue
+            ? String(t.details).trim()
+            : category === 'Revenue'
             ? selectedInvoice?.description?.trim() || `Invoice ${selectedInvoice?.invoiceNumber || ''}`.trim()
             : t.details || 'Imported Transaction',
           category,
@@ -190,9 +225,10 @@ export async function POST(request: NextRequest) {
           amount: finalAmount,
           referenceNumber: null,
           comments: category === 'Revenue' ? null : t.comments || null,
-          clientId: category === 'Revenue' ? selectedInvoice?.clientId || null : null,
+          clientId: isHistoricalRevenue ? historicalClient?.id || null : category === 'Revenue' ? selectedInvoice?.clientId || null : null,
           invoiceId: selectedInvoice?.id || null,
           orgId: org.id,
+          historicalRevenue: isHistoricalRevenue,
         });
       }
       if (transactionData.length === 0) {
@@ -202,9 +238,60 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
       const createdTransactions = await prisma.$transaction(async (tx) => {
-        const created = [];
+        const historicalInvoices = [];
+        const transactionRecords = [];
         for (const transaction of transactionData) {
-          if (transaction.invoiceId) {
+          let invoiceId = transaction.invoiceId;
+          if (transaction.historicalRevenue && transaction.clientId) {
+            const client = clientsById.get(transaction.clientId)!;
+            invoiceId = randomUUID();
+            const invoiceNumber = `HIST-${transaction.date.toISOString().slice(0, 10).replaceAll('-', '')}-${randomUUID().slice(0, 8).toUpperCase()}`;
+            historicalInvoices.push({
+              id: invoiceId,
+              invoiceNumber,
+              documentType: 'INVOICE',
+              invoiceType: 'TAX',
+              description: transaction.details,
+              subtotal: transaction.amount,
+              taxRate: 0,
+              taxAmount: 0,
+              amount: transaction.amount,
+              paidAmount: transaction.amount,
+              dueDate: transaction.date,
+              issuedDate: transaction.date,
+              status: 'FULLY_PAID',
+              source: 'HISTORICAL_IMPORT',
+              deliveryStatus: 'SENT',
+              sentAt: transaction.date,
+              sellerSnapshot: {
+                name: org.name,
+                legalEntityName: org.legalEntityName || org.name,
+                email: org.billingEmail || '',
+                addressLine1: org.billingAddressLine1 || '',
+                addressLine2: org.billingAddressLine2 || '',
+                city: org.billingCity || '',
+                state: org.billingState || '',
+                postalCode: org.billingPostalCode || '',
+                country: org.billingCountry || '',
+                gstNumber: org.gstNumber || '',
+              },
+              buyerSnapshot: {
+                name: client.name,
+                legalEntityName: client.legalEntityName || client.name,
+                email: '',
+                addressLine1: client.billingAddressLine1 || '',
+                addressLine2: client.billingAddressLine2 || '',
+                city: client.billingCity || '',
+                state: client.billingState || '',
+                postalCode: client.billingPostalCode || '',
+                country: client.billingCountry || '',
+                gstNumber: client.gstNumber || '',
+              },
+              lineItems: [{ description: transaction.details, quantity: 1, unitPrice: transaction.amount, amount: transaction.amount }],
+              orgId: org.id,
+              clientId: client.id,
+            });
+          } else if (transaction.invoiceId) {
             const invoice = await tx.invoice.update({
               where: { id: transaction.invoiceId },
               data: { paidAmount: { increment: transaction.amount } },
@@ -215,9 +302,13 @@ export async function POST(request: NextRequest) {
               data: { status: invoicePaymentStatus(invoice.amount, invoice.paidAmount) },
             });
           }
-          created.push(await tx.transaction.create({ data: transaction }));
+          const { historicalRevenue: _historicalRevenue, ...transactionRecord } = transaction;
+          transactionRecords.push({ ...transactionRecord, invoiceId });
         }
-        return created;
+        if (historicalInvoices.length > 0) {
+          await tx.invoice.createMany({ data: historicalInvoices });
+        }
+        return tx.transaction.createManyAndReturn({ data: transactionRecords });
       });
       return NextResponse.json({
         success: true,

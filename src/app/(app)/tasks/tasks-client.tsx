@@ -30,6 +30,7 @@ import {
 import { formatCurrency } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { normalizeTaskStatusProgress, TASK_STATUS_OPTIONS, taskStatusLabel } from '@/lib/tasks/status-progress';
+import { WORKSPACE_TASKS_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
@@ -131,6 +132,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
   const [isEditingTask, setIsEditingTask] = React.useState(false);
   const [isSavingTask, setIsSavingTask] = React.useState(false);
   const [taskEditError, setTaskEditError] = React.useState('');
+  const tourPreviewTaskRef = React.useRef<any | null>(null);
   const [editTaskForm, setEditTaskForm] = React.useState({
     title: '',
     description: '',
@@ -142,6 +144,61 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
     blocker: '',
     approvalStatus: 'NOT_REQUIRED',
   });
+
+  React.useEffect(() => {
+    const showTourView = (event: Event) => {
+      const view = (event as CustomEvent<{ view?: 'overview' | 'create' | 'detail' | 'edit' }>).detail?.view;
+      if (!view) return;
+      if (view === 'overview') {
+        if (tasks[0]) tourPreviewTaskRef.current = tasks[0];
+        setIsCreateOpen(false);
+        setSelectedTask(null);
+        setIsEditingTask(false);
+        return;
+      }
+      if (view === 'create') {
+        if (!tourPreviewTaskRef.current && tasks[0]) tourPreviewTaskRef.current = tasks[0];
+        setSelectedTask(null);
+        setIsEditingTask(false);
+        if (selectedProjectId === 'all' && projects[0]) setSelectedProjectId(projects[0].id);
+        setIsCreateOpen(true);
+        return;
+      }
+      setIsCreateOpen(false);
+      const project = projects.find((item) => item.id === selectedProjectId) || projects[0];
+      const sourceTask = selectedTask || tourPreviewTaskRef.current || tasks[0];
+      const previewTask = sourceTask ? { ...sourceTask, _tourPreview: true } : {
+        id: 'tour-preview-task',
+        _tourPreview: true,
+        title: 'Example project task',
+        description: 'This sample keeps the walkthrough visible until you create your first task.',
+        assignedToId: currentUser.id,
+        assignedTo: currentUser,
+        clientId: project?.clientId || '',
+        client: project?.client || { name: 'Sample client' },
+        projectId: project?.id || '',
+        project: project || { name: 'Sample project' },
+        stageId: project?.stages?.[0]?.id || null,
+        stage: project?.stages?.[0] || null,
+        status: 'TODO',
+        progress: 0,
+        timeline: '1 week',
+        deadline: null,
+        blocker: '',
+        approvalStatus: 'NOT_REQUIRED',
+        deliverables: [],
+        updates: [],
+        comments: [],
+        updatedAt: new Date(0).toISOString(),
+      };
+      tourPreviewTaskRef.current = previewTask;
+      setSelectedTask(previewTask);
+      if (view === 'edit') setEditTaskForm(taskEditorValues(previewTask));
+      setIsEditingTask(view === 'edit');
+    };
+    window.addEventListener(WORKSPACE_TASKS_PREVIEW_EVENT, showTourView);
+    return () => window.removeEventListener(WORKSPACE_TASKS_PREVIEW_EVENT, showTourView);
+  }, [currentUser, projects, selectedProjectId, selectedTask, tasks]);
 
   // Reset kanban grouping when "All Projects" is selected
   React.useEffect(() => {
@@ -375,6 +432,10 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
       setTaskEditError('A task name is required.');
       return;
     }
+    if (selectedTask._tourPreview) {
+      setTaskEditError('This is a walkthrough preview. Create a task before saving changes.');
+      return;
+    }
     if (taskWritesInFlight.current.has(selectedTask.id)) return;
     taskWritesInFlight.current.add(selectedTask.id);
 
@@ -497,6 +558,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
   }, [tasks]);
   const canEditSelectedTask = Boolean(
     selectedTask && currentUser && (
+      selectedTask._tourPreview ||
       currentUser.role?.toLowerCase() === 'admin' ||
       (currentUser.role?.toLowerCase() === 'member' && selectedTask.assignedToId === currentUser.id)
     )
@@ -506,7 +568,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
   if (loading) return <PageSkeleton variant="tasks" />;
 
   return (
-    <div className="tasks-page flex h-full min-h-0 min-w-0 flex-col overflow-hidden font-sans text-xs">
+    <div data-tour="task-workspace" className="tasks-page flex h-full min-h-0 min-w-0 flex-col overflow-hidden font-sans text-xs">
       {/* Top Header Control Panel */}
       <div className="tasks-header mb-2 flex w-full shrink-0 flex-col gap-3 border-b border-zinc-800/50 pb-4 pt-1">
         <div className="tasks-header-primary flex min-w-0 flex-wrap items-center justify-between gap-4">
@@ -555,7 +617,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
           </div>
         </div>
 
-        <div className="tasks-header-controls flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/55 p-2.5">
+        <div data-tour="task-controls" className="tasks-header-controls flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950/55 p-2.5">
           <div className="tasks-view-tools flex min-w-0 flex-wrap items-center gap-3">
           {/* View Toggles */}
           <div className="tasks-view-toggle flex w-44 shrink-0 overflow-hidden rounded-md border border-zinc-800 text-[9px] font-bold uppercase">
@@ -630,6 +692,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
           {/* Create Task Button */}
           <div className="tasks-create-action flex shrink-0 items-center gap-2">
             <Button
+              data-tour="add-task"
               disabled={selectedProjectId === 'all'}
               onClick={() => setIsCreateOpen(true)}
               className="h-8 bg-white text-zinc-950 hover:bg-zinc-200 rounded-md font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer px-4"
@@ -836,7 +899,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
 
             <form onSubmit={handleCreateTask} className="space-y-4">
               {createTaskError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-rose-200">{createTaskError}</div>}
-              <div className="space-y-1.5">
+              <div data-tour="task-create-basics" className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Task Title <span className="text-rose-500" aria-hidden="true">*</span></label>
                 <input
                   type="text"
@@ -877,7 +940,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                 </div>
               )}
 
-              <div className="grid gap-4 grid-cols-2">
+              <div data-tour="task-create-routing" className="grid gap-4 grid-cols-2">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Assign Specialist</label>
                   <select
@@ -911,7 +974,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
 
               <div className="space-y-1.5"><label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Client approval</label><select value={createForm.approvalStatus} onChange={(event) => setCreateForm({ ...createForm, approvalStatus: event.target.value })} className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-white"><option value="NOT_REQUIRED">No client approval required</option><option value="NEEDS_CLIENT_APPROVAL">Need approval from client</option></select></div>
 
-              <div className="grid gap-4 grid-cols-2">
+              <div data-tour="task-create-schedule" className="grid gap-4 grid-cols-2">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Task Timeline</label>
                   <input
@@ -932,7 +995,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end gap-2">
+              <div data-tour="task-create-save" className="pt-4 flex justify-end gap-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -959,7 +1022,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end animate-fadeIn">
           <div className="flex-1" onClick={() => setSelectedTask(null)} />
           
-          <div className="w-full max-w-lg bg-[#09090b] border-l border-zinc-800 p-6 flex flex-col h-full overflow-y-auto animate-slideIn text-xs">
+          <div data-tour="task-detail" className="w-full max-w-lg bg-[#09090b] border-l border-zinc-800 p-6 flex flex-col h-full overflow-y-auto animate-slideIn text-xs">
             <div className="flex items-center justify-between border-b border-zinc-900 pb-4 mb-4">
               <div>
                 <span className="text-[8px] text-zinc-650 uppercase font-bold block">{selectedTask.project?.name || 'Client Deliverable'}</span>
@@ -1015,7 +1078,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
               </div>
 
               {isEditingTask && canEditSelectedTask && (
-                <form onSubmit={handleSaveTask} className="space-y-4 rounded-xl border border-zinc-700/80 bg-zinc-900/25 p-4">
+                <form data-tour="task-edit-form" onSubmit={handleSaveTask} className="space-y-4 rounded-xl border border-zinc-700/80 bg-zinc-900/25 p-4">
                   <div className="flex items-center justify-between gap-3 border-b border-zinc-800/70 pb-3">
                     <div>
                       <span className="block text-[8px] font-bold uppercase tracking-wider text-zinc-500">Task editor</span>

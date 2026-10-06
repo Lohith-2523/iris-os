@@ -35,7 +35,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
-import { formatCurrency, getCurrencySymbol, cn } from '@/lib/utils';
+import { formatCurrencyFor, getCurrencySymbol, cn } from '@/lib/utils';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { DateInput } from '@/components/ui/date-input';
@@ -45,6 +45,7 @@ import { ProjectBreakdownDrawer } from '@/components/projects/project-breakdown-
 import type { ProjectsReadModel } from '@/server/read-models/workspace-pages';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { MetaLogo } from '@/components/integrations/meta-brand-lockup';
+import { WORKSPACE_PROJECTS_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 
 const clientIdentityIcons: LucideIcon[] = [
   Building2,
@@ -188,6 +189,16 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       { name: 'Initial Stage', color: '#94A3B8' },
     ]
   });
+
+  React.useEffect(() => {
+    const showTourView = (event: Event) => {
+      const view = (event as CustomEvent<{ view?: 'overview' | 'create' }>).detail?.view;
+      if (view === 'overview') setIsCreateOpen(false);
+      if (view === 'create') setIsCreateOpen(true);
+    };
+    window.addEventListener(WORKSPACE_PROJECTS_PREVIEW_EVENT, showTourView);
+    return () => window.removeEventListener(WORKSPACE_PROJECTS_PREVIEW_EVENT, showTourView);
+  }, []);
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
@@ -621,6 +632,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
           <p className="text-[10px] text-zinc-550 mt-0.5">Core Agency Program & Program Allocation Management Hub</p>
         </div>
         <Button
+          data-tour="create-project"
           onClick={() => {
             setIsCreateOpen(true);
           }}
@@ -632,7 +644,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div data-tour="projects-overview" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="border-sky-900/40 shadow-[inset_0_-18px_28px_-28px_rgba(56,189,248,0.7)]">
           <CardHeader className="pb-1.5">
             <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><FolderKanban className="h-4 w-4 text-sky-300" />Active Projects</CardTitle>
@@ -657,7 +669,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
             <CardTitle className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-wider text-zinc-550"><CircleDollarSign className="h-4 w-4 text-emerald-300" />Project Contract Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold font-mono tracking-tight text-emerald-300">{formatCurrency(stats.contractedValue)}</div>
+            <div className="text-xl font-bold font-mono tracking-tight text-emerald-300">{formatCurrencyFor(stats.contractedValue, currencyState)}</div>
           </CardContent>
         </Card>
 
@@ -933,7 +945,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
               </div>
             )}
 
-            <form onSubmit={handleCreateProject} className="space-y-4 p-6">
+            <form data-tour="project-form" onSubmit={handleCreateProject} className="space-y-4 p-6">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Project Name <span className="text-rose-500" aria-hidden="true">*</span></label>
@@ -993,7 +1005,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 </button>
               </div>
 
-              <div className="space-y-3 border-y border-zinc-900 py-4">
+              <div data-tour="project-payment" className="space-y-3 border-y border-zinc-900 py-4">
                 <div>
                   <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">Project Commercials</span>
                   <span className="text-[9px] text-zinc-600">Client billing is configured independently for every project.</span>
@@ -1079,7 +1091,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 </label>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div data-tour="project-budget" className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">Internal Budget ({getCurrencySymbol(currencyState)})</label>
                   <input
@@ -1110,7 +1122,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
               </div>
 
               {/* Project Stages Section */}
-              <div className="space-y-3 pt-3 border-t border-zinc-900">
+              <div data-tour="project-stages" className="space-y-3 pt-3 border-t border-zinc-900">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500">Project stages</label>
@@ -1125,6 +1137,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Stage names & colours</label>
                   <div className="flex gap-2">
                     <button
+                      data-tour="add-stage"
                       type="button"
                       onClick={addCreationStage}
                       disabled={newProjectForm.stages.length >= 8}
@@ -1185,7 +1198,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                 </div>}
               </div>
 
-              <div className="space-y-2 border-t border-zinc-900 pt-3">
+              <div data-tour="project-task" className="space-y-2 border-t border-zinc-900 pt-3">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-300">Create task for project</label>
                 <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
                   <input type="text" placeholder="e.g. Prepare campaign brief" value={newProjectForm.taskName} onChange={(event) => handleCreationInputChange('taskName', event.target.value)} className="w-full border border-zinc-800 bg-zinc-900 p-2.5 text-xs text-white outline-none focus:border-zinc-700" aria-label="Task name" />
@@ -1238,6 +1251,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   Cancel
                 </Button>
                 <Button
+                  data-tour="save-project"
                   type="submit"
                   className="bg-white px-6 text-xs font-semibold text-zinc-950 hover:bg-zinc-200"
                 >
@@ -1563,7 +1577,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   <div>
                     <span className="block text-[8px] text-zinc-650 uppercase font-bold">Client Payment</span>
                     <span className="font-mono font-bold text-white text-xs">
-                      {formatCurrency(selectedProject.paymentAmount || 0)}
+                      {formatCurrencyFor(selectedProject.paymentAmount || 0, currencyState)}
                       {selectedProject.paymentType !== 'ONE_TIME' && selectedProject.paymentFrequency
                         ? ` / ${selectedProject.paymentFrequency}`
                         : ''}
@@ -1697,6 +1711,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       {selectedProject && !isEditing && (
         <ProjectBreakdownDrawer
           project={selectedProject}
+          currency={currencyState}
           canManageChangeRequests={canManageChangeRequests}
           onChangeRequestUpdated={() => loadData()}
           onClose={() => setSelectedProject(null)}

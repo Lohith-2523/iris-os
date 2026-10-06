@@ -144,7 +144,7 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
           <Button variant="outline" size="sm" onClick={() => void loadData()} disabled={loading} className="h-9 gap-1.5 border-zinc-800 text-zinc-300">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={() => void generateReport()} disabled={isGenerating} className="h-9 min-w-40 gap-1.5 bg-white font-semibold text-zinc-950 hover:bg-zinc-200">
+          <Button data-tour="reporting-generate" size="sm" onClick={() => void generateReport()} disabled={isGenerating} className="h-9 min-w-40 gap-1.5 bg-white font-semibold text-zinc-950 hover:bg-zinc-200">
             {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             {isGenerating ? 'Compiling PDF...' : 'Generate report'}
           </Button>
@@ -153,7 +153,7 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
 
       {error && <div className="rounded-md border border-rose-900/40 bg-rose-950/15 px-4 py-3 text-xs text-rose-300">{error}</div>}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div data-tour="reporting-form" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {REPORT_OPTIONS.map((option) => {
           const Icon = option.icon;
           const selected = selectedKind === option.kind;
@@ -190,7 +190,7 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
       </Card>
 
       <div className={`grid gap-6 ${selectedReport ? 'xl:grid-cols-[minmax(0,1fr)_minmax(520px,0.9fr)]' : ''}`}>
-        <Card className="min-w-0 border-zinc-800/80 bg-zinc-950/35">
+        <Card data-tour="reporting-archive" className="min-w-0 border-zinc-800/80 bg-zinc-950/35">
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div className="min-w-0"><CardTitle className="text-sm text-white">PDF report archive</CardTitle><CardDescription>View or download any generated branded report.</CardDescription></div>
             <Badge variant="outline" className="border-zinc-800 text-zinc-400">{reports.length} reports</Badge>

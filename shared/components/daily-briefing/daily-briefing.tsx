@@ -61,7 +61,7 @@ function FiledCard({ item, index }: { item: DailyBriefingItem; index: number }) 
       data-item={item.id}
       data-tone={item.tone}
     >
-      <div>
+      <div className={styles.filedContent}>
         <div className={styles.cardLabel}>
           <Icon aria-hidden />
           <span>{item.label}</span>

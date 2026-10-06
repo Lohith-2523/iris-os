@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
+import { prisma } from '@/lib/db';
 import {
   getInvoiceForPdf,
   invoicePdfFromRecord,
@@ -33,6 +34,10 @@ export async function GET(
     if (!authorized) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const pdf = await invoicePdfFromRecord(invoice);
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { pdfGeneratedAt: new Date() },
+    });
     const filename = `${invoice.invoiceNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
     return new Response(new Uint8Array(pdf), {
       status: 200,

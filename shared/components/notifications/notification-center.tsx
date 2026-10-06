@@ -1,12 +1,19 @@
 'use client';
 
 import * as React from 'react';
-import { Bell, CalendarClock, CheckCheck, Loader2, X } from 'lucide-react';
+import { Bell, CalendarClock, CheckCheck, Download, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DateTimeInput } from '@/components/ui/date-input';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import {
+  FILE_DOWNLOAD_STARTED_EVENT,
+  type FileDownloadStartedDetail,
+} from '@/lib/browser-download';
 
 type Notification = { id: string; type: string; title: string; body: string; href: string | null; actionLabel: string | null; readAt: string | null; createdAt: string };
+type DownloadToast = FileDownloadStartedDetail & { startedAt: number };
+
+const DOWNLOAD_TOAST_DURATION_MS = 5_000;
 
 const notificationTone = (type: string) => {
   if (type === 'ISSUE') return { priority: 'Critical', title: 'text-rose-300', glow: 'shadow-[inset_0_-18px_24px_-24px_rgba(244,63,94,0.95)]' };
@@ -25,6 +32,8 @@ export function NotificationCenter() {
   const [showReminder, setShowReminder] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [popup, setPopup] = React.useState<Notification | null>(null);
+  const [downloadToast, setDownloadToast] = React.useState<DownloadToast | null>(null);
+  const [downloadProgress, setDownloadProgress] = React.useState(100);
   const [reminder, setReminder] = React.useState({ title: '', scheduledAt: '', href: '/dashboard' });
   const initialized = React.useRef(false);
   const knownNotificationIds = React.useRef(new Set<string>());
@@ -48,6 +57,28 @@ export function NotificationCenter() {
     const timer = window.setTimeout(() => setPopup(null), 10_000);
     return () => window.clearTimeout(timer);
   }, [popup]);
+  React.useEffect(() => {
+    const showDownloadToast = (event: Event) => {
+      const { filename } = (event as CustomEvent<FileDownloadStartedDetail>).detail;
+      setDownloadProgress(100);
+      setDownloadToast({ filename, startedAt: Date.now() });
+    };
+    window.addEventListener(FILE_DOWNLOAD_STARTED_EVENT, showDownloadToast);
+    return () => window.removeEventListener(FILE_DOWNLOAD_STARTED_EVENT, showDownloadToast);
+  }, []);
+  React.useEffect(() => {
+    if (!downloadToast) return;
+    const updateProgress = () => {
+      const elapsed = Date.now() - downloadToast.startedAt;
+      setDownloadProgress(Math.max(0, 100 - (elapsed / DOWNLOAD_TOAST_DURATION_MS) * 100));
+    };
+    const progressTimer = window.setInterval(updateProgress, 50);
+    const dismissTimer = window.setTimeout(() => setDownloadToast(null), DOWNLOAD_TOAST_DURATION_MS);
+    return () => {
+      window.clearInterval(progressTimer);
+      window.clearTimeout(dismissTimer);
+    };
+  }, [downloadToast]);
 
   const post = async (body: Record<string, unknown>) => {
     const response = await fetch('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -91,6 +122,17 @@ export function NotificationCenter() {
   };
 
   return <div className="relative">
+    {downloadToast && <div role="status" aria-live="polite" className="fixed right-5 top-20 z-[110] w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-emerald-400/30 bg-zinc-950 text-white shadow-2xl shadow-emerald-950/40">
+      <div className="flex items-start gap-3 p-4 pb-4">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-400/10 text-emerald-300"><Download className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-zinc-100">File download has started</div>
+          <div className="mt-1 truncate text-xs text-zinc-400">{downloadToast.filename}</div>
+        </div>
+        <button type="button" onClick={() => setDownloadToast(null)} aria-label="Dismiss download notification" className="text-zinc-500 transition-colors hover:text-white"><X className="h-4 w-4" /></button>
+      </div>
+      <div className="h-1 bg-zinc-800" aria-hidden="true"><div className="h-full bg-emerald-400 transition-[width] duration-75 ease-linear" style={{ width: `${downloadProgress}%` }} /></div>
+    </div>}
     {popup && <div role="alert" data-priority={notificationTone(popup.type).priority.toLowerCase()} className={`fixed right-5 top-20 z-[100] w-[min(92vw,410px)] rounded-2xl border border-zinc-700 bg-zinc-950 p-4 text-white shadow-2xl ${notificationTone(popup.type).glow}`}>
       <div className="flex items-start justify-between gap-4"><div className={`font-bold ${notificationTone(popup.type).title}`}>{popup.title}</div><button type="button" onClick={() => setPopup(null)} aria-label="Dismiss notification" className="text-zinc-500 hover:text-white"><X className="h-4 w-4" /></button></div>
       <Button type="button" size="sm" className="mt-3" onClick={() => openNotification(popup)}>{popup.actionLabel || 'Open item'}</Button>

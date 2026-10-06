@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { downloadFileFromUrl } from '@/lib/browser-download';
 import { workspaceFetch as fetch } from '@/lib/workspace-data-cache';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { MetricCard } from '@/components/ui/metric-card';
@@ -89,6 +90,7 @@ const Instagram = (props: React.SVGProps<SVGSVGElement>) => (
 
 interface ClientDetailDashboardProps {
   client: any;
+  currency: string;
   teamMembers: any[];
   onBack: () => void;
   canManageMetaAccounts: boolean;
@@ -194,25 +196,10 @@ function ClientBillingPanel({
     setDownloadingInvoiceId(invoice.id);
     setMessage('');
     try {
-      // PDF responses are binary and must bypass the workspace JSON cache.
-      const response = await globalThis.fetch(invoice.downloadUrl || `/api/invoices/${invoice.id}/pdf`, { cache: 'no-store' });
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        throw new Error(result.error || 'Unable to download this invoice.');
-      }
-      const contentType = response.headers.get('content-type') || '';
-      const blob = await response.blob();
-      if (!contentType.includes('application/pdf') || blob.size < 500) {
-        throw new Error('The server returned an invalid or empty invoice PDF.');
-      }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${invoice.invoiceNumber || 'invoice'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+      downloadFileFromUrl(
+        invoice.downloadUrl || `/api/invoices/${invoice.id}/pdf`,
+        `${invoice.invoiceNumber || 'invoice'}.pdf`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to download this invoice.');
     } finally {
@@ -387,6 +374,7 @@ function ClientBillingPanel({
 
 export default function ClientDetailDashboard({
   client,
+  currency,
   teamMembers,
   onBack,
   canManageMetaAccounts,
@@ -1997,6 +1985,7 @@ export default function ClientDetailDashboard({
       {selectedProject && (
         <ProjectBreakdownDrawer
           project={selectedProject}
+          currency={currency}
           tasks={tasks.filter((task: any) => task.projectId === selectedProject.id)}
           deliverables={deliveryData.deliverables.filter((item: any) => item.projectId === selectedProject.id)}
           changeRequests={deliveryData.changeRequests.filter((item: any) => item.projectId === selectedProject.id)}

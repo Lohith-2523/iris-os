@@ -61,6 +61,7 @@ import { financialValueClass } from '@/lib/financial-value';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { financialRangeLabel, isAllTimeFinancialRange, type FinancialDateRange } from '@/lib/finance/fiscal-quarter';
 import { resolveWorkspaceBannerPosition, resolveWorkspaceBannerZoom, type WorkspaceBannerPosition } from '@/lib/workspace-banner';
+import { WORKSPACE_ONBOARDING_TOUR_PENDING_KEY } from '@/lib/workspace-tour-config';
 
 type FinanceMetricKey = 'revenue' | 'profit' | 'mrr' | 'expenses' | 'receivables';
 type OverviewTab = 'leads' | 'clients' | 'actions' | 'tasks' | 'meetings';
@@ -548,6 +549,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
 
       if (res.ok) {
         setNeedsOnboarding(false);
+        window.sessionStorage.setItem(WORKSPACE_ONBOARDING_TOUR_PENDING_KEY, '1');
         window.location.reload();
       } else {
         const errorData = await res.json().catch(() => ({}));
@@ -749,7 +751,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
         <div className="z-10 flex min-w-0 max-w-full flex-wrap items-center justify-start gap-3 md:col-start-2 md:row-start-1 md:justify-self-end">
           <Popover.Root>
             <Popover.Trigger asChild>
-              <button type="button" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${financialRangeLabel(appliedRange)}`}>
+              <button type="button" data-tour="dashboard-date-range" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`Dashboard date range: ${financialRangeLabel(appliedRange)}`}>
                 <Calendar className="h-4 w-4" aria-hidden="true" />{financialRangeLabel(appliedRange)}
               </button>
             </Popover.Trigger>
@@ -1022,7 +1024,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
               </div>
             </ExpandableCard>
 
-            <div className="dashboard-primary-row grid gap-6 xl:grid-cols-[minmax(0,65fr)_minmax(280px,35fr)]">
+            <div data-tour="dashboard-overview" className="dashboard-primary-row grid gap-6 xl:grid-cols-[minmax(0,65fr)_minmax(280px,35fr)]">
               <RevenueLineChart
                 title="Financial performance"
                 description="Toggle legend items to compare one or several metrics across the chosen range."
@@ -1049,7 +1051,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
             </div>
 
             <div className="dashboard-secondary-row grid gap-6 xl:grid-cols-[minmax(250px,25fr)_minmax(0,75fr)]">
-              <Card className="flex h-[470px] min-w-0 flex-col overflow-hidden">
+              <Card data-tour="workspace-overview" className="flex h-[470px] min-w-0 flex-col overflow-hidden">
                 <CardHeader className="border-b border-zinc-800 pb-3"><CardTitle className="text-sm font-semibold text-white">Workspace overview</CardTitle><div className="dashboard-overview-tabs mt-3 flex w-full min-w-0 gap-1 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none" role="tablist" aria-label="Workspace overview">{([['leads','Leads'],['clients','Clients'],['actions','Actions'],['tasks','Tasks'],['meetings','Meetings']] as const).map(([key,label]) => <button key={key} type="button" role="tab" aria-selected={overviewTab === key} data-active={overviewTab === key} onClick={() => setOverviewTab(key)} className="dashboard-overview-tab min-h-11 shrink-0 whitespace-nowrap rounded px-2.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500">{label}</button>)}</div></CardHeader>
                 <CardContent className="dashboard-overview-scroll min-h-0 flex-1 overflow-y-auto p-0" role="tabpanel">
                   {overviewTab === 'leads' && <div className="divide-y divide-zinc-800">{agencyLeadsList.map((lead: any) => <Link key={lead.id || lead.leadId} href={`/agency-leads?lead=${encodeURIComponent(lead.id || lead.leadId)}`} className="flex items-center justify-between gap-3 px-5 py-4 text-xs"><span className="min-w-0"><span className="block truncate font-semibold text-zinc-200">{lead.fullName}</span><span className="mt-0.5 block truncate text-zinc-500">{lead.email}</span></span><Badge variant={String(lead.status).toLowerCase() === 'closed' ? 'risk-low' : 'outline'} className="shrink-0">{lead.status}</Badge></Link>)}{!agencyLeadsList.length && <p className="p-8 text-center text-xs text-zinc-500">No leads in this range.</p>}</div>}
@@ -1060,7 +1062,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                 </CardContent>
               </Card>
 
-              <Card className="flex h-[470px] min-w-0 flex-col overflow-hidden">
+              <Card data-tour="dashboard-sales-pipeline" className="flex h-[470px] min-w-0 flex-col overflow-hidden">
                 <CardHeader className="border-b border-zinc-800"><div className="flex items-start justify-between gap-4"><div><CardTitle className="text-sm font-semibold text-white">Sales pipeline</CardTitle><CardDescription className="mt-1">Lead conversion and acquisition economics for the selected range.</CardDescription></div><Target className="h-4 w-4 text-zinc-500" aria-hidden="true" /></div></CardHeader>
                 <CardContent className="dashboard-pipeline-scroll min-h-0 flex-1 overflow-y-auto p-5">
                   <div className="grid grid-cols-1 border border-zinc-800 lg:grid-cols-4">{[
@@ -1401,6 +1403,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                 <CardContent className="flex-1 flex flex-col justify-center items-center gap-3 min-h-[112px] pt-2 pb-6">
                   <div className="flex flex-col gap-3.5 w-full items-center justify-center">
                     <Button
+                      data-tour="add-client"
                       size="lg"
                       className="w-full max-w-[180px] text-[11px] font-bold uppercase tracking-widest bg-zinc-100 border border-zinc-300 text-zinc-950 hover:bg-white rounded-md h-11"
                       onClick={(e) => {

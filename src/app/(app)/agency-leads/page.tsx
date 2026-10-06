@@ -33,6 +33,7 @@ import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import { validateBrowserFile } from '@/lib/file-security';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { DateInput, DateTimeInput } from '@/components/ui/date-input';
+import { WORKSPACE_AGENCY_LEADS_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { LEAD_EXPORT_TIMEFRAMES, resolveLeadExportTimeframe, type LeadExportTimeframe } from '@/lib/lead-export-timeframe';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
@@ -161,8 +162,27 @@ export default function AgencyLeadsPage() {
 
   // Selected lead for detail modal
   const [selectedLead, setSelectedLead] = React.useState<AgencyLead | null>(null);
+  const tourTabRef = React.useRef<'pipeline' | 'entry' | 'meta' | null>(null);
+
   React.useEffect(() => {
-    if (!requestedLeadId) return;
+    const showTourTab = (event: Event) => {
+      const tab = (event as CustomEvent<{ tab?: 'pipeline' | 'entry' | 'meta' }>).detail?.tab;
+      if (tab !== 'pipeline' && tab !== 'entry' && tab !== 'meta') return;
+      tourTabRef.current = tab;
+      setSelectedLead(null);
+      setActiveTab(tab);
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('lead')) {
+        url.searchParams.delete('lead');
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    };
+    window.addEventListener(WORKSPACE_AGENCY_LEADS_PREVIEW_EVENT, showTourTab);
+    return () => window.removeEventListener(WORKSPACE_AGENCY_LEADS_PREVIEW_EVENT, showTourTab);
+  }, []);
+
+  React.useEffect(() => {
+    if (!requestedLeadId || tourTabRef.current) return;
     const lead = leads.find((item) => item.id === requestedLeadId || item.leadId === requestedLeadId);
     if (lead) { setActiveTab('pipeline'); setSelectedLead(lead); }
   }, [leads, requestedLeadId]);
@@ -851,6 +871,7 @@ export default function AgencyLeadsPage() {
           {/* Tab Selection */}
           <div className="agency-leads-tabs workspace-segmented-control flex w-full min-w-0 items-center gap-1 overflow-x-auto overscroll-x-contain rounded-lg border border-zinc-900 bg-zinc-950 p-1 scrollbar-none md:w-auto">
             <button
+              data-tour="leads-pipeline-tab"
               onClick={() => setActiveTab('pipeline')}
               aria-pressed={activeTab === 'pipeline'}
               className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
@@ -861,6 +882,7 @@ export default function AgencyLeadsPage() {
               <span>Leads Pipeline</span>
             </button>
             <button
+              data-tour="add-lead"
               onClick={() => setActiveTab('entry')}
               aria-pressed={activeTab === 'entry'}
               className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
@@ -872,6 +894,7 @@ export default function AgencyLeadsPage() {
             </button>
             {role !== 'client' && (
               <button
+                data-tour="meta-leads-tab"
                 onClick={() => setActiveTab('meta')}
                 aria-pressed={activeTab === 'meta'}
                 className={`workspace-segmented-trigger flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
@@ -1048,7 +1071,7 @@ export default function AgencyLeadsPage() {
           )}
 
           {/* KANBAN BOARD */}
-          <div className="agency-leads-kanban-viewport w-full max-w-full overflow-x-auto overscroll-x-contain">
+          <div data-tour="lead-pipeline" className="agency-leads-kanban-viewport w-full max-w-full overflow-x-auto overscroll-x-contain">
           <div className="agency-leads-kanban-board grid min-w-max grid-cols-1 items-stretch gap-4 min-h-[715px]" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(286px, 1fr))` }}>
             {columns.map((col) => {
               const colLeads = filteredLeads.filter(
@@ -1151,7 +1174,7 @@ export default function AgencyLeadsPage() {
                 <CardDescription className="text-xs">Create a single lead record manually by filling out client details.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleManualFormSubmit} className="space-y-4">
+                <form data-tour="add-lead-form" onSubmit={handleManualFormSubmit} className="space-y-4">
                   {formError && (
                     <div className="flex gap-2.5 rounded border border-rose-900/30 bg-rose-950/10 p-3.5 text-xs text-rose-450">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -1268,7 +1291,7 @@ export default function AgencyLeadsPage() {
 
           {/* Right Column: Excel Templates Import */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
+            <Card data-tour="lead-bulk-import" className="rounded-md border-zinc-800/80 bg-zinc-950/40">
               <CardHeader>
                 <CardTitle className="text-sm font-semibold text-white uppercase tracking-wider">Spreadsheet Imports</CardTitle>
                 <CardDescription className="text-xs">Download template layouts and import bulk lead files cleanly.</CardDescription>
@@ -1476,7 +1499,7 @@ export default function AgencyLeadsPage() {
                 <CardDescription>Connect an account used to advertise your own agency. Its form submissions join the same lead cards above.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button onClick={connectMeta} disabled={metaBusy || !agencyMeta?.metaAccessConsent} className="w-full">
+                <Button data-tour="connect-meta-leads" onClick={connectMeta} disabled={metaBusy || !agencyMeta?.metaAccessConsent} className="w-full">
                   <MetaLogo className="h-4 w-6" />{metaConnection ? 'Reconnect Meta' : 'Connect Meta'}
                 </Button>
                 {metaConnection && (

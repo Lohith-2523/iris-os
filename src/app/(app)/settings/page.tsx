@@ -26,6 +26,7 @@ import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { PROFILE_AVATAR_TEMPLATES, type ProfileAvatarTemplateId } from '@/lib/profile-avatar-templates';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { WORKSPACE_SETTINGS_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 import {
   getMetaSdkStatus,
   META_SDK_ERROR_EVENT,
@@ -235,6 +236,15 @@ export default function SettingsPage() {
   const fetch = runtime.fetch;
   const supabase = React.useMemo(() => createClient(), []);
   const [activeTab, setActiveTab] = React.useState<'profile' | 'billing' | 'integrations'>('profile');
+
+  React.useEffect(() => {
+    const showTourTab = (event: Event) => {
+      const tab = (event as CustomEvent<{ tab?: 'profile' | 'billing' | 'integrations' }>).detail?.tab;
+      if (tab === 'profile' || tab === 'billing' || tab === 'integrations') setActiveTab(tab);
+    };
+    window.addEventListener(WORKSPACE_SETTINGS_PREVIEW_EVENT, showTourTab);
+    return () => window.removeEventListener(WORKSPACE_SETTINGS_PREVIEW_EVENT, showTourTab);
+  }, []);
   const [currentUser, setCurrentUser] = React.useState<{ id: string; orgId: string; name: string; email: string; role: string; avatarUrl?: string | null; accessPermissions?: string[] | null; client?: { id: string; name: string; logoDataUrl?: string | null } | null } | null>(null);
   const [signingOut, setSigningOut] = React.useState(false);
   const [avatarStatus, setAvatarStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -883,6 +893,7 @@ export default function SettingsPage() {
       >
         <div className="flex min-w-max gap-6 border-b border-zinc-850 pr-4">
         <button
+          data-tour="settings-profile-tab"
           type="button"
           role="tab"
           aria-selected={activeTab === 'profile'}
@@ -899,6 +910,7 @@ export default function SettingsPage() {
           Profile & Services
         </button>
         <button
+          data-tour="settings-billing-tab"
           type="button"
           role="tab"
           aria-selected={activeTab === 'billing'}
@@ -915,6 +927,7 @@ export default function SettingsPage() {
           Billing & Subscription
         </button>
         <button
+          data-tour="settings-integrations-tab"
           type="button"
           role="tab"
           aria-selected={activeTab === 'integrations'}
@@ -934,7 +947,7 @@ export default function SettingsPage() {
       </div>
 
       {activeTab === 'profile' && (
-        <form onSubmit={handleSave} className="space-y-6">
+        <form data-tour="settings-profile" onSubmit={handleSave} className="space-y-6">
           <Card>
             <CardHeader><CardTitle className="text-sm font-semibold text-white">Account Profile</CardTitle><CardDescription>Your signed-in account and session controls.</CardDescription></CardHeader>
             <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -1384,7 +1397,7 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card data-tour="settings-security">
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-white font-sans">Security & Roles</CardTitle>
                   <CardDescription>Configure user access credentials and workspace authorization levels.</CardDescription>
@@ -1517,7 +1530,7 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'billing' && (
-        <div className="space-y-6">
+        <div data-tour="settings-billing" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white"><Gauge className="h-4.5 w-4.5 text-zinc-400" /><span>Workspace usage limits</span></CardTitle>
@@ -1665,7 +1678,7 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'integrations' && (
-        <div className="space-y-6">
+        <div data-tour="settings-integrations" className="space-y-6">
           {/* Header metrics */}
           <div className="grid gap-4 sm:grid-cols-3">
             <Card hoverEffect>

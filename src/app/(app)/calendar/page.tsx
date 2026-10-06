@@ -522,7 +522,7 @@ export default function CalendarPage() {
   if (loading) return <PageSkeleton variant="calendar" />;
 
   return (
-    <div className="space-y-6 select-none font-sans text-xs">
+    <div data-tour="calendar-workspace" className="space-y-6 select-none font-sans text-xs">
       
       {/* Page Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-zinc-800 pb-5">
@@ -600,6 +600,7 @@ export default function CalendarPage() {
                 </Button>
               )}
               <Button
+                data-tour="calendar-connect"
                 onClick={handleGoogleConnect}
                 disabled={syncingGoogle}
                 className={cn(
@@ -625,6 +626,7 @@ export default function CalendarPage() {
         <div className="space-y-6 lg:col-span-1">
           
           <Button
+            data-tour="create-event"
             onClick={() => handleOpenCreate()}
             className="w-full h-10 font-bold bg-white text-zinc-950 hover:bg-zinc-250 flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg transition-all cursor-pointer rounded-lg uppercase tracking-wider"
           >

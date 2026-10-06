@@ -1,4 +1,5 @@
 import { PDFDocument } from 'pdf-lib';
+import { PDFArray, PDFRawStream, decodePDFRawStream } from 'pdf-lib/cjs/core';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -6,6 +7,21 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 
 import { generateInvoicePdf } from './pdf';
+
+function decodedPageContent(document: PDFDocument) {
+  const contents = document.getPage(0).node.Contents();
+  if (!contents) return '';
+  const streams = contents instanceof PDFArray
+    ? Array.from({ length: contents.size() }, (_, index) => contents.lookup(index, PDFRawStream))
+    : [contents as PDFRawStream];
+  return streams
+    .map((stream) => new TextDecoder('latin1').decode(decodePDFRawStream(stream).decode()))
+    .join('\n');
+}
+
+function encodedPdfText(value: string) {
+  return `<${Buffer.from(value, 'latin1').toString('hex').toUpperCase()}> Tj`;
+}
 
 describe('invoice PDF', () => {
   it('creates a valid one-page PDF with invoice metadata', async () => {
@@ -63,6 +79,12 @@ describe('invoice PDF', () => {
     const parsed = await PDFDocument.load(Uint8Array.from(pdf));
     expect(parsed.getPageCount()).toBe(1);
     expect(parsed.getTitle()).toBe('Tax Invoice INV-2026-TEST');
+    const pageContent = decodedPageContent(parsed);
+    expect(pageContent.match(/ Tj/g)?.length).toBeGreaterThan(20);
+    expect(pageContent).toContain(encodedPdfText('TAX INVOICE'));
+    expect(pageContent).toContain(encodedPdfText('INV-2026-TEST'));
+    expect(pageContent).toContain(encodedPdfText('IrisOS implementation'));
+    expect(pageContent).toContain(encodedPdfText('BALANCE DUE'));
 
     if (process.env.WRITE_SAMPLE_PDF === '1') {
       const outputDirectory = path.join(process.cwd(), 'tmp', 'pdfs');

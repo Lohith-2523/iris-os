@@ -1260,6 +1260,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
                 {composerExpanded ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
               </button>
               <textarea
+                data-tour="miles-input"
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -1270,6 +1271,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
               </>)}
               </div>
               <button
+                data-tour="miles-transcribe"
                 type="button"
                 onClick={voiceState === 'recording' ? stopRecording : () => void startRecording()}
                 disabled={voiceChatActive || realtimeState === 'connecting' || voiceState === 'requesting' || voiceState === 'transcribing'}
@@ -1279,8 +1281,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
               >
                 {voiceState === 'recording' ? <Square className="h-3.5 w-3.5 fill-current" /> : voiceState === 'transcribing' ? <AudioLines className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </button>
-              <button type="button" onClick={toggleVoiceChat} disabled={voiceState !== 'idle' || isLoading} className={`atlas-live-voice grid h-11 w-11 shrink-0 place-items-center rounded-full border ${voiceChatActive || realtimeState === 'connecting' ? 'is-active' : ''}`} aria-label={voiceChatActive || realtimeState === 'connecting' ? 'End voice conversation' : 'Start voice conversation'} aria-pressed={voiceChatActive} title="Realtime voice conversation">{realtimeState === 'connecting' ? <AudioLines className="h-4 w-4 animate-pulse" /> : <Radio className="h-4 w-4" />}</button>
-              <Button type="submit" disabled={isLoading || voiceState !== 'idle' || realtimeState !== 'idle' || !query.trim()} className="h-11 w-11 px-0 bg-white hover:bg-zinc-200 text-zinc-950 shrink-0 rounded-none">
+              <button data-tour="miles-voice-chat" type="button" onClick={toggleVoiceChat} disabled={voiceState !== 'idle' || isLoading} className={`atlas-live-voice grid h-11 w-11 shrink-0 place-items-center rounded-full border ${voiceChatActive || realtimeState === 'connecting' ? 'is-active' : ''}`} aria-label={voiceChatActive || realtimeState === 'connecting' ? 'End voice conversation' : 'Start voice conversation'} aria-pressed={voiceChatActive} title="Realtime voice conversation">{realtimeState === 'connecting' ? <AudioLines className="h-4 w-4 animate-pulse" /> : <Radio className="h-4 w-4" />}</button>
+              <Button data-tour="miles-send" type="submit" disabled={isLoading || voiceState !== 'idle' || realtimeState !== 'idle' || !query.trim()} className="h-11 w-11 px-0 bg-white hover:bg-zinc-200 text-zinc-950 shrink-0 rounded-none">
                 <Send className="h-4 w-4" />
               </Button>
             </form>

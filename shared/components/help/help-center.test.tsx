@@ -28,4 +28,16 @@ describe('HelpCenter confirmations', () => {
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Your feedback has been sent. You can expect a response within a day.'));
   });
+
+  it('restarts the active page tour from the help menu', () => {
+    const listener = vi.fn();
+    window.addEventListener('iris:workspace-quick-tour', listener);
+    render(<HelpCenter />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Get help' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Quick Tour' }));
+
+    expect(listener).toHaveBeenCalledOnce();
+    window.removeEventListener('iris:workspace-quick-tour', listener);
+  });
 });

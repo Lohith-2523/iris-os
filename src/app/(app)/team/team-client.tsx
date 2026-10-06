@@ -32,6 +32,7 @@ import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { SubscriptionPlanDialog } from '@/components/billing/subscription-plan-dialog';
 import { normalizePlan, type PlanId } from '@/lib/plan-entitlements';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
+import { WORKSPACE_TEAM_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 
 // --- EXISTING SPECIALISTS (NOT YET ALLOCATED IN MAIN ACTIVE LIST) ---
 const MOCK_EXISTING_SPECIALISTS: any[] = [];
@@ -145,6 +146,19 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
   const [onboardSuccessData, setOnboardSuccessData] = React.useState<any>(null);
   const [availableProjects] = React.useState<any[]>(initialData.projects.filter((project) => project.status !== 'COMPLETED'));
   const [singleFormError, setSingleFormError] = React.useState('');
+
+  React.useEffect(() => {
+    const showTourView = (event: Event) => {
+      const view = (event as CustomEvent<{ view?: 'overview' | 'add' }>).detail?.view;
+      if (view === 'overview') setIsAddModalOpen(false);
+      if (view === 'add') {
+        setActiveTab('single');
+        setIsAddModalOpen(true);
+      }
+    };
+    window.addEventListener(WORKSPACE_TEAM_PREVIEW_EVENT, showTourView);
+    return () => window.removeEventListener(WORKSPACE_TEAM_PREVIEW_EVENT, showTourView);
+  }, []);
 
   // --- TAB 2: EXISTING SPECIALIST ---
   const [selectedExistingId, setSelectedExistingId] = React.useState('');
@@ -585,6 +599,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
             <span>Filter Team</span>
           </Button>
           {canManageTeam && <Button
+            data-tour="add-team-member"
             variant="default"
             size="sm"
             onClick={() => setIsAddModalOpen(true)}
@@ -721,7 +736,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
       {/* --- ADD MEMBER SLIDE OVER / MODAL DIALOG --- */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border border-zinc-800 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-lg shadow-2xl relative">
+          <div data-tour="team-member-form" className="bg-zinc-950 border border-zinc-800 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-lg shadow-2xl relative">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-900">
@@ -890,14 +905,14 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
                     </div>
 
                     <div className="space-y-2 border-t border-zinc-900 pt-3">
-                      <label className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${handlesDeliverables ? 'border-zinc-700 bg-zinc-900 text-white' : 'border-zinc-900 text-zinc-400'}`}>
+                      <label data-tour="handles-deliverables" className={`flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors ${handlesDeliverables ? 'border-zinc-700 bg-zinc-900 text-white' : 'border-zinc-900 text-zinc-400'}`}>
                         <input type="checkbox" checked={handlesDeliverables} onChange={(event) => setHandlesDeliverables(event.target.checked)} className="mt-0.5 h-4 w-4 accent-white" />
                         <span><span className="block text-xs font-semibold">Handles Deliverables</span><span className="mt-1 block text-[10px] text-zinc-500">Creates a standard team workspace for tasks, updates, calendar, and delivery management.</span></span>
                       </label>
                     </div>
 
                     {/* Project Allocation checkboxes */}
-                    <div className="space-y-2 border-t border-zinc-900 pt-3">
+                    <div data-tour="member-projects" className="space-y-2 border-t border-zinc-900 pt-3">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 block">
                         Assign team member to active projects
                       </label>

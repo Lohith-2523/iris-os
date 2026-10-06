@@ -308,7 +308,7 @@ export default function StrategyPage() {
             <CardDescription>Miles AI receives the selected first-party records plus this brief. Leaving scope empty includes all clients and projects.</CardDescription>
           </CardHeader>
           <CardContent className="pt-5">
-            <form onSubmit={generate} className="space-y-5">
+            <form data-tour="strategy-form" onSubmit={generate} className="space-y-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1.5 text-xs text-zinc-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Strategy name <span className="font-normal normal-case tracking-normal">(optional)</span></span>
@@ -345,7 +345,7 @@ export default function StrategyPage() {
                 <p className="flex items-center gap-2 text-[11px] text-zinc-500">
                   <BriefcaseBusiness className="h-3.5 w-3.5" /> Integrations, campaign feeds, invoices, and ledger entries are excluded.
                 </p>
-                <Button type="submit" disabled={generating || !form.goal.trim() || !form.timeline.trim()} className="gap-2">
+                <Button data-tour="strategy-generate" type="submit" disabled={generating || !form.goal.trim() || !form.timeline.trim()} className="gap-2">
                   {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   {generating ? 'Miles AI is building…' : 'Generate with Miles AI'}
                 </Button>
@@ -354,7 +354,7 @@ export default function StrategyPage() {
           </CardContent>
         </Card>
 
-        <Card className="h-fit">
+        <Card data-tour="strategy-history" className="h-fit">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>

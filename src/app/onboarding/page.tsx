@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { WORKSPACE_ONBOARDING_TOUR_PENDING_KEY } from '@/lib/workspace-tour-config';
 import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -237,7 +238,11 @@ export default function OnboardingPage() {
       }
       await saveProgress(4, true);
       const params = new URLSearchParams(window.location.search);
-      window.location.replace(params.get('redirect') || '/dashboard');
+      const destination = params.get('redirect') || '/dashboard';
+      if (destination === '/dashboard' || destination.startsWith('/dashboard?')) {
+        window.sessionStorage.setItem(WORKSPACE_ONBOARDING_TOUR_PENDING_KEY, '1');
+      }
+      window.location.replace(destination);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Unable to finish workspace setup.');
       throw error;

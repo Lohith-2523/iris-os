@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { AtlasAIService } from '@/lib/atlas-ai/service';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
-import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
+import { formatCurrencyFor, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { DateInput } from '@/components/ui/date-input';
@@ -44,6 +44,7 @@ import { financialValueClass } from '@/lib/financial-value';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { Popover } from 'radix-ui';
 import { financialRangeLabel, isAllTimeFinancialRange, type FinancialDateRange } from '@/lib/finance/fiscal-quarter';
+import { WORKSPACE_FINANCE_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
 
 export default function FinancePage({ initialData, range }: { initialData: FinanceReadModel; range: FinancialDateRange }) {
   const runtime = useWorkspaceRuntime();
@@ -62,6 +63,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
   const [loadingFinanceRange, setLoadingFinanceRange] = React.useState(false);
   const [leakData, setLeakData] = React.useState<any>(null);
   const [currencyState] = React.useState(initialData.workspace.organization.currency || 'USD');
+  const formatCurrency = React.useCallback((amount: number, decimals: number = 0) => formatCurrencyFor(amount, currencyState, decimals), [currencyState]);
   const [uiScope] = React.useState<WorkspaceUiScope | null>({ userId: initialData.workspace.user.id, orgId: initialData.workspace.organization.id });
 
   // Manual Entry States
@@ -73,6 +75,15 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
   const [outstandingInvoices, setOutstandingInvoices] = React.useState<any[]>([]);
   const [ledgerClients] = React.useState<any[]>(initialData.clients);
   const [isFinancialReportOpen, setIsFinancialReportOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const showTourTab = (event: Event) => {
+      const tab = (event as CustomEvent<{ tab?: 'overview' | 'manual' }>).detail?.tab;
+      if (tab === 'overview' || tab === 'manual') setActiveTab(tab);
+    };
+    window.addEventListener(WORKSPACE_FINANCE_PREVIEW_EVENT, showTourTab);
+    return () => window.removeEventListener(WORKSPACE_FINANCE_PREVIEW_EVENT, showTourTab);
+  }, []);
 
   // Form states
   const [formDate, setFormDate] = React.useState('');
@@ -555,6 +566,53 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
     await saveWorkbook(workbook, 'iris_os_financial_ledger_template.xlsx');
   };
 
+  const downloadHistoricalRevenueTemplate = async () => {
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'IrisOS';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    const instructions = workbook.addWorksheet('Instructions');
+    const revenue = workbook.addWorksheet('Historical Revenue', { views: [{ state: 'frozen', ySplit: 1 }] });
+    const lists = workbook.addWorksheet('Validation Lists');
+    lists.state = 'veryHidden';
+
+    instructions.columns = [{ width: 26 }, { width: 100 }];
+    instructions.addRows([
+      ['IrisOS Historical Revenue', 'Use this workbook only for revenue received before it was tracked in IrisOS.'],
+      ['Automatic invoice', 'Each valid row creates a fully paid invoice and a linked revenue transaction using the transaction date. The invoice is stored for tracking and is not emailed.'],
+      ['Required fields', 'Date, Client, Description, Payment Method, Bank Account, and Amount are required. Enter positive amounts.'],
+      ['Client list', 'Use the Client dropdown. Download a new template when clients change.'],
+    ]);
+    instructions.getRow(1).font = { bold: true, size: 14 };
+    instructions.eachRow((row: any) => { row.alignment = { vertical: 'top', wrapText: true }; });
+
+    const headers = ['Date', 'Client', 'Description', 'Payment Method', 'Bank Account', 'Amount'];
+    revenue.addRow(headers);
+    revenue.columns = [{ width: 15 }, { width: 48 }, { width: 38 }, { width: 20 }, { width: 28 }, { width: 18 }];
+    revenue.getRow(1).height = 26;
+    revenue.getRow(1).eachCell((cell: any) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18181B' } };
+      cell.alignment = { vertical: 'middle' };
+    });
+    revenue.autoFilter = { from: 'A1', to: 'F1' };
+
+    const clientReferences = ledgerClients.map((client) => `${client.name} [${client.id}]`);
+    const paymentMethods = ['UPI', 'IMPS', 'NEFT', 'Cash', 'Others'];
+    lists.getColumn(1).values = ['Clients', ...clientReferences];
+    lists.getColumn(2).values = ['Bank Accounts', ...bankNames];
+    lists.getColumn(3).values = ['Payment Methods', ...paymentMethods];
+    for (let row = 2; row <= 501; row += 1) {
+      revenue.getCell(`A${row}`).numFmt = 'yyyy-mm-dd';
+      revenue.getCell(`F${row}`).numFmt = '#,##0.00';
+      if (clientReferences.length) revenue.getCell(`B${row}`).dataValidation = { type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$A$2:$A$${clientReferences.length + 1}`] };
+      revenue.getCell(`D${row}`).dataValidation = { type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$C$2:$C$${paymentMethods.length + 1}`] };
+      if (bankNames.length) revenue.getCell(`E${row}`).dataValidation = { type: 'list', allowBlank: false, formulae: [`'Validation Lists'!$B$2:$B$${bankNames.length + 1}`] };
+    }
+    await saveWorkbook(workbook, 'iris_os_historical_revenue_template.xlsx');
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isImportingTransactions) return;
     const file = e.target.files?.[0];
@@ -568,7 +626,8 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
       await workbook.xlsx.load(await file.arrayBuffer());
       const revenueSheet = workbook.getWorksheet('Revenue');
       const expensesSheet = workbook.getWorksheet('Expenses');
-      if (!revenueSheet || !expensesSheet) {
+      const historicalRevenueSheet = workbook.getWorksheet('Historical Revenue');
+      if (!historicalRevenueSheet && (!revenueSheet || !expensesSheet)) {
         throw new Error('Revenue and Expenses sheets are required. Please use the latest IrisOS ledger template.');
       }
       const getCellValue = (cell: any): unknown => {
@@ -593,8 +652,12 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
       };
       const revenueHeaders = ['Date', 'Invoice Number', 'Bank Account', 'Amount'];
       const expenseHeaders = ['Date', 'Transaction Details', 'Payment Method', 'Bank Account', 'Amount', 'Comments'];
-      validateHeaders(revenueSheet, revenueHeaders);
-      validateHeaders(expensesSheet, expenseHeaders);
+      const historicalRevenueHeaders = ['Date', 'Client', 'Description', 'Payment Method', 'Bank Account', 'Amount'];
+      if (historicalRevenueSheet) validateHeaders(historicalRevenueSheet, historicalRevenueHeaders);
+      else {
+        validateHeaders(revenueSheet, revenueHeaders);
+        validateHeaders(expensesSheet, expenseHeaders);
+      }
 
       const txs: any[] = [];
       const invalidRows: string[] = [];
@@ -616,7 +679,29 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
         }
         return text;
       };
-      revenueSheet.eachRow((row: any, rowNumber: number) => {
+      historicalRevenueSheet?.eachRow((row: any, rowNumber: number) => {
+        if (rowNumber === 1) return;
+        const values = historicalRevenueHeaders.map((_, index) => getCellValue(row.getCell(index + 1)));
+        if (!values.some((value) => normalizeText(value) !== '')) return;
+        const amount = Number(normalizeText(values[5]).replace(/[,\sâ‚¹$â‚¬Â£]/g, '').replace(/^\((.*)\)$/, '-$1'));
+        if (!Number.isFinite(amount) || amount <= 0) {
+          invalidRows.push(`Historical Revenue row ${rowNumber}: Amount must be a positive number.`);
+          return;
+        }
+        txs.push({
+          historicalRevenue: true,
+          category: 'Revenue',
+          date: toImportDate(values[0]),
+          clientReference: normalizeText(values[1]),
+          details: normalizeText(values[2]),
+          type: normalizeText(values[3]),
+          yourAccount: normalizeText(values[4]),
+          amount,
+          sourceRow: rowNumber,
+          sourceSheet: 'Historical Revenue',
+        });
+      });
+      revenueSheet?.eachRow((row: any, rowNumber: number) => {
         if (rowNumber === 1) return;
         const values = revenueHeaders.map((_, index) => getCellValue(row.getCell(index + 1)));
         if (!values.some((value) => normalizeText(value) !== '')) return;
@@ -637,7 +722,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
           sourceSheet: 'Revenue',
         });
       });
-      expensesSheet.eachRow((row: any, rowNumber: number) => {
+      expensesSheet?.eachRow((row: any, rowNumber: number) => {
         if (rowNumber === 1) return;
         const values = expenseHeaders.map((_, index) => getCellValue(row.getCell(index + 1)));
         if (!values.some((value) => normalizeText(value) !== '')) return;
@@ -667,7 +752,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
         const response = await fetch('/api/transactions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bulk: true, transactions: txs })
+          body: JSON.stringify({ bulk: true, historicalRevenue: Boolean(historicalRevenueSheet), transactions: txs })
         });
         
         if (response.ok) {
@@ -1251,6 +1336,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
           Overview
         </button>
         <button
+          data-tour="add-transaction"
           type="button"
           onClick={() => setActiveTab('manual')}
           className={`shrink-0 whitespace-nowrap border-b-2 pb-3 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
@@ -1270,7 +1356,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
       {activeTab === 'overview' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Metric Cards Grid */}
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <div data-tour="finance-summary" className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="min-h-[164px] flex flex-col justify-between bg-zinc-900/90 border border-zinc-800/80 rounded-xl">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Revenue</CardTitle>
@@ -1907,7 +1993,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
               </Card>
 
               {/* Recurring Subscriptions Section */}
-              <Card>
+              <Card data-tour="recurring-subscriptions">
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-white">Recurring Subscriptions & Expenses</CardTitle>
                   <CardDescription>Configure recurring SaaS and operations commitments to dynamically generate transaction occurrences.</CardDescription>
@@ -2058,7 +2144,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
                   <CardDescription>Manually record a single transaction event in the ledger.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleManualSubmit} className="space-y-4 font-sans text-xs">
+                  <form data-tour="transaction-form" onSubmit={handleManualSubmit} className="space-y-4 font-sans text-xs">
                     <div className="space-y-1.5">
                       <label className="font-semibold text-zinc-400 block">Date</label>
                       <DateInput
@@ -2233,21 +2319,29 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
               </Card>
 
               {/* Bulk Imports Card */}
-              <Card>
+              <Card data-tour="finance-bulk-import">
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold text-white">Bulk Financial Import</CardTitle>
-                  <CardDescription>Download templates and upload filled statements for bulk entry.</CardDescription>
+                  <CardDescription>Import current ledger entries or historical revenue in bulk.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 font-sans text-xs">
                   {/* Download Template Buttons */}
-                  <div>
+                  <div className="grid gap-2 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={downloadTemplate}
                       className="flex w-full items-center justify-center gap-1.5 py-2 px-3 border border-zinc-855 hover:border-zinc-750 rounded text-[10px] font-semibold text-zinc-300 bg-zinc-900/20 hover:bg-zinc-900 cursor-pointer transition-colors"
                     >
                       <Download className="h-3 w-3" />
-                      <span>Excel Template</span>
+                      <span>Ledger Template</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadHistoricalRevenueTemplate}
+                      className="flex w-full items-center justify-center gap-1.5 rounded border border-zinc-855 bg-zinc-900/20 px-3 py-2 text-[10px] font-semibold text-zinc-300 transition-colors hover:border-zinc-750 hover:bg-zinc-900"
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>Historical Revenue</span>
                     </button>
                   </div>
 
@@ -2274,7 +2368,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
                       <>
                         <Upload className="h-6 w-6 text-zinc-450 mb-2" />
                         <span className="block font-semibold text-zinc-300">Upload Filled Template</span>
-                        <span className="block text-[9px] text-zinc-550 mt-1">Accepts the IrisOS XLSX template only</span>
+                        <span className="block text-[9px] text-zinc-550 mt-1">Accepts either IrisOS XLSX template</span>
                       </>
                     )}
                   </div>

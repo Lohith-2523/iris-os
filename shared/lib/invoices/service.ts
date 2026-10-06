@@ -59,10 +59,51 @@ export async function getInvoiceForPdf(invoiceId: string) {
   });
 }
 
+async function getCreatedInvoice(invoiceId: string) {
+  const invoice = await getInvoiceForPdf(invoiceId);
+  if (!invoice) throw new InvoiceServiceError('The created invoice could not be loaded.', 500, invoiceId);
+  return invoice;
+}
+
+function partySnapshot(value: unknown): Partial<InvoicePartySnapshot> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Partial<InvoicePartySnapshot>
+    : {};
+}
+
+function mergePartySnapshot(
+  savedValue: unknown,
+  liveValue: Partial<InvoicePartySnapshot>,
+  fallback: { name: string; email?: string },
+): InvoicePartySnapshot {
+  const saved = partySnapshot(savedValue);
+  const value = (key: keyof InvoicePartySnapshot) => String(saved[key] || liveValue[key] || '').trim();
+  const name = value('name') || value('legalEntityName') || fallback.name;
+  return {
+    name,
+    legalEntityName: value('legalEntityName') || name,
+    email: value('email') || fallback.email || '',
+    phone: value('phone') || undefined,
+    addressLine1: value('addressLine1'),
+    addressLine2: value('addressLine2'),
+    city: value('city'),
+    state: value('state'),
+    postalCode: value('postalCode'),
+    country: value('country'),
+    gstNumber: value('gstNumber'),
+    displayName: value('displayName') || undefined,
+    logoDataUrl: value('logoDataUrl') || undefined,
+    brandColor: value('brandColor') || undefined,
+  };
+}
+
 export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>) {
-  const savedSeller = invoice.sellerSnapshot as InvoicePartySnapshot | null;
-  const sellerBase = savedSeller
-    || billingSnapshot(invoice.organization, invoice.organization.billingEmail || '');
+  const liveSeller = billingSnapshot(invoice.organization, invoice.organization.billingEmail || '');
+  const sellerBase = mergePartySnapshot(
+    invoice.sellerSnapshot,
+    liveSeller,
+    { name: invoice.organization.legalEntityName || invoice.organization.name, email: invoice.organization.billingEmail || '' },
+  );
   const seller: InvoicePartySnapshot = {
     ...sellerBase,
     displayName: sellerBase.displayName || invoice.organization.legalEntityName || invoice.organization.name,
@@ -71,9 +112,27 @@ export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnTy
       sellerBase.brandColor || invoice.organization.invoiceBrandColor || DEFAULT_INVOICE_BRAND_COLOR,
     ),
   };
-  const buyer = invoice.buyerSnapshot as InvoicePartySnapshot | null
-    || (invoice.client ? billingSnapshot(invoice.client, invoice.emailRecipient || '') : null);
-  if (!buyer) throw new InvoiceServiceError('This invoice is missing customer billing details.');
+  const liveBuyer = invoice.client
+    ? billingSnapshot(invoice.client, invoice.emailRecipient || '')
+    : invoice.lead
+      ? {
+          name: invoice.lead.fullName,
+          legalEntityName: invoice.lead.fullName,
+          email: invoice.lead.email,
+          phone: invoice.lead.phone || undefined,
+          addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', country: '', gstNumber: '',
+        }
+      : null;
+  const savedBuyer = partySnapshot(invoice.buyerSnapshot);
+  if (!liveBuyer && Object.keys(savedBuyer).length === 0) throw new InvoiceServiceError('This invoice is missing customer billing details.');
+  const buyer = mergePartySnapshot(
+    savedBuyer,
+    liveBuyer || {},
+    {
+      name: invoice.client?.name || invoice.lead?.fullName || invoice.description || 'Customer',
+      email: invoice.emailRecipient || invoice.lead?.email || '',
+    },
+  );
   const referenceName = invoice.project?.name || invoice.client?.name || invoice.lead?.fullName || invoice.description || 'Commercial quotation';
   const savedLineItems = Array.isArray(invoice.lineItems)
     ? invoice.lineItems as InvoiceLineItem[]
@@ -89,7 +148,7 @@ export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnTy
         taxAmount: invoice.taxAmount,
         total: invoice.amount,
       }];
-  return generateInvoicePdf({
+  const pdf = await generateInvoicePdf({
     invoiceNumber: invoice.invoiceNumber,
     documentType: invoice.documentType === 'PROFORMA' ? 'PROFORMA' : 'INVOICE',
     invoiceType: invoice.documentType === 'PROFORMA' ? 'STANDARD' : 'TAX',
@@ -109,6 +168,10 @@ export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnTy
     status: invoice.status,
     termsOfSale: invoice.termsOfSale || undefined,
   });
+  if (pdf.length < 2_000 || pdf.subarray(0, 5).toString() !== '%PDF-') {
+    throw new InvoiceServiceError('The invoice PDF could not be rendered correctly.', 500);
+  }
+  return pdf;
 }
 
 async function createAndSendDocument(input: {
@@ -223,7 +286,7 @@ async function createAndSendDocument(input: {
     || project?.serviceLine
     || project?.name
     || input.totals.lineItems[0].description;
-  const invoice = await prisma.invoice.create({
+  const createdInvoice = await prisma.invoice.create({
     data: {
       invoiceNumber,
       documentType: input.documentType,
@@ -250,16 +313,19 @@ async function createAndSendDocument(input: {
       ...(lead ? { lead: { connect: { id: lead.id } } } : {}),
       issuedDate,
     },
-    include: { project: true, client: true, lead: true, organization: true },
   });
+  // Prisma's adapter-pg currently loads relations for a write through the same
+  // transaction client. Hydrate in a separate read so pg never receives
+  // overlapping client.query() calls.
+  const invoice = await getCreatedInvoice(createdInvoice.id);
 
   const pdf = await invoicePdfFromRecord(invoice);
   if (input.sendEmail === false) {
-    return prisma.invoice.update({
+    await prisma.invoice.update({
       where: { id: invoice.id },
       data: { pdfGeneratedAt: new Date() },
-      include: { project: true, client: true, lead: true, organization: true },
     });
+    return getCreatedInvoice(invoice.id);
   }
   if (!recipient) {
     throw new InvoiceServiceError('The client needs a primary contact email before this document can be sent.');
@@ -293,7 +359,7 @@ async function createAndSendDocument(input: {
         contentType: 'application/pdf',
       }],
     });
-    return prisma.invoice.update({
+    await prisma.invoice.update({
       where: { id: invoice.id },
       data: {
         deliveryStatus: 'SENT',
@@ -301,8 +367,8 @@ async function createAndSendDocument(input: {
         sentAt: new Date(),
         pdfGeneratedAt: new Date(),
       },
-      include: { project: true, client: true, lead: true, organization: true },
     });
+    return getCreatedInvoice(invoice.id);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Email delivery failed.';
     await prisma.invoice.update({

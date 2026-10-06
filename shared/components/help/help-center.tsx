@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { Bot, Bug, ChevronLeft, CircleHelp, Lightbulb, MessageCircleQuestion, Send, ShieldAlert, X } from 'lucide-react';
+import { Bot, Bug, ChevronLeft, CircleHelp, Compass, Lightbulb, MessageCircleQuestion, Send, ShieldAlert, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { WORKSPACE_QUICK_TOUR_EVENT, WORKSPACE_TOUR_CENTER_EVENT, workspaceTourForPath } from '@/lib/workspace-tour-config';
 
 type HelpMode = 'menu' | 'FEEDBACK' | 'FEATURE' | 'COMPLAINT' | 'ISSUE' | 'QUESTION';
 type ChatMessage = { role: 'user' | 'assistant'; text: string };
@@ -25,6 +26,7 @@ const sentConfirmation: Record<Exclude<HelpMode, 'menu' | 'QUESTION'>, string> =
 
 export function HelpCenter() {
   const pathname = usePathname();
+  const hasQuickTour = Boolean(workspaceTourForPath(pathname));
   const [open, setOpen] = React.useState(false);
   const [headerSlot, setHeaderSlot] = React.useState<HTMLElement | null>(null);
   React.useEffect(() => {
@@ -111,6 +113,27 @@ export function HelpCenter() {
           </header>
           {mode === 'menu' ? (
             <div className="iris-help-menu">
+              {hasQuickTour && (
+                <button
+                  type="button"
+                  data-help-quick-tour
+                  onClick={() => {
+                    window.dispatchEvent(new Event(WORKSPACE_QUICK_TOUR_EVENT));
+                    close();
+                  }}
+                >
+                  <Compass /><span>Quick Tour</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new Event(WORKSPACE_TOUR_CENTER_EVENT));
+                  close();
+                }}
+              >
+                <Compass /><span>Walkthrough Center</span>
+              </button>
               {choices.map(({ mode: choiceMode, label, icon: Icon }) => (
                 <button type="button" key={choiceMode} onClick={() => setMode(choiceMode)}><Icon /><span>{label}</span></button>
               ))}

@@ -319,9 +319,9 @@ export default function ProposalsPage() {
 
   if (loading) return <PageSkeleton variant="reporting" />;
 
-  return <DocumentWorkspace family="PROPOSAL" title="Proposals" description="Create, manage, and send agency-branded proposals with Miles AI or the complete native editor."><><form onSubmit={generate} className="space-y-6">
+  return <DocumentWorkspace family="PROPOSAL" title="Proposals" description="Create, manage, and send agency-branded proposals with Miles AI or the complete native editor."><><form data-tour="proposal-form" onSubmit={generate} className="space-y-6">
     <div className="flex justify-end border-b border-border pb-5">
-      <div className="flex gap-2"><Button type="button" variant="outline" disabled={!pdfBlob} onClick={download} className="gap-2"><Download className="h-4 w-4" />Download PDF</Button><Button type="submit" disabled={generating} className="min-w-44 gap-2">{generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}{generating ? 'Generating...' : 'Generate proposal'}</Button></div>
+      <div className="flex gap-2"><Button type="button" variant="outline" disabled={!pdfBlob} onClick={download} className="gap-2"><Download className="h-4 w-4" />Download PDF</Button><Button data-tour="proposal-generate" type="submit" disabled={generating} className="min-w-44 gap-2">{generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}{generating ? 'Generating...' : 'Generate proposal'}</Button></div>
     </div>
     {error && <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 px-4 py-3 text-rose-300">{error}</div>}
 
