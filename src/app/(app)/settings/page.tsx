@@ -138,6 +138,8 @@ const AGENCY_INDUSTRIES = [
   { id: 'web', name: 'Web Design & Development Agency', icon: Laptop, description: 'Tech stacks, hosting controls, page scopes, and CMS portals.' },
 ];
 
+const businessLabel = (value: string) => value.replace(/\bAgency\b/g, 'Business').replace(/\bagency\b/g, 'business');
+
 type ProfileIdentityUser = {
   name: string;
   email: string;
@@ -245,9 +247,11 @@ export default function SettingsPage() {
     window.addEventListener(WORKSPACE_SETTINGS_PREVIEW_EVENT, showTourTab);
     return () => window.removeEventListener(WORKSPACE_SETTINGS_PREVIEW_EVENT, showTourTab);
   }, []);
-  const [currentUser, setCurrentUser] = React.useState<{ id: string; orgId: string; name: string; email: string; role: string; avatarUrl?: string | null; accessPermissions?: string[] | null; client?: { id: string; name: string; logoDataUrl?: string | null } | null } | null>(null);
+  const [currentUser, setCurrentUser] = React.useState<{ id: string; orgId: string; name: string; email: string; role: string; avatarUrl?: string | null; accessPermissions?: string[] | null; client?: { id: string; name: string; logoDataUrl?: string | null; brandColor?: string } | null } | null>(null);
   const [signingOut, setSigningOut] = React.useState(false);
   const [avatarStatus, setAvatarStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [clientBrandColor, setClientBrandColor] = React.useState('#8B5CF6');
+  const [clientBrandColorStatus, setClientBrandColorStatus] = React.useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [avatarFeedback, setAvatarFeedback] = React.useState('PNG, JPEG, or WebP · maximum 10 MB · optimized before upload');
   const [orgName, setOrgName] = React.useState('Apex Creative Group');
   const [legalEntityName, setLegalEntityName] = React.useState('');
@@ -532,6 +536,7 @@ export default function SettingsPage() {
         if (userRes.ok) {
           const userData = await userRes.json();
           setCurrentUser(userData);
+          setClientBrandColor(userData.client?.brandColor || '#8B5CF6');
           setBillingEmail(organizationBillingEmail || userData.email);
         }
         const [planUsageRes, atlasUsageRes] = await Promise.all([
@@ -659,6 +664,33 @@ export default function SettingsPage() {
     } : existing);
     invalidateWorkspaceDataTags(['workspace']);
     window.dispatchEvent(new Event('user-updated'));
+  };
+
+  const updateClientBrandColor = async () => {
+    if (!currentUser?.client?.id) return;
+    if (!/^#[0-9A-Fa-f]{6}$/.test(clientBrandColor)) {
+      setClientBrandColorStatus('error');
+      return;
+    }
+    setClientBrandColorStatus('saving');
+    try {
+      const response = await fetch('/api/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: currentUser.client.id, brandColor: clientBrandColor }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to update the client brand colour.');
+      const savedColor = String((data.client?.metadata as { brandColor?: string } | undefined)?.brandColor || clientBrandColor).toUpperCase();
+      setClientBrandColor(savedColor);
+      setCurrentUser((existing) => existing?.client ? { ...existing, client: { ...existing.client, brandColor: savedColor } } : existing);
+      invalidateWorkspaceDataTags(['workspace', 'clients', 'projects']);
+      setClientBrandColorStatus('success');
+      window.setTimeout(() => setClientBrandColorStatus('idle'), 2500);
+    } catch (error) {
+      setClientBrandColorStatus('error');
+      setErrorMessage(formatUserMessage(error instanceof Error ? error.message : 'Unable to update the client brand colour.'));
+    }
   };
 
   const handleInvoiceLogoFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -860,7 +892,7 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-semibold text-white">Client company identity</CardTitle>
-              <CardDescription>Manage the company logo shown across your IrisOS client workspace.</CardDescription>
+              <CardDescription>Manage the logo and accent colour shown across your IrisOS workspace.</CardDescription>
             </CardHeader>
             <CardContent>
               <ClientLogoPicker
@@ -868,6 +900,17 @@ export default function SettingsPage() {
                 companyName={currentUser.client.name}
                 onChange={updateClientLogo}
               />
+              <div className="mt-6 space-y-2 border-t border-zinc-850 pt-5">
+                <label className="block text-xs font-semibold text-zinc-300">Client brand colour</label>
+                <p className="text-[10px] text-zinc-500">Used on your overview and on your company card in the business workspace.</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <input type="color" value={/^#[0-9A-Fa-f]{6}$/.test(clientBrandColor) ? clientBrandColor : '#8B5CF6'} onChange={(event) => { setClientBrandColor(event.target.value.toUpperCase()); setClientBrandColorStatus('idle'); }} className="h-10 w-14 cursor-pointer rounded border border-zinc-750 bg-zinc-900 p-1" aria-label="Client brand colour" />
+                  <input type="text" value={clientBrandColor} onChange={(event) => { setClientBrandColor(event.target.value.toUpperCase()); setClientBrandColorStatus('idle'); }} pattern="^#[0-9A-Fa-f]{6}$" maxLength={7} className="w-32 rounded border border-zinc-850 bg-zinc-900/40 p-2.5 font-mono uppercase text-white focus:border-zinc-750 focus:outline-none" aria-label="Client brand colour hex value" />
+                  <div className="h-9 min-w-24 flex-1 rounded border border-zinc-700" style={{ backgroundColor: /^#[0-9A-Fa-f]{6}$/.test(clientBrandColor) ? clientBrandColor : '#8B5CF6' }} />
+                  <Button type="button" size="sm" disabled={clientBrandColorStatus === 'saving'} onClick={() => void updateClientBrandColor()}>{clientBrandColorStatus === 'saving' ? 'Saving…' : 'Save colour'}</Button>
+                </div>
+                <p role="status" className={`text-[10px] ${clientBrandColorStatus === 'error' ? 'text-rose-400' : clientBrandColorStatus === 'success' ? 'text-emerald-400' : 'text-zinc-600'}`}>{clientBrandColorStatus === 'error' ? 'Enter a valid six-digit hex colour.' : clientBrandColorStatus === 'success' ? 'Brand colour saved.' : 'Choose a colour or enter a hex value.'}</p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -881,7 +924,7 @@ export default function SettingsPage() {
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b border-zinc-800/60 pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient">Settings Console</h1>
-          <p className="text-xs text-zinc-500">Configure global organization profiles, agency industries, and subscription plans.</p>
+          <p className="text-xs text-zinc-500">Configure global organization profiles, business industries, and subscription plans.</p>
         </div>
       </div>
 
@@ -976,7 +1019,7 @@ export default function SettingsPage() {
 
                   <div id="agency-invoice-identity" className="rounded border border-zinc-850 bg-zinc-950/35 p-4 space-y-4">
                     <div>
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Agency invoice identity</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-white">Business invoice identity</span>
                       <span className="mt-1 block text-[10px] leading-relaxed text-zinc-500">
                         Legal entity and address fields are required before IrisOS can create a project invoice. GSTIN is optional.
                       </span>
@@ -1155,7 +1198,7 @@ export default function SettingsPage() {
               <Card className="h-full">
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
-                    <CardTitle className="text-sm font-semibold text-white">Agency Industry Specializations</CardTitle>
+                    <CardTitle className="text-sm font-semibold text-white">Business Industry Specializations</CardTitle>
                     <CardDescription>Enter your service or industry specializations as a comma-separated list.</CardDescription>
                   </div>
                   <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-300">
@@ -1175,7 +1218,7 @@ export default function SettingsPage() {
                     <div className="specialization-chip-input flex min-h-11 flex-wrap items-center gap-2 rounded border border-zinc-800 bg-zinc-900 p-2 focus-within:border-zinc-600">
                       {selectedTypes.map((specialization) => (
                         <span key={specialization} className="specialization-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold">
-                          {specialization}
+                          {businessLabel(specialization)}
                           <button type="button" onClick={() => removeSpecialization(specialization)} className="rounded-full p-0.5 transition-colors hover:bg-white/20" aria-label={`Remove ${specialization}`}>
                             <X className="h-3 w-3" aria-hidden="true" />
                           </button>
@@ -1403,7 +1446,7 @@ export default function SettingsPage() {
                   <CardDescription>Configure user access credentials and workspace authorization levels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 font-sans text-xs">
-                  <p className="text-zinc-400">View all users and configure client, team member, and agency admin access. Team member page permissions are set per user.</p>
+                  <p className="text-zinc-400">View all users and configure client, team member, and business admin access. Team member page permissions are set per user.</p>
                   <Link href="/settings/security" prefetch={false} className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 font-semibold text-white hover:border-zinc-600"><span>Open Security & Roles</span><span aria-hidden="true">→</span></Link>
                 </CardContent>
               </Card>

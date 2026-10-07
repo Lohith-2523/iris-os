@@ -66,7 +66,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
   const pathname = runtime.pathname;
   const router = runtime.router;
   const supabase = React.useMemo(() => createClient(), []);
-  const [orgName, setOrgName] = React.useState(workspaceOrganizationName || 'Agency Workspace');
+  const [orgName, setOrgName] = React.useState(workspaceOrganizationName || 'Business Workspace');
   const [orgLogoDataUrl, setOrgLogoDataUrl] = React.useState(workspaceOrganizationLogoDataUrl || '');
   const [plan, setPlan] = React.useState('');
   const [user, setUser] = React.useState<{
@@ -126,7 +126,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
       if (res.ok) {
         const data = await res.json();
         const clientIdentity = data.user?.role?.toLowerCase() === 'client' ? data.user.client : null;
-        setOrgName(clientIdentity?.name || data.organization.name || 'Agency Workspace');
+        setOrgName(clientIdentity?.name || data.organization.name || 'Business Workspace');
         setOrgLogoDataUrl(clientIdentity?.logoDataUrl || (clientIdentity ? '' : data.organization.invoiceLogoDataUrl) || '');
         setPlan(data.organization.plan || '');
         setUser(data.user);
@@ -191,7 +191,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
     {
       label: 'Pipeline',
       items: [
-        { name: 'Agency Leads', href: '/agency-leads', icon: FileSpreadsheet },
+        { name: 'Business Leads', href: '/agency-leads', icon: FileSpreadsheet },
         { name: 'Clients', href: '/clients', icon: Users },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
       ],
@@ -425,7 +425,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
                 />
               ) : (initials || 'AP')}
             </div>
-            {!isCollapsed && <span className="min-w-0"><span className="block truncate text-xs font-semibold text-zinc-200">{orgName}</span>{['member', 'sub_admin'].includes(resolvedRole) && <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-600">{resolvedRole === 'member' || deliveryWorkspace ? 'Team Workspace' : 'Agency Workspace'}</span>}</span>}
+            {!isCollapsed && <span className="min-w-0"><span className="block truncate text-xs font-semibold text-zinc-200">{orgName}</span>{['member', 'sub_admin'].includes(resolvedRole) && <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-wider text-zinc-600">{resolvedRole === 'member' || deliveryWorkspace ? 'Team Workspace' : 'Business Workspace'}</span>}</span>}
           </div>
         </div>
       </div>

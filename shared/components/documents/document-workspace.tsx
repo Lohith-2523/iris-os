@@ -178,7 +178,7 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to countersign the document.');
       await load();
-      setMessage(data.document?.fullySignedAt ? 'Document fully executed. Miles onboarding has started.' : 'Agency signature recorded. The recipient signature is still pending.');
+      setMessage(data.document?.fullySignedAt ? 'Document fully executed. Miles onboarding has started.' : 'Business signature recorded. The recipient signature is still pending.');
     } catch (error) { setMessage(formatUserMessage(error instanceof Error ? error.message : 'Unable to countersign the document.')); }
     finally { setBusy(''); }
   };

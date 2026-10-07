@@ -104,7 +104,7 @@ export default function ProposalsPage() {
           fetch('/api/agency-leads'),
           fetch('/api/invoices?documentType=PROFORMA'),
         ]);
-        if (!workspaceResponse.ok) throw new Error('Unable to load agency branding.');
+        if (!workspaceResponse.ok) throw new Error('Unable to load business branding.');
         const data = await workspaceResponse.json();
         if (!active) return;
         const organization = data.organization || {};
@@ -319,7 +319,7 @@ export default function ProposalsPage() {
 
   if (loading) return <PageSkeleton variant="reporting" />;
 
-  return <DocumentWorkspace family="PROPOSAL" title="Proposals" description="Create, manage, and send agency-branded proposals with Miles AI or the complete native editor."><><form data-tour="proposal-form" onSubmit={generate} className="space-y-6">
+  return <DocumentWorkspace family="PROPOSAL" title="Proposals" description="Create, manage, and send business-branded proposals with Miles AI or the complete native editor."><><form data-tour="proposal-form" onSubmit={generate} className="space-y-6">
     <div className="flex justify-end border-b border-border pb-5">
       <div className="flex gap-2"><Button type="button" variant="outline" disabled={!pdfBlob} onClick={download} className="gap-2"><Download className="h-4 w-4" />Download PDF</Button><Button data-tour="proposal-generate" type="submit" disabled={generating} className="min-w-44 gap-2">{generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}{generating ? 'Generating...' : 'Generate proposal'}</Button></div>
     </div>
@@ -327,16 +327,16 @@ export default function ProposalsPage() {
 
     <div className={`grid gap-6 ${pdfUrl ? '2xl:grid-cols-[minmax(0,1fr)_minmax(520px,.85fr)]' : ''}`}>
       <div className="space-y-6">
-        <Card><CardHeader><CardTitle>Brand and proposal identity</CardTitle><CardDescription>Defaults come from agency settings and can be changed for this proposal.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">
+        <Card><CardHeader><CardTitle>Brand and proposal identity</CardTitle><CardDescription>Defaults come from business settings and can be changed for this proposal.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">
           <Field label="Proposal number *"><input required value={form.proposalNumber} onChange={(e) => set('proposalNumber', e.target.value)} className={inputClass} /></Field>
           <Field label="Proposal title *"><input required value={form.title} onChange={(e) => set('title', e.target.value)} className={inputClass} /></Field>
           <Field label="Issue date *"><DateInput required value={form.issueDate} onChange={(value) => set('issueDate', value)} className={inputClass} /></Field>
           <Field label="Valid until *"><DateInput required value={form.validUntil} onChange={(value) => set('validUntil', value)} className={inputClass} /></Field>
-          <Field label="Agency / brand name *"><input required value={form.agencyName} onChange={(e) => set('agencyName', e.target.value)} className={inputClass} /></Field>
+          <Field label="Business / brand name *"><input required value={form.agencyName} onChange={(e) => set('agencyName', e.target.value)} className={inputClass} /></Field>
           <Field label="Brand colour *"><div className="flex gap-2"><input aria-label="Select brand colour" type="color" value={form.brandColor} onChange={(e) => set('brandColor', e.target.value.toUpperCase())} className="h-12 w-16 cursor-pointer rounded-xl border border-border bg-background p-1" /><input required pattern="#[0-9A-Fa-f]{6}" value={form.brandColor} onChange={(e) => set('brandColor', e.target.value)} className={inputClass} /></div></Field>
-          <Field label="Agency email *"><input required type="email" value={form.agencyEmail} onChange={(e) => set('agencyEmail', e.target.value)} className={inputClass} /></Field>
-          <Field label="Agency phone"><input value={form.agencyPhone} onChange={(e) => set('agencyPhone', e.target.value)} className={inputClass} /></Field>
-          <Field label="Agency address *" span><textarea required value={form.agencyAddress} onChange={(e) => set('agencyAddress', e.target.value)} className={textareaClass} /></Field>
+          <Field label="Business email *"><input required type="email" value={form.agencyEmail} onChange={(e) => set('agencyEmail', e.target.value)} className={inputClass} /></Field>
+          <Field label="Business phone"><input value={form.agencyPhone} onChange={(e) => set('agencyPhone', e.target.value)} className={inputClass} /></Field>
+          <Field label="Business address *" span><textarea required value={form.agencyAddress} onChange={(e) => set('agencyAddress', e.target.value)} className={textareaClass} /></Field>
           <Field label="Proposal logo" span><label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-muted/35 p-4 text-foreground"><ImagePlus className="h-5 w-5" /><span>{form.logoDataUrl ? 'Replace logo (PNG/JPG)' : 'Upload logo (PNG/JPG)'}</span><input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => uploadLogo(e.target.files?.[0])} /></label></Field>
         </CardContent></Card>
 
@@ -383,7 +383,7 @@ export default function ProposalsPage() {
         </CardContent></Card>
 
         <Card><CardHeader><CardTitle>Terms and next steps</CardTitle><CardDescription>Complete commercial protections and operating expectations. No signature component is generated.</CardDescription></CardHeader><CardContent className="grid gap-4 md:grid-cols-2">
-          {([['assumptions','Assumptions'],['agencyResponsibilities','Agency responsibilities'],['clientResponsibilities','Client responsibilities'],['changeControl','Change control'],['confidentiality','Confidentiality'],['intellectualProperty','Intellectual property'],['termination','Term and termination'],['governingLaw','Governing law and dispute resolution'],['nextSteps','Next steps']] as const).map(([key,label]) => <Field key={key} label={`${label} *`} span={key === 'nextSteps'}><textarea required value={form[key]} onChange={(e) => set(key, e.target.value)} className={textareaClass} /></Field>)}
+          {([['assumptions','Assumptions'],['agencyResponsibilities','Business responsibilities'],['clientResponsibilities','Client responsibilities'],['changeControl','Change control'],['confidentiality','Confidentiality'],['intellectualProperty','Intellectual property'],['termination','Term and termination'],['governingLaw','Governing law and dispute resolution'],['nextSteps','Next steps']] as const).map(([key,label]) => <Field key={key} label={`${label} *`} span={key === 'nextSteps'}><textarea required value={form[key]} onChange={(e) => set(key, e.target.value)} className={textareaClass} /></Field>)}
         </CardContent></Card>
       </div>
 

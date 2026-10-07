@@ -50,6 +50,8 @@ const AGENCY_TYPES = [
   'Web Design & Development Agency',
 ];
 
+const businessLabel = (value: string) => value.replace(/\bAgency\b/g, 'Business').replace(/\bagency\b/g, 'business');
+
 interface ClosedLeadOption {
   id: string;
   fullName: string;
@@ -370,7 +372,7 @@ export default function ClientOnboardPage() {
       return;
     }
     if (createProject && !availableServiceLines.includes(formData.projectServiceLine)) {
-      setFormError(formatUserMessage('Select a specialization enabled in Agency Settings before creating the project.'));
+      setFormError(formatUserMessage('Select a specialization enabled in Business Settings before creating the project.'));
       return;
     }
     if (createProject && (!formData.projectPaymentAmount || Number(formData.projectPaymentAmount) <= 0)) {
@@ -1176,10 +1178,10 @@ export default function ClientOnboardPage() {
                             onChange={handleInputChange}
                             className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white focus:border-zinc-750 focus:outline-none"
                           >
-                            {availableServiceLines.length === 0 && <option value="">Select specializations in Agency Settings</option>}
-                            {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{serviceLine}</option>)}
+                            {availableServiceLines.length === 0 && <option value="">Select specializations in Business Settings</option>}
+                            {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{businessLabel(serviceLine)}</option>)}
                           </select>
-                          {availableServiceLines.length === 0 && !serviceLineLoadError && <p className="mt-1 text-[10px] text-amber-400">Choose at least one agency specialization in Settings before creating an initial project.</p>}
+                          {availableServiceLines.length === 0 && !serviceLineLoadError && <p className="mt-1 text-[10px] text-amber-400">Choose at least one business specialization in Settings before creating an initial project.</p>}
                           {serviceLineLoadError && <p role="alert" className="mt-1 text-[10px] text-rose-400">{serviceLineLoadError}</p>}
                         </div>
                       </div>

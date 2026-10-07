@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { validateProfileAvatarDataUrl } from '@/lib/profile-avatar';
 import { resolveWorkspaceBannerPosition, resolveWorkspaceBannerZoom } from '@/lib/workspace-banner';
+import { resolveClientBrandColor } from '@/lib/client-brand-color';
 
 const updateProfileSchema = z.object({
   avatarDataUrl: z.string().nullable(),
@@ -33,6 +34,7 @@ export async function GET() {
         id: user.client.id,
         name: user.client.name,
         logoDataUrl: user.client.logoDataUrl,
+        brandColor: resolveClientBrandColor(clientMetadata, user.client.id),
         workspaceBannerDataUrl: typeof clientMetadata.workspaceBannerDataUrl === 'string' ? clientMetadata.workspaceBannerDataUrl : null,
         workspaceBannerPosition: resolveWorkspaceBannerPosition(clientMetadata.workspaceBannerPosition),
         workspaceBannerZoom: resolveWorkspaceBannerZoom(clientMetadata.workspaceBannerZoom),

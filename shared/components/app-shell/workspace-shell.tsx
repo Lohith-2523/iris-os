@@ -74,7 +74,7 @@ function workspaceShellUser(workspace: WorkspaceReadModel): WorkspaceShellUser {
     ...workspace.user,
     orgId: workspace.user.orgId || workspace.organization.id,
     plan: workspace.organization.plan || 'BASIC',
-    organizationName: clientIdentity?.name || workspace.organization.name || 'Agency Workspace',
+    organizationName: clientIdentity?.name || workspace.organization.name || 'Business Workspace',
     organizationLogoDataUrl: clientIdentity?.logoDataUrl || (clientIdentity ? null : workspace.organization.invoiceLogoDataUrl) || null,
   };
 }
@@ -227,7 +227,7 @@ export function WorkspaceShell({
             <div className="flex h-[70vh] flex-col items-center justify-center">
               <div className="workspace-access-card w-full max-w-lg space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-7 text-center">
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl border border-zinc-800 bg-zinc-900"><Lock className="h-6 w-6" /></div>
-                <div><h2 className="font-bold text-white">Access not assigned</h2><p className="mt-2 text-zinc-400">The agency admin has not granted your team member account access to this page.</p></div>
+                <div><h2 className="font-bold text-white">Access not assigned</h2><p className="mt-2 text-zinc-400">The business admin has not granted your team member account access to this page.</p></div>
                 <Button onClick={() => router.push(workspaceHome)}>Return to workspace</Button>
               </div>
             </div>

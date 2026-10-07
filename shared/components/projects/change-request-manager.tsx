@@ -134,8 +134,8 @@ export function ChangeRequestManager({ requests, canManage = false, showProjectN
                     <textarea value={draft.details} onChange={(event) => updateDraft(request.id, { details: event.target.value })} className="min-h-28 w-full rounded-lg border border-border bg-background p-3 text-foreground outline-none focus:border-foreground/40" />
                   </label>
                   <label className="space-y-2">
-                    <span className="text-sm font-semibold">Agency response</span>
-                    <textarea value={draft.agencyResponse} onChange={(event) => updateDraft(request.id, { agencyResponse: event.target.value })} placeholder="Add questions, constraints, or the agency response" className="min-h-28 w-full rounded-lg border border-border bg-background p-3 text-foreground outline-none focus:border-foreground/40" />
+                    <span className="text-sm font-semibold">Business response</span>
+                    <textarea value={draft.agencyResponse} onChange={(event) => updateDraft(request.id, { agencyResponse: event.target.value })} placeholder="Add questions, constraints, or the business response" className="min-h-28 w-full rounded-lg border border-border bg-background p-3 text-foreground outline-none focus:border-foreground/40" />
                   </label>
                   <label className="space-y-2">
                     <span className="text-sm font-semibold">Proposed alternate</span>
@@ -162,7 +162,7 @@ export function ChangeRequestManager({ requests, canManage = false, showProjectN
               ) : (
                 <div className="space-y-4">
                   <div><p className="text-sm font-semibold">Requested change</p><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{request.details}</p></div>
-                  {request.agencyResponse && <div className="rounded-lg border border-border p-4"><p className="text-sm font-semibold">Agency response</p><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{request.agencyResponse}</p></div>}
+                  {request.agencyResponse && <div className="rounded-lg border border-border p-4"><p className="text-sm font-semibold">Business response</p><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{request.agencyResponse}</p></div>}
                   {request.alternateProposal && <div className="rounded-lg border border-border p-4"><p className="text-sm font-semibold">Proposed alternate</p><p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{request.alternateProposal}</p></div>}
                 </div>
               )}

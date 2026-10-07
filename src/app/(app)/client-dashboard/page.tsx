@@ -15,7 +15,7 @@ type Deliverable = { id: string; title: string; url: string; status: string; cre
 type ChangeRequest = { id: string; title: string; status: string; project?: { name: string } | null };
 type Invoice = { id: string; invoiceNumber: string; project?: { name: string } | null };
 type DocumentRow = { id: string; title: string; kind: string; status: string };
-type UserPayload = { role: string; name: string; client?: { id: string; name: string; workspaceBannerDataUrl?: string | null; workspaceBannerPosition?: WorkspaceBannerPosition; workspaceBannerZoom?: number } | null };
+type UserPayload = { role: string; name: string; client?: { id: string; name: string; brandColor?: string; workspaceBannerDataUrl?: string | null; workspaceBannerPosition?: WorkspaceBannerPosition; workspaceBannerZoom?: number } | null };
 
 function statusTone(status: string) {
   if (['COMPLETED', 'APPROVED', 'EXECUTED', 'FULLY_PAID', 'FINALIZED'].includes(status)) return 'risk-low' as const;
@@ -71,6 +71,7 @@ export default function ClientDashboardPage() {
   const pendingApprovals = deliverables.filter((item) => item.status === 'NEEDS_CLIENT_APPROVAL');
   const allDocuments = invoices.length + documents.length;
   const firstName = user.name?.split(' ')[0] || user.client?.name || 'there';
+  const brandColor = user.client?.brandColor && /^#[0-9A-Fa-f]{6}$/.test(user.client.brandColor) ? user.client.brandColor : '#8B5CF6';
   const documentPreview = [
     ...documents.map((item) => ({ id: item.id, title: item.title, meta: item.kind, type: item.status })),
     ...invoices.map((item) => ({ id: item.id, title: item.invoiceNumber, meta: item.project?.name || 'Project invoice', type: 'INVOICE' })),
@@ -96,18 +97,18 @@ export default function ClientDashboardPage() {
     setBannerZoom(workspaceBannerZoom);
   };
 
-  return <div className="dashboard-canvas space-y-6">
-    <ClientWorkspaceBanner name={firstName} backgroundDataUrl={bannerDataUrl} position={bannerPosition} zoom={bannerZoom} onBackgroundChange={saveBanner} onLayoutChange={saveBannerLayout} />
+  return <div className="client-overview dashboard-canvas space-y-6" style={{ '--client-accent': brandColor } as React.CSSProperties}>
+    <ClientWorkspaceBanner name={firstName} backgroundDataUrl={bannerDataUrl} position={bannerPosition} zoom={bannerZoom} accentColor={brandColor} onBackgroundChange={saveBanner} onLayoutChange={saveBannerLayout} />
     {error && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">{error}</div>}
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Client workspace summary">
-      <ClientMetricCard tone="projects" icon={FolderKanban} label="Projects" value={projects.length} detail={`${activeProjects.length} active`} href="/client-projects" />
-      <ClientMetricCard tone="tasks" icon={ListChecks} label="Tasks" value={tasks.length} detail={`${tasks.filter((task) => task.status === 'IN_PROGRESS').length} in progress`} href="/client-projects" />
-      <ClientMetricCard tone="documents" icon={FileText} label="Documents" value={allDocuments} detail="Invoices, proposals and contracts" href="/client-documents" />
-      <ClientMetricCard tone="approvals" icon={CheckCircle2} label="Pending approvals" value={pendingApprovals.length} detail="Waiting for your review" href="/client-deliverables" />
+      <ClientMetricCard tone="projects" icon={FolderKanban} label="Projects" value={projects.length} detail={`${activeProjects.length} active`} href="/client-projects" accentColor={brandColor} />
+      <ClientMetricCard tone="tasks" icon={ListChecks} label="Tasks" value={tasks.length} detail={`${tasks.filter((task) => task.status === 'IN_PROGRESS').length} in progress`} href="/client-projects" accentColor={brandColor} />
+      <ClientMetricCard tone="documents" icon={FileText} label="Documents" value={allDocuments} detail="Invoices, proposals and contracts" href="/client-documents" accentColor={brandColor} />
+      <ClientMetricCard tone="approvals" icon={CheckCircle2} label="Pending approvals" value={pendingApprovals.length} detail="Waiting for your review" href="/client-deliverables" accentColor={brandColor} />
     </section>
     <section className="grid items-stretch gap-4 lg:grid-cols-3">
       <ClientPanel title="Active projects" href="/client-projects" className="h-full">
-        {activeProjects.slice(0, 4).map((project) => <div key={project.id} className="border-b border-zinc-900 px-5 py-4 last:border-0"><div className="flex items-center justify-between gap-4"><div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{project.name}</p><p className="mt-1 text-[10px] text-zinc-500">{project.status.replaceAll('_', ' ')}</p></div><span className="font-mono text-[10px] text-zinc-400">{project.progress}%</span></div><div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-900"><div className="h-full rounded-full bg-zinc-300" style={{ width: `${project.progress}%` }} /></div></div>)}
+        {activeProjects.slice(0, 4).map((project) => <div key={project.id} className="border-b border-zinc-900 px-5 py-4 last:border-0"><div className="flex items-center justify-between gap-4"><div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{project.name}</p><p className="mt-1 text-[10px] text-zinc-500">{project.status.replaceAll('_', ' ')}</p></div><span className="font-mono text-[10px] text-zinc-400">{project.progress}%</span></div><div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-900"><div className="h-full rounded-full" style={{ width: `${project.progress}%`, backgroundColor: brandColor }} /></div></div>)}
         {!activeProjects.length && <ClientEmptyState>No active projects.</ClientEmptyState>}
       </ClientPanel>
       <ClientPanel title="Pending approvals" href="/client-deliverables" className="h-full">
@@ -125,7 +126,7 @@ export default function ClientDashboardPage() {
         {!deliverables.length && <ClientEmptyState>No deliverables yet.</ClientEmptyState>}
       </ClientPanel>
       <ClientPanel title="Current task progression" href="/client-projects" className="h-full">
-        {tasks.filter((task) => task.status !== 'COMPLETED').slice(0, 4).map((task) => <div key={task.id} className="border-b border-zinc-900 px-5 py-4 last:border-0"><div className="flex items-center justify-between gap-4"><div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{task.title}</p><p className="mt-1 truncate text-[10px] text-zinc-500">{task.project?.name || taskStatusLabel(task.status)}</p></div><span className="font-mono text-[10px] text-zinc-400">{task.progress}%</span></div><div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-900"><div className="h-full rounded-full bg-zinc-300" style={{ width: `${task.progress}%` }} /></div></div>)}
+        {tasks.filter((task) => task.status !== 'COMPLETED').slice(0, 4).map((task) => <div key={task.id} className="border-b border-zinc-900 px-5 py-4 last:border-0"><div className="flex items-center justify-between gap-4"><div className="min-w-0"><p className="truncate text-xs font-semibold text-white">{task.title}</p><p className="mt-1 truncate text-[10px] text-zinc-500">{task.project?.name || taskStatusLabel(task.status)}</p></div><span className="font-mono text-[10px] text-zinc-400">{task.progress}%</span></div><div className="mt-3 h-1 overflow-hidden rounded-full bg-zinc-900"><div className="h-full rounded-full" style={{ width: `${task.progress}%`, backgroundColor: brandColor }} /></div></div>)}
         {!tasks.length && <ClientEmptyState>No current tasks.</ClientEmptyState>}
       </ClientPanel>
       <ClientPanel title="Change request" href="/client-deliverables" linkLabel="Open requests" className="h-full">

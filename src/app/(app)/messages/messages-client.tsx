@@ -829,7 +829,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
               <div>
                 <span className={styles.emptyIcon}><MessageCircle size={24} /></span>
                 <h2>Select a conversation</h2>
-                <p>Agency owners can message clients and team members. Client and team accounts can only message an agency owner.</p>
+                <p>Business owners can message clients and team members. Client and team accounts can only message a business owner.</p>
               </div>
             </div>
           ) : (

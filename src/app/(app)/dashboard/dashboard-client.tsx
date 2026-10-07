@@ -843,7 +843,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                   {
                     id: 'financial',
                     name: 'Financial Ledger & Invoices',
-                    description: 'Load your agency financial ledger details, invoice records, and operational expenditures using our template.',
+                    description: 'Load your business financial ledger details, invoice records, and operational expenditures using our template.',
                     status: onboardingState.financial,
                     type: 'upload' as const,
                     downloadTemplate: downloadFinancialTemplate,
@@ -986,7 +986,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                     onClick={handleFinishOnboarding}
                     className="w-full h-11 font-bold text-xs bg-white text-zinc-950 hover:bg-zinc-200 cursor-pointer flex items-center justify-center gap-1.5 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.15)] animate-pulse"
                   >
-                    <span>Launch Agency Console</span>
+                    <span>Launch Business Console</span>
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -1161,7 +1161,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                 </div>
                 <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-400 font-semibold">
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                  <span>Net agency earnings</span>
+                  <span>Net business earnings</span>
                 </div>
               </CardContent>
             </ExpandableCard>
@@ -1313,7 +1313,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                 expandedContent={
                   <div className="flex h-full min-h-0 flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Agency Leads Pipeline</h3>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Business Leads Pipeline</h3>
                       <Badge variant="default" className="bg-zinc-900 border-zinc-800 text-zinc-400 text-[9px] uppercase font-mono rounded-md">
                         {agencyLeadsList.length} Total Leads
                       </Badge>
@@ -1365,7 +1365,7 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
                 }
               >
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Agency Leads</CardTitle>
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Business Leads</CardTitle>
                   <Users className="h-4 w-4 text-zinc-500" />
                 </CardHeader>
                 <CardContent className="space-y-3">

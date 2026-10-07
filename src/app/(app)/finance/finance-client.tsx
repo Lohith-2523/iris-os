@@ -45,6 +45,7 @@ import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { Popover } from 'radix-ui';
 import { financialRangeLabel, isAllTimeFinancialRange, type FinancialDateRange } from '@/lib/finance/fiscal-quarter';
 import { WORKSPACE_FINANCE_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
+import { buildFinancialReportData, type FinancialReportRow, type FinancialReportTimeframe, type FinancialReportXAxis, type FinancialReportYAxis } from '@/lib/finance/custom-report';
 
 export default function FinancePage({ initialData, range }: { initialData: FinanceReadModel; range: FinancialDateRange }) {
   const runtime = useWorkspaceRuntime();
@@ -914,6 +915,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
         customer: tx.category === 'Expense'
           ? [tx.details, tx.client?.name ? `(${tx.client.name})` : ''].filter(Boolean).join(' ')
           : tx.client?.name || tx.details || 'Manual transaction',
+        clientName: tx.client?.name || null,
         clientId: tx.clientId || null,
         date: tx.date,
         amountUSD: tx.amount,
@@ -1008,74 +1010,15 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
     xAxis: string;
     yAxis: string;
     timeframe: string;
-    data: any[];
+    data: FinancialReportRow[];
   } | null>(null);
 
   const generateCustomReport = (xAxis: string, yAxis: string, timeframe: string) => {
-    const filteredTxs = combinedTransactions.filter((tx) => {
-      if (timeframe === 'All Time' || !tx.date) return true;
-      const d = new Date(tx.date);
-      if (isNaN(d.getTime())) return true;
-      const diffDays = (new Date().getTime() - d.getTime()) / (1000 * 3600 * 24);
-      if (timeframe === 'Monthly') return diffDays <= 30;
-      if (timeframe === 'Quarterly') return diffDays <= 90;
-      if (timeframe === 'Yearly') return diffDays <= 365;
-      return true;
+    const reportData = buildFinancialReportData(combinedTransactions, {
+      xAxis: xAxis as FinancialReportXAxis,
+      yAxis: yAxis as FinancialReportYAxis,
+      timeframe: timeframe as FinancialReportTimeframe,
     });
-
-    const groups = new Map<string, { revenue: number; expenses: number }>();
-    
-    filteredTxs.forEach((tx) => {
-      let key = 'Other';
-      if (xAxis === 'Client') {
-        key = tx.customer || 'General Overhead';
-      } else if (xAxis === 'Category') {
-        key = tx.rawStatus === 'EXPENSE' || tx.amountUSD < 0 ? (tx.details || 'General Expense') : 'Revenue';
-      } else if (xAxis === 'Ledger Type') {
-        key = tx.source || 'Manual Ledger';
-      } else if (xAxis === 'Time (Monthly)') {
-        const d = new Date(tx.date);
-        if (!isNaN(d.getTime())) {
-          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-        }
-      }
-
-      if (!groups.has(key)) {
-        groups.set(key, { revenue: 0, expenses: 0 });
-      }
-
-      const current = groups.get(key)!;
-      if (tx.amountUSD > 0 && tx.status !== 'failed') {
-        current.revenue += tx.amountUSD;
-      } else if (tx.amountUSD < 0) {
-        current.expenses += Math.abs(tx.amountUSD);
-      }
-    });
-
-    const reportData = Array.from(groups.entries()).map(([label, val]) => {
-      let value = 0;
-      if (yAxis === 'Revenue') {
-        value = val.revenue;
-      } else if (yAxis === 'Expenses') {
-        value = val.expenses;
-      } else if (yAxis === 'Net Profit') {
-        value = val.revenue - val.expenses;
-      } else if (yAxis === 'Profit Margin') {
-        value = val.revenue > 0 ? ((val.revenue - val.expenses) / val.revenue) * 100 : 0;
-      }
-
-      return {
-        label,
-        value,
-        revenue: val.revenue,
-        expenses: val.expenses,
-        profit: val.revenue - val.expenses,
-        margin: val.revenue > 0 ? ((val.revenue - val.expenses) / val.revenue) * 100 : 0
-      };
-    });
-
-    reportData.sort((a, b) => b.value - a.value);
 
     setCustomReport({
       xAxis,
@@ -1084,13 +1027,11 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
       data: reportData
     });
 
-    // Close the card automatically by simulating keydown Escape
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-
-    // Scroll down to the report container smoothly after modal collapses
-    setTimeout(() => {
-      reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 450);
+    if (!isFinancialReportOpen) {
+      window.setTimeout(() => {
+        reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
   const handleExportExcel = async () => {
@@ -1809,7 +1750,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
           {isFinancialReportOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="financial-report-title">
               <button type="button" className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-label="Close financial report builder" onClick={() => setIsFinancialReportOpen(false)} />
-              <Card className="relative z-10 w-full max-w-xl border-zinc-700 shadow-2xl">
+              <Card className="relative z-10 max-h-[90dvh] w-full max-w-4xl overflow-y-auto border-zinc-700 shadow-2xl">
                 <CardHeader>
                   <CardTitle id="financial-report-title" className="text-base text-white">Customize Financial Report</CardTitle>
                   <CardDescription>Choose how to group and measure your financial ledger.</CardDescription>
@@ -1818,7 +1759,25 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
                   <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">X-Axis Grouping</span><select value={reportXAxis} onChange={(event) => setReportXAxis(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="Client">Client</option><option value="Category">Category (Expenses)</option><option value="Ledger Type">Ledger Type</option><option value="Time (Monthly)">Time (Monthly)</option></select></label>
                   <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Y-Axis Metric</span><select value={reportYAxis} onChange={(event) => setReportYAxis(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="Revenue">Revenue</option><option value="Expenses">Expenses</option><option value="Net Profit">Net Profit</option><option value="Profit Margin">Profit Margin (%)</option></select></label>
                   <label className="block space-y-1.5"><span className="font-semibold text-zinc-400">Timeframe</span><select value={reportTimeframe} onChange={(event) => setReportTimeframe(event.target.value)} className="w-full rounded border border-zinc-850 bg-zinc-900/40 p-2 text-white"><option value="All Time">All Time</option><option value="Yearly">Yearly</option><option value="Quarterly">Quarterly</option><option value="Monthly">Monthly</option></select></label>
-                  <div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => setIsFinancialReportOpen(false)}>Cancel</Button><Button onClick={() => { generateCustomReport(reportXAxis, reportYAxis, reportTimeframe); setIsFinancialReportOpen(false); }}>Generate report</Button></div>
+                  {customReport && (
+                    <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-4">
+                      <div><h4 className="text-sm font-semibold text-white">{customReport.yAxis} by {customReport.xAxis}</h4><p className="mt-1 text-[10px] text-zinc-500">{customReport.timeframe} · {customReport.data.length} data groups</p></div>
+                      {customReport.data.length > 0 ? (
+                        <RevenueLineChart
+                          data={customReport.data}
+                          title={`${customReport.yAxis} by ${customReport.xAxis}`}
+                          description={`${customReport.timeframe} · ${customReport.data.length} compiled data points`}
+                          contentClassName="h-72"
+                          valueSeries={{
+                            label: customReport.yAxis,
+                            format: customReport.yAxis.includes('Margin') ? 'percentage' : 'currency',
+                            color: customReport.yAxis === 'Revenue' ? '#10b981' : customReport.yAxis === 'Expenses' ? '#ef4444' : '#8b5cf6',
+                          }}
+                        />
+                      ) : <p className="py-10 text-center text-xs text-zinc-500">No transactions match this report configuration.</p>}
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-2 pt-2"><Button variant="outline" onClick={() => setIsFinancialReportOpen(false)}>Close</Button><Button onClick={() => generateCustomReport(reportXAxis, reportYAxis, reportTimeframe)}>{customReport ? 'Regenerate report' : 'Generate report'}</Button></div>
                 </CardContent>
               </Card>
             </div>
@@ -1849,41 +1808,17 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
                 <CardContent className="pt-6 space-y-6">
                   {customReport.data.length > 0 ? (
                     <>
-                      <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={customReport.data} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                            <XAxis 
-                              dataKey="label" 
-                              tick={{ fill: '#a1a1aa', fontSize: 10 }}
-                              axisLine={false}
-                              tickLine={false}
-                            />
-                            <YAxis 
-                              tick={{ fill: '#a1a1aa', fontSize: 10 }}
-                              axisLine={false}
-                              tickLine={false}
-                              tickFormatter={(val) => customReport.yAxis.includes('Margin') ? `${val.toFixed(0)}%` : formatCurrency(val)}
-                            />
-                            <Tooltip 
-                              cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
-                              content={({ active, payload }) => {
-                                if (active && payload && payload.length) {
-                                  return (
-                                    <div className="bg-[#0d0e12] border border-zinc-800 rounded-md p-2 shadow-xl">
-                                      <p className="text-xs font-semibold text-white">{payload[0].payload.label}</p>
-                                      <p className={`text-sm font-mono font-bold mt-1 ${financialValueClass(payload[0].value as number)}`}>
-                                        {customReport.yAxis.includes('Margin') ? `${(payload[0].value as number).toFixed(1)}%` : formatCurrency(payload[0].value as number)}
-                                      </p>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
+                      <RevenueLineChart
+                        data={customReport.data}
+                        title={`${customReport.yAxis} by ${customReport.xAxis}`}
+                        description={`${customReport.timeframe} · ${customReport.data.length} compiled data points`}
+                        contentClassName="h-80"
+                        valueSeries={{
+                          label: customReport.yAxis,
+                          format: customReport.yAxis.includes('Margin') ? 'percentage' : 'currency',
+                          color: customReport.yAxis === 'Revenue' ? '#10b981' : customReport.yAxis === 'Expenses' ? '#ef4444' : '#8b5cf6',
+                        }}
+                      />
                       <div className="border border-zinc-850 rounded-lg overflow-hidden">
                         <Table>
                           <TableHeader>

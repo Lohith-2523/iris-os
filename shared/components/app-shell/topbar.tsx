@@ -32,8 +32,8 @@ interface CommandItem {
 }
 
 const workspaceCommands: CommandItem[] = [
-  { name: 'Dashboard', category: 'Overview', description: 'Agency health, revenue, expenses, receivables, and performance.', href: '/dashboard', keywords: ['home', 'command center', 'overview', 'agency health', 'revenue', 'expenses', 'receivables', 'performance'] },
-  { name: 'Agency Leads', category: 'Pipeline', description: 'Manage prospects, stages, lead values, notes, and follow-ups.', href: '/agency-leads', keywords: ['pipeline', 'crm', 'prospects', 'sales', 'lead stages', 'follow up', 'export'] },
+  { name: 'Dashboard', category: 'Overview', description: 'Business health, revenue, expenses, receivables, and performance.', href: '/dashboard', keywords: ['home', 'command center', 'overview', 'business health', 'revenue', 'expenses', 'receivables', 'performance'] },
+  { name: 'Business Leads', category: 'Pipeline', description: 'Manage prospects, stages, lead values, notes, and follow-ups.', href: '/agency-leads', keywords: ['pipeline', 'crm', 'prospects', 'sales', 'lead stages', 'follow up', 'export'] },
   { name: 'Client Leads', category: 'Pipeline', description: 'Review client-scoped leads and opportunities.', href: '/client-leads', keywords: ['client pipeline', 'prospects', 'opportunities', 'sales'] },
   { name: 'Clients', category: 'Pipeline', description: 'Open the client portfolio, account details, and profitability.', href: '/clients', keywords: ['accounts', 'portfolio', 'contacts', 'profitability', 'churn', 'renewal', 'client details'] },
   { name: 'Onboard a Client', category: 'Pipeline', description: 'Launch the complete client onboarding workflow.', href: '/clients/onboard', keywords: ['new client', 'add client', 'create client', 'intake', 'onboarding portal'] },

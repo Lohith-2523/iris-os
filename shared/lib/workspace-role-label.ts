@@ -3,7 +3,7 @@ export function workspaceRoleLabel(role?: string | null) {
   const normalized = value.toLowerCase().replace(/[\s_-]+/g, '');
 
   if (normalized === 'subadmin') return 'Core member';
-  if (normalized === 'admin') return 'Agency admin';
+  if (normalized === 'admin') return 'Business admin';
   if (normalized === 'member') return 'Team member';
   if (normalized === 'client') return 'Client';
 

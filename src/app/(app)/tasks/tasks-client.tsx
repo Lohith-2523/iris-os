@@ -586,7 +586,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 className="min-w-0 w-52 text-[11px] bg-zinc-900/60 border border-zinc-800 p-2 text-white outline-none rounded-md font-medium focus:border-zinc-750 cursor-pointer transition-all"
               >
-                <option value="all">-- All Agency Projects --</option>
+                <option value="all">-- All Business Projects --</option>
                 {projects.map(p => (
                   <option key={p.id} value={p.id}>
                     {p.name}

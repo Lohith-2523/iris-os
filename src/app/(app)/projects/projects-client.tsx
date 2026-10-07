@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,14 +18,6 @@ import {
   ArrowUp,
   ArrowDown,
   Edit2,
-  Building2,
-  BriefcaseBusiness,
-  Gem,
-  Globe2,
-  Landmark,
-  Megaphone,
-  Rocket,
-  Store,
   ChevronDown,
   ChevronRight,
   ListPlus,
@@ -32,7 +25,6 @@ import {
   ClipboardList,
   CircleDollarSign,
   TimerReset,
-  type LucideIcon,
 } from 'lucide-react';
 import { ExpandableCard } from '@/components/ui/expandable-card';
 import { formatCurrencyFor, getCurrencySymbol, cn } from '@/lib/utils';
@@ -46,41 +38,14 @@ import type { ProjectsReadModel } from '@/server/read-models/workspace-pages';
 import { useWorkspaceRuntime } from '@/components/demo/demo-mode-provider';
 import { MetaLogo } from '@/components/integrations/meta-brand-lockup';
 import { WORKSPACE_PROJECTS_PREVIEW_EVENT } from '@/lib/workspace-tour-config';
+import { resolveClientBrandColor } from '@/lib/client-brand-color';
 
-const clientIdentityIcons: LucideIcon[] = [
-  Building2,
-  BriefcaseBusiness,
-  Gem,
-  Globe2,
-  Landmark,
-  Megaphone,
-  Rocket,
-  Store,
-];
+const businessLabel = (value: string) => value.replace(/\bAgency\b/g, 'Business').replace(/\bagency\b/g, 'business');
 
-const clientIdentityPalettes = [
-  { light: '#5b21b6', lightName: '#4c1d95', dark: '#c4b5fd' },
-  { light: '#0369a1', lightName: '#0c4a6e', dark: '#7dd3fc' },
-  { light: '#0f766e', lightName: '#115e59', dark: '#5eead4' },
-  { light: '#b45309', lightName: '#78350f', dark: '#fcd34d' },
-  { light: '#be123c', lightName: '#881337', dark: '#fda4af' },
-  { light: '#047857', lightName: '#064e3b', dark: '#6ee7b7' },
-  { light: '#c2410c', lightName: '#7c2d12', dark: '#fdba74' },
-  { light: '#4338ca', lightName: '#312e81', dark: '#a5b4fc' },
-];
-
-function getClientIdentity(clientId: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < clientId.length; index += 1) {
-    hash ^= clientId.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  const stableHash = hash >>> 0;
-  return {
-    Icon: clientIdentityIcons[(stableHash >>> 8) % clientIdentityIcons.length],
-    palette: clientIdentityPalettes[stableHash % clientIdentityPalettes.length],
-  };
+function ClientIdentityMark({ client, size }: { client: { name: string; logoDataUrl?: string | null }; size: number }) {
+  return client.logoDataUrl
+    ? <Image src={client.logoDataUrl} alt={`${client.name} logo`} width={size} height={size} unoptimized className="h-full w-full rounded-[inherit] object-contain p-1.5" />
+    : <span className="font-mono text-sm font-black" aria-label={`${client.name} logo placeholder`}>{client.name.trim().charAt(0).toUpperCase()}</span>;
 }
 
 const projectStatusLabel = (status?: string) => status === 'TODO'
@@ -382,7 +347,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       return;
     }
     if (!availableServiceLines.includes(newProjectForm.serviceLine)) {
-      setFormError('Select a specialization enabled in Agency Settings.');
+      setFormError('Select a specialization enabled in Business Settings.');
       return;
     }
     if (!paymentAmount || Number(paymentAmount) <= 0 || !paymentStartDate) {
@@ -629,7 +594,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       <div className="flex flex-col gap-3 border-b border-zinc-900 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white silver-text-gradient">Projects Workspace</h1>
-          <p className="text-[10px] text-zinc-550 mt-0.5">Core Agency Program & Program Allocation Management Hub</p>
+          <p className="text-[10px] text-zinc-550 mt-0.5">Core Business Program & Program Allocation Management Hub</p>
         </div>
         <Button
           data-tour="create-project"
@@ -702,7 +667,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
             const isExpanded = expandedClientId === client.id;
             const clientProjects = projects.filter(p => p.clientId === client.id);
             const clientDelayCount = clientProjects.reduce((sum, project) => sum + getDeliveryDelaySummary(project).total, 0);
-            const { Icon: ClientIcon, palette: clientPalette } = getClientIdentity(client.id);
+            const brandColor = resolveClientBrandColor(client.metadata, client.id);
             
             return (
               <Card 
@@ -713,9 +678,9 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   }
                 }}
                 style={{
-                  '--client-identity-light': clientPalette.light,
-                  '--client-identity-light-name': clientPalette.lightName,
-                  '--client-identity-dark': clientPalette.dark,
+                  '--client-identity-light': brandColor,
+                  '--client-identity-light-name': brandColor,
+                  '--client-identity-dark': brandColor,
                 } as React.CSSProperties}
                 className={cn(
                   "project-client-card transition-all duration-300 flex flex-col justify-between border border-zinc-800/80 border-l-8 overflow-hidden relative shadow-lg",
@@ -738,7 +703,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                     <div className="project-client-expanded-header pb-3 border-b border-zinc-800 flex justify-between items-start gap-3 pr-8">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="project-client-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
-                          <ClientIcon className="h-5 w-5" aria-hidden="true" />
+                          <ClientIdentityMark client={client} size={40} />
                         </span>
                         <div className="min-w-0">
                           <h2 className="project-client-name truncate text-xl font-black tracking-tighter leading-tight">{client.name}</h2>
@@ -825,7 +790,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                   <div className="p-5 flex flex-col justify-between h-full space-y-4">
                     <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2 pt-2">
                       <span className="project-client-icon flex h-11 w-11 items-center justify-center rounded-xl border">
-                        <ClientIcon className="h-5 w-5" aria-hidden="true" />
+                        <ClientIdentityMark client={client} size={44} />
                       </span>
                       <h3 className="project-client-name text-xl font-black tracking-tighter leading-tight select-none px-2 max-w-full truncate" title={client.name}>
                         {client.name}
@@ -845,21 +810,21 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
 
                     <div className="space-y-1.5">
                       <div className="pt-2 border-t border-zinc-900/60 flex justify-between text-[9.5px] text-zinc-400">
-                        <span>Active Campaigns:</span>
+                        <span>Active Projects:</span>
                         <span className="font-semibold text-white font-mono">{clientProjects.length}</span>
                       </div>
                       {clientProjects.length > 0 && (
                         <div className="flex justify-between items-center gap-1.5 text-[9.5px] text-zinc-455">
                           <span className="shrink-0">Focus:</span>
-                          <span title={clientProjects[0].serviceLine || 'Paid Ads'} className="max-w-[300px] bg-zinc-955 border border-zinc-850 px-1.5 py-0.5 rounded text-[7.5px] text-zinc-300 font-mono uppercase truncate">
-                            {clientProjects[0].serviceLine || 'Paid Ads'}
+                          <span title={businessLabel(clientProjects[0].serviceLine || 'Paid Ads')} className="max-w-[300px] bg-zinc-955 border border-zinc-850 px-1.5 py-0.5 rounded text-[7.5px] text-zinc-300 font-mono uppercase truncate">
+                            {businessLabel(clientProjects[0].serviceLine || 'Paid Ads')}
                           </span>
                         </div>
                       )}
                     </div>
 
                     <div className="flex items-center justify-between text-[9px] text-zinc-550 pt-2 border-t border-zinc-900/40 select-none">
-                      <span>Click to expand campaigns</span>
+                      <span>Click to expand projects</span>
                       <ArrowRight className="h-3.5 w-3.5 text-zinc-400 animate-pulse" />
                     </div>
                   </div>
@@ -985,10 +950,10 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                     onChange={(e) => handleCreationInputChange('serviceLine', e.target.value)}
                     className="w-full text-xs bg-zinc-900 border border-zinc-800 px-3 py-2 text-white outline-none rounded-none focus:border-zinc-700"
                   >
-                    {availableServiceLines.length === 0 && <option value="">Select specializations in Agency Settings</option>}
-                    {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{serviceLine}</option>)}
+                    {availableServiceLines.length === 0 && <option value="">Select specializations in Business Settings</option>}
+                    {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{businessLabel(serviceLine)}</option>)}
                   </select>
-                  {availableServiceLines.length === 0 && <p className="text-[9px] text-amber-400">Select an agency specialization in Settings first.</p>}
+                  {availableServiceLines.length === 0 && <p className="text-[9px] text-amber-400">Select a business specialization in Settings first.</p>}
                 </div>
               </div>
 
@@ -1317,10 +1282,10 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
                         className="w-full bg-zinc-900 border border-zinc-800 p-1.5 text-white outline-none"
                       >
                         {editForm.serviceLine && !availableServiceLines.includes(editForm.serviceLine) && (
-                          <option value={editForm.serviceLine} disabled>{editForm.serviceLine} (not enabled in Settings)</option>
+                          <option value={editForm.serviceLine} disabled>{businessLabel(editForm.serviceLine)} (not enabled in Settings)</option>
                         )}
-                        {availableServiceLines.length === 0 && <option value="" disabled>Select specializations in Agency Settings</option>}
-                        {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{serviceLine}</option>)}
+                        {availableServiceLines.length === 0 && <option value="" disabled>Select specializations in Business Settings</option>}
+                        {availableServiceLines.map((serviceLine) => <option key={serviceLine} value={serviceLine}>{businessLabel(serviceLine)}</option>)}
                       </select>
                     </div>
                     <div className="space-y-1.5">

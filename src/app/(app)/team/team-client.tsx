@@ -1448,7 +1448,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
               <div className="mt-5 space-y-4 border-t border-zinc-900 pt-4">
                 {plan !== 'BASIC' && (
                   <div className="space-y-3 rounded-md border border-zinc-850 bg-zinc-950/40 p-4">
-                    <div><h4 className="text-xs font-semibold text-white">Workspace access</h4><p className="mt-1 text-[10px] text-zinc-500">Delivery work opens the team workspace. Otherwise, this member sees an agency workspace containing only selected pages.</p></div>
+                    <div><h4 className="text-xs font-semibold text-white">Workspace access</h4><p className="mt-1 text-[10px] text-zinc-500">Delivery work opens the team workspace. Otherwise, this member sees a business workspace containing only selected pages.</p></div>
                     <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-zinc-200"><input type="checkbox" checked={memberHandlesDeliverables} onChange={(event) => setMemberHandlesDeliverables(event.target.checked)} className="h-4 w-4 accent-white" />Handles Deliverables</label>
                     <div className="grid grid-cols-2 gap-2">
                       {SECURITY_PAGE_OPTIONS.map((page) => (

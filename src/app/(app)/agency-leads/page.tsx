@@ -850,9 +850,9 @@ export default function AgencyLeadsPage() {
       {/* Header */}
       <div className="agency-leads-header flex flex-col gap-2 border-b border-zinc-800/60 pb-5 md:flex-row md:items-center md:justify-between">
         <div className="agency-leads-heading">
-          <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Agency Pipeline</span>
+          <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Business Pipeline</span>
           <h1 className="text-2xl font-bold tracking-tight text-white silver-text-gradient font-sans mt-0.5">
-            Agency Leads Hub
+            Business Leads Hub
           </h1>
         </div>
         <div className="agency-leads-header-actions flex flex-wrap items-center justify-end gap-3">
@@ -902,7 +902,7 @@ export default function AgencyLeadsPage() {
                 }`}
               >
                 <Megaphone className="h-3.5 w-3.5" />
-                <span>Agency Meta</span>
+                <span>Meta Business</span>
               </button>
             )}
           </div>
@@ -1495,8 +1495,8 @@ export default function AgencyLeadsPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
               <CardHeader>
-                <CardTitle className="text-sm text-white">Agency-owned Meta account</CardTitle>
-                <CardDescription>Connect an account used to advertise your own agency. Its form submissions join the same lead cards above.</CardDescription>
+                <CardTitle className="text-sm text-white">Business-owned Meta account</CardTitle>
+                <CardDescription>Connect an account used to advertise your own business. Its form submissions join the same lead cards above.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button data-tour="connect-meta-leads" onClick={connectMeta} disabled={metaBusy || !agencyMeta?.metaAccessConsent} className="w-full">
@@ -1505,7 +1505,7 @@ export default function AgencyLeadsPage() {
                 {metaConnection && (
                   <div className="flex gap-2">
                     <select value={selectedMetaAccountId} onChange={(event) => setSelectedMetaAccountId(event.target.value)} className="min-w-0 flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-white">
-                      <option value="">Select your agency ad account</option>
+                      <option value="">Select your business ad account</option>
                       {metaConnection.adAccounts.map((account) => <option key={account.id} value={account.id}>{account.name} ({account.id})</option>)}
                     </select>
                     <Button onClick={() => void assignMetaAccount()} disabled={metaBusy || !selectedMetaAccountId}>Add & sync</Button>
@@ -1536,7 +1536,7 @@ export default function AgencyLeadsPage() {
                   <Megaphone className="mx-auto h-8 w-8 text-zinc-700" />
                   <p className="mt-4 text-sm font-semibold text-white">No Meta data to display</p>
                   <p className="mt-1 text-xs leading-5 text-zinc-500">
-                    Connect and sync an agency-owned Meta ad account to populate campaign and advertising performance.
+                    Connect and sync a business-owned Meta ad account to populate campaign and advertising performance.
                   </p>
                 </CardContent>
               </Card>
@@ -1544,7 +1544,7 @@ export default function AgencyLeadsPage() {
           </div>
           {hasAgencyMetaAccount && (
             <Card className="rounded-md border-zinc-800/80 bg-zinc-950/40">
-            <CardHeader><CardTitle className="text-sm text-white">Top Meta ads</CardTitle><CardDescription>Provider-reported delivery and spend with leads retrieved into the agency pipeline.</CardDescription></CardHeader>
+            <CardHeader><CardTitle className="text-sm text-white">Top Meta ads</CardTitle><CardDescription>Provider-reported delivery and spend with leads retrieved into the business pipeline.</CardDescription></CardHeader>
             <CardContent><Table><TableHeader><TableRow><TableHead>Ad</TableHead><TableHead>Campaign</TableHead><TableHead>Spend</TableHead><TableHead>Impressions</TableHead><TableHead>Clicks</TableHead><TableHead>Leads</TableHead></TableRow></TableHeader><TableBody>
               {visibleMetaAds.map((ad) => <TableRow key={ad.id}><TableCell className="text-white">{ad.name}</TableCell><TableCell>{ad.campaign?.name || '—'}</TableCell><TableCell>{formatCurrency(ad.spend, 2)}</TableCell><TableCell>{ad.impressions.toLocaleString()}</TableCell><TableCell>{ad.clicks.toLocaleString()}</TableCell><TableCell>{ad.leadsCount}</TableCell></TableRow>)}
               {visibleMetaAds.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-zinc-500">No ads match this campaign.</TableCell></TableRow>}

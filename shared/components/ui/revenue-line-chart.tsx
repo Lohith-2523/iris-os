@@ -12,6 +12,11 @@ interface RevenueLineChartProps {
   className?: string;
   contentClassName?: string;
   selectableSeries?: boolean;
+  valueSeries?: {
+    label: string;
+    format: 'currency' | 'percentage';
+    color?: string;
+  };
 }
 
 type FinanceSeries = 'revenue' | 'expenses' | 'receivables';
@@ -36,7 +41,11 @@ export function RevenueLineChart({
   className,
   contentClassName,
   selectableSeries = false,
+  valueSeries,
 }: RevenueLineChartProps) {
+  const chartId = React.useId().replace(/:/g, '');
+  const valueGradientId = `${chartId}-value-area`;
+  const valueColor = valueSeries?.color ?? '#8b5cf6';
   const [activeSeries, setActiveSeries] = React.useState<FinanceSeries[]>(() => seriesOptions.map((series) => series.key));
   const toggleSeries = React.useCallback((series: FinanceSeries) => {
     setActiveSeries((current) => {
@@ -47,16 +56,22 @@ export function RevenueLineChart({
   const chartData = React.useMemo(() => {
     const normalized = data.map((point) => ({
       label: point.label,
+      value: Number(point.value ?? 0),
       revenue: Number(point.revenue ?? point.value ?? 0),
       expenses: Number(point.expenses ?? 0),
       receivables: Number(point.receivables ?? 0),
     }));
     if (normalized.length !== 1) return normalized;
     return [
-      { label: 'Start', revenue: 0, expenses: 0, receivables: 0 },
+      { label: 'Start', value: 0, revenue: 0, expenses: 0, receivables: 0 },
       normalized[0],
     ];
   }, [data]);
+  const formatReportValue = React.useCallback((value: number) => (
+    valueSeries?.format === 'percentage'
+      ? `${value.toFixed(1)}%`
+      : formatCurrency(value * currencyRate)
+  ), [currencyRate, valueSeries?.format]);
 
   return (
     <Card className={className ?? "w-full"}>
@@ -67,6 +82,12 @@ export function RevenueLineChart({
       <CardContent className={cn('revenue-line-chart-frame min-h-64 min-w-0 w-full', contentClassName ?? 'h-72')}>
           <AreaChart responsive style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 256 }} data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
+              {valueSeries && (
+                <linearGradient id={valueGradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={valueColor} stopOpacity={0.32} />
+                  <stop offset="100%" stopColor={valueColor} stopOpacity={0.02} />
+                </linearGradient>
+              )}
               <linearGradient id="revenue-area" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.32} />
                 <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
@@ -94,22 +115,26 @@ export function RevenueLineChart({
               fontSize={12} 
               tickLine={false} 
               axisLine={false} 
-              domain={[0, 'auto']}
-              tickFormatter={(val) => `${val / 1000}k`}
+              domain={valueSeries ? ['auto', 'auto'] : [0, 'auto']}
+              tickFormatter={(val) => valueSeries
+                ? (valueSeries.format === 'percentage' ? `${Number(val).toFixed(0)}%` : `${Number(val) / 1000}k`)
+                : `${Number(val) / 1000}k`}
             />
             <Tooltip 
               contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '6px' }}
               itemStyle={{ color: '#f4f4f5' }}
               labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
-              formatter={(val: any, name: any) => [
-                formatCurrency((Number(val) || 0) * currencyRate),
-                name === 'revenue' ? 'Revenue' : name === 'expenses' ? 'Expenses' : 'Pending receivables',
-              ]}
+              formatter={(val: any, name: any) => valueSeries
+                ? [formatReportValue(Number(val) || 0), valueSeries.label]
+                : [
+                    formatCurrency((Number(val) || 0) * currencyRate),
+                    name === 'revenue' ? 'Revenue' : name === 'expenses' ? 'Expenses' : 'Pending receivables',
+                  ]}
             />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-              formatter={(value) => value === 'revenue' ? 'Revenue' : value === 'expenses' ? 'Expenses' : 'Pending receivables'}
-              content={selectableSeries ? () => (
+              formatter={(value) => valueSeries?.label ?? (value === 'revenue' ? 'Revenue' : value === 'expenses' ? 'Expenses' : 'Pending receivables')}
+              content={!valueSeries && selectableSeries ? () => (
                 <div className="revenue-series-legend" role="group" aria-label="Financial graph metrics">
                   {seriesOptions.map((series) => (
                     <button
@@ -127,6 +152,16 @@ export function RevenueLineChart({
                 </div>
               ) : undefined}
             />
+            {valueSeries ? <Area
+              type="monotone"
+              dataKey="value"
+              name={valueSeries.label}
+              stroke={valueColor}
+              strokeWidth={3}
+              fill={`url(#${valueGradientId})`}
+              dot={{ fill: valueColor, strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            /> : <>
             {(!selectableSeries || activeSeries.includes('revenue')) && <Area
               type="monotone"
               dataKey="revenue"
@@ -154,6 +189,7 @@ export function RevenueLineChart({
               dot={{ fill: '#eab308', strokeWidth: 2, r: 4 }}
               activeDot={{ r: 6, strokeWidth: 0 }}
             />}
+            </>}
           </AreaChart>
       </CardContent>
     </Card>

@@ -28,6 +28,7 @@ import { validateClientLogoDataUrl } from '@/lib/client-logo';
 import { normalizeProjectStageColor } from '@/lib/projects/stages';
 import { validateWelcomeBackgroundDataUrl } from '@/lib/welcome-background';
 import { resolveWorkspaceBannerPosition, resolveWorkspaceBannerZoom } from '@/lib/workspace-banner';
+import { normalizeClientBrandColor, pickRandomClientBrandColor } from '@/lib/client-brand-color';
 
 class ClientPlanLimitError extends Error {}
 
@@ -82,14 +83,14 @@ export async function PATCH(request: NextRequest) {
     const isLinkedClient = user.role.toLowerCase() === 'client' && user.clientId === clientId;
     if (!isAdmin && !isLinkedClient) {
       return NextResponse.json(
-        { error: 'Access Denied: Client branding can only be changed by the linked client or an agency administrator.' },
+        { error: 'Access Denied: Client branding can only be changed by the linked client or a business administrator.' },
         { status: 403 },
       );
     }
     if (!clientId) {
       return NextResponse.json({ error: 'Missing clientId parameter' }, { status: 400 });
     }
-    if (!isAdmin && Object.keys(body).some((key) => !['clientId', 'logoDataUrl', 'workspaceBannerDataUrl', 'workspaceBannerPosition', 'workspaceBannerZoom'].includes(key))) {
+    if (!isAdmin && Object.keys(body).some((key) => !['clientId', 'logoDataUrl', 'brandColor', 'workspaceBannerDataUrl', 'workspaceBannerPosition', 'workspaceBannerZoom'].includes(key))) {
       return NextResponse.json({ error: 'Client users may only update their workspace branding.' }, { status: 403 });
     }
 
@@ -97,6 +98,11 @@ export async function PATCH(request: NextRequest) {
     const logoResult = hasLogoUpdate ? validateClientLogoDataUrl(body.logoDataUrl) : null;
     if (logoResult && 'error' in logoResult) {
       return NextResponse.json({ error: logoResult.error }, { status: 400 });
+    }
+    const hasBrandColorUpdate = Object.prototype.hasOwnProperty.call(body, 'brandColor');
+    const brandColor = normalizeClientBrandColor(body.brandColor);
+    if (hasBrandColorUpdate && !brandColor) {
+      return NextResponse.json({ error: 'Client brand colour must be a six-digit hex colour.' }, { status: 400 });
     }
     const hasBannerUpdate = Object.prototype.hasOwnProperty.call(body, 'workspaceBannerDataUrl');
     const bannerResult = hasBannerUpdate ? validateWelcomeBackgroundDataUrl(body.workspaceBannerDataUrl) : null;
@@ -146,8 +152,9 @@ export async function PATCH(request: NextRequest) {
         data: {
           adAccountId: hasAdAccountUpdate ? adAccountId : undefined,
           logoDataUrl: logoResult ? logoResult.value : undefined,
-          metadata: bannerResult || bannerPosition || bannerZoom !== null ? {
+          metadata: bannerResult || bannerPosition || bannerZoom !== null || hasBrandColorUpdate ? {
             ...(existingClient.metadata && typeof existingClient.metadata === 'object' && !Array.isArray(existingClient.metadata) ? existingClient.metadata : {}),
+            ...(hasBrandColorUpdate ? { brandColor } : {}),
             ...(bannerResult ? { workspaceBannerDataUrl: bannerResult.value } : {}),
             ...(bannerPosition ? { workspaceBannerPosition: bannerPosition } : {}),
             ...(bannerZoom !== null ? { workspaceBannerZoom: bannerZoom } : {}),
@@ -346,6 +353,14 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+      const existingClientMetadata = await tx.client.findMany({ where: { orgId: org.id }, select: { metadata: true } });
+      const onboardingBrandColor = pickRandomClientBrandColor(existingClientMetadata.map((client) => {
+        const clientMetadata = client.metadata && typeof client.metadata === 'object' && !Array.isArray(client.metadata)
+          ? client.metadata as { brandColor?: unknown }
+          : {};
+        return clientMetadata.brandColor;
+      }));
+      const onboardingMetadata = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {};
       const newClient = await tx.client.create({
         data: {
           name,
@@ -365,7 +380,7 @@ export async function POST(request: NextRequest) {
           billingPostalCode: typeof billingPostalCode === 'string' ? billingPostalCode.trim() || null : null,
           billingCountry: typeof billingCountry === 'string' ? billingCountry.trim() || null : null,
           gstNumber: typeof gstNumber === 'string' ? gstNumber.trim().toUpperCase() || null : null,
-          metadata: metadata || {},
+          metadata: { ...onboardingMetadata, brandColor: onboardingBrandColor },
           adAccountId: validatedAdAccountId,
           sourceLeadId: sourceLead?.id || null,
           orgId: org.id,

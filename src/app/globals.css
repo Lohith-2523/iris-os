@@ -2782,8 +2782,7 @@ button {
   --portfolio-chart-hover: rgba(124, 58, 237, .08);
 }
 
-/* Client identities on the Projects page use a stable per-client palette.
-   Dark mode receives the luminous variant; light mode uses the deeper shade. */
+/* Client identities on the Projects page use each client's saved brand colour. */
 .project-client-card {
   --client-identity-accent: var(--client-identity-dark);
   --client-identity-name: var(--client-identity-dark);
@@ -2799,6 +2798,11 @@ button {
 
 .project-client-name {
   color: var(--client-identity-name) !important;
+}
+
+.client-overview .client-overview-panel {
+  border-top-color: color-mix(in srgb, var(--client-accent) 52%, transparent);
+  box-shadow: inset 0 1px color-mix(in srgb, var(--client-accent) 18%, transparent);
 }
 
 /* Expanded project summaries respond to the client card's usable width rather

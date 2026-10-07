@@ -14,11 +14,12 @@ import type { WorkspaceBannerPosition } from '@/lib/workspace-banner';
 
 const CLIENT_CANVA_BANNER_URL = '/api/canva/designs/banner?target=client';
 
-export function ClientWorkspaceBanner({ name, backgroundDataUrl, position, zoom, onBackgroundChange, onLayoutChange }: {
+export function ClientWorkspaceBanner({ name, backgroundDataUrl, position, zoom, accentColor, onBackgroundChange, onLayoutChange }: {
   name: string;
   backgroundDataUrl?: string | null;
   position: WorkspaceBannerPosition;
   zoom: number;
+  accentColor?: string;
   onBackgroundChange: (dataUrl: string | null) => Promise<void>;
   onLayoutChange: (position: WorkspaceBannerPosition, zoom: number) => Promise<void>;
 }) {
@@ -88,7 +89,7 @@ export function ClientWorkspaceBanner({ name, backgroundDataUrl, position, zoom,
       </> : <div aria-hidden="true" className="dashboard-command-center-banner pointer-events-none absolute inset-0" />}
       {isRepositioning && backgroundDataUrl && <div aria-label="Drag to reposition banner" className="absolute inset-0 z-[15] cursor-grab touch-none" role="application" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); pointerRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, start: draftPosition }; event.currentTarget.classList.replace('cursor-grab', 'cursor-grabbing'); }} onPointerMove={moveFromPointer} onPointerUp={(event) => { pointerRef.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); event.currentTarget.classList.replace('cursor-grabbing', 'cursor-grab'); }} onPointerCancel={(event) => { pointerRef.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); }} />}
       <div className="relative z-10 min-w-0">
-        <div className="dashboard-welcome-card inline-flex max-w-full items-center rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]">
+        <div className="dashboard-welcome-card inline-flex max-w-full items-center rounded-2xl border border-zinc-700 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 px-5 py-3 shadow-[inset_0_1px_rgba(255,255,255,.08),0_12px_40px_rgba(0,0,0,.25)]" style={accentColor ? { borderColor: `${accentColor}80`, boxShadow: `inset 0 1px rgba(255,255,255,.08), 0 12px 40px ${accentColor}24` } : undefined}>
           <h1 className="truncate text-xl font-bold tracking-tight text-white silver-text-gradient sm:text-2xl">Welcome, {name}</h1>
         </div>
       </div>
@@ -112,12 +113,13 @@ export function ClientWorkspacePageHeader({ eyebrow, title, description }: { eye
 
 const metricTones = { projects: 'border-sky-400/20 bg-sky-400/[.07] text-sky-300', tasks: 'border-violet-400/20 bg-violet-400/[.07] text-violet-300', documents: 'border-amber-400/20 bg-amber-400/[.07] text-amber-300', approvals: 'border-emerald-400/20 bg-emerald-400/[.07] text-emerald-300' } as const;
 
-export function ClientMetricCard({ icon: Icon, label, value, detail, href, tone }: { icon: LucideIcon; label: string; value: number | string; detail: string; href: string; tone: keyof typeof metricTones }) {
-  return <Link href={href} className="group block min-w-0"><Card className="relative h-full overflow-hidden transition-colors group-hover:border-zinc-600"><div className={`absolute inset-x-0 top-0 h-px ${metricTones[tone].split(' ')[1]}`} /><CardContent className="flex min-h-32 items-center gap-4 p-5"><div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl border shadow-[inset_0_1px_rgba(255,255,255,.08)] ${metricTones[tone]}`}><Icon className="h-5 w-5" aria-hidden="true" /></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><span className="text-sm font-bold text-zinc-100">{label}</span><ArrowRight className="h-4 w-4 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-200" aria-hidden="true" /></div><div className="mt-1 font-mono text-3xl font-bold tracking-tight text-white">{value}</div><p className="mt-1 truncate text-[11px] font-medium text-zinc-500">{detail}</p></div></CardContent></Card></Link>;
+export function ClientMetricCard({ icon: Icon, label, value, detail, href, tone, accentColor }: { icon: LucideIcon; label: string; value: number | string; detail: string; href: string; tone: keyof typeof metricTones; accentColor?: string }) {
+  const accentStyle = accentColor ? { borderColor: `${accentColor}55`, backgroundColor: `${accentColor}12`, color: accentColor } : undefined;
+  return <Link href={href} className="group block min-w-0"><Card className="relative h-full overflow-hidden transition-colors group-hover:border-zinc-600"><div className={`absolute inset-x-0 top-0 h-px ${accentColor ? '' : metricTones[tone].split(' ')[1]}`} style={accentColor ? { backgroundColor: accentColor } : undefined} /><CardContent className="flex min-h-32 items-center gap-4 p-5"><div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl border shadow-[inset_0_1px_rgba(255,255,255,.08)] ${accentColor ? '' : metricTones[tone]}`} style={accentStyle}><Icon className="h-5 w-5" aria-hidden="true" /></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><span className="text-sm font-bold text-zinc-100">{label}</span><ArrowRight className="h-4 w-4 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-200" aria-hidden="true" /></div><div className="mt-1 font-mono text-3xl font-bold tracking-tight text-white">{value}</div><p className="mt-1 truncate text-[11px] font-medium text-zinc-500">{detail}</p></div></CardContent></Card></Link>;
 }
 
 export function ClientPanel({ title, href, linkLabel = 'View all', children, className = '' }: { title: string; href?: string; linkLabel?: string; children: React.ReactNode; className?: string }) {
-  return <Card className={`min-w-0 overflow-hidden ${className}`}><CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-zinc-900 pb-3"><CardTitle className="text-sm font-semibold text-white">{title}</CardTitle>{href && <Link href={href} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-zinc-500 hover:text-white">{linkLabel}<ArrowRight className="h-3 w-3" aria-hidden="true" /></Link>}</CardHeader><CardContent className="p-0">{children}</CardContent></Card>;
+  return <Card className={`client-overview-panel min-w-0 overflow-hidden ${className}`}><CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-zinc-900 pb-3"><CardTitle className="text-sm font-semibold text-white">{title}</CardTitle>{href && <Link href={href} className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-zinc-500 hover:text-white">{linkLabel}<ArrowRight className="h-3 w-3" aria-hidden="true" /></Link>}</CardHeader><CardContent className="p-0">{children}</CardContent></Card>;
 }
 
 export function ClientEmptyState({ children }: { children: React.ReactNode }) {

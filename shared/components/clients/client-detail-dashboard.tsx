@@ -58,6 +58,8 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
+const businessLabel = (value: string) => value.replace(/\bAgency\b/g, 'Business').replace(/\bagency\b/g, 'business');
+
 const Facebook = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     viewBox="0 0 24 24"
@@ -335,7 +337,7 @@ function ClientBillingPanel({
           <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white">
             <FileText className="h-4 w-4 text-zinc-500" /> Client invoices
           </CardTitle>
-          <CardDescription>Project-bound PDFs available to the agency administrator.</CardDescription>
+          <CardDescription>Project-bound PDFs available to the business administrator.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -925,8 +927,8 @@ export default function ClientDetailDashboard({
                 <span className="font-semibold text-zinc-300">{client.domain || 'Not configured'}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-400 flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-zinc-500" /> Agency Service</span>
-                <span className="font-semibold text-zinc-300">{client.agencyType || 'Digital Marketing'}</span>
+                <span className="text-zinc-400 flex items-center gap-1.5"><Building className="h-3.5 w-3.5 text-zinc-500" /> Business Service</span>
+                <span className="font-semibold text-zinc-300">{businessLabel(client.agencyType || 'Digital Marketing')}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400 flex items-center gap-1.5"><Layers className="h-3.5 w-3.5 text-zinc-500" /> Business Model</span>
@@ -1692,8 +1694,8 @@ export default function ClientDetailDashboard({
               <span className="mt-1.5 block text-zinc-300">{client.businessModel || 'Not provided'}</span>
             </div>
             <div>
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Agency service</span>
-              <span className="mt-1.5 block text-zinc-300">{client.agencyType || 'Not provided'}</span>
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">Business service</span>
+              <span className="mt-1.5 block text-zinc-300">{businessLabel(client.agencyType || 'Not provided')}</span>
             </div>
             <div>
               <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-600">GST / tax number</span>

@@ -64,7 +64,7 @@ const STRATEGY_SECTIONS: Array<{
     label: 'Marketing strategy',
     eyebrow: 'Market positioning',
     description: 'Shape positioning and acquisition priorities from your real client and service portfolio.',
-    goalPlaceholder: 'Example: Build a focused pipeline plan for the agency’s strongest service line.',
+    goalPlaceholder: 'Example: Build a focused pipeline plan for the business’s strongest service line.',
     icon: Megaphone,
   },
   {
