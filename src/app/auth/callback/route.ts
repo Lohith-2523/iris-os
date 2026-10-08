@@ -1,4 +1,3 @@
-import { isWaitlistGateActive } from '@/lib/waitlist-config';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/db';
@@ -20,8 +19,6 @@ import {
   PASSWORD_RECOVERY_COOKIE_VALUE,
   RESET_PASSWORD_PATH,
 } from '@/lib/auth-routes';
-import { hasApprovedSignup, validateDeviceAccess } from '@/lib/auth-access';
-import { DEVICE_ACCESS_COOKIE } from '@/lib/auth-access-cookie';
 import { hasSuperadminAccess, SUPERADMIN_OWNER_EMAIL } from '@/admin/policy';
 import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
@@ -123,25 +120,6 @@ export async function GET(request: Request) {
       await supabase.auth.signOut();
       response.headers.set('Location', new URL('/admin/login?auth_error=admin_access_denied', origin).toString());
       return response;
-    }
-
-    if (isWaitlistGateActive()) {
-      const existingWorkspaceUser = await prisma.user.findFirst({
-        where: { OR: [{ authUserId: session.user.id }, { email: email.toLowerCase() }] },
-        select: { id: true },
-      });
-      const deviceCookie = request.headers.get('cookie')
-        ?.split(';')
-        .map(value => value.trim())
-        .find(value => value.startsWith(`${DEVICE_ACCESS_COOKIE}=`))
-        ?.slice(DEVICE_ACCESS_COOKIE.length + 1);
-      const approvedDevice = existingWorkspaceUser
-        || await validateDeviceAccess(deviceCookie ? decodeURIComponent(deviceCookie) : null, email)
-        || await hasApprovedSignup(session.user.id, email);
-      if (!approvedDevice) {
-        await supabase.auth.signOut();
-        return NextResponse.redirect(`${origin}/waitlist?access=required`);
-      }
     }
 
     let dbUser;

@@ -1,21 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
-
-const mocks = vi.hoisted(() => ({
-  waitlistEnabled: false,
-  sendDailyWaitlistReport: vi.fn(),
-  sendDueWaitlistInvitations: vi.fn(),
-}));
-
-vi.mock('@/lib/waitlist-config', () => ({ get WAITLIST_ENABLED() { return mocks.waitlistEnabled; } }));
-
-vi.mock('@/lib/waitlist-daily-report', () => ({
-  sendDailyWaitlistReport: mocks.sendDailyWaitlistReport,
-}));
-
-vi.mock('@/lib/auth-access', () => ({
-  sendDueWaitlistInvitations: mocks.sendDueWaitlistInvitations,
-}));
 
 import { GET } from './route';
 
@@ -27,51 +11,18 @@ function cronRequest(secret = 'cron-secret') {
 
 describe('GET /api/cron/waitlist-daily', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.waitlistEnabled = true;
     process.env.CRON_SECRET = 'cron-secret';
-    mocks.sendDailyWaitlistReport.mockResolvedValue({ sent: true, entryCount: 4 });
-    mocks.sendDueWaitlistInvitations.mockResolvedValue({ processed: 2, sent: 2, failed: 0 });
   });
 
-  it('pauses reports and invitations when the waitlist is disabled', async () => {
-    mocks.waitlistEnabled = false;
+  it('reports that the retired waitlist job is disabled', async () => {
     const response = await GET(cronRequest());
-    expect(await response.json()).toEqual({ skipped: true, reason: 'Waitlist is paused.' });
-    expect(mocks.sendDailyWaitlistReport).not.toHaveBeenCalled();
-    expect(mocks.sendDueWaitlistInvitations).not.toHaveBeenCalled();
-  });
-
-  it('runs reports and invitations from one scheduled endpoint', async () => {
-    const response = await GET(cronRequest());
-    const body = await response.json();
-
     expect(response.status).toBe(200);
-    expect(mocks.sendDailyWaitlistReport).toHaveBeenCalledTimes(1);
-    expect(mocks.sendDueWaitlistInvitations).toHaveBeenCalledTimes(1);
-    expect(body).toEqual({
-      report: { sent: true, entryCount: 4 },
-      invitations: { processed: 2, sent: 2, failed: 0 },
-    });
+    expect(await response.json()).toEqual({ skipped: true, reason: 'The waitlist has been retired.' });
   });
 
   it('rejects requests without the configured cron secret', async () => {
     const response = await GET(cronRequest('wrong-secret'));
 
     expect(response.status).toBe(401);
-    expect(mocks.sendDailyWaitlistReport).not.toHaveBeenCalled();
-    expect(mocks.sendDueWaitlistInvitations).not.toHaveBeenCalled();
-  });
-
-  it('waits for both tasks and reports a partial failure', async () => {
-    mocks.sendDailyWaitlistReport.mockRejectedValue(new Error('report failed'));
-
-    const response = await GET(cronRequest());
-    const body = await response.json();
-
-    expect(response.status).toBe(500);
-    expect(mocks.sendDueWaitlistInvitations).toHaveBeenCalledTimes(1);
-    expect(body.report).toBeNull();
-    expect(body.invitations).toEqual({ processed: 2, sent: 2, failed: 0 });
   });
 });

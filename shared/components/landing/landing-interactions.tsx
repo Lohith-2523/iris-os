@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { WorkspacePreview } from './workspace-preview';
 import styles from './iris-landing.module.css';
-import { isWaitlistGateActive } from '@/lib/waitlist-config';
 
 const executionSteps = [
   'Client created', 'Project created', 'Delivery stages generated', 'Tasks created',
@@ -25,7 +24,6 @@ const journeyModes = [
 ] as const;
 
 export function LandingNavigation() {
-  const waitlistGateActive = isWaitlistGateActive();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -41,12 +39,12 @@ export function LandingNavigation() {
     <div className={styles.navInner}>
       <Link className={styles.wordmark} href="#top" aria-label="IrisOS home" onClick={() => setOpen(false)}><Image className={styles.brandLogo} src="/iris-logo-black-bg.png" alt="" width={76} height={31} priority /></Link>
       <nav className={styles.navLinks} aria-label="Primary navigation">{links.map(([label, href]) => <Link href={href} key={label}>{label}</Link>)}</nav>
-      <div className={styles.navActions}><Link className={styles.primaryButton} href={waitlistGateActive ? '/waitlist' : '/signup'}>{waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'} <ArrowRight aria-hidden="true" /></Link></div>
+      <div className={styles.navActions}><Link className={styles.primaryButton} href="/signup">Create your workspace <ArrowRight aria-hidden="true" /></Link></div>
       <button className={styles.menuButton} type="button" aria-expanded={open} aria-controls="landing-mobile-nav" aria-label={open ? 'Close navigation' : 'Open navigation'} onClick={() => setOpen((value) => !value)}>{open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}</button>
     </div>
     <nav id="landing-mobile-nav" className={`${styles.mobileNav} ${open ? styles.mobileNavOpen : ''}`} aria-label="Mobile navigation">
       {links.map(([label, href]) => <Link href={href} key={label} onClick={() => setOpen(false)}>{label}<ChevronRight aria-hidden="true" /></Link>)}
-      <Link href={waitlistGateActive ? '/waitlist' : '/signup'} onClick={() => setOpen(false)}>{waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'}<ArrowRight aria-hidden="true" /></Link>
+      <Link href="/signup" onClick={() => setOpen(false)}>Create your workspace<ArrowRight aria-hidden="true" /></Link>
     </nav>
   </header>;
 }

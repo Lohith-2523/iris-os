@@ -54,7 +54,7 @@ function DemoRoute() {
   if (demo.pathname === '/messages') return <MessagesClient key={key} initialInbox={demo.state.messaging as never} />;
   if (demo.pathname === '/proposals') return <ProposalsClient key={key} />;
   if (demo.pathname === '/documents') return <DocumentsClient key={key} />;
-  if (demo.pathname === '/reporting') return <ReportingClient key={key} initialData={{ reports: demo.state.reports, clients: demo.state.clients.map((client) => ({ id: client.id, name: client.name })) } as never} />;
+  if (demo.pathname === '/reporting') return <ReportingClient key={key} initialData={{ reports: demo.state.reports, reportPagination: { hasMore: false, nextCursor: null }, clients: demo.state.clients.map((client) => ({ id: client.id, name: client.name })) } as never} />;
   if (demo.pathname === '/strategy' || demo.pathname === '/analytics') return <StrategyClient key={key} />;
   if (demo.pathname === '/atlas') return <AtlasClient key={key} initialData={demo.state.atlas as never} />;
   if (demo.pathname === '/settings') return <SettingsClient key={key} />;

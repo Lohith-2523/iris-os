@@ -1,4 +1,3 @@
-import { isWaitlistGateActive } from '@/lib/waitlist-config';
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import {
@@ -6,7 +5,6 @@ import {
   PASSWORD_RECOVERY_COOKIE,
   passwordRecoveryFailurePath,
 } from '@/lib/auth-routes'
-import { DEVICE_ACCESS_COOKIE, verifyDeviceAccessCookieValue } from '@/lib/auth-access-cookie'
 
 export async function updateSession(request: NextRequest) {
   try {
@@ -51,27 +49,11 @@ export async function updateSession(request: NextRequest) {
     const user = data?.claims
 
     const pathname = request.nextUrl.pathname
-    const waitlistGateActive = isWaitlistGateActive()
-    if (!waitlistGateActive && pathname === '/waitlist') {
+    if (pathname === '/waitlist') {
       return NextResponse.redirect(new URL('/signup', request.url))
     }
-    if (!waitlistGateActive && pathname === '/api/waitlist') {
-      return NextResponse.json({ error: 'Waitlist registration is paused. Please sign up directly.' }, { status: 410 })
-    }
-    const isGuardedAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup')
-    let hasDeviceAccess = false
-    if (waitlistGateActive && isGuardedAuthPage && !user) {
-      try {
-        hasDeviceAccess = Boolean(verifyDeviceAccessCookieValue(request.cookies.get(DEVICE_ACCESS_COOKIE)?.value))
-      } catch {
-        hasDeviceAccess = false
-      }
-      if (!hasDeviceAccess) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/waitlist'
-        url.searchParams.set('access', 'required')
-        return NextResponse.redirect(url)
-      }
+    if (pathname === '/api/waitlist') {
+      return NextResponse.json({ error: 'The waitlist has been retired. Create your workspace directly.' }, { status: 410 })
     }
     if (!canAccessPasswordReset(
       pathname,
@@ -93,7 +75,6 @@ export async function updateSession(request: NextRequest) {
       pathname === '/privacy' ||
       pathname === '/cancellation-refund-policy' ||
       pathname === '/waitlist' ||
-      pathname === '/access' ||
       pathname === '/admin/login' ||
       pathname === '/admin/forgot-password' ||
       pathname.startsWith('/signup') ||
@@ -106,8 +87,6 @@ export async function updateSession(request: NextRequest) {
       pathname === '/api/member' ||
       pathname === '/api/invite' ||
       pathname === '/api/auth/signup' ||
-      pathname === '/api/auth/access-request' ||
-      pathname === '/api/auth/access-activate' ||
       pathname === '/api/auth/device-access' ||
       pathname === '/api/waitlist' ||
       pathname.startsWith('/api/cron/') ||

@@ -11,7 +11,6 @@ import { IrisPricingComparison } from '@/components/landing/iris-pricing-compari
 import { ConsoleEcosystem, MilesAiSection } from '@/components/landing/iris-landing-sections';
 import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
 import type { pricingCatalog, PricingRegion } from '@/lib/plan-pricing';
-import { isWaitlistGateActive } from '@/lib/waitlist-config';
 
 const irisLogo = '/iris-logo-black-bg.png';
 
@@ -75,7 +74,7 @@ function ScrollReveal({ children, delay = '0s', className = '', id = '', style =
 // â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // â”€â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function Hero({ waitlistGateActive }: { waitlistGateActive: boolean }) {
+function Hero() {
   return (
     <section
       style={{
@@ -211,7 +210,7 @@ function Hero({ waitlistGateActive }: { waitlistGateActive: boolean }) {
         style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}
       >
         <Link
-          href={waitlistGateActive ? '/waitlist' : '/signup'}
+          href="/signup"
           prefetch={false}
           className="neo-button-accent"
           style={{
@@ -226,7 +225,7 @@ function Hero({ waitlistGateActive }: { waitlistGateActive: boolean }) {
             textAlign: 'center',
           }}
         >
-          {waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'}
+          Create your workspace
         </Link>
         <a
           href="#video"
@@ -277,11 +276,20 @@ function Hero({ waitlistGateActive }: { waitlistGateActive: boolean }) {
 // â”€â”€â”€ Video Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function VideoSection() {
   const [shouldLoad, setShouldLoad] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const syncViewport = () => setIsDesktop(desktop.matches);
+    syncViewport();
+    desktop.addEventListener('change', syncViewport);
+    return () => desktop.removeEventListener('change', syncViewport);
+  }, []);
+
+  useEffect(() => {
     const section = sectionRef.current;
-    if (!section || shouldLoad) return;
+    if (!section || !isDesktop || shouldLoad) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
       setShouldLoad(true);
@@ -289,7 +297,33 @@ function VideoSection() {
     }, { rootMargin: '500px 0px' });
     observer.observe(section);
     return () => observer.disconnect();
-  }, [shouldLoad]);
+  }, [isDesktop, shouldLoad]);
+
+  if (!isDesktop) {
+    return (
+      <section id="video" className="px-4 py-20 md:hidden">
+        <div className="relative mx-auto max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#111] px-6 py-12 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+          <div className="mx-auto mb-7 grid h-16 w-16 place-items-center rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-100 to-zinc-500 shadow-[0_10px_35px_rgba(255,255,255,0.12)]">
+            <Image src={irisLogo} alt="" width={46} height={46} className="h-11 w-11 rounded-xl object-cover" />
+          </div>
+          <span style={{ fontFamily: JBMONO }} className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-500">IrisOS in your pocket</span>
+          <h2 style={{ fontFamily: DISPLAY }} className="mt-4 text-4xl font-bold tracking-[-0.045em] text-zinc-100">Mobile App coming soon</h2>
+          <p style={{ fontFamily: BODY }} className="mx-auto mt-4 max-w-md text-sm leading-6 text-zinc-500">A focused IrisOS experience for approvals, updates, client communication, and the work that cannot wait for your desk.</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-black/35 px-4 py-3 text-left text-zinc-200">
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7 fill-current"><path d="M17.05 12.54c-.03-3.12 2.55-4.64 2.67-4.71-1.46-2.13-3.73-2.42-4.53-2.45-1.9-.2-3.75 1.14-4.72 1.14-.99 0-2.48-1.12-4.09-1.09-2.07.03-4 1.23-5.06 3.1-2.19 3.79-.56 9.36 1.54 12.42 1.05 1.5 2.27 3.17 3.88 3.11 1.57-.07 2.16-1 4.06-1 1.88 0 2.44 1 4.08.96 1.69-.03 2.75-1.5 3.76-3.01 1.21-1.72 1.7-3.42 1.72-3.51-.04-.01-3.28-1.25-3.31-4.96ZM13.95 3.36A4.5 4.5 0 0 0 14.98.13a4.6 4.6 0 0 0-2.99 1.54 4.28 4.28 0 0 0-1.06 3.11 3.8 3.8 0 0 0 3.02-1.42Z" /></svg>
+              <span><small className="block text-[9px] uppercase tracking-[0.16em] text-zinc-500">Coming soon on the</small><strong className="text-sm font-semibold">App Store</strong></span>
+            </div>
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-black/35 px-4 py-3 text-left text-zinc-200">
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.6"><path d="m4.5 3.5 11.8 8.5L4.5 20.5V3.5Z" /><path d="m4.5 3.5 8.1 8.5-8.1 8.5M12.6 12l4.8-4.8M12.6 12l4.8 4.8" /></svg>
+              <span><small className="block text-[9px] uppercase tracking-[0.16em] text-zinc-500">Coming soon on</small><strong className="text-sm font-semibold">Google Play</strong></span>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section ref={sectionRef} id="video" style={{ padding: 'clamp(72px, 10vw, 112px) clamp(12px, 3vw, 28px)', maxWidth: '1500px', margin: '0 auto' }}>
@@ -1160,7 +1194,7 @@ function Pricing({ region, plans }: {
 void PlaceholderCard;
 void Features;
 
-function Waitlist({ waitlistGateActive }: { waitlistGateActive: boolean }) {
+function GetStarted() {
   return (
     <section id="waitlist" style={{ padding: 'clamp(88px, 10vw, 120px) clamp(16px, 5vw, 32px) clamp(112px, 14vw, 160px)', maxWidth: '1200px', margin: '0 auto' }}>
       <div className="animate-fade-in-up" style={{ maxWidth: '680px', margin: '0 auto', textAlign: 'center' }}>
@@ -1198,7 +1232,7 @@ function Waitlist({ waitlistGateActive }: { waitlistGateActive: boolean }) {
 
         <div className="neo-raised" style={{ padding: 'clamp(28px, 6vw, 48px) clamp(20px, 6vw, 40px)', display: 'flex', justifyContent: 'center' }}>
           <Link
-            href={waitlistGateActive ? '/waitlist' : '/signup'}
+            href="/signup"
             prefetch={false}
             className="neo-button-accent"
             style={{
@@ -1213,7 +1247,7 @@ function Waitlist({ waitlistGateActive }: { waitlistGateActive: boolean }) {
               textAlign: 'center',
             }}
           >
-            {waitlistGateActive ? 'Join the Waitlist' : 'Create your workspace'}
+            Create your workspace
           </Link>
         </div>
 
@@ -1275,7 +1309,6 @@ function Footer() {
 export default function App() {
   const { region, plans, loading } = usePlanPricing();
   const knownDevice = useKnownDeviceAccess();
-  const waitlistGateActive = isWaitlistGateActive();
 
   if (loading || knownDevice === null) return <IrisLandingSkeleton />;
 
@@ -1293,13 +1326,13 @@ export default function App() {
       }}
     >
       <IrisMarketingHeader knownDevice={knownDevice} />
-      <Hero waitlistGateActive={waitlistGateActive} />
+      <Hero />
       <VideoSection />
       <About />
       <ConsoleEcosystem />
       <MilesAiSection />
       <Pricing region={region} plans={plans} />
-      <Waitlist waitlistGateActive={waitlistGateActive} />
+      <GetStarted />
       <Footer />
     </div>
   )

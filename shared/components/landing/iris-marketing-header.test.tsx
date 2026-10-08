@@ -12,13 +12,20 @@ vi.mock('next/image', () => ({
 }));
 
 describe('IrisMarketingHeader', () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+  });
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
   });
 
-  it('replaces the waitlist action with login/signup for a valid identification token', async () => {
+  it('shows login/signup for a known device', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       knownDevice: true,
       directAccess: false,
@@ -34,7 +41,7 @@ describe('IrisMarketingHeader', () => {
     expect(screen.getByRole('link', { name: 'Login / Sign up' })).toHaveAttribute('href', '/login');
   });
 
-  it('keeps the waitlist action when no valid identification token exists', async () => {
+  it('shows login/signup for a new device', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       knownDevice: false,
       directAccess: false,
@@ -46,8 +53,8 @@ describe('IrisMarketingHeader', () => {
     expect(screen.getAllByLabelText('Loading account access')).toHaveLength(2);
     expect(screen.queryByRole('link', { name: 'Join the Waitlist' })).not.toBeInTheDocument();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/auth/device-access', expect.objectContaining({ cache: 'no-store' })));
-    await waitFor(() => expect(screen.getByRole('link', { name: 'Join the Waitlist' })).toHaveAttribute('href', '/waitlist'));
-    expect(screen.queryByRole('link', { name: 'Login / Sign up' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Login / Sign up' })).toHaveAttribute('href', '/login'));
+    expect(screen.queryByRole('link', { name: 'Join the Waitlist' })).not.toBeInTheDocument();
   });
 
   it('renders a resolved access action immediately without another request', () => {

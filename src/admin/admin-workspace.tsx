@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Activity, BadgeDollarSign, BarChart3, Bug, Check, Coins, Copy, Headphones, KeyRound, LayoutDashboard, LogOut, Settings, ShieldCheck, TicketPercent, Users } from 'lucide-react';
+import { Activity, BadgeDollarSign, BarChart3, Bug, Coins, Headphones, LayoutDashboard, LogOut, Settings, ShieldCheck, TicketPercent, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { isSuccessStatusLabel } from '@/components/ui/badge';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
@@ -13,7 +13,7 @@ import type { AdminDashboardData } from '@/server/admin/dashboard';
 import type { SuperadminIdentity } from '@/server/admin/auth';
 import { createClient } from '@/lib/client';
 
-export type AdminSection = 'overview' | 'users' | 'credits' | 'credit-analytics' | 'revenue' | 'support' | 'incidents' | 'coupons' | 'user-access' | 'access' | 'settings';
+export type AdminSection = 'overview' | 'users' | 'credits' | 'credit-analytics' | 'revenue' | 'support' | 'incidents' | 'coupons' | 'access' | 'settings';
 const sections: Array<{ id: AdminSection; label: string; icon: typeof Activity }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'users', label: 'Users', icon: Users },
@@ -23,7 +23,6 @@ const sections: Array<{ id: AdminSection; label: string; icon: typeof Activity }
   { id: 'support', label: 'Support', icon: Headphones },
   { id: 'incidents', label: 'Errors & bugs', icon: Bug },
   { id: 'coupons', label: 'Coupons', icon: TicketPercent },
-  { id: 'user-access', label: 'User access links', icon: KeyRound },
   { id: 'access', label: 'Admin access', icon: ShieldCheck },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -95,7 +94,6 @@ export function AdminWorkspace({ section, data, admin }: { section: AdminSection
         {section === 'support' && <SupportView data={data} mutate={mutate} busy={busy} />}
         {section === 'incidents' && <IncidentsView data={data} mutate={mutate} busy={busy} />}
         {section === 'coupons' && <CouponsView data={data} mutate={mutate} busy={busy} />}
-        {section === 'user-access' && <UserAccessView data={data} admin={admin} />}
         {section === 'access' && <AccessView data={data} admin={admin} mutate={mutate} busy={busy} />}
         {section === 'settings' && <SettingsView admin={admin} mutate={mutate} busy={busy} />}
       </div>
@@ -253,61 +251,6 @@ function CouponsView({ data, mutate, busy }: { data: AdminDashboardData; mutate:
           <div className="self-end pt-1"><Button loading={busy} type="submit">Save changes</Button></div>
         </form>
       </details>)}</div> : <Empty>No managed coupons.</Empty>}
-    </Panel>
-  </div>;
-}
-
-function UserAccessView({ data, admin }: { data: AdminDashboardData; admin: SuperadminIdentity }) {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [expiresInDays, setExpiresInDays] = useState(7);
-  const [accessUrl, setAccessUrl] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [message, setMessage] = useState('');
-
-  const generate = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setBusy(true);
-    setCopied(false);
-    setMessage('');
-    const response = await fetch('/api/admin/manage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create-user-access-link', email, expiresInDays }),
-    });
-    const result = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setMessage(result.error || 'Unable to generate an access link.');
-      return;
-    }
-    setAccessUrl(result.accessUrl);
-    setMessage(`Single-use access created for ${result.email}.`);
-    router.refresh();
-  };
-
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(accessUrl);
-    setCopied(true);
-  };
-
-  return <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-    <Panel title="Generate user access link" description="Bypass the waitlist for one approved email address">
-      {admin.role === 'VIEWER' ? <Empty>Editor access is required to generate user links.</Empty> : <form className={formClass} onSubmit={generate}>
-        <label className={labelClass}>Approved user email<input className={inputClass} name="email" type="email" value={email} onChange={event => setEmail(event.target.value)} required /></label>
-        <label className={labelClass}>Link expires in (Days)<input className={inputClass} name="days" type="number" min="1" max="30" value={expiresInDays} onChange={event => setExpiresInDays(Number(event.target.value))} required /></label>
-        <p className="text-xs leading-5 text-zinc-500">The link is single-use. Once opened, that browser can reach login and signup while the public waitlist remains active. Signup stays restricted to this email address.</p>
-        <Button type="submit" loading={busy}>Generate secure link</Button>
-        {accessUrl && <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-          <label className={labelClass}>Share this link<input className={inputClass} value={accessUrl} readOnly /></label>
-          <Button type="button" variant="outline" size="sm" onClick={() => void copyLink()}>{copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}{copied ? 'Copied' : 'Copy link'}</Button>
-        </div>}
-        {message && <p role="status" className="text-xs text-zinc-300">{message}</p>}
-      </form>}
-    </Panel>
-    <Panel title="Recent user access links" description="Raw links are shown only once when generated">
-      {data.directAccessLinks.length ? <div className="divide-y divide-zinc-800">{data.directAccessLinks.map(item => <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium">{item.email}</p><p className="mt-1 text-xs text-zinc-500">Created {date(item.createdAt)} · Expires {date(item.expiresAt)}</p></div><Pill>{item.status}</Pill></div>)}</div> : <Empty>No direct-access links have been generated.</Empty>}
     </Panel>
   </div>;
 }

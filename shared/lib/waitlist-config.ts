@@ -1,9 +1,8 @@
-// Keep enrollment, invitation delivery, and authentication gates in sync.
-export const WAITLIST_ENABLED = true;
+// Retained for compatibility with legacy waitlist jobs and access records.
+// Authentication and workspace signup no longer consult this flag.
+export const WAITLIST_ENABLED = false;
 
-// The public waitlist remains the entry point until the IrisOS launch date.
-// Store the India launch midnight as an absolute instant so every deployment
-// evaluates the same release boundary regardless of its server timezone.
+// Historical release timestamp used only by legacy access-token records.
 export const WAITLIST_ACCESS_OPENS_AT = new Date('2026-10-14T00:00:00.000+05:30');
 
 export function isWaitlistGateActive(now = new Date()) {

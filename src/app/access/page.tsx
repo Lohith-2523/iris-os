@@ -9,7 +9,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
       <h1 className="mt-3 text-2xl font-bold">Confirm this device</h1>
       {error === 'invalid' || !validShape ? <>
         <p className="mt-4 text-sm leading-6 text-zinc-400">This access link is invalid, expired, or has already been used.</p>
-        <Link href="/waitlist" className="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950">Return to the waitlist</Link>
+        <Link href="/login" className="mt-6 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-bold text-zinc-950">Continue to login</Link>
       </> : <>
         <p className="mt-4 text-sm leading-6 text-zinc-400">Continue to authorize this browser to open the IrisOS signup or login page. You will still need your account credentials.</p>
         <form action="/api/auth/access-activate" method="post" className="mt-6">

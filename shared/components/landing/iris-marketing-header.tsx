@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { isWaitlistGateActive } from '@/lib/waitlist-config';
 
 const BODY = 'var(--font-geist-sans), sans-serif';
 const IRIS_LOGO = '/iris-logo-black-bg.png';
+const INSTALL_AVAILABLE_EVENT = 'iris-os:pwa-install-available';
+const SHOW_INSTALL_PROMPT_EVENT = 'iris-os:show-install-prompt';
 
 export function useKnownDeviceAccess(enabled = true) {
   const [knownDevice, setKnownDevice] = useState<boolean | null>(null);
@@ -35,6 +36,7 @@ export function IrisMarketingHeader({ knownDevice: knownDeviceProp }: { knownDev
   const isHome = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [canInstallApp, setCanInstallApp] = useState(false);
   const detectedKnownDevice = useKnownDeviceAccess(knownDeviceProp === undefined);
   const knownDevice = knownDeviceProp ?? detectedKnownDevice;
 
@@ -54,12 +56,26 @@ export function IrisMarketingHeader({ knownDevice: knownDeviceProp }: { knownDev
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMobileMenuOpen]);
 
-  const hasPublicAccess = !isWaitlistGateActive();
-  const accessHref = knownDevice || hasPublicAccess ? '/login' : '/waitlist';
-  const accessLabel = knownDevice || hasPublicAccess ? 'Login / Sign up' : 'Join the Waitlist';
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const syncAvailability = (event?: Event) => {
+      const detail = (event as CustomEvent<{ available?: boolean }> | undefined)?.detail;
+      const available = detail?.available ?? document.documentElement.dataset.pwaInstallAvailable === 'true';
+      setCanInstallApp(desktop.matches && available);
+    };
+    syncAvailability();
+    desktop.addEventListener('change', syncAvailability);
+    window.addEventListener(INSTALL_AVAILABLE_EVENT, syncAvailability);
+    return () => {
+      desktop.removeEventListener('change', syncAvailability);
+      window.removeEventListener(INSTALL_AVAILABLE_EVENT, syncAvailability);
+    };
+  }, []);
+
+  const accessHref = '/login';
+  const accessLabel = 'Login / Sign up';
 
   const navLinks = [
-    { label: 'Preview', href: isHome ? '#video' : '/#video' },
     { label: 'About', href: isHome ? '#about' : '/#about' },
     { label: 'Features', href: isHome ? '#features' : '/#features' },
     { label: 'Pricing', href: '/pricing' },
@@ -93,6 +109,34 @@ export function IrisMarketingHeader({ knownDevice: knownDeviceProp }: { knownDev
         </Link>
 
         <nav className="hidden md:flex" style={{ gap: '8px' }} aria-label="Primary navigation">
+          {canInstallApp && (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(SHOW_INSTALL_PROMPT_EVENT))}
+              style={{
+                fontFamily: BODY,
+                fontWeight: 500,
+                fontSize: '15px',
+                color: 'rgba(232,232,232,0.6)',
+                padding: '10px 22px',
+                borderRadius: '50px',
+                border: 0,
+                background: 'transparent',
+                cursor: 'pointer',
+                transition: 'color 200ms cubic-bezier(0.16, 1, 0.3, 1), background-color 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+              onMouseEnter={(event) => {
+                event.currentTarget.style.color = '#e8e8e8';
+                event.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.color = 'rgba(232,232,232,0.6)';
+                event.currentTarget.style.background = 'transparent';
+              }}
+            >
+              Download App
+            </button>
+          )}
           {navLinks.map((link) => (
             <Link
               key={link.label}

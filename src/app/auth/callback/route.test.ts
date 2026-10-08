@@ -6,8 +6,6 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   adminFind: vi.fn(),
   provision: vi.fn(),
-  hasApprovedSignup: vi.fn(),
-  validateDeviceAccess: vi.fn(),
 }));
 
 vi.mock('@supabase/ssr', () => ({
@@ -25,10 +23,6 @@ vi.mock('@/lib/org', () => ({
   DeletedClientWorkspaceError: class DeletedClientWorkspaceError extends Error {},
 }));
 vi.mock('@/lib/database-resilience', () => ({ isTransientDatabaseConnectionError: vi.fn(() => false), withDatabaseConnectionRetry: (operation: () => unknown) => operation() }));
-vi.mock('@/lib/auth-access', () => ({
-  hasApprovedSignup: mocks.hasApprovedSignup,
-  validateDeviceAccess: mocks.validateDeviceAccess,
-}));
 
 import { GET } from './route';
 
@@ -42,8 +36,6 @@ describe('superadmin OAuth callback', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://project.supabase.co');
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'publishable-key');
     mocks.signOut.mockResolvedValue({ error: null });
-    mocks.hasApprovedSignup.mockResolvedValue(false);
-    mocks.validateDeviceAccess.mockResolvedValue(false);
   });
 
   it('sends the verified owner directly to the superadmin workspace', async () => {
@@ -53,9 +45,8 @@ describe('superadmin OAuth callback', () => {
     expect(mocks.adminFind).not.toHaveBeenCalled();
   });
 
-  it('allows an approved new account to finish authentication', async () => {
+  it('allows any new account to finish authentication', async () => {
     session('new@example.com');
-    mocks.validateDeviceAccess.mockResolvedValue(true);
     mocks.provision.mockResolvedValue({ role: 'ADMIN', organization: { onboardingState: { needsOnboarding: true } } });
     const response = await GET(new Request('https://irisos.app/auth/callback?code=valid&next=/onboarding'));
     expect(response.headers.get('location')).toBe('https://irisos.app/onboarding');
@@ -65,7 +56,6 @@ describe('superadmin OAuth callback', () => {
 
   it('does not route a client identity through top-level workspace signup', async () => {
     session('former-client@example.com');
-    mocks.validateDeviceAccess.mockResolvedValue(true);
     const { WorkspaceSignupRoleConflictError } = await import('@/lib/org');
     mocks.provision.mockRejectedValue(new WorkspaceSignupRoleConflictError());
 

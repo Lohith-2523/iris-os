@@ -10,7 +10,6 @@ vi.mock('@supabase/ssr', () => ({
 }));
 
 import { updateSession } from './middleware';
-import { createDeviceAccessCookieValue, DEVICE_ACCESS_COOKIE } from './auth-access-cookie';
 
 describe('authentication proxy responses', () => {
   beforeEach(() => {
@@ -40,30 +39,23 @@ describe('authentication proxy responses', () => {
     expect(response.headers.get('location')).toBe('http://localhost:3000/login');
   });
 
-  it('sends direct login and signup visits without a device grant to the waitlist', async () => {
+  it('allows direct login and signup visits without a device grant', async () => {
     for (const path of ['/login', '/signup']) {
       const response = await updateSession(new NextRequest(`http://localhost:3000${path}`));
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(`http://localhost:3000/waitlist?access=required`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
     }
   });
 
-  it('allows an existing unexpired device grant to open login before the public release', async () => {
-    const request = new NextRequest('http://localhost:3000/login');
-    request.cookies.set(DEVICE_ACCESS_COOKIE, createDeviceAccessCookieValue('grant-1', 'device-token', new Date(Date.now() + 60_000)));
-    const response = await updateSession(request);
-    expect(response.status).toBe(200);
+  it('redirects the retired waitlist page to signup', async () => {
+    const response = await updateSession(new NextRequest('https://irisos.app/waitlist'));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('https://irisos.app/signup');
   });
 
-  it('keeps waitlist registration public', async () => {
-    const response = await updateSession(new NextRequest('https://irisos.app/waitlist?access=required'));
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('allows public waitlist registration to reach its route handler', async () => {
+  it('rejects retired waitlist registrations', async () => {
     const response = await updateSession(new NextRequest('https://irisos.app/api/waitlist', { method: 'POST' }));
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(410);
   });
 
   it('keeps superadmin sign-in and recovery request pages public', async () => {

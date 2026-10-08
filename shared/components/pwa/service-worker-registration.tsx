@@ -1,17 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowUp, Download, Monitor, X } from 'lucide-react';
+import { Download, Monitor, X } from 'lucide-react';
 
-const INSTALL_PROMPT_DISMISSED = 'iris-os:pwa-install-dismissed';
+const INSTALL_AVAILABLE_EVENT = 'iris-os:pwa-install-available';
+const SHOW_INSTALL_PROMPT_EVENT = 'iris-os:show-install-prompt';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
+function publishInstallAvailability(available: boolean) {
+  document.documentElement.dataset.pwaInstallAvailable = String(available);
+  window.dispatchEvent(new CustomEvent(INSTALL_AVAILABLE_EVENT, { detail: { available } }));
+}
+
 export function ServiceWorkerRegistration() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return;
@@ -36,34 +43,65 @@ export function ServiceWorkerRegistration() {
 
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches;
-    if (standalone || sessionStorage.getItem(INSTALL_PROMPT_DISMISSED) === 'true') return;
+    if (standalone) {
+      publishInstallAvailability(false);
+      return;
+    }
+    const desktop = window.matchMedia('(min-width: 768px)');
 
     const captureInstallPrompt = (event: Event) => {
       event.preventDefault();
+      if (!desktop.matches) {
+        setInstallPrompt(null);
+        publishInstallAvailability(false);
+        return;
+      }
       setInstallPrompt(event as BeforeInstallPromptEvent);
+      setIsOpen(true);
+      publishInstallAvailability(true);
     };
-    const hideInstalledPrompt = () => setInstallPrompt(null);
+    const showInstallPrompt = () => {
+      if (desktop.matches) setIsOpen(true);
+    };
+    const hideInstalledPrompt = () => {
+      setInstallPrompt(null);
+      setIsOpen(false);
+      publishInstallAvailability(false);
+    };
+    const enforceDesktopInstall = (event: MediaQueryListEvent) => {
+      if (!event.matches) hideInstalledPrompt();
+    };
 
     window.addEventListener('beforeinstallprompt', captureInstallPrompt);
     window.addEventListener('appinstalled', hideInstalledPrompt);
+    window.addEventListener(SHOW_INSTALL_PROMPT_EVENT, showInstallPrompt);
+    desktop.addEventListener('change', enforceDesktopInstall);
     return () => {
       window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
       window.removeEventListener('appinstalled', hideInstalledPrompt);
+      window.removeEventListener(SHOW_INSTALL_PROMPT_EVENT, showInstallPrompt);
+      desktop.removeEventListener('change', enforceDesktopInstall);
     };
   }, []);
 
-  if (!installPrompt) return null;
+  if (!installPrompt || !isOpen) return null;
 
   const dismiss = () => {
-    sessionStorage.setItem(INSTALL_PROMPT_DISMISSED, 'true');
-    setInstallPrompt(null);
+    setIsOpen(false);
   };
 
   const install = async () => {
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
-    if (choice.outcome === 'dismissed') sessionStorage.setItem(INSTALL_PROMPT_DISMISSED, 'true');
-    setInstallPrompt(null);
+    try {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      setIsOpen(false);
+      if (choice.outcome === 'accepted') {
+        setInstallPrompt(null);
+        publishInstallAvailability(false);
+      }
+    } catch {
+      setIsOpen(false);
+    }
   };
 
   return (
@@ -75,10 +113,7 @@ export function ServiceWorkerRegistration() {
       data-testid="pwa-install-overlay"
       role="dialog"
     >
-      <div className="absolute left-4 right-4 top-14 mx-auto max-w-md rounded-xl border border-zinc-700/80 bg-zinc-950/95 p-4 text-white shadow-2xl shadow-black/50 backdrop-blur-xl sm:left-auto sm:right-6 sm:top-10 sm:mx-0">
-        <div className="pointer-events-none absolute -top-10 right-5 flex items-center gap-1.5 text-xs font-semibold text-zinc-200" aria-hidden="true">
-          <span>Browser install button</span><ArrowUp className="h-7 w-7" strokeWidth={1.7} />
-        </div>
+      <div className="absolute left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-zinc-700/80 bg-zinc-950/95 p-4 text-white shadow-2xl shadow-black/50 backdrop-blur-xl">
         <button
           aria-label="Dismiss app install prompt"
           className="absolute right-3 top-3 rounded-md p-1 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
@@ -95,7 +130,7 @@ export function ServiceWorkerRegistration() {
           <div>
             <h2 className="text-sm font-semibold" id="pwa-install-title">Install the IrisOS app</h2>
             <p className="mt-1 text-xs leading-5 text-zinc-400" id="pwa-install-description">
-              Install from here, or use Chrome&apos;s Install App button in the browser bar above.
+              Install the IrisOS app for free for a more seamless and uninterrupted user experience
             </p>
           </div>
         </div>
