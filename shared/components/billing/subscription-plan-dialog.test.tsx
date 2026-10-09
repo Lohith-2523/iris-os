@@ -41,17 +41,17 @@ describe('SubscriptionPlanDialog coupon pricing', () => {
       />,
     );
 
-    const proCard = screen.getByRole('heading', { name: 'Pro' }).closest('section');
-    const freeCard = screen.getByRole('heading', { name: 'Free' }).closest('section');
+    const proCard = screen.getByRole('heading', { name: 'Pro' }).closest('article');
+    const freeCard = screen.getByRole('heading', { name: 'Free' }).closest('article');
     expect(proCard).not.toBeNull();
     expect(freeCard).not.toBeNull();
-    expect(within(freeCard!).queryByText('/ month')).not.toBeInTheDocument();
+    expect(within(freeCard!).getByText('/mo')).toBeInTheDocument();
     expect(within(proCard!).getByText('$19.99')).toBeInTheDocument();
 
     fireEvent.click(within(proCard!).getByRole('button', { name: 'Apply PRO coupon' }));
 
     expect(within(proCard!).getByText('$35.99')).toBeInTheDocument();
-    expect(within(proCard!).getByText('10% off')).toBeInTheDocument();
+    expect(within(proCard!).getByText('10% off early bird offer')).toBeInTheDocument();
     expect(within(proCard!).queryByText('$19.99')).not.toBeInTheDocument();
   });
 });

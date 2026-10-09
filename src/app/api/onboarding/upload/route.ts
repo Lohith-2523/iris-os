@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
     const user = await getRequestUser(request);
-    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const body = await request.json();
     const { type, data } = body;
@@ -243,6 +243,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 });
   } catch (error: any) {
     console.error('Error handling upload:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

@@ -19,8 +19,8 @@ const voiceActionDetails = [
 
 export async function POST(request: NextRequest) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!canShowAtlasLauncher(user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (!canShowAtlasLauncher(user.role)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
   if (normalizePlan(user.organization.plan) === 'BASIC') {
     return NextResponse.json({ error: 'Miles voice is not available on the Free plan.' }, { status: 403 });
   }

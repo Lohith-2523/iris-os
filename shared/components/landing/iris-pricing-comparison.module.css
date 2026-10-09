@@ -21,6 +21,27 @@
   color: var(--pricing-ink);
 }
 
+.tableRoot {
+  --pricing-paper: #0a0a0a;
+  --pricing-surface: #111111;
+  --pricing-surface-raised: rgba(255, 255, 255, 0.055);
+  --pricing-rule: rgba(255, 255, 255, 0.07);
+  --pricing-rule-strong: rgba(255, 255, 255, 0.2);
+  --pricing-ink: #e8e8e8;
+  --pricing-muted: rgba(232, 232, 232, 0.6);
+  --pricing-quiet: rgba(232, 232, 232, 0.4);
+  --pricing-positive: oklch(78% 0.17 151);
+  --pricing-focus: var(--color-landing-accent);
+  --pricing-ease-out: var(--ease-briefing-out);
+  --pricing-column-header-height: 3.5rem;
+  --pricing-price-row-height: 7.5rem;
+  --pricing-best-for-row-height: 4.5rem;
+  --pricing-feature-row-height: 3.75rem;
+  --pricing-card-footer-height: 4.75rem;
+  width: 100%;
+  color: var(--pricing-ink);
+}
+
 .frame {
   width: min(100%, 77.5rem);
   margin-inline: auto;
@@ -117,6 +138,17 @@
   scroll-snap-align: start;
 }
 
+.selectedLabel {
+  color: var(--pricing-muted);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.customActionCard { grid-template-rows: var(--pricing-column-header-height) auto auto; }
+.customActionFooter { min-height: var(--pricing-card-footer-height); }
+
 .featureCard {
   background: #0e0e0e;
   box-shadow: inset 0.25rem 0.25rem 0.75rem #040404, inset -0.25rem -0.25rem 0.75rem #181818;
@@ -126,6 +158,11 @@
   border-color: var(--pricing-rule-strong);
   background: var(--pricing-surface-raised);
   box-shadow: 0.5rem 0.5rem 1.5rem #040404, -0.5rem -0.5rem 1.5rem #1e1e1e;
+}
+
+.planCard.selected {
+  border-color: rgba(255, 255, 255, 0.42);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0.5rem 0.5rem 1.25rem #030303, -0.5rem -0.5rem 1.25rem #202020;
 }
 
 .columnHeader {

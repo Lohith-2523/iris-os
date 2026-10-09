@@ -483,7 +483,9 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           const response = await fetch('/api/atlas-ai/transcribe', { method: 'POST', body: form });
           const data = await response.json().catch(() => ({}));
           if (!response.ok || typeof data.text !== 'string') throw new Error(data.error || 'Miles could not transcribe this recording.');
-          const verifiedTranscript = hasMeaningfulEnglishSpeech(data.text) ? data.text : '';
+          const verifiedTranscript = hasMeaningfulEnglishSpeech(data.text)
+            ? data.text
+            : liveTranscript;
           const finalText = joinTranscript(voicePrefixRef.current, verifiedTranscript);
           setQuery(finalText);
           setLiveVoiceText('');
@@ -492,7 +494,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           if (hasMeaningfulEnglishSpeech(liveTranscript)) {
             setQuery(joinTranscript(voicePrefixRef.current, liveTranscript));
             setLiveVoiceText('');
-            setVoiceError('Live transcript kept; final transcription could not be verified.');
+            setVoiceError(null);
           } else {
             setVoiceError(error instanceof Error ? error.message : 'Miles could not transcribe this recording.');
           }

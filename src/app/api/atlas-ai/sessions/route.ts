@@ -13,7 +13,7 @@ const voiceTurnSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const pageRequest = readCursorPage(request);
     const sessions = await prisma.atlasChatSession.findMany({
@@ -36,14 +36,14 @@ export async function GET(request: NextRequest) {
     }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching chat sessions:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const parsed = voiceTurnSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: 'Invalid Miles voice turn.' }, { status: 400 });
@@ -83,6 +83,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error: unknown) {
     console.error('Error saving Miles voice turn:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

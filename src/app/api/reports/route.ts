@@ -20,7 +20,7 @@ const generateSchema = z.object({
 
 export async function GET(request: Request) {
   const user = await getRequestUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
   const pageRequest = readCursorPage(request);
   const reports = await prisma.report.findMany({
     where: { orgId: user.orgId, ...descendingCursorWhere(pageRequest.cursor, 'createdAt') },
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getRequestUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (user.role === 'client') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (user.role === 'client') return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
   const body = await request.json();
   const generation = generateSchema.safeParse(body);
   if (generation.success) {
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       }, { status: 201 });
     } catch (error) {
       console.error('Unable to generate Miles report:', error);
-      return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to generate report.' }, { status: 500 });
+      return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
     }
   }
 

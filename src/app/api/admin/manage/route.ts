@@ -19,7 +19,7 @@ const requestSchema = z.discriminatedUnion('action', [
 
 export async function POST(request: Request) {
   const admin = await getSuperadmin();
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!admin) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   const input = parsed.data;

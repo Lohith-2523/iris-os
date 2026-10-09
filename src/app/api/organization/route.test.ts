@@ -53,11 +53,20 @@ function planRequest(plan: string) {
   });
 }
 
-function organizationUser(role = 'admin') {
+function consentRequest(aiSharingConsent: boolean) {
+  return new NextRequest('http://localhost:3000/api/organization', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ aiSharingConsent }),
+  });
+}
+
+function organizationUser(role = 'admin', accessPermissions: string[] = []) {
   return {
     id: 'admin-1',
     orgId: 'org-1',
     role,
+    accessPermissions,
     organization: {
       id: 'org-1',
       name: 'Miles Studio',
@@ -154,6 +163,29 @@ describe('POST /api/organization plan cancellation', () => {
     mocks.isOrganizationAdmin.mockReturnValue(false);
 
     const response = await POST(planRequest('BASIC'));
+
+    expect(response.status).toBe(403);
+    expect(mocks.delegates.organization.update).not.toHaveBeenCalled();
+  });
+
+  it('lets a settings sub-admin update only Miles AI consent', async () => {
+    mocks.getRequestUser.mockResolvedValue(organizationUser('sub_admin', ['settings']));
+    mocks.isOrganizationAdmin.mockReturnValue(false);
+
+    const response = await POST(consentRequest(false));
+
+    expect(response.status).toBe(200);
+    expect(mocks.delegates.organization.update).toHaveBeenCalledWith({
+      where: { id: 'org-1' },
+      data: { aiSharingConsent: false },
+    });
+  });
+
+  it('does not grant Miles consent updates to other non-admin users', async () => {
+    mocks.getRequestUser.mockResolvedValue(organizationUser('sub_admin', ['reporting']));
+    mocks.isOrganizationAdmin.mockReturnValue(false);
+
+    const response = await POST(consentRequest(true));
 
     expect(response.status).toBe(403);
     expect(mocks.delegates.organization.update).not.toHaveBeenCalled();

@@ -7,7 +7,7 @@ export { isAllowedDirectPair } from '@/lib/messaging/roles';
 
 export async function getMessagingUser(request?: NextRequest) {
   const user = await getRequestUser(request);
-  if (!user) return { error: 'Unauthorized', status: 401 } as const;
+  if (!user) return { error: 'Oops! Please sign in to continue.', status: 401 } as const;
   return { user, entitlements: entitlementsFor(user.organization.plan) } as const;
 }
 

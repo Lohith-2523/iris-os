@@ -1604,7 +1604,7 @@ export default function SettingsPage() {
                 return <Card key={tier.id} className={`flex min-h-[290px] flex-col ${isCurrent ? 'border-zinc-500 bg-zinc-900/45' : 'border-zinc-850'}`}>
                   <CardHeader className="flex-1">
                     <div className="flex items-start justify-between gap-3"><div><CardTitle className="text-base font-bold text-white">{tier.name}</CardTitle><CardDescription className="mt-1">{tier.description}</CardDescription></div>{isCurrent && <Badge variant="outline" className="whitespace-nowrap border-zinc-600 text-[9px] uppercase text-zinc-300">Current plan</Badge>}</div>
-                    <div className="mt-5">{tier.listAmount > tier.baseAmount && <p className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(tier.listAmount, tier.currency)}</del><strong className="text-zinc-200">50% off</strong></p>}<span className="font-mono text-3xl font-black tabular-nums text-white">{tier.baseAmount === 0 ? 'Free' : formatPlanMoney(tier.baseAmount, tier.currency)}</span>{tier.baseAmount > 0 && <span className="ml-1 text-xs text-zinc-500">/ month</span>}{tier.baseAmount > 0 && <p className="mt-1 text-[10px] text-zinc-500">+ 18% {tier.currency === 'INR' ? 'GST' : 'Tax'}</p>}</div>
+                    <div className="mt-5">{tier.listAmount > tier.baseAmount && <p className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(tier.listAmount, tier.currency)}</del><strong className="text-zinc-200">50% off early bird offer</strong></p>}<span className="font-mono text-3xl font-black tabular-nums text-white">{formatPlanMoney(tier.baseAmount, tier.currency)}</span><span className="ml-1 text-xs text-zinc-500">/mo</span>{tier.baseAmount > 0 && <p className="mt-1 text-[10px] text-zinc-500">+ 18% {tier.currency === 'INR' ? 'GST' : 'Tax'}</p>}</div>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2 border-t border-zinc-850 pt-4 text-xs text-zinc-300">{tier.features.map((feature) => <li key={feature.label} className="flex items-start justify-between gap-3"><span className="flex min-w-0 gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-500" />{feature.label}</span><strong className="shrink-0 text-right font-mono font-medium text-white">{feature.value}</strong></li>)}</ul>
@@ -1635,7 +1635,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="sm:text-right">
                       <span className="font-mono text-2xl font-black text-white">
-                        {(() => { const selected = settingsPlans.find(tier => tier.id === plan)!; return selected.baseAmount === 0 ? 'Free' : formatPlanMoney(selected.baseAmount, selected.currency); })()}
+                        {(() => { const selected = settingsPlans.find(tier => tier.id === plan)!; return `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}
                       </span>
                       {plan !== 'BASIC' && <span className="text-zinc-500 font-semibold block text-[10px] uppercase font-mono mt-0.5">per month</span>}
                     </div>
@@ -1703,7 +1703,7 @@ export default function SettingsPage() {
                     <div className="flex justify-between items-center py-1 text-[11px] border-b border-zinc-900">
                       <span className="text-zinc-500">Base Price:</span>
                       <span className="font-mono text-zinc-300">
-                        {(() => { const selected = settingsPlans.find(tier => tier.id === plan)!; return selected.baseAmount === 0 ? 'Free' : `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}
+                        {(() => { const selected = settingsPlans.find(tier => tier.id === plan)!; return `${formatPlanMoney(selected.baseAmount, selected.currency)}/mo`; })()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center pt-3 text-[11px] font-bold">

@@ -114,7 +114,7 @@ async function sendDocument(record: { id: string; kind: string; title: string; d
 
 export async function GET(request: Request) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
   const isClient = user.role.toLowerCase() === 'client';
   if (isClient && !user.clientId) return NextResponse.json({ error: 'Client account is not linked.' }, { status: 403 });
   const family = new URL(request.url).searchParams.get('family');
@@ -155,8 +155,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!isOrganizationAdmin(user) && user.role.toLowerCase() !== 'member') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (!isOrganizationAdmin(user) && user.role.toLowerCase() !== 'member') return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
   const parsed = mutationSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid request.' }, { status: 400 });
   const input = parsed.data;
@@ -273,8 +273,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
   const id = new URL(request.url).searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Document is required.' }, { status: 400 });
   const signed = await prisma.generatedDocument.findFirst({ where: { id, orgId: user.orgId, OR: [{ recipientSignedAt: { not: null } }, { agencySignedAt: { not: null } }] }, select: { id: true } });

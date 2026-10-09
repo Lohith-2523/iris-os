@@ -414,7 +414,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
     const { action, query, context, sessionId, voiceWorkflow } = parsed.data;
 
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const plan = normalizePlan(user.organization.plan);
     const entitlements = entitlementsFor(plan);
     if (!entitlements.aiFeatures) {
@@ -1440,7 +1440,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
     ) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 

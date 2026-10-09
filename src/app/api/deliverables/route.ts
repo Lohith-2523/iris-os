@@ -26,7 +26,7 @@ const schema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const clientScope = user.role.toLowerCase() === 'client' ? { clientId: user.clientId || '__none__' } : {};
     const deliverablePageRequest = readCursorPage(request, { cursorParam: 'deliverableCursor', limitParam: 'deliverableLimit' });
     const changePageRequest = readCursorPage(request, { cursorParam: 'changeCursor', limitParam: 'changeLimit' });
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: 'Invalid deliverable request', issues: parsed.error.issues }, { status: 400 });
     const body = parsed.data;
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     if (body.action === 'create_change_request') {
       if (!body.title || !body.note || !body.clientId) return NextResponse.json({ error: 'Title, details, and client are required' }, { status: 400 });
-      if (user.role.toLowerCase() === 'client' && user.clientId !== body.clientId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (user.role.toLowerCase() === 'client' && user.clientId !== body.clientId) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
       const client = await prisma.client.findFirst({ where: { id: body.clientId, orgId: user.orgId }, select: { id: true } });
       if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
       if (body.projectId) {

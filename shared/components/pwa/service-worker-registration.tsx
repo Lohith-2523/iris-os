@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Download, Monitor, X } from 'lucide-react';
 
 const INSTALL_AVAILABLE_EVENT = 'iris-os:pwa-install-available';
 const SHOW_INSTALL_PROMPT_EVENT = 'iris-os:show-install-prompt';
+const LANDING_VISIT_COUNT_KEY = 'iris-os:landing-visit-count';
+const AUTO_PROMPT_DISABLED_KEY = 'iris-os:pwa-auto-prompt-disabled';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -17,8 +20,33 @@ function publishInstallAvailability(available: boolean) {
 }
 
 export function ServiceWorkerRegistration() {
+  const pathname = usePathname();
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const landingVisitRecorded = useRef(false);
+  const autoPromptAllowed = useRef(false);
+
+  useEffect(() => {
+    if (pathname !== '/') {
+      landingVisitRecorded.current = false;
+      autoPromptAllowed.current = false;
+      setIsOpen(false);
+      return;
+    }
+    if (landingVisitRecorded.current) return;
+
+    landingVisitRecorded.current = true;
+    try {
+      const visits = Number.parseInt(window.localStorage.getItem(LANDING_VISIT_COUNT_KEY) || '0', 10);
+      const nextVisits = Number.isFinite(visits) ? visits + 1 : 1;
+      window.localStorage.setItem(LANDING_VISIT_COUNT_KEY, String(nextVisits));
+      autoPromptAllowed.current = nextVisits >= 2 && window.localStorage.getItem(AUTO_PROMPT_DISABLED_KEY) !== 'true';
+    } catch {
+      autoPromptAllowed.current = false;
+    }
+
+    if (installPrompt && autoPromptAllowed.current) setIsOpen(true);
+  }, [installPrompt, pathname]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return;
@@ -57,11 +85,11 @@ export function ServiceWorkerRegistration() {
         return;
       }
       setInstallPrompt(event as BeforeInstallPromptEvent);
-      setIsOpen(true);
+      if (pathname === '/' && autoPromptAllowed.current) setIsOpen(true);
       publishInstallAvailability(true);
     };
     const showInstallPrompt = () => {
-      if (desktop.matches) setIsOpen(true);
+      if (desktop.matches && pathname === '/') setIsOpen(true);
     };
     const hideInstalledPrompt = () => {
       setInstallPrompt(null);
@@ -82,11 +110,21 @@ export function ServiceWorkerRegistration() {
       window.removeEventListener(SHOW_INSTALL_PROMPT_EVENT, showInstallPrompt);
       desktop.removeEventListener('change', enforceDesktopInstall);
     };
-  }, []);
+  }, [pathname]);
 
-  if (!installPrompt || !isOpen) return null;
+  if (pathname !== '/' || !installPrompt || !isOpen) return null;
 
   const dismiss = () => {
+    setIsOpen(false);
+  };
+
+  const disableAutomaticPrompt = () => {
+    try {
+      window.localStorage.setItem(AUTO_PROMPT_DISABLED_KEY, 'true');
+    } catch {
+      // The manual Download App entry point remains available if storage is unavailable.
+    }
+    autoPromptAllowed.current = false;
     setIsOpen(false);
   };
 
@@ -134,13 +172,22 @@ export function ServiceWorkerRegistration() {
             </p>
           </div>
         </div>
-        <button
-          className="mt-4 h-9 w-full rounded-md bg-white px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          onClick={() => void install()}
-          type="button"
-        >
-          Quick install
-        </button>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button
+            className="h-9 rounded-md bg-white px-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+            onClick={() => void install()}
+            type="button"
+          >
+            Quick install
+          </button>
+          <button
+            className="h-9 rounded-md border border-zinc-700 px-3 text-sm font-semibold text-zinc-300 transition-colors hover:border-zinc-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            onClick={disableAutomaticPrompt}
+            type="button"
+          >
+            Don&apos;t ask again
+          </button>
+        </div>
       </div>
     </aside>
   );

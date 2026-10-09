@@ -5,7 +5,7 @@ import { createLeadExportWorkbook, parseLeadExportRequest } from '@/lib/lead-arc
 
 export async function GET(request: NextRequest) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
   const range = parseLeadExportRequest(
     request.nextUrl.searchParams.get('from'),

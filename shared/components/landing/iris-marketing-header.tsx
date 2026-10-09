@@ -109,7 +109,7 @@ export function IrisMarketingHeader({ knownDevice: knownDeviceProp }: { knownDev
         </Link>
 
         <nav className="hidden md:flex" style={{ gap: '8px' }} aria-label="Primary navigation">
-          {canInstallApp && (
+          {isHome && canInstallApp && (
             <button
               type="button"
               onClick={() => window.dispatchEvent(new Event(SHOW_INSTALL_PROMPT_EVENT))}

@@ -31,7 +31,7 @@ export async function GET(
         ),
       );
     }
-    if (!authorized) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authorized) return Response.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const pdf = await invoicePdfFromRecord(invoice);
     await prisma.invoice.update({

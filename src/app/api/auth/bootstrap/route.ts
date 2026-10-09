@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       },
     );
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     }
 
     return NextResponse.json({

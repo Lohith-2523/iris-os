@@ -8,8 +8,8 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getRequestUser(request);
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  if (user.role === 'client') return Response.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) return Response.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (user.role === 'client') return Response.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
   const { id } = await params;
   const report = await prisma.report.findFirst({
     where: { id, orgId: user.orgId },

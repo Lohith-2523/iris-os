@@ -37,7 +37,22 @@ export async function GET(request: NextRequest) {
     include: { device: { select: { identityPublicKey: true } } },
     orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
   });
-  return NextResponse.json({ keys: keys.map(accountKeyResponse) }, { headers: messagingNoStoreHeaders() });
+  const readableKeys = keys.flatMap((key) => {
+    try {
+      return [accountKeyResponse(key)];
+    } catch (error) {
+      console.warn('Skipping an unreadable messaging account key during identity recovery.', {
+        keyId: key.id,
+        deviceId: key.deviceId,
+        cause: error instanceof Error ? error.message : 'Unknown decryption error',
+      });
+      return [];
+    }
+  });
+  if (readableKeys.length > 0 && !readableKeys.some((key) => key.isPrimary)) {
+    readableKeys[0] = { ...readableKeys[0], isPrimary: true };
+  }
+  return NextResponse.json({ keys: readableKeys }, { headers: messagingNoStoreHeaders() });
 }
 
 export async function POST(request: NextRequest) {

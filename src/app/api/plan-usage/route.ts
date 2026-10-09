@@ -4,7 +4,7 @@ import { getRequestSecurityContext } from '@/server/security/request-security-co
 
 export async function GET() {
   const ctx = await getRequestSecurityContext();
-  if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!ctx) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
   const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
   const nextMonth = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1));

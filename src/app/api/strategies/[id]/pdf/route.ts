@@ -11,8 +11,8 @@ export async function GET(
 ) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user) return Response.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) return Response.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     const { id } = await params;
     const strategy = await prisma.strategy.findFirst({
       where: { id, orgId: user.orgId },

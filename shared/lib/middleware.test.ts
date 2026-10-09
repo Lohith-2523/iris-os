@@ -29,7 +29,7 @@ describe('authentication proxy responses', () => {
 
     expect(response.status).toBe(401);
     expect(response.headers.get('content-type')).toContain('application/json');
-    await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
+    await expect(response.json()).resolves.toEqual({ error: 'Oops! Please sign in to continue.' });
   });
 
   it('continues redirecting unauthenticated page requests to login', async () => {

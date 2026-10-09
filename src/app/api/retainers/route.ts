@@ -41,7 +41,7 @@ function toProjectPayment(project: {
 export async function GET(request: NextRequest) {
   try {
     const organization = await getAdminOrganization(request);
-    if (!organization) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!organization) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const projects = await prisma.project.findMany({
       where: { orgId: organization.id, paymentAmount: { gt: 0 } },
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const organization = await getAdminOrganization(request);
-    if (!organization) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!organization) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const body = await request.json();
     const projectId = String(body.projectId || body.id || '');
@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const organization = await getAdminOrganization(request);
-    if (!organization) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!organization) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const projectId = new URL(request.url).searchParams.get('id');
     if (!projectId) return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });

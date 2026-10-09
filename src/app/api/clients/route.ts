@@ -35,9 +35,9 @@ class ClientPlanLimitError extends Error {}
 export async function DELETE(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     if (!isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Access Denied: Administrative clearance required.' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions for this action.' }, { status: 403 });
     }
 
     const clientId = new URL(request.url).searchParams.get('clientId')?.trim();
@@ -76,14 +76,14 @@ export async function DELETE(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const body = await request.json();
     const clientId = typeof body.clientId === 'string' ? body.clientId.trim() : '';
     const isAdmin = isOrganizationAdmin(user);
     const isLinkedClient = user.role.toLowerCase() === 'client' && user.clientId === clientId;
     if (!isAdmin && !isLinkedClient) {
       return NextResponse.json(
-        { error: 'Access Denied: Client branding can only be changed by the linked client or a business administrator.' },
+        { error: 'Oops! You do not have enough permissions to change this client branding.' },
         { status: 403 },
       );
     }
@@ -230,9 +230,9 @@ export async function POST(request: NextRequest) {
       initialProject,
     } = body;
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     if (!isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Access Denied: Administrative clearance required.' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions for this action.' }, { status: 403 });
     }
 
     const org = await getOrganization(request);
@@ -561,6 +561,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('Error onboarding client:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error fetching organization:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -59,8 +59,24 @@ export async function POST(request: NextRequest) {
       preferences,
     } = body;
     const user = await getRequestUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) {
+      const canManageSettings = user.role.toLowerCase() === 'sub_admin'
+        && Array.isArray(user.accessPermissions)
+        && user.accessPermissions.includes('settings');
+      if (!canManageSettings || typeof aiSharingConsent !== 'boolean') {
+        return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
+      }
+      const aiConsentOrganization = await prisma.organization.update({
+        where: { id: user.organization.id },
+        data: {
+          aiSharingConsent: entitlementsFor(user.organization.plan).aiFeatures
+            ? aiSharingConsent
+            : false,
+        },
+      });
+      return NextResponse.json(aiConsentOrganization);
+    }
     const logoResult = invoiceLogoDataUrl !== undefined
       ? validateInvoiceLogoDataUrl(invoiceLogoDataUrl)
       : null;
@@ -143,7 +159,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(org);
   } catch (error: any) {
     console.error('Error updating organization:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -153,10 +169,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     }
     if (!isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
 
     const orgId = user.orgId;

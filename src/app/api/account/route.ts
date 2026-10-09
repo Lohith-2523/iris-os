@@ -29,7 +29,7 @@ export async function DELETE(request: Request) {
 
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     if (!isOrganizationAdmin(user)) {
       return NextResponse.json({ error: 'Only an organization administrator can delete the entire account.' }, { status: 403 });
     }

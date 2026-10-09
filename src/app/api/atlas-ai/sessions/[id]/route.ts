@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { id } = await params;
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const session = await prisma.atlasChatSession.findUnique({
       where: { id },
@@ -32,7 +32,7 @@ export async function GET(
     return NextResponse.json(session);
   } catch (error: any) {
     console.error('Error fetching chat session:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -43,7 +43,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const session = await prisma.atlasChatSession.findUnique({
       where: { id },
@@ -59,7 +59,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting chat session:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -70,7 +70,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const body = await request.json().catch(() => null) as { title?: unknown } | null;
     const title = typeof body?.title === 'string' ? body.title.trim() : '';
@@ -90,6 +90,6 @@ export async function PATCH(
     return NextResponse.json(updated);
   } catch (error: unknown) {
     console.error('Error renaming chat session:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

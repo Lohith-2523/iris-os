@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const user = await getRequestUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     }
     if (!isOrganizationAdmin(user)) {
       return NextResponse.json({ error: 'Administrative access required.' }, { status: 403 });

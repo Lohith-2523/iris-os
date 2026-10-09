@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     const ctx = await getRequestSecurityContext();
     if (!ctx) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     }
     const user = ctx.user;
 
@@ -132,6 +132,6 @@ export async function GET(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error fetching database data:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

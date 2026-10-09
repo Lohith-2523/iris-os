@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, ShieldCheck, Building, User, Loader2 } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Building, User, Loader2 } from 'lucide-react';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import { CountrySelect } from '@/components/ui/country-select';
 import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
@@ -15,6 +15,8 @@ import { currencySymbol, MAJOR_CURRENCIES } from '@/lib/currencies';
 import { RazorpayCheckout, type CouponPriceQuote } from '@/components/billing/razorpay-checkout';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { formatPlanMoney } from '@/lib/plan-pricing';
+import { IrisPricingTable } from '@/components/landing/iris-pricing-comparison';
+import { MilesAiConsentControl } from '@/components/onboarding/miles-ai-consent-control';
 
 const FULL_PRIVACY_POLICY = [
   ['Workspace Operations and New Features', 'IrisOS processes the workspace information needed for client and team onboarding, project stages and tasks, financial operations, reporting, daily briefings, notifications, profile pictures, workspace backgrounds, secure documents, approvals, electronic signatures, and connected design workflows. Access remains limited by workspace role and permissions.'],
@@ -74,7 +76,6 @@ export default function OnboardingPage() {
   const PLANS = regionalPlans.map((price) => ({
     ...price,
     id: price.id.toLowerCase() as 'basic' | 'pro' | 'advanced',
-    tagline: price.positioning,
   }));
   const selectedPlan = PLANS.find(plan => plan.id === selectedPlanId)!;
   const selectedPaidPlan = selectedPlanId === 'basic' ? null : selectedPlanId.toUpperCase() as 'PRO' | 'ADVANCED';
@@ -216,7 +217,7 @@ export default function OnboardingPage() {
           plan: paidPlan ? undefined : 'BASIC',
           hasAddon: selectedPlanId === 'basic' ? false : undefined,
           currency,
-          aiSharingConsent: selectedPlanId === 'basic' ? false : aiSharingConsent,
+          aiSharingConsent,
           metaAccessConsent,
           username,
           billingEmail: agencyDetails.billingEmail,
@@ -251,14 +252,6 @@ export default function OnboardingPage() {
       transitionLockRef.current = false;
     }
   };
-
-  const getOrderedPlans = () => {
-    const selectedPlan = PLANS.find((plan) => plan.id === selectedPlanId)!;
-    const otherPlans = PLANS.filter((plan) => plan.id !== selectedPlanId);
-    return { left: otherPlans[0], center: selectedPlan, right: otherPlans[1] };
-  };
-
-  const ordered = getOrderedPlans();
 
   return (
     <div className="workspace-auth bg-[#09090b] text-white min-h-screen relative font-sans select-none flex flex-col justify-between py-12 px-6">
@@ -366,91 +359,27 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* Landing-page pricing card treatment */}
-            <div className="grid w-full max-w-[1200px] items-stretch gap-5 lg:grid-cols-3">
-              
-              {/* Left Column Plan (Unselected) */}
-              <button
-                type="button"
-                disabled={advancingStep !== null || pricingLoading}
-                onClick={() => setSelectedPlanId(ordered.left.id as any)}
-                className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
-              >
-                <div>
-                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">IrisOS / {ordered.left.name}</span>
-                  {ordered.left.listAmount > ordered.left.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.left.listAmount, ordered.left.currency)}</del><b className="text-zinc-200">50% off</b></span>}
-                  <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.left.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.left.baseAmount, ordered.left.currency)}</span>
-                  <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.left.tagline}</span>
-                </div>
-                <div className="mt-7 min-h-0 space-y-3 border-t border-white/[0.07] pt-6 text-xs text-white/65">
-                  {ordered.left.features.map((feature) => (
-                    <span key={feature.label} className="flex items-start justify-between gap-3"><span>• {feature.label}</span><b className="shrink-0 font-mono text-white/85">{feature.value}</b></span>
-                  ))}
-                </div>
-                <span className="mt-8 block shrink-0 rounded-xl border border-white/10 bg-[#151515] py-3.5 text-center text-sm font-semibold text-white/75 transition-colors group-hover:border-white/20 group-hover:text-white">Choose {ordered.left.name}</span>
-              </button>
-
-              {/* Center Column Plan (Selected & Highlighted Big) */}
-              <div className="relative flex min-h-[720px] flex-col justify-between rounded-[24px] border border-white/20 bg-white/[0.055] p-7 shadow-[8px_8px_24px_#040404,-8px_-8px_24px_#1e1e1e] transition-colors">
-                <div className="absolute top-5 right-5 rounded-full border border-white/15 px-2 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white/70">
-                  Selected
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <span className="block text-xs font-bold text-white uppercase tracking-widest">{ordered.center.name}</span>
-                    <span className="block text-[9px] font-semibold text-zinc-400 mt-0.5 uppercase tracking-wide">{ordered.center.tagline}</span>
-                  </div>
-                  <div className="border-b border-zinc-800 pb-3">
-                    {ordered.center.listAmount > ordered.center.baseAmount && <span className="mb-1 flex items-center gap-2 text-[9px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.center.listAmount, ordered.center.currency)}</del><b className="text-zinc-200">50% off</b></span>}
-                    <span className="font-mono text-4xl font-black text-white">{ordered.center.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.center.baseAmount, ordered.center.currency)}</span>
-                    {ordered.center.baseAmount > 0 && <span className="text-[10px] text-zinc-500 font-bold uppercase font-mono"> / month</span>}
-                  </div>
-                  <div className="space-y-2">
-                    <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Included Features:</span>
-                    <ul className="space-y-2.5 font-mono text-[9px] text-zinc-300">
-                      {ordered.center.features.map((feature) => (
-                        <li key={feature.label} className="flex items-start gap-2">
-                          <Check className="h-3.5 w-3.5 text-white/60 shrink-0 mt-0.5" />
-                          <span className="flex min-w-0 flex-1 justify-between gap-3 leading-tight"><span>{feature.label}</span><b className="shrink-0 text-white">{feature.value}</b></span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-zinc-800">
+            <div className="w-full max-w-[1200px]">
+              <IrisPricingTable
+                plans={regionalPlans}
+                selectedPlanId={selectedPlanId.toUpperCase() as 'BASIC' | 'PRO' | 'ADVANCED'}
+                renderPlanAction={(plan) => (
                   <Button
-                    onClick={handlePricingNext}
+                    type="button"
+                    variant={plan.id === selectedPlanId.toUpperCase() ? 'default' : 'outline'}
                     disabled={advancingStep !== null || pricingLoading}
-                    aria-busy={advancingStep === 'pricing'}
-                    className="w-full h-10 font-bold text-xs bg-white text-zinc-950 hover:bg-zinc-200 cursor-pointer flex items-center justify-center gap-1.5"
+                    onClick={() => setSelectedPlanId(plan.id.toLowerCase() as 'basic' | 'pro' | 'advanced')}
+                    className="w-full"
                   >
-                    {advancingStep === 'pricing' ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Saving plan...</span></> : <><span>Proceed to Payments</span><ArrowRight className="h-4 w-4" /></>}
+                    {plan.id === selectedPlanId.toUpperCase() ? 'Selected' : `Choose ${plan.name}`}
                   </Button>
-                </div>
+                )}
+              />
+              <div className="mt-5 flex justify-end">
+                <Button onClick={handlePricingNext} disabled={advancingStep !== null || pricingLoading} aria-busy={advancingStep === 'pricing'} className="min-w-56 gap-1.5">
+                  {advancingStep === 'pricing' ? <><Loader2 className="h-4 w-4 animate-spin" /><span>Saving plan...</span></> : <><span>Continue with {selectedPlan.name}</span><ArrowRight className="h-4 w-4" /></>}
+                </Button>
               </div>
-
-              {/* Right Column Plan (Unselected) */}
-              <button
-                type="button"
-                disabled={advancingStep !== null || pricingLoading}
-                onClick={() => setSelectedPlanId(ordered.right.id as any)}
-                className="min-w-0 rounded-[24px] border border-white/[0.07] bg-[#111111] p-7 text-left shadow-[6px_6px_18px_#040404,-6px_-6px_18px_#191919] transition-colors hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-60 flex min-h-[720px] flex-col justify-between cursor-pointer group"
-              >
-                <div>
-                  <span className="block text-[10px] uppercase tracking-[0.15em] text-white/35">IrisOS / {ordered.right.name}</span>
-                  {ordered.right.listAmount > ordered.right.baseAmount && <span className="mt-1 flex flex-wrap items-center gap-1 text-[8px] uppercase tracking-wide"><del className="font-mono font-black tabular-nums text-zinc-500">{formatPlanMoney(ordered.right.listAmount, ordered.right.currency)}</del><b className="text-zinc-200">50% off</b></span>}
-                  <span className="mt-2 block font-mono text-4xl font-black tabular-nums text-white">{ordered.right.baseAmount === 0 ? 'Free' : formatPlanMoney(ordered.right.baseAmount, ordered.right.currency)}</span>
-                  <span className="mt-3 block text-sm leading-6 text-white/45">{ordered.right.tagline}</span>
-                </div>
-                <div className="mt-7 min-h-0 space-y-3 border-t border-white/[0.07] pt-6 text-xs text-white/65">
-                  {ordered.right.features.map((feature) => (
-                    <span key={feature.label} className="flex items-start justify-between gap-3"><span>• {feature.label}</span><b className="shrink-0 font-mono text-white/85">{feature.value}</b></span>
-                  ))}
-                </div>
-                <span className="mt-8 block shrink-0 rounded-xl border border-white/10 bg-[#151515] py-3.5 text-center text-sm font-semibold text-white/75 transition-colors group-hover:border-white/20 group-hover:text-white">Choose {ordered.right.name}</span>
-              </button>
-
             </div>
           </div>
         )}
@@ -513,24 +442,7 @@ export default function OnboardingPage() {
                   </label>
                 </div>
 
-                <div className="flex items-start gap-2.5 p-3 rounded border border-zinc-850 bg-zinc-900/10">
-                  <input
-                    type="checkbox"
-                    id="aiConsentCheckbox"
-                    checked={selectedPlanId !== 'basic' && aiSharingConsent}
-                    disabled={selectedPlanId === 'basic'}
-                    onChange={(e) => setAiSharingConsent(e.target.checked)}
-                    className="mt-1 rounded border-zinc-800 text-red-650 bg-zinc-900 accent-red-650 focus:ring-0 cursor-pointer h-3.5 w-3.5"
-                  />
-                  <div className="cursor-pointer select-none">
-                    <label htmlFor="aiConsentCheckbox" className="block text-sm font-bold text-zinc-300">
-                      Enable Miles AI Analysis (Recommended)
-                    </label>
-                    <span className="block text-sm text-zinc-500 mt-1 leading-relaxed">
-                      Allow the AI models to read your transaction records and lead pipeline data to automatically identify leaks and calculate campaign performance metrics. You can revoke this in settings at any time.
-                    </span>
-                  </div>
-                </div>
+                <MilesAiConsentControl checked={aiSharingConsent} onChange={setAiSharingConsent} />
 
                 <div className="flex items-start gap-2.5 p-3 rounded border border-blue-900/40 bg-blue-950/10">
                   <input
@@ -589,8 +501,8 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  {selectedDisplayPrice.listAmount > selectedDisplayPrice.baseAmount && <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selectedDisplayPrice.listAmount, selectedDisplayPrice.currency)}</del> {selectedDiscountPercent && <b className="text-zinc-200">{selectedDiscountPercent}% off</b>}</span>}
-                  <span className="font-mono text-xl font-bold text-white" aria-live="polite">{selectedDisplayPrice.baseAmount === 0 ? 'Free' : `${formatPlanMoney(selectedDisplayPrice.baseAmount, selectedDisplayPrice.currency)}/mo`}</span>
+                  {selectedDisplayPrice.listAmount > selectedDisplayPrice.baseAmount && <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selectedDisplayPrice.listAmount, selectedDisplayPrice.currency)}</del> {selectedDiscountPercent && <b className="text-zinc-200">{selectedDiscountPercent}% off early bird offer</b>}</span>}
+                  <span className="font-mono text-xl font-bold text-white" aria-live="polite">{formatPlanMoney(selectedDisplayPrice.baseAmount, selectedDisplayPrice.currency)}/mo</span>
                 </div>
               </div>
 

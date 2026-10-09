@@ -44,8 +44,8 @@ async function registerFailure(userId: string) {
 
 export async function POST(request: NextRequest) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: noStoreHeaders });
-  if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: noStoreHeaders });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401, headers: noStoreHeaders });
+  if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403, headers: noStoreHeaders });
 
   const input = inputSchema.safeParse(await request.json().catch(() => null));
   if (!input.success) return NextResponse.json({ error: 'Enter a valid coupon code.' }, { status: 400, headers: noStoreHeaders });

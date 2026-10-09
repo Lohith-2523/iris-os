@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error in Meta Deauthorization route:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 

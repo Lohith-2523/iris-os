@@ -103,7 +103,7 @@ export async function updateSession(request: NextRequest) {
       // redirect here would turn the login page HTML into a misleading JSON
       // parse failure in the caller.
       if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 })
       }
 
       const url = request.nextUrl.clone()

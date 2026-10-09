@@ -193,8 +193,8 @@ async function ensureDailyBriefing(user: NonNullable<Awaited<ReturnType<typeof g
 
 async function authorizedAdmin() {
   const user = await getRequestUser();
-  if (!user) return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) } as const;
-  if (!isOrganizationAdmin(user)) return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) } as const;
+  if (!user) return { error: NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 }) } as const;
+  if (!isOrganizationAdmin(user)) return { error: NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 }) } as const;
   if (!entitlementsFor(user.organization.plan).dailyBriefing) {
     return { error: NextResponse.json({ error: 'Daily briefing is available on the Advanced plan.' }, { status: 403 }) } as const;
   }

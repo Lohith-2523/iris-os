@@ -85,8 +85,8 @@ async function strategyContext(orgId: string, clientIds: string[], projectIds: s
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     if (!entitlementsFor(user.organization.plan).strategyGeneration) {
       return NextResponse.json({ error: 'Strategy generation is available on the Advanced plan.' }, { status: 403 });
     }
@@ -140,8 +140,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     if (!entitlementsFor(user.organization.plan).strategyGeneration) {
       return NextResponse.json({ error: 'Strategy generation is available on the Advanced plan.' }, { status: 403 });
     }

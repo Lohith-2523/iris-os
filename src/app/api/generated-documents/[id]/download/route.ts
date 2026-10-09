@@ -10,7 +10,7 @@ import { contentWithSignatureAudit } from '@/lib/documents/signing';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
   const { id } = await params;
   const format = new URL(request.url).searchParams.get('format') || 'pdf';
   if (!['pdf', 'docx', 'both'].includes(format)) return NextResponse.json({ error: 'Unsupported file format.' }, { status: 400 });

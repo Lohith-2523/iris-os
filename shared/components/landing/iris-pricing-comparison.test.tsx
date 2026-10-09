@@ -20,7 +20,7 @@ describe('IrisPricingComparison', () => {
     const freeCard = screen.getByRole('heading', { name: 'Free' }).closest('article');
     expect(freeCard).not.toBeNull();
     expect(within(freeCard!).getByText(formatPlanMoney(0, 'INR'))).toBeInTheDocument();
-    expect(within(freeCard!).getByText('/month')).toBeInTheDocument();
+    expect(within(freeCard!).getByText('/mo')).toBeInTheDocument();
     expect(within(freeCard!).getAllByRole('listitem')).toHaveLength(6);
   });
 

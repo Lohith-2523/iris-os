@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestUser } from '@/lib/org';
-import { normalizePlan } from '@/lib/plan-entitlements';
+import { entitlementsFor } from '@/lib/plan-entitlements';
 import { hasMeaningfulEnglishSpeech } from '@/lib/atlas-ai/voice-input';
 
 export const runtime = 'nodejs';
@@ -18,9 +18,9 @@ const ALLOWED_AUDIO_TYPES = new Set([
 
 export async function POST(request: NextRequest) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (normalizePlan(user.organization.plan) === 'BASIC') {
-    return NextResponse.json({ error: 'Miles AI is not available on the Free plan.' }, { status: 403 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (!entitlementsFor(user.organization.plan).aiFeatures) {
+    return NextResponse.json({ error: 'Oops! You do not have enough permissions to use Miles AI.' }, { status: 403 });
   }
 
   const form = await request.formData().catch(() => null);
@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: 'Voice transcription is not configured.' }, { status: 503 });
+    console.error('Miles voice transcription is unavailable because OPENAI_API_KEY is not configured.');
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 503 });
   }
 
   const model = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-mini-transcribe';
@@ -48,16 +49,23 @@ export async function POST(request: NextRequest) {
   providerForm.append('language', 'en');
   providerForm.append('prompt', 'Transcribe spoken English only. Preserve English words as English and do not translate them into another language. Return no text for silence, ambient noise, or audio without intelligible English speech.');
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: providerForm,
-    cache: 'no-store',
-  });
+  let response: Response;
+  try {
+    response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: providerForm,
+      cache: 'no-store',
+    });
+  } catch (error) {
+    console.error('Miles voice transcription request failed.', error);
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 502 });
+  }
   const result = await response.json().catch(() => ({})) as { text?: unknown; error?: { message?: unknown } };
   if (!response.ok || typeof result.text !== 'string') {
     const providerMessage = typeof result.error?.message === 'string' ? result.error.message : 'The recording could not be transcribed.';
-    return NextResponse.json({ error: providerMessage }, { status: response.status || 502 });
+    console.error('Miles voice transcription provider rejected the recording.', { status: response.status, providerMessage });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: response.status || 502 });
   }
 
   const transcript = result.text.trim();

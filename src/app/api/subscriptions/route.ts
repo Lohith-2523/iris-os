@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
-    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const pageRequest = readCursorPage(request);
     const subscriptions = await prisma.recurringSubscription.findMany({
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching subscriptions:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
-    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const body = await request.json();
     const { name, amount, category, frequency, startDate } = body;
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newSub);
   } catch (error: any) {
     console.error('Error creating subscription:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -85,7 +85,7 @@ export async function PATCH(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
-    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const body = await request.json();
     const { id, amount, frequency } = body;
@@ -129,7 +129,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(updatedSub);
   } catch (error: any) {
     console.error('Error updating subscription:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -139,7 +139,7 @@ export async function DELETE(request: NextRequest) {
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
-    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!(await canManageSubscriptions(request))) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -163,6 +163,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting subscription:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

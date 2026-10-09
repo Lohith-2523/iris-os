@@ -18,7 +18,7 @@ const notificationSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const now = new Date();
     const pageRequest = readCursorPage(request, { defaultLimit: 50 });
     const visibilityWhere = {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const parsed = notificationSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: 'Invalid notification request', issues: parsed.error.issues }, { status: 400 });
     const body = parsed.data;

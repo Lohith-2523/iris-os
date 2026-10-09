@@ -10,6 +10,7 @@ import { publicAppUrl } from '@/lib/app-url';
 import { calculateInvoiceItemsWithOverallTax } from '@/lib/invoices/calculations';
 import { z } from 'zod';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
+import { canManageWorkspacePage } from '@/lib/workspace-page-permissions';
 
 export const runtime = 'nodejs';
 
@@ -75,10 +76,11 @@ const updateInvoiceSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const isClient = user.role.toLowerCase() === 'client';
-    if (!isOrganizationAdmin(user) && !isClient) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const canReadInvoices = canManageWorkspacePage(user, 'invoices') || canManageWorkspacePage(user, 'finance');
+    if (!canReadInvoices && !isClient) {
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
     if (isClient && !user.clientId) {
       return NextResponse.json({ error: 'Client account is not linked.' }, { status: 403 });
@@ -134,9 +136,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     if (!isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
     const body = await request.json();
     const parsed = createInvoiceSchema.safeParse({
@@ -215,7 +217,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     const parsed = updateInvoiceSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invoice details are invalid.' }, { status: 400 });
     const existing = await prisma.invoice.findFirst({ where: { id: parsed.data.id, orgId: user.orgId }, select: { id: true, paidAmount: true } });
@@ -248,7 +250,7 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     const id = request.nextUrl.searchParams.get('id')?.trim();
     if (!id) return NextResponse.json({ error: 'Invoice id is required.' }, { status: 400 });
     const result = await prisma.invoice.deleteMany({ where: { id, orgId: user.orgId } });

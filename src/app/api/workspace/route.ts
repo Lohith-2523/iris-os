@@ -35,7 +35,7 @@ const patchSchema = z.object({
 export async function GET() {
   try {
     const ctx = await getRequestSecurityContext();
-    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!ctx) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     return NextResponse.json(await getWorkspaceReadModel(ctx));
   } catch (error) {
     console.error('Failed to load workspace state:', error);
@@ -49,7 +49,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const user = await getRequestUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const parsed = patchSchema.safeParse(await request.json());
     if (!parsed.success) {
@@ -62,7 +62,7 @@ export async function PATCH(request: Request) {
       if ('error' in background) return NextResponse.json({ error: background.error }, { status: 400 });
     }
     if ((update.organization || update.onboarding) && !isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
 
     if (update.organization?.currency && update.organization.currency !== user.organization.currency) {

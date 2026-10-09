@@ -4,6 +4,7 @@ import { getOrganization, getRequestUser, isOrganizationAdmin } from '@/lib/org'
 import { invoicePaymentStatus } from '@/lib/invoices/billing-profile';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 import { randomUUID } from 'node:crypto';
+import { canManageWorkspacePage } from '@/lib/workspace-page-permissions';
 
 function parseImportedDate(value: unknown) {
   if (value instanceof Date) return value;
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
     const user = await getRequestUser(request);
-    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user || !canManageWorkspacePage(user, 'finance')) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const pageRequest = readCursorPage(request);
     const transactions = await prisma.transaction.findMany({
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching transactions:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
     const user = await getRequestUser(request);
-    if (!user || !isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!user || !canManageWorkspacePage(user, 'finance')) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const body = await request.json();
     const clients = await prisma.client.findMany({
@@ -449,7 +450,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('Error creating transaction:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -458,7 +459,7 @@ export async function DELETE(request: NextRequest) {
     const org = await getOrganization(request);
     const user = await getRequestUser(request);
     if (!org || !user || !isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
 
     const id = new URL(request.url).searchParams.get('id');

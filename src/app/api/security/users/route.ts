@@ -22,8 +22,8 @@ const schema = z.object({
 
 export async function GET(request: NextRequest) {
   const user = await getRequestUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
   const users = await prisma.user.findMany({
     where: { orgId: user.orgId },
     select: { id: true, name: true, email: true, phone: true, role: true, accessPermissions: true, handlesDeliverables: true, offboardedAt: true, accessRevokedAt: true, createdAt: true },
@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const admin = await getRequestUser(request);
-    if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(admin)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!admin) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+    if (!isOrganizationAdmin(admin)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: 'Invalid security request', issues: parsed.error.issues }, { status: 400 });
     const body = parsed.data;

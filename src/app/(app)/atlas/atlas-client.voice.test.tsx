@@ -350,6 +350,52 @@ it('replaces the editor with a full-width waveform, then restores the final tran
   expect(recorder!.state).toBe('inactive');
 });
 
+it('keeps a meaningful live transcript without showing an error when final transcription fails', async () => {
+  let recorder: FakeRecorder;
+  let recognition: FakeRecognition;
+  class FakeRecorder {
+    static isTypeSupported = () => true;
+    state = 'inactive';
+    mimeType = 'audio/webm';
+    ondataavailable: ((event: { data: Blob }) => void) | null = null;
+    onstop: (() => void) | null = null;
+    start() { this.state = 'recording'; }
+    stop() { this.state = 'inactive'; this.ondataavailable?.({ data: new Blob(['audio']) }); this.onstop?.(); }
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    constructor() { recorder = this; }
+  }
+  class FakeRecognition {
+    continuous = false;
+    interimResults = false;
+    lang = '';
+    onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }> }) => void) | null = null;
+    onerror = null;
+    onend = null;
+    start = vi.fn();
+    stop = vi.fn();
+    abort = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    constructor() { recognition = this; }
+  }
+  vi.stubGlobal('MediaRecorder', FakeRecorder);
+  vi.stubGlobal('SpeechRecognition', FakeRecognition);
+  vi.mocked(fetch).mockRejectedValueOnce(new Error('Transcription service unavailable'));
+
+  render(<AtlasClient initialData={initialData} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Transcribe' }));
+  await screen.findByRole('button', { name: 'Stop recording' });
+  act(() => recognition!.onresult?.({
+    resultIndex: 0,
+    results: [{ isFinal: true, 0: { transcript: 'Create a project, please.' } }],
+  }));
+  fireEvent.click(screen.getByRole('button', { name: 'Stop recording' }));
+
+  expect(await screen.findByRole('textbox')).toHaveValue('Create a project, please.');
+  expect(screen.queryByText('Live transcript kept; final transcription could not be verified.')).not.toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(recorder!.state).toBe('inactive');
+});
+
 it('releases a microphone granted after live startup was cancelled', async () => {
   let grant!: (value: MediaStream) => void;
   vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValue(new Promise((resolve) => { grant = resolve; }) as Promise<MediaStream>);

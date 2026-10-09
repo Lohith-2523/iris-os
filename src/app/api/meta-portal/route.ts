@@ -120,7 +120,7 @@ async function syncMetaPerformanceForClient(orgId: string, clientId: string, adA
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     if (freeClientDashboardBlocked(user)) return NextResponse.json({ error: 'Client Dashboard is available on the Pro and Advanced plans.', code: 'PLAN_UPGRADE_REQUIRED' }, { status: 403 });
 
     const isClient = user.role === 'client';
@@ -203,10 +203,9 @@ export async function GET(request: NextRequest) {
       },
     }, { headers });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching Meta Portal data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch Meta Portal data', details: errorMessage },
+      { error: 'Oops! Something went wrong. Please try again.' },
       { status: 500 }
     );
   }
@@ -218,7 +217,7 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     if (freeClientDashboardBlocked(user)) return NextResponse.json({ error: 'Client Dashboard is available on the Pro and Advanced plans.', code: 'PLAN_UPGRADE_REQUIRED' }, { status: 403 });
 
     const org = await getOrganization(request);
@@ -262,7 +261,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, lead: updatedLead });
     }
 
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     if (action === 'sync_performance') {
       const clientId = typeof body.clientId === 'string' ? body.clientId : '';
@@ -297,10 +296,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error in Meta Portal API:', error);
     return NextResponse.json(
-      { error: 'Failed to process request', details: errorMessage },
+      { error: 'Oops! Something went wrong. Please try again.' },
       { status: 500 }
     );
   }

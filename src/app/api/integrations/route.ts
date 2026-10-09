@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     }
 
     const [metaConnection, googleConnection] = await Promise.all([
@@ -134,14 +134,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(integrations);
   } catch (error) {
     console.error('Error fetching integrations:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const body = await request.json();
     const { provider, action } = body;
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isOrganizationAdmin(user)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
 
     const existingConnection = await prisma.integrationConnection.findUnique({
@@ -324,6 +324,6 @@ export async function POST(request: NextRequest) {
     if (error instanceof MetaIntegrationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

@@ -5,8 +5,8 @@ import { generateProposalPdf } from '@/lib/proposals/pdf';
 
 export async function POST(request: Request) {
   const user = await getRequestUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (user.role.toLowerCase() === 'client') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+  if (user.role.toLowerCase() === 'client') return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
   const parsed = proposalSchema.safeParse(await request.json());
   if (!parsed.success) {

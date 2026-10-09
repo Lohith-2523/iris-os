@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getRequestUser(request);
-  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user?.email) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
   const access = await ensureDeviceAccessForUser(
     request.cookies.get(DEVICE_ACCESS_COOKIE)?.value,

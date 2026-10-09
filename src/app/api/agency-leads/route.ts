@@ -10,6 +10,7 @@ import { createNotification } from '@/lib/notifications';
 import { getKanbanLeadCutoff } from '@/lib/lead-archive';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
+import { canManageWorkspacePage } from '@/lib/workspace-page-permissions';
 
 const ACTIVE_LEAD_STATUSES = { notIn: ['lost', 'closed'], mode: 'insensitive' as const };
 
@@ -22,7 +23,7 @@ function parseEstimatedClientValue(value: unknown) {
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const canManageAgencyMeta = isOrganizationAdmin(user);
     const kanbanOnly = request.nextUrl.searchParams.get('view') === 'kanban';
@@ -164,10 +165,9 @@ export async function GET(request: NextRequest) {
       pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
     }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching Agency Leads:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch Agency Leads data', details: errorMessage },
+      { error: 'Oops! Something went wrong. Please try again.' },
       { status: 500 }
     );
   }
@@ -176,11 +176,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const body = await request.json();
     const { action } = body;
+    const isAdmin = isOrganizationAdmin(user);
+    if (!canManageWorkspacePage(user, 'agency-leads')) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
+    if (!isAdmin && ['update_atlas_meta_consent', 'update_meta_access_consent', 'assign_meta_account', 'remove_meta_account', 'sync_meta_account', 'delete'].includes(action)) {
+      return NextResponse.json({ error: 'Only the business administrator can perform this action.' }, { status: 403 });
+    }
     const org = user.organization;
 
     if (action === 'update_atlas_meta_consent') {
@@ -446,13 +449,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error in Agency Leads API:', error);
     if (error instanceof MetaIntegrationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     return NextResponse.json(
-      { error: 'Failed to process request', details: errorMessage },
+      { error: 'Oops! Something went wrong. Please try again.' },
       { status: 500 }
     );
   }

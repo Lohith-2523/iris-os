@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(invite);
   } catch (error: any) {
     console.error('Error validating invite token:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -127,6 +127,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error processing client invite sign-up:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

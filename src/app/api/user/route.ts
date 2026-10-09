@@ -13,7 +13,7 @@ const updateProfileSchema = z.object({
 export async function GET() {
   try {
     const user = await getRequestUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const clientMetadata = user.client?.metadata && typeof user.client.metadata === 'object' && !Array.isArray(user.client.metadata)
       ? user.client.metadata as Record<string, unknown>
@@ -49,14 +49,14 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching current user:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
 export async function PATCH(request: Request) {
   try {
     const user = await getRequestUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
     const parsed = updateProfileSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid profile update.' }, { status: 400 });

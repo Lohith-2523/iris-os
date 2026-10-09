@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching tasks:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
       const client = await prisma.client.findUnique({ where: { id: clientId } });
       if (!client || client.orgId !== requestUser.orgId) {
-        return NextResponse.json({ error: 'Unauthorized client scope' }, { status: 403 });
+        return NextResponse.json({ error: 'Oops! You do not have enough permissions for this client.' }, { status: 403 });
       }
       let projectDefaultAssigneeId: string | null = null;
       if (projectId) {
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       if (!task || task.client.orgId !== requestUser.orgId) {
         return NextResponse.json({ error: 'Task not found' }, { status: 404 });
       }
-      if (!canEditTask(requestUser, task)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!canEditTask(requestUser, task)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
       await prisma.clientTask.delete({
         where: { id },
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
         include: { client: true },
       });
       if (!task || task.client.orgId !== requestUser.orgId || user.orgId !== requestUser.orgId) {
-        return NextResponse.json({ error: 'Unauthorized task scope' }, { status: 403 });
+        return NextResponse.json({ error: 'Oops! You do not have enough permissions for this task.' }, { status: 403 });
       }
 
       const comment = await prisma.taskComment.create({
@@ -338,7 +338,7 @@ export async function POST(request: NextRequest) {
       const user = requestUser;
 
       if (!user || user.role.toLowerCase() !== 'member') {
-        return NextResponse.json({ error: 'Permission Denied: Only members can carry over tasks.' }, { status: 403 });
+        return NextResponse.json({ error: 'Oops! You do not have enough permissions to carry over tasks.' }, { status: 403 });
       }
 
       const { taskId, newAssigneeId, outputUrl, carryOverComment } = body;
@@ -358,7 +358,7 @@ export async function POST(request: NextRequest) {
 
       const newAssignee = await prisma.user.findUnique({ where: { id: newAssigneeId } });
       if (!newAssignee || newAssignee.orgId !== requestUser.orgId) {
-        return NextResponse.json({ error: 'Unauthorized assignee scope' }, { status: 403 });
+        return NextResponse.json({ error: 'Oops! You do not have enough permissions for this assignee.' }, { status: 403 });
       }
 
       // 1. Mark old task as COMPLETED and 100% progress, store output
@@ -446,6 +446,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error: any) {
     console.error('Error managing tasks:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

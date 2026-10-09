@@ -429,7 +429,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
       }
     } catch (e) {
       console.error(e);
-      setFormError('Internal server error.');
+      setFormError('Oops! Something went wrong. Please try again.');
     }
   };
 

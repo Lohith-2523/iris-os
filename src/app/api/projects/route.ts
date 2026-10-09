@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(page.items, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching projects:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'User context required' }, { status: 401 });
     }
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const body = await request.json();
     const {
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (client.orgId !== user.orgId || (user.role.toLowerCase() === 'client' && user.clientId !== client.id)) {
-      return NextResponse.json({ error: 'Unauthorized project scope' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions for this project.' }, { status: 403 });
     }
 
     const orgId = client.orgId;
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error creating project:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -249,7 +249,7 @@ export async function PUT(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'User context required' }, { status: 401 });
     }
-    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!isOrganizationAdmin(user)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
 
     const body = await request.json();
     const {
@@ -301,7 +301,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (currentProject.orgId !== user.orgId || (user.role.toLowerCase() === 'client' && user.clientId !== currentProject.clientId)) {
-      return NextResponse.json({ error: 'Unauthorized project scope' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions for this project.' }, { status: 403 });
     }
 
     // 1. Update project basic commercial info
@@ -401,6 +401,6 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, project: projectWithRelations });
   } catch (error: any) {
     console.error('Error updating project:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

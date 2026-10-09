@@ -512,7 +512,7 @@ export default function ClientOnboardPage() {
           setSubmitStatus('success');
           return;
         }
-        setFormError(formatUserMessage(`Lohith, client creation failed: ${errData.error || 'Server error'}`));
+        setFormError(formatUserMessage(`Lohith, client creation failed: ${errData.error || 'Oops! Something went wrong. Please try again.'}`));
         setSubmitStatus('error');
       }
     } catch (err) {
@@ -892,7 +892,7 @@ export default function ClientOnboardPage() {
               <ShieldAlert className="h-6 w-6" />
             </div>
             <div>
-              <CardTitle className="text-base font-bold text-white tracking-tight">Access Denied</CardTitle>
+              <CardTitle className="text-base font-bold text-white tracking-tight">Permission required</CardTitle>
               <CardDescription className="text-[11px] text-zinc-500 mt-1">
                 Administrative clearance required.
               </CardDescription>

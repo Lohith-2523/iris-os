@@ -11,7 +11,6 @@ export type PlanFeature = {
 const PLAN_DETAILS: Record<PlanId, {
   name: string;
   description: string;
-  positioning: string;
   features: PlanFeature[];
   indiaMinor: number;
   indiaListMinor: number;
@@ -21,7 +20,6 @@ const PLAN_DETAILS: Record<PlanId, {
   BASIC: {
     name: 'Free',
     description: 'Freelancers trying IrisOS',
-    positioning: 'Experience IrisOS — full product philosophy with clear scale limits',
     features: [
       { label: 'Clients', value: '5' },
       { label: 'Projects', value: '5' },
@@ -47,7 +45,6 @@ const PLAN_DETAILS: Record<PlanId, {
   PRO: {
     name: 'Pro',
     description: 'Growing agencies',
-    positioning: 'Run your growing agency — hero / most popular plan',
     features: [
       { label: 'Clients', value: '25' },
       { label: 'Projects', value: '50' },
@@ -73,7 +70,6 @@ const PLAN_DETAILS: Record<PlanId, {
   ADVANCED: {
     name: 'Advanced',
     description: 'Established agencies',
-    positioning: 'Scale your agency — for established agencies',
     features: [
       { label: 'Clients', value: 'Unlimited' },
       { label: 'Projects', value: 'Unlimited' },
@@ -116,7 +112,6 @@ export function planPrice(plan: unknown, region: PricingRegion) {
     id,
     name: details.name,
     description: details.description,
-    positioning: details.positioning,
     features: details.features,
     currency: region === 'INDIA' ? 'INR' as const : 'USD' as const,
     listAmount,

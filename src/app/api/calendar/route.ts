@@ -15,7 +15,7 @@ import { ascendingCursorWhere, cursorHeaders, finishCursorPage, readCursorPage }
 export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const pageRequest = readCursorPage(request);
     const events = await prisma.calendarEvent.findMany({
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error: any) {
     console.error('Error fetching calendar events:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     if (action === 'sync') {
       const result = await syncGoogleCalendarEvents(user.orgId, user.id);
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof GoogleCalendarIntegrationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -193,7 +193,7 @@ export async function PUT(request: NextRequest) {
     } = body;
 
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const event = await prisma.calendarEvent.findUnique({
       where: { id },
@@ -205,10 +205,10 @@ export async function PUT(request: NextRequest) {
 
     // Verify same organization
     if (event.orgId !== user.orgId) {
-      return NextResponse.json({ error: 'Unauthorized access to event' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions for this event.' }, { status: 403 });
     }
     if (!isOrganizationAdmin(user) && event.creatorId !== user.id && !rsvpStatus) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
 
     // RSVP update shortcut
@@ -289,7 +289,7 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error updating calendar event:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -302,7 +302,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const user = await getRequestUser(request);
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
     const event = await prisma.calendarEvent.findUnique({
       where: { id },
@@ -314,10 +314,10 @@ export async function DELETE(request: NextRequest) {
 
     // Verify same organization
     if (event.orgId !== user.orgId) {
-      return NextResponse.json({ error: 'Unauthorized access to event' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions for this event.' }, { status: 403 });
     }
     if (!isOrganizationAdmin(user) && event.creatorId !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
     }
 
     await prisma.calendarEvent.delete({
@@ -327,6 +327,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true, message: 'Event deleted successfully.' });
   } catch (error: any) {
     console.error('Error deleting calendar event:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }

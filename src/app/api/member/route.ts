@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(invite);
   } catch (error: any) {
     console.error('Error fetching member invite details:', error);
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
 
@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
     // Action 1: Create an invitation
     if (action === 'invite_member') {
       const requestingUser = await getRequestUser(request);
-      if (!requestingUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      if (!isOrganizationAdmin(requestingUser)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      if (!requestingUser) return NextResponse.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
+      if (!isOrganizationAdmin(requestingUser)) return NextResponse.json({ error: 'Oops! You do not have enough permissions.' }, { status: 403 });
       const { name, email, phone, projects } = body;
       const normalizedEmail = String(email || '').trim().toLowerCase();
       const accessPermissions = normalizeSecurityPages(body.accessPermissions);
@@ -329,6 +329,6 @@ export async function POST(request: NextRequest) {
     if (error instanceof IrisEmailDeliveryError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 500 });
   }
 }
