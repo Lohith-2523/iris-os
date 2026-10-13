@@ -52,7 +52,8 @@ export function IrisPricingTable({ plans, selectedPlanId, renderPlanAction }: {
                   {plan.listAmount > plan.baseAmount && (
                     <span className={styles.discount}>
                       <del>{formatPlanMoney(plan.listAmount, plan.currency)}</del>
-                      <b>{Math.round((1 - plan.baseAmount / plan.listAmount) * 100)}% off early bird offer</b>
+                      <b>{Math.round((1 - plan.baseAmount / plan.listAmount) * 100)}% off</b>
+                      <span className={`${styles.offerUrgency} ${styles.offerUrgencyCard}`}>Limited Spots Only</span>
                     </span>
                   )}
                   <strong>{formatPlanMoney(plan.baseAmount, plan.currency)}<small>/mo</small></strong>
@@ -99,6 +100,7 @@ export function IrisPricingComparison({
           <header className={styles.heading}>
             <span className={styles.sectionDivider} aria-hidden="true" />
             <span className={styles.eyebrow}>Simple monthly pricing</span>
+            <span className={styles.offerUrgency}>Limited spots only, get yours today</span>
             <h2 id="pricing-summary-title">Start lean. Scale when the work demands it.</h2>
             <p aria-live="polite">
               {loading ? 'Detecting pricing for your region…' : `${region === 'INDIA' ? 'India' : 'International'} pricing selected. Open any plan for the complete feature comparison.`}
@@ -115,7 +117,8 @@ export function IrisPricingComparison({
                 {plan.listAmount > plan.baseAmount && (
                   <div className={styles.summaryDiscount}>
                     <del>{formatPlanMoney(plan.listAmount, plan.currency)}</del>
-                    <b>{Math.round((1 - plan.baseAmount / plan.listAmount) * 100)}% off early bird offer</b>
+                    <b>{Math.round((1 - plan.baseAmount / plan.listAmount) * 100)}% off</b>
+                    <span className={`${styles.offerUrgency} ${styles.offerUrgencyCard}`}>Limited Spots Only</span>
                   </div>
                 )}
                 <div className={`${styles.summaryPrice} ${plan.listAmount > plan.baseAmount ? '' : styles.summaryPriceNoDiscount}`}>
@@ -143,6 +146,7 @@ export function IrisPricingComparison({
         <header className={styles.heading}>
           <span className={styles.sectionDivider} aria-hidden="true" />
           <span className={styles.eyebrow}>Simple monthly pricing</span>
+          <span className={styles.offerUrgency}>Limited spots only, get yours today</span>
           <Heading id="pricing-comparison-title">Choose how far Miles can take you.</Heading>
           <p aria-live="polite">
             {loading

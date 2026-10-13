@@ -6,7 +6,7 @@ import { IrisPricingComparison } from './iris-pricing-comparison';
 describe('IrisPricingComparison', () => {
   afterEach(cleanup);
 
-  it('shows the early-bird list price on paid landing-page cards', () => {
+  it('shows the discounted list price on paid landing-page cards', () => {
     const { container } = render(
       <IrisPricingComparison
         plans={pricingCatalog('INDIA')}
@@ -15,7 +15,9 @@ describe('IrisPricingComparison', () => {
       />,
     );
 
-    expect(screen.getAllByText('50% off early bird offer')).toHaveLength(2);
+    expect(screen.getAllByText('50% off')).toHaveLength(2);
+    expect(screen.getByText('Limited spots only, get yours today')).toBeInTheDocument();
+    expect(screen.getAllByText('Limited Spots Only')).toHaveLength(2);
     expect(container.querySelectorAll('del')).toHaveLength(2);
     const freeCard = screen.getByRole('heading', { name: 'Free' }).closest('article');
     expect(freeCard).not.toBeNull();
@@ -24,12 +26,14 @@ describe('IrisPricingComparison', () => {
     expect(within(freeCard!).getAllByRole('listitem')).toHaveLength(6);
   });
 
-  it('shows the same early-bird treatment in the full pricing comparison', () => {
+  it('shows the same discount treatment in the full pricing comparison', () => {
     const { container } = render(
       <IrisPricingComparison plans={pricingCatalog('INTERNATIONAL')} region="INTERNATIONAL" />,
     );
 
-    expect(screen.getAllByText('50% off early bird offer')).toHaveLength(2);
+    expect(screen.getAllByText('50% off')).toHaveLength(2);
+    expect(screen.getByText('Limited spots only, get yours today')).toBeInTheDocument();
+    expect(screen.getAllByText('Limited Spots Only')).toHaveLength(2);
     expect(container.querySelectorAll('del')).toHaveLength(2);
     const freeCard = screen.getByRole('heading', { name: 'Free' }).closest('article');
     expect(freeCard).not.toBeNull();

@@ -5,11 +5,13 @@ const mocks = vi.hoisted(() => ({ updateSession: vi.fn() }));
 vi.mock('@/lib/middleware', () => ({ updateSession: mocks.updateSession }));
 
 import { proxy } from './proxy';
+import { resetRequestRateLimitsForTesting } from '@/lib/request-rate-limit';
 
 describe('host routing proxy', () => {
   beforeEach(() => {
     mocks.updateSession.mockReset();
     mocks.updateSession.mockResolvedValue(NextResponse.next());
+    resetRequestRateLimitsForTesting();
   });
 
   it.each(['/', '/login'])(
@@ -35,6 +37,7 @@ describe('host routing proxy', () => {
     const response = await proxy(new NextRequest('https://irisos.app/api/pricing'));
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('x-ratelimit-category')).toBe('LIGHT_CRITICAL');
     expect(mocks.updateSession).not.toHaveBeenCalled();
   });
 });

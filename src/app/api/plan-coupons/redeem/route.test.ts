@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getRequestUser: vi.fn(),
   isOrganizationAdmin: vi.fn(),
   matchManagedCoupon: vi.fn(),
+  getOnboardingManagedCoupon: vi.fn(),
   securityFind: vi.fn(),
   securityUpsert: vi.fn(),
   securityDelete: vi.fn(),
@@ -27,7 +28,10 @@ const transactionClient = {
 };
 
 vi.mock('@/lib/org', () => ({ getRequestUser: mocks.getRequestUser, isOrganizationAdmin: mocks.isOrganizationAdmin }));
-vi.mock('@/server/admin/managed-coupons', () => ({ matchManagedCoupon: mocks.matchManagedCoupon }));
+vi.mock('@/server/admin/managed-coupons', () => ({
+  matchManagedCoupon: mocks.matchManagedCoupon,
+  getOnboardingManagedCoupon: mocks.getOnboardingManagedCoupon,
+}));
 vi.mock('@/lib/db', () => ({ prisma: {
   planCouponSecurityState: { findUnique: mocks.securityFind },
   $transaction: vi.fn((callback: (tx: typeof transactionClient) => unknown) => callback(transactionClient)),
@@ -49,6 +53,7 @@ describe('plan coupon redemption route', () => {
     mocks.getRequestUser.mockResolvedValue({ id: 'user-1', orgId: 'org-1', role: 'admin', organization: { plan: 'BASIC' } });
     mocks.isOrganizationAdmin.mockReturnValue(true);
     mocks.securityFind.mockResolvedValue(null);
+    mocks.getOnboardingManagedCoupon.mockResolvedValue(null);
     mocks.organizationFind.mockResolvedValue({ plan: 'BASIC' });
     mocks.redemptionFind.mockResolvedValue(null);
     mocks.redemptionCount.mockResolvedValue(0);
@@ -100,11 +105,11 @@ describe('plan coupon redemption route', () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       discountPercent: 10,
-      listAmount: 3_999,
-      baseAmount: 3_599,
-      discountAmount: 400,
-      taxAmount: 648,
-      totalAmount: 4_247,
+      listAmount: 2_199,
+      baseAmount: 1_979,
+      discountAmount: 220,
+      taxAmount: 356,
+      totalAmount: 2_335,
       currency: 'USD',
     });
   });

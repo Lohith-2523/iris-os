@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/middleware';
+import { checkRequestRateLimit, requestRateLimitHeaders, type RequestRateLimitDecision } from '@/lib/request-rate-limit';
 
 const SUPERADMIN_HOSTNAME = 'superadmin.irisos.app';
 
@@ -10,8 +11,30 @@ function requestHostname(request: NextRequest) {
     .toLowerCase();
 }
 
+function withRateLimitHeaders(response: NextResponse, decision: RequestRateLimitDecision | null) {
+  if (!decision) return response;
+  for (const [name, value] of Object.entries(requestRateLimitHeaders(decision))) response.headers.set(name, value);
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const rateLimit = pathname.startsWith('/api/')
+    ? checkRequestRateLimit({ pathname, method: request.method, headers: request.headers })
+    : null;
+  if (rateLimit && !rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Request rate is temporarily too high. Please retry shortly.', category: rateLimit.category },
+      {
+        status: 429,
+        headers: {
+          ...requestRateLimitHeaders(rateLimit),
+          'Retry-After': String(rateLimit.retryAfterSeconds),
+          'Cache-Control': 'private, no-store',
+        },
+      },
+    );
+  }
   if (requestHostname(request) === SUPERADMIN_HOSTNAME && (pathname === '/' || pathname === '/login')) {
     const url = request.nextUrl.clone();
     url.pathname = '/admin/login';
@@ -24,7 +47,7 @@ export async function proxy(request: NextRequest) {
 
   // Regional pricing is public and does not use session data. Avoid touching
   // stale Supabase cookies so anonymous visitors can always resolve currency.
-  if (pathname === '/api/pricing') return NextResponse.next();
+  if (pathname === '/api/pricing') return withRateLimitHeaders(NextResponse.next(), rateLimit);
 
   const host = request.headers.get('host') || '';
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
@@ -48,7 +71,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return await updateSession(request);
+  return withRateLimitHeaders(await updateSession(request), rateLimit);
 }
 
 export const config = {

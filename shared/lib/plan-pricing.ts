@@ -53,7 +53,7 @@ const PLAN_DETAILS: Record<PlanId, {
       { label: 'Core team members', value: '2' },
       { label: 'Data Transfer', value: '5 GB' },
       { label: 'Miles AI', value: '✓✓' },
-      { label: 'AI allowance', value: '500k' },
+      { label: 'AI allowance', value: '200k' },
       { label: 'Invoices', value: 'Unlimited' },
       { label: 'Reports', value: 'Advanced' },
       { label: 'Client workspace', value: '✓' },
@@ -62,10 +62,10 @@ const PLAN_DETAILS: Record<PlanId, {
       { label: 'Unlimited onboarding', value: '—' },
       { label: 'Priority support', value: '—' },
     ],
-    indiaMinor: 79_900,
-    indiaListMinor: 159_900,
-    internationalMinor: 1_999,
-    internationalListMinor: 3_999,
+    indiaMinor: 49_900,
+    indiaListMinor: 99_900,
+    internationalMinor: 1_099,
+    internationalListMinor: 2_199,
   },
   ADVANCED: {
     name: 'Advanced',
@@ -78,7 +78,7 @@ const PLAN_DETAILS: Record<PlanId, {
       { label: 'Core team members', value: '5' },
       { label: 'Data Transfer', value: '25 GB' },
       { label: 'Miles AI', value: '✓✓✓' },
-      { label: 'AI allowance', value: '1M' },
+      { label: 'AI allowance', value: '500k' },
       { label: 'Invoices', value: 'Unlimited' },
       { label: 'Reports', value: 'Advanced' },
       { label: 'Client workspace', value: '✓' },
@@ -87,10 +87,10 @@ const PLAN_DETAILS: Record<PlanId, {
       { label: 'Unlimited onboarding', value: '✓' },
       { label: 'Priority support', value: '✓' },
     ],
-    indiaMinor: 159_900,
-    indiaListMinor: 319_900,
-    internationalMinor: 3_999,
-    internationalListMinor: 7_999,
+    indiaMinor: 99_900,
+    indiaListMinor: 199_900,
+    internationalMinor: 2_499,
+    internationalListMinor: 4_999,
   },
 };
 
@@ -124,7 +124,11 @@ export function planPrice(plan: unknown, region: PricingRegion) {
 export function planPriceWithCoupon(plan: unknown, region: PricingRegion, discountPercent: number) {
   const price = planPrice(plan, region);
   const normalizedDiscount = Math.min(100, Math.max(1, Math.round(discountPercent)));
-  const baseAmount = Math.round(price.listAmount * (100 - normalizedDiscount) / 100);
+  // Preserve the exact advertised charm prices for the 50% offer instead of
+  // rounding a half-cent (or half-rupee) up during checkout.
+  const baseAmount = normalizedDiscount === 50
+    ? price.baseAmount
+    : Math.round(price.listAmount * (100 - normalizedDiscount) / 100);
   const taxAmount = Math.round(baseAmount * GST_RATE);
   return {
     ...price,

@@ -7,10 +7,10 @@ IrisOS uses Razorpay Standard Checkout for paid plan activation. `POST /api/crea
 | Plan | India base price | International base price |
 | --- | ---: | ---: |
 | Free | ₹0 | $0 |
-| Pro | ₹799 | $15.99 |
-| Advanced | ₹1,599 | $31.99 |
+| Pro | ₹499 (₹999 original) | $10.99 ($21.99 original) |
+| Advanced | ₹999 (₹1,999 original) | $24.99 ($49.99 original) |
 
-Paid prices exclude 18% GST. The amount sent to Razorpay includes that tax: Pro totals ₹942.82 or $18.87, and Advanced totals ₹1,886.82 or $37.75.
+The 50% onboarding coupon is selected server-side while the organization still needs onboarding. Paid prices exclude 18% GST/tax, which is calculated after the discount. The amount sent to Razorpay is therefore ₹588.82 or $12.97 for Pro, and ₹1,178.82 or $29.49 for Advanced. Coupon usage is recorded only after Razorpay reports a captured payment and the server verifies its signature and amount; validation and order creation do not consume it.
 
 The server reads `x-vercel-ip-country`, `cf-ipcountry`, or `cloudfront-viewer-country`. These country headers are derived by the hosting platform from the requester's public IP. India (`IN`) receives INR pricing; every other country and an unavailable country receives international USD pricing. The application neither requests browser location permission nor sends the IP to another geolocation provider. Vercel does not provide geolocation headers during local development, so local requests use international pricing unless a supported header is supplied by a test or reverse proxy.
 

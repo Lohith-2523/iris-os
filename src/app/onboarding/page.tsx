@@ -501,7 +501,7 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 <div className="text-right">
-                  {selectedDisplayPrice.listAmount > selectedDisplayPrice.baseAmount && <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selectedDisplayPrice.listAmount, selectedDisplayPrice.currency)}</del> {selectedDiscountPercent && <b className="text-zinc-200">{selectedDiscountPercent}% off early bird offer</b>}</span>}
+                  {selectedDisplayPrice.listAmount > selectedDisplayPrice.baseAmount && <span className="block text-[9px] uppercase tracking-wide"><del className="font-mono font-bold tabular-nums text-zinc-500">{formatPlanMoney(selectedDisplayPrice.listAmount, selectedDisplayPrice.currency)}</del> {selectedDiscountPercent && <b className="text-zinc-200">{selectedDiscountPercent}% onboarding offer</b>}</span>}
                   <span className="font-mono text-xl font-bold text-white" aria-live="polite">{formatPlanMoney(selectedDisplayPrice.baseAmount, selectedDisplayPrice.currency)}/mo</span>
                 </div>
               </div>

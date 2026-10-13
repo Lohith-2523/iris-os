@@ -6,10 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 const mocks = vi.hoisted(() => ({
   user: vi.fn(), admin: vi.fn(), create: vi.fn(), fetch: vi.fn(), paymentFetch: vi.fn(), update: vi.fn(), paymentUpsert: vi.fn(),
-  matchCoupon: vi.fn(), redemptionFind: vi.fn(), redemptionCreate: vi.fn(),
+  matchCoupon: vi.fn(), getOnboardingCoupon: vi.fn(), redemptionFind: vi.fn(), redemptionCreate: vi.fn(),
 }));
 vi.mock('@/lib/org', () => ({ getRequestUser: mocks.user, isOrganizationAdmin: mocks.admin }));
-vi.mock('@/server/admin/managed-coupons', () => ({ matchManagedCoupon: mocks.matchCoupon }));
+vi.mock('@/server/admin/managed-coupons', () => ({ matchManagedCoupon: mocks.matchCoupon, getOnboardingManagedCoupon: mocks.getOnboardingCoupon }));
 vi.mock('@/lib/db', () => {
   const tx = {
     organization: { update: mocks.update },
@@ -32,11 +32,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv('RAZORPAY_KEY_ID', 'test-key'); vi.stubEnv('RAZORPAY_KEY_SECRET', 'test-secret');
   mocks.user.mockResolvedValue({ id: 'user-1', orgId: 'org-1', organization: { plan: 'BASIC' } }); mocks.admin.mockReturnValue(true);
-  mocks.create.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD' });
-  mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD', notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
-  mocks.paymentFetch.mockResolvedValue({ order_id: 'order_123', status: 'captured', amount: 2_359, currency: 'USD' });
+  mocks.create.mockResolvedValue({ id: 'order_123', amount: 1_297, currency: 'USD' });
+  mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 1_297, currency: 'USD', notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
+  mocks.paymentFetch.mockResolvedValue({ order_id: 'order_123', status: 'captured', amount: 1_297, currency: 'USD' });
   mocks.update.mockResolvedValue({});
   mocks.matchCoupon.mockResolvedValue(null);
+  mocks.getOnboardingCoupon.mockResolvedValue(null);
   mocks.redemptionFind.mockResolvedValue(null);
 });
 
@@ -44,32 +45,67 @@ describe('Razorpay plan endpoints', () => {
   it('creates an international Pro order with server-owned pricing and GST', async () => {
     const response = await createOrder(request({ plan: 'PRO', amount: 100, currency: 'INR' }));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ order_id: 'order_123', amount: 2_359, currency: 'USD', key_id: 'test-key', plan: 'PRO', list_amount: 3_999, base_amount: 1_999, discount_amount: 0, discount_percent: null, tax_amount: 360 });
-    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 2_359, currency: 'USD', notes: expect.objectContaining({ plan: 'PRO', pricingRegion: 'INTERNATIONAL', country: 'US' }) }));
+    expect(await response.json()).toEqual({ order_id: 'order_123', amount: 1_297, currency: 'USD', key_id: 'test-key', plan: 'PRO', list_amount: 2_199, base_amount: 1_099, discount_amount: 0, discount_percent: null, tax_amount: 198 });
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 1_297, currency: 'USD', notes: expect.objectContaining({ plan: 'PRO', pricingRegion: 'INTERNATIONAL', country: 'US' }) }));
   });
 
   it('creates an Indian Advanced order in paise', async () => {
-    mocks.create.mockResolvedValue({ id: 'order_123', amount: 188_682, currency: 'INR' });
+    mocks.create.mockResolvedValue({ id: 'order_123', amount: 117_882, currency: 'INR' });
     const response = await createOrder(request({ plan: 'ADVANCED' }, 'IN'));
-    expect(await response.json()).toEqual(expect.objectContaining({ amount: 188_682, currency: 'INR', base_amount: 159_900, tax_amount: 28_782 }));
+    expect(await response.json()).toEqual(expect.objectContaining({ amount: 117_882, currency: 'INR', base_amount: 99_900, tax_amount: 17_982 }));
   });
 
   it('creates a coupon order from the original price rather than the promotional price', async () => {
     mocks.matchCoupon.mockResolvedValue({ id: 'coupon-10', discountPercent: 10 });
-    mocks.create.mockResolvedValue({ id: 'order_123', amount: 169_814, currency: 'INR' });
+    mocks.create.mockResolvedValue({ id: 'order_123', amount: 106_094, currency: 'INR' });
     const response = await createOrder(request({ plan: 'PRO', coupon: 'SAVE10' }, 'IN'));
     expect(await response.json()).toEqual(expect.objectContaining({
-      amount: 169_814,
-      list_amount: 159_900,
-      base_amount: 143_910,
-      discount_amount: 15_990,
+      amount: 106_094,
+      list_amount: 99_900,
+      base_amount: 89_910,
+      discount_amount: 9_990,
       discount_percent: 10,
-      tax_amount: 25_904,
+      tax_amount: 16_184,
     }));
     expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
-      amount: 169_814,
-      notes: expect.objectContaining({ couponId: 'coupon-10', discountPercent: '10', baseAmount: '143910' }),
+      amount: 106_094,
+      notes: expect.objectContaining({ couponId: 'coupon-10', discountPercent: '10', baseAmount: '89910' }),
     }));
+  });
+
+  it('automatically applies the 50% coupon during onboarding and counts it only after captured payment', async () => {
+    mocks.user.mockResolvedValue({
+      id: 'user-1', orgId: 'org-1',
+      organization: { plan: 'BASIC', onboardingState: { needsOnboarding: true } },
+    });
+    mocks.getOnboardingCoupon.mockResolvedValue({ id: 'onboarding-50', discountPercent: 50 });
+    mocks.create.mockResolvedValue({ id: 'order_123', amount: 58_882, currency: 'INR' });
+
+    const orderResponse = await createOrder(request({ plan: 'PRO' }, 'IN'));
+
+    expect(await orderResponse.json()).toEqual(expect.objectContaining({
+      amount: 58_882,
+      list_amount: 99_900,
+      base_amount: 49_900,
+      discount_amount: 50_000,
+      discount_percent: 50,
+      tax_amount: 8_982,
+    }));
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
+      notes: expect.objectContaining({ couponId: 'onboarding-50', discountPercent: '50', baseAmount: '49900', taxAmount: '8982' }),
+    }));
+    expect(mocks.redemptionCreate).not.toHaveBeenCalled();
+
+    mocks.fetch.mockResolvedValue({
+      id: 'order_123', amount: 58_882, currency: 'INR',
+      notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INDIA', couponId: 'onboarding-50', discountPercent: '50' },
+    });
+    mocks.paymentFetch.mockResolvedValue({ order_id: 'order_123', status: 'captured', amount: 58_882, currency: 'INR' });
+
+    const verificationResponse = await verifyPayment(request(payment));
+
+    expect(verificationResponse.status).toBe(200);
+    expect(mocks.redemptionCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ couponId: 'onboarding-50', requestedPlan: 'PRO' }) });
   });
 
   it.each([{}, { plan: 'BASIC' }, { plan: 'pro' }, null])('rejects invalid paid plan input %#', async body => {
@@ -108,13 +144,13 @@ describe('Razorpay plan endpoints', () => {
 
   it('verifies and records a paid coupon redemption at the discounted original price', async () => {
     mocks.fetch.mockResolvedValue({
-      id: 'order_123', amount: 169_814, currency: 'INR',
+      id: 'order_123', amount: 106_094, currency: 'INR',
       notes: { userId: 'user-1', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INDIA', couponId: 'coupon-10', discountPercent: '10' },
     });
-    mocks.paymentFetch.mockResolvedValue({ order_id: 'order_123', status: 'captured', amount: 169_814, currency: 'INR' });
+    mocks.paymentFetch.mockResolvedValue({ order_id: 'order_123', status: 'captured', amount: 106_094, currency: 'INR' });
     const response = await verifyPayment(request(payment));
     expect(response.status).toBe(200);
-    expect(mocks.paymentUpsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ baseAmount: 143_910, taxAmount: 25_904, totalAmount: 169_814 }) }));
+    expect(mocks.paymentUpsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ baseAmount: 89_910, taxAmount: 16_184, totalAmount: 106_094 }) }));
     expect(mocks.redemptionCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ couponId: 'coupon-10', requestedPlan: 'PRO' }) });
   });
 
@@ -139,7 +175,7 @@ describe('Razorpay plan endpoints', () => {
 
   it('rejects missing fields and another user’s order', async () => {
     expect((await verifyPayment(request({}))).status).toBe(400);
-    mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 2_359, currency: 'USD', notes: { userId: 'user-2', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
+    mocks.fetch.mockResolvedValue({ id: 'order_123', amount: 1_297, currency: 'USD', notes: { userId: 'user-2', purpose: 'plan_purchase', plan: 'PRO', pricingRegion: 'INTERNATIONAL' } });
     expect((await verifyPayment(request(payment))).status).toBe(403);
   });
 });

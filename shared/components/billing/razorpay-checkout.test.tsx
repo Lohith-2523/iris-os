@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); delete window.Razorpay; });
 async function openCheckout() {
-  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', listAmount: 159_900, baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} />);
+  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', listAmount: 99_900, baseAmount: 49_900, taxAmount: 8_982, totalAmount: 58_882 }} />);
   expect(screen.getByLabelText('Plan checkout')).toBeInTheDocument();
   expect(screen.queryByText(/Amount due today/i)).not.toBeInTheDocument();
   expect(screen.getByLabelText('Coupon code')).toBeInTheDocument();
@@ -81,9 +81,9 @@ it('never displays success after failed verification', async () => {
 it('validates first, then activates from the plan button without opening Razorpay', async () => {
   const onVerified = vi.fn();
   fetchMock
-    .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, valid: true, discountPercent: 100, listAmount: 319_900, baseAmount: 0, discountAmount: 319_900, taxAmount: 0, totalAmount: 0, currency: 'INR' }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, valid: true, discountPercent: 100, listAmount: 199_900, baseAmount: 0, discountAmount: 199_900, taxAmount: 0, totalAmount: 0, currency: 'INR' }) })
     .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, plan: 'ADVANCED' }) });
-  render(<RazorpayCheckout plan="ADVANCED" price={{ currency: 'INR', baseAmount: 159_900, taxAmount: 28_782, totalAmount: 188_682 }} onVerified={onVerified} />);
+  render(<RazorpayCheckout plan="ADVANCED" price={{ currency: 'INR', baseAmount: 99_900, taxAmount: 17_982, totalAmount: 117_882 }} onVerified={onVerified} />);
 
   const input = screen.getByLabelText('Coupon code');
   expect(input).toHaveAttribute('type', 'text');
@@ -111,15 +111,15 @@ it('validates first, then activates from the plan button without opening Razorpa
 it('applies a partial coupon to the original price and opens checkout for the balance', async () => {
   const onPriceChange = vi.fn();
   fetchMock
-    .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, valid: true, discountPercent: 10, listAmount: 159_900, baseAmount: 143_910, discountAmount: 15_990, taxAmount: 25_904, totalAmount: 169_814, currency: 'INR' }) })
-    .mockResolvedValueOnce({ ok: true, json: async () => ({ order_id: 'order_123', amount: 169_814, currency: 'INR', key_id: 'public-key', base_amount: 143_910, tax_amount: 25_904 }) });
-  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', listAmount: 159_900, baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} onPriceChange={onPriceChange} />);
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, valid: true, discountPercent: 10, listAmount: 99_900, baseAmount: 89_910, discountAmount: 9_990, taxAmount: 16_184, totalAmount: 106_094, currency: 'INR' }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ order_id: 'order_123', amount: 106_094, currency: 'INR', key_id: 'public-key', base_amount: 89_910, tax_amount: 16_184 }) });
+  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', listAmount: 99_900, baseAmount: 49_900, taxAmount: 8_982, totalAmount: 58_882 }} onPriceChange={onPriceChange} />);
 
   fireEvent.change(screen.getByLabelText('Coupon code'), { target: { value: 'SAVE10' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
   expect(await screen.findByRole('status')).toHaveTextContent('10% coupon applied to the original price.');
-  expect(onPriceChange).toHaveBeenCalledWith(expect.objectContaining({ discountPercent: 10, baseAmount: 143_910, currency: 'INR' }));
+  expect(onPriceChange).toHaveBeenCalledWith(expect.objectContaining({ discountPercent: 10, baseAmount: 89_910, currency: 'INR' }));
   expect(screen.queryByText('Original price')).not.toBeInTheDocument();
   expect(screen.queryByText(/Coupon discount/i)).not.toBeInTheDocument();
   expect(screen.queryByText(/Amount due today/i)).not.toBeInTheDocument();
@@ -132,7 +132,7 @@ it('applies a partial coupon to the original price and opens checkout for the ba
 });
 
 it('allows pasted coupon values', () => {
-  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', baseAmount: 79_900, taxAmount: 14_382, totalAmount: 94_282 }} />);
+  render(<RazorpayCheckout plan="PRO" price={{ currency: 'INR', baseAmount: 49_900, taxAmount: 8_982, totalAmount: 58_882 }} />);
   const input = screen.getByLabelText('Coupon code');
   fireEvent.paste(input, { clipboardData: { getData: () => 'pasted-value' } });
   fireEvent.change(input, { target: { value: 'pasted-value' } });

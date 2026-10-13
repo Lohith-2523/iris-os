@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { isPlanDowngrade, normalizePlan } from '@/lib/plan-entitlements';
-import { matchManagedCoupon } from '@/server/admin/managed-coupons';
+import { getOnboardingManagedCoupon, matchManagedCoupon } from '@/server/admin/managed-coupons';
 import { planPriceWithCoupon } from '@/lib/plan-pricing';
 import { pricingLocation } from '@/lib/request-country';
 
@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429, headers: { ...noStoreHeaders, 'Retry-After': String(seconds) } });
   }
 
-  const coupon = await matchManagedCoupon(input.data.coupon, input.data.plan);
-  if (!coupon) {
+  const submittedCoupon = await matchManagedCoupon(input.data.coupon, input.data.plan);
+  if (!submittedCoupon) {
     const lockedUntil = await registerFailure(user.id);
     const status = lockedUntil ? 429 : 400;
     return NextResponse.json(
@@ -68,6 +68,12 @@ export async function POST(request: NextRequest) {
       { status, headers: lockedUntil ? { ...noStoreHeaders, 'Retry-After': String(retrySeconds(lockedUntil)) } : noStoreHeaders },
     );
   }
+  const onboardingCoupon = user.organization.onboardingState?.needsOnboarding
+    ? await getOnboardingManagedCoupon(input.data.plan)
+    : null;
+  const coupon = onboardingCoupon && onboardingCoupon.discountPercent > submittedCoupon.discountPercent
+    ? onboardingCoupon
+    : submittedCoupon;
 
   if (input.data.action === 'VALIDATE') {
     const allowed = await prisma.$transaction(async (tx) => {

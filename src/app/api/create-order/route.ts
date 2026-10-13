@@ -4,7 +4,7 @@ import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { createOrderSchema, getRazorpay, razorpayErrorResponse } from '@/lib/razorpay';
 import { planPrice, planPriceWithCoupon } from '@/lib/plan-pricing';
 import { pricingLocation } from '@/lib/request-country';
-import { matchManagedCoupon } from '@/server/admin/managed-coupons';
+import { getOnboardingManagedCoupon, matchManagedCoupon } from '@/server/admin/managed-coupons';
 import { isPlanDowngrade } from '@/lib/plan-entitlements';
 
 export const runtime = 'nodejs';
@@ -22,10 +22,16 @@ export async function POST(request: NextRequest) {
 
     const { client, keyId } = getRazorpay();
     const location = pricingLocation(request.headers);
-    const coupon = input.data.coupon
+    const submittedCoupon = input.data.coupon
       ? await matchManagedCoupon(input.data.coupon, input.data.plan)
       : null;
-    if (input.data.coupon && !coupon) return NextResponse.json({ error: 'Coupon code could not be applied.' }, { status: 400 });
+    if (input.data.coupon && !submittedCoupon) return NextResponse.json({ error: 'Coupon code could not be applied.' }, { status: 400 });
+    const onboardingCoupon = user.organization.onboardingState?.needsOnboarding
+      ? await getOnboardingManagedCoupon(input.data.plan)
+      : null;
+    const coupon = onboardingCoupon && (!submittedCoupon || onboardingCoupon.discountPercent > submittedCoupon.discountPercent)
+      ? onboardingCoupon
+      : submittedCoupon;
     if (coupon?.discountPercent === 100) return NextResponse.json({ error: 'Redeem this coupon directly instead of opening checkout.' }, { status: 400 });
     const price = coupon
       ? planPriceWithCoupon(input.data.plan, location.region, coupon.discountPercent)
