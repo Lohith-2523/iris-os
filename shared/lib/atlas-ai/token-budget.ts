@@ -28,7 +28,7 @@ export type AtlasTokenReservation = AtlasTokenBudgetContext & TokenUsage & {
 export class AtlasTokenLimitError extends Error {
   readonly status = 429;
 
-  constructor(readonly dimension: 'total' | 'input' | 'output' | 'provider', plan?: PlanId) {
+  constructor(readonly dimension: 'total' | 'input' | 'output', plan?: PlanId) {
     super(plan === 'BASIC'
       ? 'This workspace has used all of its monthly Miles AI credits. Upgrade to Pro or Advanced for more credits.'
       : plan === 'PRO'
@@ -89,7 +89,6 @@ export async function reserveAtlasTokens(input: AtlasTokenBudgetContext & TokenU
   const requestedOutput = Math.max(0, Math.ceil(input.output));
   const requestedTotal = requestedInput + requestedOutput;
   const providerField = providerCounter(input.provider);
-  const providerLimit = limits.providers[input.provider];
   const { periodStart } = await ensureCurrentAtlasUsagePeriod(input.orgId);
 
   const updated = await prisma.organization.updateMany({
@@ -99,7 +98,6 @@ export async function reserveAtlasTokens(input: AtlasTokenBudgetContext & TokenU
       atlasInputTokensUsed: { lte: limits.input - requestedInput },
       atlasOutputTokensUsed: { lte: limits.output - requestedOutput },
       atlasTotalTokensUsed: { lte: limits.total - requestedTotal },
-      [providerField]: { lte: providerLimit - requestedTotal },
     },
     data: {
       atlasInputTokensUsed: { increment: requestedInput },
@@ -125,8 +123,6 @@ export async function reserveAtlasTokens(input: AtlasTokenBudgetContext & TokenU
     if (usage.atlasTotalTokensUsed + requestedTotal > limits.total) throw new AtlasTokenLimitError('total', plan);
     if (usage.atlasInputTokensUsed + requestedInput > limits.input) throw new AtlasTokenLimitError('input', plan);
     if (usage.atlasOutputTokensUsed + requestedOutput > limits.output) throw new AtlasTokenLimitError('output', plan);
-    const providerUsed = usage[providerField];
-    if (providerUsed + requestedTotal > providerLimit) throw new AtlasTokenLimitError('provider', plan);
     throw new AtlasTokenLimitError('total', plan);
   }
 
@@ -182,6 +178,13 @@ export async function settleAtlasTokenReservation(
       },
     }),
   ]);
+}
+
+export async function recordAtlasTokenUsage(
+  input: AtlasTokenBudgetContext & TokenUsage & { provider: AtlasProvider },
+) {
+  const reservation = await reserveAtlasTokens(input);
+  await settleAtlasTokenReservation(reservation, input);
 }
 
 export async function getAtlasTokenUsage(orgId: string) {

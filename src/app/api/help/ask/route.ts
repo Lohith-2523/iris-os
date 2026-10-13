@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     method: 'POST',
     headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: process.env.OPENAI_HELP_MODEL || 'gpt-5-mini',
+      model: process.env.OPENAI_HELP_MODEL || 'gpt-5.4',
       instructions: `You are Miles, the IrisOS product guide. Answer only questions about using IrisOS. Be concise, accurate, polite, professional, and lightly cheeky when appropriate. Never invent unavailable features. Product guide:\n\n${PRODUCT_CONTEXT}`,
       input: question,
       max_output_tokens: 700,
@@ -25,6 +25,9 @@ export async function POST(request: Request) {
   });
   const result = await response.json().catch(() => ({})) as { output_text?: string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }>; error?: { message?: string } };
   const answer = result.output_text || result.output?.flatMap((item) => item.content || []).find((item) => item.type === 'output_text')?.text;
-  if (!response.ok || !answer) return NextResponse.json({ error: result.error?.message || 'Miles could not answer right now.' }, { status: response.status || 502 });
+  if (!response.ok || !answer) {
+    console.error('Miles help provider failed:', response.status, result.error?.message || 'empty_response');
+    return NextResponse.json({ error: 'Miles could not answer right now.' }, { status: response.status || 502 });
+  }
   return NextResponse.json({ answer });
 }

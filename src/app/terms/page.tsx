@@ -1,4 +1,16 @@
+import type { Metadata } from 'next';
 import { LegalPolicyPage, type LegalSection } from '@/components/legal/legal-policy-page';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'Review the terms governing IrisOS agency workspaces, subscriptions, integrations, documents, messaging, automations, and Miles AI.',
+  alternates: { canonical: '/terms' },
+  openGraph: {
+    url: '/terms',
+    title: 'IrisOS Terms of Service',
+    description: 'Terms for IrisOS agency workspaces, subscriptions, integrations, documents, messaging, automations, and Miles AI.',
+  },
+};
 
 const sections: LegalSection[] = [
   {

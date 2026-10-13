@@ -48,7 +48,7 @@ export async function generateStrategyWithAtlas(input: GenerateStrategyInput) {
     );
   }
 
-  const model = process.env.ANTHROPIC_STRATEGY_MODEL?.trim() || ['cla', 'ude-sonnet-5'].join('');
+  const model = process.env.ANTHROPIC_STRATEGY_MODEL?.trim() || ['cla', 'ude-opus-4-8'].join('');
   const system = `You are the senior strategy architect inside IrisOS Miles AI.
 
 Use only the first-party, manually onboarded Client and Project records supplied in this request. Never use web knowledge, connected advertising data, integrations, inferred market statistics, invoices, or ledger data. Never invent missing facts.
@@ -119,8 +119,9 @@ Clearly distinguish facts from recommendations. If the workspace context is thin
     } catch {
       providerMessage = '';
     }
+    console.error('Miles AI strategy provider failed:', response.status, providerMessage || 'Unknown error', requestId || 'no_request_id');
     throw new AtlasStrategyError(
-      `Miles AI could not generate the strategy (${response.status})${providerMessage ? `: ${providerMessage}` : ''}${requestId ? ` [request ${requestId}]` : ''}.`,
+      `Miles AI could not generate the strategy (${response.status}).`,
       response.status === 429 ? 429 : 502,
     );
   }

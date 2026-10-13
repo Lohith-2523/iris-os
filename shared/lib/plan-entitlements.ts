@@ -18,8 +18,8 @@ function atlasTokenLimits(total: number): AtlasTokenLimits {
     output: total * 0.7,
     providers: {
       GEMINI: total * 0.4,
-      GPT: total * 0.3,
-      CLAUDE: total * 0.3,
+      GPT: total * 0.4,
+      CLAUDE: total * 0.2,
     },
   };
 }
@@ -89,7 +89,7 @@ export const PLAN_ENTITLEMENTS = {
     signedDocumentAutomation: false,
     strategyGeneration: false,
     aiFeatures: true,
-    atlasTokenLimits: atlasTokenLimits(500_000),
+    atlasTokenLimits: atlasTokenLimits(200_000),
     messaging: true,
     messagingLimits: halfLimits(advancedMessagingLimits),
   },
@@ -106,7 +106,7 @@ export const PLAN_ENTITLEMENTS = {
     signedDocumentAutomation: true,
     strategyGeneration: true,
     aiFeatures: true,
-    atlasTokenLimits: atlasTokenLimits(1_000_000),
+    atlasTokenLimits: atlasTokenLimits(500_000),
     messaging: true,
     messagingLimits: advancedMessagingLimits,
   },

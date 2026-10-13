@@ -97,6 +97,42 @@ it('holds the next voice reply until the previous reply finishes generating and 
   expect(creates()[1].event_id).toBe('atlas-turn:next-turn');
 });
 
+it('records realtime response and transcription credits once per provider event', async () => {
+  render(<AtlasClient initialData={initialData} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Start voice conversation' }));
+  await waitFor(() => expect(peer.setRemoteDescription).toHaveBeenCalled());
+  act(() => peer.channel.onopen?.());
+
+  const transcription = {
+    item_id: 'metered-turn',
+    event_id: 'transcription-event',
+    transcript: 'Review the forecast.',
+    usage: { input_tokens: 17, output_tokens: 9, total_tokens: 26 },
+  };
+  emit('conversation.item.input_audio_transcription.completed', transcription);
+  emit('conversation.item.input_audio_transcription.completed', transcription);
+  const completedResponse = {
+    event_id: 'response-event',
+    response: {
+      id: 'response-metered',
+      usage: { input_tokens: 132, output_tokens: 121, total_tokens: 253 },
+    },
+  };
+  emit('response.done', completedResponse);
+  emit('response.done', completedResponse);
+
+  await waitFor(() => {
+    const meteringCalls = vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes('/realtime/usage'));
+    expect(meteringCalls).toHaveLength(2);
+    expect(JSON.parse(String(meteringCalls[0][1]?.body))).toEqual({
+      eventId: 'transcription:metered-turn', inputCredits: 17, outputCredits: 9,
+    });
+    expect(JSON.parse(String(meteringCalls[1][1]?.body))).toEqual({
+      eventId: 'response:response-metered', inputCredits: 132, outputCredits: 121,
+    });
+  });
+});
+
 it('persists voice turns and executes multiple confirmed tool actions once in dependency order', async () => {
   vi.mocked(AtlasAIService.persistVoiceTurn)
     .mockResolvedValueOnce({ sessionId: 'voice-history-1', created: true })

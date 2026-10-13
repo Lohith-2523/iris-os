@@ -1,4 +1,16 @@
+import type { Metadata } from 'next';
 import { LegalPolicyPage, type LegalSection } from '@/components/legal/legal-policy-page';
+
+export const metadata: Metadata = {
+  title: 'Cancellation, Suspension and Refund Policy',
+  description: 'Read the IrisOS policy for subscription cancellations, failed payments, service suspension, billing disputes, and refunds.',
+  alternates: { canonical: '/cancellation-refund-policy' },
+  openGraph: {
+    url: '/cancellation-refund-policy',
+    title: 'IrisOS Cancellation, Suspension and Refund Policy',
+    description: 'Policy for IrisOS subscription cancellations, failed payments, service suspension, billing disputes, and refunds.',
+  },
+};
 
 const sections: LegalSection[] = [
   {

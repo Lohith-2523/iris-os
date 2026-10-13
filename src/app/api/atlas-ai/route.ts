@@ -485,14 +485,17 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
         const shouldStream = streamOutput && Boolean(onDelta);
         const method = shouldStream ? 'streamGenerateContent' : 'generateContent';
         const streamParameter = shouldStream ? '&alt=sse' : '';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:${method}?key=${geminiKey}${streamParameter}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:${method}?key=${geminiKey}${streamParameter}`;
         const res = await fetch(url, {
           method: 'POST',
           signal: request.signal,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 1024 },
+            generationConfig: {
+              thinkingConfig: { thinkingLevel: 'minimal' },
+              maxOutputTokens: 1024,
+            },
           })
         });
         if (!res.ok) {
@@ -606,13 +609,14 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'gpt-5.2',
+            model: 'gpt-5.4',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
+            reasoning_effort: 'none',
             temperature: 0.5,
-            max_tokens: 1024,
+            max_completion_tokens: 1024,
             ...(shouldStream ? { stream: true, stream_options: { include_usage: true } } : {}),
           })
         });
@@ -690,7 +694,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
             'content-type': 'application/json'
           },
           body: JSON.stringify({
-            model: process.env.ANTHROPIC_ATLAS_MODEL?.trim() || ['cla', 'ude-opus-4-6'].join(''),
+            model: process.env.ANTHROPIC_ATLAS_MODEL?.trim() || ['cla', 'ude-opus-4-8'].join(''),
             max_tokens: 1024,
             messages: [{ role: 'user', content: userPrompt }],
             system: systemPrompt,
@@ -1266,7 +1270,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
 
           return NextResponse.json({
             result: output,
-            model: 'Miles AI · Gemini Meetings',
+            model: 'Miles AI',
             sessionId: persistedSessionId,
             persisted: true,
             meeting: createdMeeting?.event || null,

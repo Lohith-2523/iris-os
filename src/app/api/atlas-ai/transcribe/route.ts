@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequestUser } from '@/lib/org';
-import { entitlementsFor } from '@/lib/plan-entitlements';
+import { entitlementsFor, normalizePlan } from '@/lib/plan-entitlements';
 import { hasMeaningfulEnglishSpeech } from '@/lib/atlas-ai/voice-input';
+import {
+  AtlasTokenLimitError,
+  reserveAtlasTokens,
+  settleAtlasTokenReservation,
+} from '@/lib/atlas-ai/token-budget';
 
 export const runtime = 'nodejs';
 
@@ -43,6 +48,26 @@ export async function POST(request: NextRequest) {
   }
 
   const model = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-mini-transcribe';
+  // Opus/WebM recordings generally contain far more encoded bytes than model
+  // tokens. Reserve from file size so quota is checked before provider spend,
+  // then reconcile to OpenAI's actual token usage below.
+  let reservation;
+  try {
+    reservation = await reserveAtlasTokens({
+      orgId: user.orgId,
+      userId: user.id,
+      userRole: user.role,
+      plan: normalizePlan(user.organization.plan),
+      provider: 'GPT',
+      input: Math.max(256, Math.ceil(file.size / 512)),
+      output: Math.max(128, Math.ceil(file.size / 2_048)),
+    });
+  } catch (error) {
+    if (error instanceof AtlasTokenLimitError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
   const providerForm = new FormData();
   providerForm.append('file', file, file.name || 'atlas-recording.webm');
   providerForm.append('model', model);
@@ -58,16 +83,26 @@ export async function POST(request: NextRequest) {
       cache: 'no-store',
     });
   } catch (error) {
+    await settleAtlasTokenReservation(reservation, null).catch(() => undefined);
     console.error('Miles voice transcription request failed.', error);
     return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: 502 });
   }
-  const result = await response.json().catch(() => ({})) as { text?: unknown; error?: { message?: unknown } };
+  const result = await response.json().catch(() => ({})) as {
+    text?: unknown;
+    error?: { message?: unknown };
+    usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number };
+  };
   if (!response.ok || typeof result.text !== 'string') {
+    await settleAtlasTokenReservation(reservation, null);
     const providerMessage = typeof result.error?.message === 'string' ? result.error.message : 'The recording could not be transcribed.';
     console.error('Miles voice transcription provider rejected the recording.', { status: response.status, providerMessage });
     return NextResponse.json({ error: 'Oops! Something went wrong. Please try again.' }, { status: response.status || 502 });
   }
 
   const transcript = result.text.trim();
+  await settleAtlasTokenReservation(reservation, {
+    input: result.usage?.input_tokens ?? Math.max(1, Math.ceil(file.size / 512)),
+    output: result.usage?.output_tokens ?? Math.max(1, Math.ceil(Buffer.byteLength(transcript, 'utf8') / 4)),
+  });
   return NextResponse.json({ text: hasMeaningfulEnglishSpeech(transcript) ? transcript : '', model });
 }

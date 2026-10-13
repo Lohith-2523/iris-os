@@ -29,19 +29,19 @@ describe('plan entitlements', () => {
       total: 20_000,
       input: 6_000,
       output: 14_000,
-      providers: { GEMINI: 8_000, GPT: 6_000, CLAUDE: 6_000 },
+      providers: { GEMINI: 8_000, GPT: 8_000, CLAUDE: 4_000 },
     });
     expect(entitlementsFor('PRO').atlasTokenLimits).toEqual({
+      total: 200_000,
+      input: 60_000,
+      output: 140_000,
+      providers: { GEMINI: 80_000, GPT: 80_000, CLAUDE: 40_000 },
+    });
+    expect(entitlementsFor('ADVANCED').atlasTokenLimits).toEqual({
       total: 500_000,
       input: 150_000,
       output: 350_000,
-      providers: { GEMINI: 200_000, GPT: 150_000, CLAUDE: 150_000 },
-    });
-    expect(entitlementsFor('ADVANCED').atlasTokenLimits).toEqual({
-      total: 1_000_000,
-      input: 300_000,
-      output: 700_000,
-      providers: { GEMINI: 400_000, GPT: 300_000, CLAUDE: 300_000 },
+      providers: { GEMINI: 200_000, GPT: 200_000, CLAUDE: 100_000 },
     });
   });
 

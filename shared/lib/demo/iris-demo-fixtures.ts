@@ -346,7 +346,7 @@ export async function handleIrisDemoRequest(
     return json(state.transactions);
   }
   if (url.pathname === '/api/plan-usage') return json({ clients: state.clients.length, projects: state.projects.length, activeLeads: state.leads.filter((lead) => lead.status !== 'closed').length, teamMembers: state.team.length, coreTeamMembers: state.team.length, dataTransferBytes: 184000000, monthlyInvoices: state.invoices.length });
-  if (url.pathname === '/api/atlas-ai/usage') return json({ usage: { total: 28400 }, limits: { total: 250000 } });
+  if (url.pathname === '/api/atlas-ai/usage') return json({ usage: { total: 28400 }, limits: { total: 500000 } });
   if (url.pathname === '/api/integrations') {
     if (method === 'POST') {
       showNotice('External account connections are simulated inside the safe demo.');

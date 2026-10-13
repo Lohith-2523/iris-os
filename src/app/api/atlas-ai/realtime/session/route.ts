@@ -148,7 +148,19 @@ export async function POST(request: NextRequest) {
   const payload = await response.json().catch(() => ({})) as Record<string, unknown> & { error?: { message?: string } };
   if (!response.ok) {
     console.error('OpenAI Realtime session creation failed:', response.status, payload.error?.message || 'unknown_error');
-    return NextResponse.json({ error: payload.error?.message || 'Miles could not start voice mode.' }, { status: response.status || 502 });
+    return NextResponse.json({ error: 'Miles could not start voice mode.' }, { status: response.status || 502 });
   }
-  return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } });
+  const directValue = typeof payload.value === 'string' ? payload.value : '';
+  const clientSecret = payload.client_secret && typeof payload.client_secret === 'object'
+    ? payload.client_secret as { value?: unknown }
+    : null;
+  const nestedValue = typeof clientSecret?.value === 'string' ? clientSecret.value : '';
+  if (!directValue && !nestedValue) {
+    console.error('Miles realtime session response did not include a client secret.');
+    return NextResponse.json({ error: 'Miles could not start voice mode.' }, { status: 502 });
+  }
+  return NextResponse.json(
+    directValue ? { value: directValue } : { client_secret: { value: nestedValue } },
+    { headers: { 'Cache-Control': 'no-store' } },
+  );
 }

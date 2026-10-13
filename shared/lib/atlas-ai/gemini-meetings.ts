@@ -11,7 +11,7 @@ import {
   type AtlasTokenBudgetContext,
 } from './token-budget';
 
-const GEMINI_MEETING_MODEL = 'gemini-3.5-flash';
+const GEMINI_MEETING_MODEL = 'gemini-3.6-flash';
 
 type DirectoryEntry = {
   name: string;
@@ -36,7 +36,7 @@ export async function extractMeetingDetailsWithGemini(input: {
 }) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new GeminiMeetingError('Gemini meeting assistance is not configured.', 503);
+    throw new GeminiMeetingError('Miles AI meeting assistance is not configured.', 503);
   }
 
   const prompt = `You are the dedicated Gemini meeting coordinator inside IrisOS.
@@ -89,7 +89,7 @@ ${input.query}`;
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             maxOutputTokens: 1024,
-            temperature: 0.1,
+            thinkingConfig: { thinkingLevel: 'minimal' },
             responseMimeType: 'application/json',
             responseSchema: {
               type: 'OBJECT',
@@ -121,7 +121,9 @@ ${input.query}`;
     await settleAtlasTokenReservation(reservation, null);
     console.error('Gemini meeting workflow failed:', response.status, payload.error?.message || 'Unknown error');
     throw new GeminiMeetingError(
-      payload.error?.message || 'Gemini could not continue the meeting conversation.',
+      response.status >= 400 && response.status < 500
+        ? 'Miles AI could not continue the meeting conversation. Please check the meeting details and try again.'
+        : 'Miles AI could not continue the meeting conversation.',
       response.status >= 400 && response.status < 500 ? 400 : 502,
     );
   }
@@ -131,12 +133,12 @@ ${input.query}`;
     input: payload.usageMetadata?.promptTokenCount ?? estimateInputTokens(prompt),
     output: payload.usageMetadata?.candidatesTokenCount ?? estimateInputTokens(text || ''),
   });
-  if (!text) throw new GeminiMeetingError('Gemini returned an empty meeting response.');
+  if (!text) throw new GeminiMeetingError('Miles AI returned an empty meeting response.');
 
   const parsedJson = JSON.parse(text);
   const parsed = geminiMeetingResultSchema.safeParse(parsedJson);
   if (!parsed.success) {
-    throw new GeminiMeetingError('Gemini returned invalid meeting details. Please rephrase the request.');
+    throw new GeminiMeetingError('Miles AI returned invalid meeting details. Please rephrase the request.');
   }
-  return { ...parsed.data, model: GEMINI_MEETING_MODEL };
+  return { ...parsed.data, model: 'Miles AI' };
 }

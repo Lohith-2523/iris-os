@@ -56,26 +56,40 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL((process.env.APP_URL || "https://irisos.app").trim().replace(/\/+$/, "")),
   applicationName: "IrisOS",
-  title: "IrisOS - Enterprise Agency Operating System",
-  description: "The operating system used by modern agencies and creative enterprises to manage finance, operations, clients, projects, reporting, forecasting, intelligence, and content production from a single platform.",
+  title: {
+    default: "IrisOS | Agency Management Software and AI Workspace",
+    template: "%s | IrisOS",
+  },
+  description: "IrisOS is an agency management platform for clients, projects, tasks, teams, finances, invoices, reporting, creative operations, and Miles AI in one connected workspace.",
+  category: "business software",
+  creator: "IrisOS",
+  publisher: "IrisOS",
+  referrer: "origin-when-cross-origin",
   manifest: "/manifest.webmanifest",
+  openGraph: {
+    type: "website",
+    siteName: "IrisOS",
+    url: "/",
+    title: "IrisOS | Agency Management Software and AI Workspace",
+    description: "Run clients, projects, delivery, finances, reporting, creative operations, and AI-assisted work from one agency operating system.",
+    images: [{ url: "/meta_dark.png", alt: "IrisOS agency operating system" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IrisOS | Agency Management Software and AI Workspace",
+    description: "One connected operating system for agency delivery, finance, clients, reporting, creative operations, and Miles AI.",
+    images: ["/meta_dark.png"],
+  },
   appleWebApp: {
     capable: true,
     title: "IrisOS",
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: [
-      {
-        url: "/iris-logo-black-transparent.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/iris-logo-white-transparent.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-    ],
+    icon: [{ url: "/icons/iris-192.png", sizes: "192x192", type: "image/png" }],
+    shortcut: [{ url: "/icons/iris-192.png", sizes: "192x192", type: "image/png" }],
     apple: [{ url: "/icons/iris-180.png", sizes: "180x180", type: "image/png" }],
   },
 };

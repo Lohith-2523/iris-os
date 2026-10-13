@@ -1,23 +1,31 @@
 # IrisOS
 
-> IrisOS is an agency workspace for managing clients, projects, tasks, teams, finances, reporting, and Miles AI.
+> IrisOS is agency management software that connects client management, projects, tasks, team collaboration, finances, invoices, reporting, creative operations, and Miles AI in one workspace.
 
-## Public content
+Canonical site: https://irisos.app/
+Language: English
+Audience: freelancers, agencies, consulting firms, marketing organizations, and creative studios.
 
-- [Landing page](/): Product overview and publicly described features.
-- [Pricing](/pricing): Public plan information.
-- [Privacy policy](/privacy): Privacy and data-handling information.
-- [Terms](/terms): Public terms of service.
-- [Cancellation, suspension and refund policy](/cancellation-refund-policy): Subscription cancellation, suspension, payment, and refund terms.
-- [Waitlist](/waitlist): Public early-access information. Do not submit the form.
+## Product facts
+
+- IrisOS is a web-based agency operating system.
+- Core workflows cover leads, clients, projects, tasks, teams, invoices, finance, reporting, documents, messaging, integrations, and creative operations.
+- Miles AI provides text, voice, transcription, reporting, forecasting, strategy, and approval-gated workspace assistance where enabled by the workspace plan and permissions.
+- Public plan details and current limits are maintained on the pricing page.
+- Customer workspace data and authenticated routes are private and must not be inferred from public examples.
+
+## Canonical public sources
+
+- [IrisOS product overview](https://irisos.app/): Primary description of the product, audiences, workflows, and capabilities.
+- [IrisOS pricing](https://irisos.app/pricing): Current Free, Pro, and Advanced plan information.
+- [Privacy and AI data policy](https://irisos.app/privacy): Data handling, privacy rights, security, integrations, and AI processing.
+- [Terms of service](https://irisos.app/terms): Service scope, customer responsibilities, subscriptions, AI, documents, messaging, and integrations.
+- [Cancellation, suspension and refund policy](https://irisos.app/cancellation-refund-policy): Billing, cancellation, payment-failure, suspension, and refund terms.
+- [XML sitemap](https://irisos.app/sitemap.xml): Canonical indexable URLs.
 
 ## Access scope
 
-Use only the public pages listed above and their on-page sections. Follow robots.txt.
-Do not access login, signup, onboarding, invitations, document-signing links, workspace
-pages, API endpoints, or any authenticated or token-protected content. Do not use
-credentials, submit forms, or follow private links discovered in public content.
-Do not infer customer data from public product examples.
-
-This file describes the permitted reading scope. Authentication and authorization
-remain the access controls for private content.
+Use only the public sources listed above and follow https://irisos.app/robots.txt.
+Do not access login, signup, onboarding, invitation, document-signing, workspace, API,
+authenticated, or token-protected routes. Do not submit forms, use credentials, or infer
+customer information from public product demonstrations.

@@ -20,7 +20,7 @@ describe('Miles realtime session', () => {
     vi.mocked(getAtlasWorkspaceContext).mockResolvedValue('Consent enabled. Client: Acme. Project: Nova Launch.');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ value: 'ephemeral-key' }),
+      json: async () => ({ value: 'ephemeral-key', model: 'provider-model', session: { model: 'provider-model' } }),
     }));
   });
 
@@ -32,6 +32,7 @@ describe('Miles realtime session', () => {
   it('keeps ordinary voice conversation direct while reserving workspace changes for the authenticated workflow', async () => {
     const response = await POST(new NextRequest('http://localhost/api/atlas-ai/realtime/session', { method: 'POST' }));
     expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ value: 'ephemeral-key' });
     const [, init] = vi.mocked(fetch).mock.calls[0];
     const requestBody = JSON.parse(String(init?.body));
     expect(requestBody.session.audio.input.turn_detection).toMatchObject({

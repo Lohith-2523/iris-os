@@ -14,16 +14,23 @@ export async function GET(request: NextRequest) {
   const usage = await getAtlasTokenUsage(user.orgId);
   if (!usage) return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 });
 
+  const publicLimits = limits ? {
+    total: limits.total,
+    input: limits.input,
+    output: limits.output,
+  } : null;
+  const publicUsage = {
+    total: usage.total,
+    input: usage.input,
+    output: usage.output,
+    periodStart: usage.periodStart,
+    resetsAt: usage.resetsAt,
+  };
   const remaining = limits ? {
     total: Math.max(0, limits.total - usage.total),
     input: Math.max(0, limits.input - usage.input),
     output: Math.max(0, limits.output - usage.output),
-    providers: {
-      GEMINI: Math.max(0, limits.providers.GEMINI - usage.providers.GEMINI),
-      GPT: Math.max(0, limits.providers.GPT - usage.providers.GPT),
-      CLAUDE: Math.max(0, limits.providers.CLAUDE - usage.providers.CLAUDE),
-    },
   } : null;
 
-  return NextResponse.json({ plan, limits, usage, remaining });
+  return NextResponse.json({ plan, limits: publicLimits, usage: publicUsage, remaining });
 }

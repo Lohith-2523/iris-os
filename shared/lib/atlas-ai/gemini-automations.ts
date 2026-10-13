@@ -11,7 +11,7 @@ import {
   type AtlasTokenBudgetContext,
 } from './token-budget';
 
-export const GEMINI_AUTOMATION_MODEL = 'gemini-3.5-flash';
+export const GEMINI_AUTOMATION_MODEL = 'gemini-3.6-flash';
 
 type AutomationDirectory = {
   clients: Array<{
@@ -102,7 +102,9 @@ async function callGemini(body: Record<string, unknown>, tokenBudget: AtlasToken
     await settleAtlasTokenReservation(reservation, null);
     console.error('Miles automation provider failed:', response.status, payload.error?.message || 'Unknown error');
     throw new GeminiAutomationError(
-      payload.error?.message || 'Miles AI could not continue this automation.',
+      response.status >= 400 && response.status < 500
+        ? 'Miles AI could not continue this automation. Please check the details and try again.'
+        : 'Miles AI could not continue this automation.',
       response.status >= 400 && response.status < 500 ? 400 : 502,
     );
   }
@@ -136,7 +138,7 @@ export async function extractAutomationDetailsWithGemini(input: {
   tokenBudget: AtlasTokenBudgetContext;
 }) {
   const prompt = `You are the automation engine inside Miles AI.
-This workflow MUST use Gemini 3.5 Flash only. Never mention Gemini or any provider to the user; the product is always called Miles AI.
+This workflow MUST use Gemini 3.6 Flash only. Never mention Gemini or any provider to the user; the product is always called Miles AI.
 
 Identify and collect details for exactly one of PROJECT, TASK, INVOICE, or REPORT.
 - Preserve every valid value in CURRENT_STATE unless the user changes it.
@@ -179,7 +181,7 @@ USER_MESSAGE: ${input.query}`;
   const requestBody = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-      temperature: 0.1,
+      thinkingConfig: { thinkingLevel: 'minimal' },
       maxOutputTokens: 4096,
       responseMimeType: 'application/json',
       responseSchema: {
@@ -273,7 +275,6 @@ USER_MESSAGE: ${input.query}`;
     }] }],
     generationConfig: {
       ...requestBody.generationConfig,
-      temperature: 0,
       maxOutputTokens: 6144,
     },
   }, input.tokenBudget);
@@ -301,6 +302,6 @@ WORKSPACE_CONTEXT:
 ${input.workspaceContext}`;
   return callGemini({
     contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.2 },
+    generationConfig: { thinkingConfig: { thinkingLevel: 'minimal' } },
   }, input.tokenBudget);
 }

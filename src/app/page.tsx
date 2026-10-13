@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { usePlanPricing } from '@/components/billing/use-plan-pricing';
-import { IrisLandingSkeleton } from '@/components/landing/iris-landing-skeleton';
 import { IrisMarketingHeader, useKnownDeviceAccess } from '@/components/landing/iris-marketing-header';
 import { IrisPricingComparison } from '@/components/landing/iris-pricing-comparison';
 import { ConsoleEcosystem, MilesAiSection } from '@/components/landing/iris-landing-sections';
@@ -13,6 +12,39 @@ import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
 import type { pricingCatalog, PricingRegion } from '@/lib/plan-pricing';
 
 const irisLogo = '/iris-logo-black-bg.png';
+const siteStructuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://irisos.app/#organization',
+      name: 'IrisOS',
+      url: 'https://irisos.app/',
+      logo: 'https://irisos.app/iris-logo-black-transparent.png',
+      email: 'cto.admin@irisos.app',
+      description: 'IrisOS builds connected agency management software for service businesses and creative enterprises.',
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://irisos.app/#website',
+      url: 'https://irisos.app/',
+      name: 'IrisOS',
+      publisher: { '@id': 'https://irisos.app/#organization' },
+      inLanguage: 'en',
+      description: 'Agency management software for clients, projects, delivery, finances, reporting, creative operations, and Miles AI.',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': 'https://irisos.app/#software',
+      name: 'IrisOS',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      url: 'https://irisos.app/',
+      publisher: { '@id': 'https://irisos.app/#organization' },
+      description: 'A connected agency operating system for client management, project delivery, team collaboration, finance, reporting, creative workflows, and AI-assisted operations.',
+    },
+  ],
+};
 
 const IrisInteractiveDemo = dynamic(() => import('@/components/demo/iris-interactive-demo'), {
   ssr: false,
@@ -1284,10 +1316,8 @@ function Footer() {
 
 // â”€â”€â”€ App Root â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function App() {
-  const { region, plans, loading } = usePlanPricing();
+  const { region, plans } = usePlanPricing();
   const knownDevice = useKnownDeviceAccess();
-
-  if (loading || knownDevice === null) return <IrisLandingSkeleton />;
 
   return (
     <div
@@ -1302,7 +1332,8 @@ export default function App() {
         `,
       }}
     >
-      <IrisMarketingHeader knownDevice={knownDevice} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteStructuredData).replace(/</g, '\\u003c') }} />
+      <IrisMarketingHeader knownDevice={knownDevice ?? false} />
       <Hero />
       <VideoSection />
       <About />

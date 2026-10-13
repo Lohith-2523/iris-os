@@ -148,6 +148,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
   const realtimePersistenceQueueRef = React.useRef<Promise<void>>(Promise.resolve());
   const processedRealtimeTurnIdsRef = React.useRef(new Set<string>());
   const processedRealtimeToolCallIdsRef = React.useRef(new Set<string>());
+  const recordedRealtimeUsageIdsRef = React.useRef(new Set<string>());
   const voiceActionTranscriptRef = React.useRef<AtlasVoiceWorkflowHandoff['transcript']>([]);
   const voiceWorkflowActiveRef = React.useRef(false);
   const workflowRequestInFlightRef = React.useRef(false);
@@ -551,7 +552,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         ? 'Microphone access was denied. Allow it in your browser settings and try again.'
         : 'Miles could not access the microphone.');
     }
-  }, [query, runtime, updateVoiceState]);
+  }, [fetch, query, runtime, updateVoiceState]);
 
   const stopRealtimeVoice = React.useCallback(() => {
     voiceChatActiveRef.current = false;
@@ -582,6 +583,35 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     setLiveVoiceText('');
     setLiveAtlasText('');
   }, []);
+
+  const recordRealtimeUsage = React.useCallback(async (
+    eventId: string,
+    usage: { input_tokens?: number; output_tokens?: number },
+  ) => {
+    const inputCredits = Math.max(0, Math.ceil(Number(usage.input_tokens) || 0));
+    const outputCredits = Math.max(0, Math.ceil(Number(usage.output_tokens) || 0));
+    if (!eventId || inputCredits + outputCredits === 0 || recordedRealtimeUsageIdsRef.current.has(eventId)) return;
+    recordedRealtimeUsageIdsRef.current.add(eventId);
+    try {
+      const response = await fetch('/api/atlas-ai/realtime/usage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ eventId, inputCredits, outputCredits }),
+        cache: 'no-store',
+        keepalive: true,
+      });
+      if (response.ok) return;
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (response.status === 429) {
+        stopRealtimeVoice();
+        setVoiceError(payload.error || 'This workspace has used all of its monthly Miles AI credits.');
+      }
+    } catch {
+      // A transient telemetry failure must not interrupt an active voice call.
+      // The provider event is kept in the in-memory de-duplication set so the
+      // same usage event is never charged twice during this session.
+    }
+  }, [fetch, stopRealtimeVoice]);
 
   const processRealtimeTranscript = React.useCallback(async (
     transcript: string,
@@ -734,6 +764,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
     setRealtimeState('connecting');
     processedRealtimeTurnIdsRef.current.clear();
     processedRealtimeToolCallIdsRef.current.clear();
+    recordedRealtimeUsageIdsRef.current.clear();
     voiceActionTranscriptRef.current = [];
     workflowRequestInFlightRef.current = false;
     persistedNarrationStartedRef.current = false;
@@ -814,6 +845,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           updateItem('user', delta, true);
         } else if (type === 'conversation.item.input_audio_transcription.completed') {
           const transcript = String(event.transcript || '').trim();
+          const transcriptionUsage = event.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+          if (transcriptionUsage) void recordRealtimeUsage(`transcription:${itemId || String(event.event_id || '')}`, transcriptionUsage);
           if (!hasMeaningfulEnglishSpeech(transcript)) {
             setLiveVoiceText('');
             if (itemId) {
@@ -911,7 +944,15 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           }
           setRealtimeState('listening');
         } else if (type === 'response.done') {
-          const response = event.response as { status?: string; status_details?: { error?: { message?: string } } } | undefined;
+          const response = event.response as {
+            id?: string;
+            status?: string;
+            status_details?: { error?: { message?: string } };
+            usage?: { input_tokens?: number; output_tokens?: number };
+          } | undefined;
+          if (response?.usage) {
+            void recordRealtimeUsage(`response:${response.id || String(event.event_id || '')}`, response.usage);
+          }
           if (response?.status === 'failed') {
             workflowRequestInFlightRef.current = false;
             persistedNarrationStartedRef.current = false;
@@ -953,7 +994,7 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
         ? 'Microphone access was denied. Allow it in browser settings and try again.'
         : error instanceof Error ? error.message : 'Miles could not start realtime voice.');
     }
-  }, [persistRealtimeTurn, processRealtimeTranscript, realtimeState, runtime, stopRealtimeVoice]);
+  }, [fetch, persistRealtimeTurn, processRealtimeTranscript, realtimeState, recordRealtimeUsage, runtime, stopRealtimeVoice]);
 
   const toggleVoiceChat = React.useCallback(() => {
     if (voiceChatActiveRef.current || realtimeState === 'connecting') stopRealtimeVoice();
