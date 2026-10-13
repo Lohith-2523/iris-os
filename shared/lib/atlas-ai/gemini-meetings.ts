@@ -10,6 +10,7 @@ import {
   settleAtlasTokenReservation,
   type AtlasTokenBudgetContext,
 } from './token-budget';
+import { milesTextPersona } from './persona';
 
 const GEMINI_MEETING_MODEL = 'gemini-3.6-flash';
 
@@ -39,7 +40,9 @@ export async function extractMeetingDetailsWithGemini(input: {
     throw new GeminiMeetingError('Miles AI meeting assistance is not configured.', 503);
   }
 
-  const prompt = `You are the dedicated Gemini meeting coordinator inside IrisOS.
+  const prompt = `${milesTextPersona()}
+
+You are the dedicated Gemini meeting coordinator inside IrisOS.
 This workflow MUST use Gemini only. Never delegate or mention another model.
 
 Collect exactly these meeting details:

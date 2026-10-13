@@ -10,6 +10,7 @@ import {
   type StrategyKind,
 } from '@/lib/strategies/atlas';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
+import { getAtlasWorkspaceContext } from '@/lib/atlas-ai/workspace-context';
 
 export const runtime = 'nodejs';
 
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest) {
         clientId,
         clientName: client.name,
       })),
-      dataPolicy: 'Manual IrisOS Client and Project records only. Connected integrations are excluded.',
+      dataPolicy: 'Bounded IrisOS workspace records plus separately consented aggregate campaign metrics. Credentials and raw Meta lead identities are excluded.',
       pagination: { nextCursor: page.nextCursor, hasMore: page.hasMore, limit: pageRequest.limit },
     }, { headers: cursorHeaders(page, pageRequest.limit) });
   } catch (error) {
@@ -168,7 +169,10 @@ export async function POST(request: NextRequest) {
     if (!goal) return NextResponse.json({ error: 'An end goal is required.' }, { status: 400 });
     if (!timeline) return NextResponse.json({ error: 'A strategy timeline is required.' }, { status: 400 });
 
-    const context = await strategyContext(user.orgId, clientIds, projectIds);
+    const [context, workspaceContext] = await Promise.all([
+      strategyContext(user.orgId, clientIds, projectIds),
+      getAtlasWorkspaceContext(user.organization),
+    ]);
     if (clientIds.length && context.clients.length !== clientIds.length) {
       return NextResponse.json({ error: 'One or more selected clients are unavailable.' }, { status: 400 });
     }
@@ -187,6 +191,7 @@ export async function POST(request: NextRequest) {
       currency: user.organization.currency,
       clients: context.clients,
       projects: context.projects,
+      workspaceContext,
       tokenBudget: { orgId: user.orgId, userId: user.id, userRole: user.role, plan: normalizePlan(user.organization.plan) },
     });
     const inputSnapshot = {
@@ -200,8 +205,8 @@ export async function POST(request: NextRequest) {
       projectIds,
     };
     const contextSnapshot = {
-      source: 'IRIS_OS_MANUAL_CLIENT_PROJECT_RECORDS',
-      integrationsExcluded: true,
+      source: 'IRIS_OS_BOUNDED_MILES_WORKSPACE_CONTEXT',
+      rawMetaLeadIdentitiesExcluded: true,
       clients: context.clients,
       projects: context.projects,
     };

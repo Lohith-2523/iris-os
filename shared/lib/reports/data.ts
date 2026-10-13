@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db';
-import { generateReportWithGemini } from '@/lib/atlas-ai/gemini-automations';
+import { generateReportWithClaude } from '@/lib/atlas-ai/claude-documents';
 import type { AtlasReportDocument, ReportKind, ReportMetric, ReportSection } from './types';
 import { entitlementsFor } from '@/lib/plan-entitlements';
 import { normalizePlan } from '@/lib/plan-entitlements';
@@ -35,20 +35,15 @@ async function atlasNarrative(input: {
   tokenBudget: AtlasTokenBudgetContext;
 }) {
   if (!input.enabled) return deterministicNarrative(input.kind, input.metrics, input.highlights);
-  try {
-    return await generateReportWithGemini({
-      title: input.title,
-      type: input.kind,
-      focus: input.focus
-        ? `Address this requested report brief in detail, grounded only in the supplied verified metrics and records: ${input.focus}`
-        : 'Provide a concise executive narrative grounded only in the supplied verified metrics and records.',
-      workspaceContext: input.context,
-      tokenBudget: input.tokenBudget,
-    });
-  } catch (error) {
-    console.warn('Miles report narrative fell back to deterministic analysis:', error instanceof Error ? error.message : error);
-    return deterministicNarrative(input.kind, input.metrics, input.highlights);
-  }
+  return generateReportWithClaude({
+    title: input.title,
+    type: input.kind,
+    focus: input.focus
+      ? `Address this requested report brief in detail, grounded only in the supplied verified metrics and records: ${input.focus}`
+      : 'Provide a detailed executive narrative grounded only in the supplied verified metrics and records.',
+    workspaceContext: input.context,
+    tokenBudget: input.tokenBudget,
+  });
 }
 
 export async function buildAtlasReportDocument(

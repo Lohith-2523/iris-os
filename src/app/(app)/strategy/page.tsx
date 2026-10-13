@@ -343,7 +343,7 @@ export default function StrategyPage() {
               </label>
               <div className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="flex items-center gap-2 text-[11px] text-zinc-500">
-                  <BriefcaseBusiness className="h-3.5 w-3.5" /> Integrations, campaign feeds, invoices, and ledger entries are excluded.
+                    <BriefcaseBusiness className="h-3.5 w-3.5" /> Uses bounded workspace records and separately consented aggregate campaign metrics; credentials and raw Meta leads stay excluded.
                 </p>
                 <Button data-tour="strategy-generate" type="submit" disabled={generating || !form.goal.trim() || !form.timeline.trim()} className="gap-2">
                   {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

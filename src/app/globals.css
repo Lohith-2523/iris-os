@@ -4350,10 +4350,11 @@ input[type='checkbox']:not(.sr-only):active:not(:disabled) {
 }
 .atlas-live-voice:hover { border-color:#a1a1aa; transform:scale(1.03); }
 .atlas-live-voice.is-active { border-color:#fff; box-shadow:0 0 0 4px rgba(255,255,255,.1),0 0 28px rgba(255,255,255,.12); }
-.atlas-transcription-wave { width:3px; height:22px; border-radius:999px; background:#fff; transform:scaleY(var(--wave-scale)); animation:atlas-wave 720ms ease-in-out var(--wave-delay) infinite alternate; }
-@keyframes atlas-wave { from{transform:scaleY(.2);opacity:.45} to{transform:scaleY(var(--wave-scale));opacity:1} }
-@media (prefers-reduced-motion: reduce) { .atlas-transcription-wave { animation:none; } }
-
+.atlas-voice-status {
+  background:
+    linear-gradient(180deg, rgba(9, 9, 11, 0) 0%, rgba(9, 9, 11, .22) 28%, rgba(9, 9, 11, .62) 100%),
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, .055), transparent 64%);
+}
 /* Hallmark · component: dashboard metric composition · genre: modern-minimal · theme: locked IrisOS
  * layout: restored geometry-aware executive MRR anchor
  * pre-emit critique: P5 H5 E5 S5 R5 V5 · contrast: pass (40-41)

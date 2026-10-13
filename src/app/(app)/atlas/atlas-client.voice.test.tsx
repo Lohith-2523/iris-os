@@ -52,11 +52,8 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); window.history.replaceState(
 
 it('starts a new chat when a question arrives from the Miles top bar', async () => {
   window.history.replaceState(null, '', '/atlas?q=How%20is%20revenue%3F');
-  vi.mocked(AtlasAIService.askAtlas).mockResolvedValueOnce({
-    result: 'Revenue is on plan.',
-    model: 'Miles AI',
-    sessionId: 'new-session',
-  });
+  let resolveAnswer!: (value: Awaited<ReturnType<typeof AtlasAIService.askAtlas>>) => void;
+  vi.mocked(AtlasAIService.askAtlas).mockReturnValueOnce(new Promise((resolve) => { resolveAnswer = resolve; }));
   render(<AtlasClient initialData={{
     ...initialData,
     sessions: [{ id: 'existing-session', title: 'Existing chat', updatedAt: '2026-09-22T00:00:00.000Z' }],
@@ -74,7 +71,16 @@ it('starts a new chat when a question arrives from the Miles top bar', async () 
     expect.objectContaining({ signal: expect.any(AbortSignal), onDelta: expect.any(Function) }),
   ));
   expect(screen.queryByText('Old question')).not.toBeInTheDocument();
-  expect(await screen.findByText('Revenue is on plan.')).toBeInTheDocument();
+  expect(screen.getByText('Miles is thinking...')).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'Miles is composing a response' })).toHaveStyle({ width: '64px', height: '64px' });
+  await act(async () => resolveAnswer({
+    result: 'Revenue is on plan.',
+    model: 'Miles AI',
+    sessionId: 'new-session',
+  }));
+  const answer = await screen.findByText('Revenue is on plan.');
+  expect(answer).toBeInTheDocument();
+  expect(answer.closest('.rounded-xl')).not.toBeNull();
 });
 
 it('holds the next voice reply until the previous reply finishes generating and playing', async () => {
@@ -82,6 +88,12 @@ it('holds the next voice reply until the previous reply finishes generating and 
   fireEvent.click(screen.getByRole('button', { name: 'Start voice conversation' }));
   await waitFor(() => expect(peer.setRemoteDescription).toHaveBeenCalled());
   act(() => peer.channel.onopen?.());
+
+  const voiceStatus = screen.getByRole('status', { name: 'Voice conversation status' });
+  expect(voiceStatus).toHaveTextContent('Listening…');
+  expect(voiceStatus).not.toHaveClass('border-t');
+  expect(screen.getByRole('img', { name: 'Miles is composing' })).toHaveStyle({ width: '64px', height: '64px' });
+  expect(voiceStatus.querySelector('.atlas-transcription-wave')).not.toBeInTheDocument();
 
   emit('conversation.item.input_audio_transcription.completed', { item_id: 'first-turn', transcript: 'Hello Miles.' });
   emit('conversation.item.input_audio_transcription.completed', { item_id: 'next-turn', transcript: 'How are you today?' });
@@ -377,7 +389,10 @@ it('replaces the editor with a full-width waveform, then restores the final tran
   fireEvent.click(screen.getByRole('button', { name: 'Transcribe' }));
   await screen.findByRole('button', { name: 'Stop recording' });
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-  expect(screen.getByRole('status', { name: 'Recording audio' }).querySelectorAll('i')).toHaveLength(64);
+  const recordingStatus = screen.getByRole('status', { name: 'Recording audio' });
+  expect(recordingStatus).not.toHaveClass('border');
+  expect(screen.getByRole('img', { name: 'Listening for transcription' })).toHaveStyle({ width: '64px', height: '64px' });
+  expect(recordingStatus.querySelector('.atlas-transcription-wave')).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Start voice conversation' })).toBeDisabled();
   expect(fetch).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Stop recording' }));

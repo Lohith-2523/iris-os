@@ -10,6 +10,7 @@ import {
   settleAtlasTokenReservation,
   type AtlasTokenBudgetContext,
 } from './token-budget';
+import { milesTextPersona } from './persona';
 
 export const GEMINI_AUTOMATION_MODEL = 'gemini-3.6-flash';
 
@@ -137,7 +138,9 @@ export async function extractAutomationDetailsWithGemini(input: {
   decisionRequested: boolean;
   tokenBudget: AtlasTokenBudgetContext;
 }) {
-  const prompt = `You are the automation engine inside Miles AI.
+  const prompt = `${milesTextPersona()}
+
+You are the automation engine inside Miles AI.
 This workflow MUST use Gemini 3.6 Flash only. Never mention Gemini or any provider to the user; the product is always called Miles AI.
 
 Identify and collect details for exactly one of PROJECT, TASK, INVOICE, or REPORT.
@@ -283,25 +286,4 @@ USER_MESSAGE: ${input.query}`;
     throw new GeminiAutomationError('Miles AI returned incomplete automation details. Please retry the request.');
   }
   return retried;
-}
-
-export async function generateReportWithGemini(input: {
-  title: string;
-  type: string;
-  focus: string;
-  workspaceContext: string;
-  tokenBudget: AtlasTokenBudgetContext;
-}) {
-  const prompt = `You are Miles AI, an executive reporting system.
-Create a polished ${input.type} report titled "${input.title}" focused on: ${input.focus}.
-Use only facts present in WORKSPACE_CONTEXT. Never invent figures, clients, or performance claims.
-Use concise markdown headings, an executive summary, evidence, risks, and recommended next actions.
-Do not mention the underlying model or provider.
-
-WORKSPACE_CONTEXT:
-${input.workspaceContext}`;
-  return callGemini({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { thinkingConfig: { thinkingLevel: 'minimal' } },
-  }, input.tokenBudget);
 }

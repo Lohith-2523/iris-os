@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { ThinkingOrb } from 'thinking-orbs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AudioLines, Ellipsis, Maximize2, Mic, Minimize2, PencilLine, Pin, Plus, Radio, Send, Square, Trash2 } from 'lucide-react';
@@ -1229,13 +1230,16 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
 
                 {/* Message Bubble */}
                 <div className="space-y-1">
-                  <div className={`rounded-none p-4 font-sans ${
+                  <div className={`rounded-xl p-4 font-sans ${
                     msg.role === 'user'
                       ? 'bg-zinc-900 border border-zinc-800 text-zinc-100'
                       : 'bg-[#121215] border border-zinc-850 text-zinc-300'
                   }`}>
                     {isLoading && idx === messages.length - 1 && msg.role === 'assistant' && !msg.content ? (
-                      <span className="italic text-zinc-500">Miles is thinking...</span>
+                      <span className="flex items-center gap-2 text-zinc-500">
+                        <ThinkingOrb state="composing" size={64} theme="dark" aria-label="Miles is composing a response" />
+                        <span className="italic">Miles is thinking...</span>
+                      </span>
                     ) : (
                       <>
                         <FormattedMarkdown text={fileContent.displayText} />
@@ -1282,8 +1286,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
           </div>
 
           {(voiceChatActive || realtimeState === 'connecting') && (
-            <div className="shrink-0 border-t border-zinc-800 bg-zinc-950/80 px-5 py-4 text-center" role="status">
-              <div className="mx-auto mb-2 flex w-fit items-center gap-1">{[.5,.9,.65,1,.7].map((scale,index) => <i key={index} className="atlas-transcription-wave" style={{ '--wave-scale': scale, '--wave-delay': `${index * 80}ms` } as React.CSSProperties} />)}</div>
+            <div className="atlas-voice-status shrink-0 px-5 py-4 text-center" role="status" aria-label="Voice conversation status">
+              <ThinkingOrb state="composing" size={64} theme="dark" className="atlas-thinking-orb mx-auto mb-2" aria-label="Miles is composing" />
               <p className="text-sm text-white">{realtimeState === 'connecting' ? 'Connecting securely…' : realtimeState === 'speaking' ? liveAtlasText || 'Miles is responding…' : liveVoiceText || 'Listening…'}</p>
             </div>
           )}
@@ -1295,8 +1299,8 @@ export default function AtlasClient({ initialData }: { initialData: AtlasInitial
             <form onSubmit={handleFormSubmit} className="flex items-end gap-2 sm:gap-3">
               <div className="relative min-w-0 flex-1" onDoubleClick={() => setComposerExpanded(true)}>
               {voiceState !== 'idle' ? (
-                <div role="status" aria-label={voiceState === 'recording' ? 'Recording audio' : voiceState === 'requesting' ? 'Waiting for microphone' : 'Polishing transcript'} className={`${composerExpanded ? 'h-40' : 'h-11'} flex w-full items-center justify-between gap-1 overflow-hidden border border-zinc-800 bg-zinc-900/40 px-3`}>
-                  {Array.from({ length: 64 }, (_, index) => <i aria-hidden="true" key={index} className="atlas-transcription-wave min-w-px flex-1" style={{ '--wave-scale': .3 + ((index * 7) % 11) / 14, '--wave-delay': `${index * 45}ms` } as React.CSSProperties} />)}
+                <div role="status" aria-label={voiceState === 'recording' ? 'Recording audio' : voiceState === 'requesting' ? 'Waiting for microphone' : 'Polishing transcript'} className={`${composerExpanded ? 'h-40' : 'h-20'} flex w-full items-center justify-center overflow-hidden`}>
+                  <ThinkingOrb state="listening" size={64} theme="dark" aria-label="Listening for transcription" />
                 </div>
               ) : (<>
               <button type="button" onClick={() => setComposerExpanded((value) => !value)} className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-zinc-500 hover:bg-zinc-800 hover:text-white" aria-label={composerExpanded ? 'Collapse message editor' : 'Expand message editor'}>

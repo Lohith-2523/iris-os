@@ -33,10 +33,15 @@ export async function GET(request: NextRequest) {
   const authorization = await getMessagingUser(request);
   if ('error' in authorization) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
   const keys = await prisma.messagingAccountKey.findMany({
-    where: { userId: authorization.user.id, orgId: authorization.user.orgId },
+    where: {
+      userId: authorization.user.id,
+      orgId: authorization.user.orgId,
+      device: { revokedAt: null },
+    },
     include: { device: { select: { identityPublicKey: true } } },
     orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
   });
+  const unreadableKeys: Array<{ id: string; deviceId: string }> = [];
   const readableKeys = keys.flatMap((key) => {
     try {
       return [accountKeyResponse(key)];
@@ -46,10 +51,33 @@ export async function GET(request: NextRequest) {
         deviceId: key.deviceId,
         cause: error instanceof Error ? error.message : 'Unknown decryption error',
       });
+      unreadableKeys.push({ id: key.id, deviceId: key.deviceId });
       return [];
     }
   });
-  if (readableKeys.length > 0 && !readableKeys.some((key) => key.isPrimary)) {
+  if (readableKeys.length > 0 && unreadableKeys.length > 0) {
+    const promotedId = readableKeys.find((key) => key.isPrimary)?.id || readableKeys[0].id;
+    const unreadableIds = unreadableKeys.map((key) => key.id);
+    const unreadableDeviceIds = unreadableKeys.map((key) => key.deviceId);
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`messaging-account:${authorization.user.id}`}))`;
+      await tx.messagingAccountKey.updateMany({
+        where: { id: { in: unreadableIds }, userId: authorization.user.id },
+        data: { isPrimary: false },
+      });
+      await tx.messagingDevice.updateMany({
+        where: { id: { in: unreadableDeviceIds }, userId: authorization.user.id },
+        data: { revokedAt: new Date() },
+      });
+      await tx.messagingAccountKey.update({
+        where: { id: promotedId },
+        data: { isPrimary: true },
+      });
+    });
+    readableKeys.forEach((key, index) => {
+      readableKeys[index] = { ...key, isPrimary: key.id === promotedId };
+    });
+  } else if (readableKeys.length > 0 && !readableKeys.some((key) => key.isPrimary)) {
     readableKeys[0] = { ...readableKeys[0], isPrimary: true };
   }
   return NextResponse.json({ keys: readableKeys }, { headers: messagingNoStoreHeaders() });

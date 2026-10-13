@@ -5,11 +5,17 @@ const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
   decrypt: vi.fn(),
   getMessagingUser: vi.fn(),
+  transaction: vi.fn(),
+  accountKeyUpdate: vi.fn(),
+  accountKeyUpdateMany: vi.fn(),
+  deviceUpdateMany: vi.fn(),
+  executeRaw: vi.fn(),
 }));
 
 vi.mock('@/lib/db', () => ({
   prisma: {
     messagingAccountKey: { findMany: mocks.findMany },
+    $transaction: mocks.transaction,
   },
 }));
 vi.mock('@/lib/messaging/account-key-secrets', () => ({
@@ -41,6 +47,11 @@ describe('GET /api/messaging/identity', () => {
     vi.clearAllMocks();
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     mocks.getMessagingUser.mockResolvedValue({ user: { id: 'user-1', orgId: 'org-1' } });
+    mocks.transaction.mockImplementation((callback) => callback({
+      $executeRaw: mocks.executeRaw,
+      messagingAccountKey: { update: mocks.accountKeyUpdate, updateMany: mocks.accountKeyUpdateMany },
+      messagingDevice: { updateMany: mocks.deviceUpdateMany },
+    }));
   });
 
   it('skips an unreadable legacy key and promotes the first readable key for recovery', async () => {
@@ -55,6 +66,14 @@ describe('GET /api/messaging/identity', () => {
 
     expect(response.status).toBe(200);
     expect(body.keys).toEqual([expect.objectContaining({ id: 'b', identityPrivateKey: 'private-b', isPrimary: true })]);
+    expect(mocks.accountKeyUpdateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['a'] }, userId: 'user-1' },
+      data: { isPrimary: false },
+    });
+    expect(mocks.deviceUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: { in: ['device-a'] }, userId: 'user-1' },
+    }));
+    expect(mocks.accountKeyUpdate).toHaveBeenCalledWith({ where: { id: 'b' }, data: { isPrimary: true } });
   });
 
   it('returns an empty identity instead of a 500 when every stored key is unreadable', async () => {
@@ -65,5 +84,6 @@ describe('GET /api/messaging/identity', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ keys: [] });
+    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });
