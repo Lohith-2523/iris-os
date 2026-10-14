@@ -63,6 +63,9 @@ export const metadata: Metadata = {
     template: "%s | IrisOS",
   },
   description: "IrisOS is an agency management platform for clients, projects, tasks, teams, finances, invoices, reporting, creative operations, and Miles AI in one connected workspace.",
+  alternates: {
+    canonical: "/",
+  },
   category: "business software",
   creator: "IrisOS",
   publisher: "IrisOS",
@@ -88,8 +91,11 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: [{ url: "/icons/iris-192.png", sizes: "192x192", type: "image/png" }],
-    shortcut: [{ url: "/icons/iris-192.png", sizes: "192x192", type: "image/png" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { url: "/icons/iris-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: [{ url: "/favicon.ico", sizes: "any", type: "image/x-icon" }],
     apple: [{ url: "/icons/iris-180.png", sizes: "180x180", type: "image/png" }],
   },
 };

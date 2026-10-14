@@ -8,11 +8,11 @@ import { proposalSchema } from '@/lib/proposals/types';
 import { legalDocumentSchema } from '@/lib/legal-documents/types';
 import { generateProposalPdf } from '@/lib/proposals/pdf';
 import { generateProposalDocx } from '@/lib/proposals/docx';
-import { generateLegalDocumentPdf } from '@/lib/legal-documents/pdf';
 import { IrisEmailDeliveryError, sendIrisEmail } from '@/lib/email/iris-email';
 import { generatedDocumentDeliveryEmail } from '@/lib/email/iris-templates';
 import { agencyViaIrisSenderName } from '@/lib/email/sender-name';
-import { contentWithSignatureAudit, newSigningToken, runSignedDocumentAutomation, signingContentHash } from '@/lib/documents/signing';
+import { newSigningToken, runSignedDocumentAutomation, signingContentHash } from '@/lib/documents/signing';
+import { getOrCreateGeneratedDocumentDocx, getOrCreateGeneratedDocumentPdf } from '@/lib/documents/generated-artifacts';
 import { getInvoiceForPdf, invoicePdfFromRecord } from '@/lib/invoices/service';
 import { cursorHeaders, descendingCursorWhere, finishCursorPage, readCursorPage } from '@/lib/cursor-pagination';
 
@@ -55,13 +55,6 @@ function validate(kind: DocumentKind, content: unknown) {
   return kind === 'PROPOSAL' ? proposalSchema.parse(content) : legalDocumentSchema.parse(content);
 }
 
-async function pdfFor(kind: DocumentKind, content: unknown) {
-  const parsed = validate(kind, content);
-  return kind === 'PROPOSAL'
-    ? generateProposalPdf(parsed as z.infer<typeof proposalSchema>)
-    : generateLegalDocumentPdf(parsed as z.infer<typeof legalDocumentSchema>);
-}
-
 function requiresApproval(kind: string) {
   return kind === 'PROPOSAL' || kind === 'CONTRACT';
 }
@@ -73,15 +66,15 @@ async function proposalArtifacts(content: Prisma.JsonValue) {
 }
 
 async function sendDocument(record: { id: string; kind: string; title: string; documentNumber: string; recipientName: string; recipientEmail: string; content: Prisma.JsonValue; proformaInvoiceId?: string | null; signingToken?: string | null; recipientSignerName?: string | null; recipientSignedAt?: Date | null; agencySignerName?: string | null; agencySignedAt?: Date | null; fullySignedAt?: Date | null; signedContentHash?: string | null; pdfArtifact?: Uint8Array | null; docxArtifact?: Uint8Array | null }, organization: { name: string; plan: string }, baseUrl: string) {
-  const pdfContent = record.kind === 'PROPOSAL' ? record.content : contentWithSignatureAudit({ ...record, recipientSignerName: record.recipientSignerName || null, recipientSignedAt: record.recipientSignedAt || null, agencySignerName: record.agencySignerName || null, agencySignedAt: record.agencySignedAt || null, fullySignedAt: record.fullySignedAt || null, signedContentHash: record.signedContentHash || null });
-  const pdf = record.kind === 'PROPOSAL' && record.pdfArtifact ? Buffer.from(record.pdfArtifact) : await pdfFor(record.kind as DocumentKind, pdfContent);
+  const artifactRecord = { ...record, recipientSignerName: record.recipientSignerName || null, recipientSignedAt: record.recipientSignedAt || null, agencySignerName: record.agencySignerName || null, agencySignedAt: record.agencySignedAt || null, fullySignedAt: record.fullySignedAt || null, signedContentHash: record.signedContentHash || null };
+  const pdf = await getOrCreateGeneratedDocumentPdf(artifactRecord);
   const label = record.kind === 'SOW' ? 'statement of work' : record.kind.toLowerCase();
   const signingUrl = record.signingToken && record.kind !== 'PROPOSAL' ? `${baseUrl.replace(/\/$/, '')}/sign-document/${record.signingToken}` : '';
   const includesLinkedProforma = Boolean(record.kind === 'PROPOSAL' && record.proformaInvoiceId);
   const safeNumber = record.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_');
   const attachments = [{ filename: `${safeNumber}.pdf`, content: Buffer.from(pdf), contentType: 'application/pdf' }];
   if (record.kind === 'PROPOSAL') {
-    const docx = record.docxArtifact ? Buffer.from(record.docxArtifact) : await generateProposalDocx(proposalSchema.parse(record.content));
+    const docx = await getOrCreateGeneratedDocumentDocx(artifactRecord);
     attachments.push({ filename: `${safeNumber}.docx`, content: Buffer.from(docx), contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   }
   if (record.kind === 'PROPOSAL' && record.proformaInvoiceId) {
@@ -173,7 +166,7 @@ export async function POST(request: Request) {
     if (record.agencySignedAt) return NextResponse.json({ document: record });
     const now = new Date();
     const fullySignedAt = record.recipientSignedAt ? now : null;
-    const document = await prisma.generatedDocument.update({ where: { id: record.id }, data: { agencySignerName: user.name, agencySignedById: user.id, agencySignedAt: now, fullySignedAt, signedContentHash: record.signedContentHash || signingContentHash(record.content), status: fullySignedAt ? 'EXECUTED' : 'PARTIALLY_SIGNED' } });
+    const document = await prisma.generatedDocument.update({ where: { id: record.id }, data: { agencySignerName: user.name, agencySignedById: user.id, agencySignedAt: now, fullySignedAt, signedContentHash: record.signedContentHash || signingContentHash(record.content), status: fullySignedAt ? 'EXECUTED' : 'PARTIALLY_SIGNED', pdfArtifact: null, artifactsGeneratedAt: null } });
     if (fullySignedAt) await runSignedDocumentAutomation(document.id);
     return NextResponse.json({ document: await prisma.generatedDocument.findUnique({ where: { id: document.id } }) });
   }

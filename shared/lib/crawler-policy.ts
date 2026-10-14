@@ -10,6 +10,7 @@ export const PUBLIC_CRAWLER_PATHS = [
   '/robots.txt$',
   '/sitemap.xml$',
   '/manifest.webmanifest$',
+  '/favicon.ico$',
   '/icons/iris-180.png$',
   '/icons/iris-192.png$',
   '/icons/iris-512.png$',

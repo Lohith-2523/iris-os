@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
 import { parseAtlasReportDocument } from '@/lib/reports/types';
 import { generateAtlasReportPdf, generateMilesTextReportPdf } from '@/lib/reports/pdf';
+import { artifactSourceVersion, readRenderedArtifact, writeRenderedArtifact } from '@/lib/documents/rendered-artifact';
 
 export const runtime = 'nodejs';
 
@@ -22,14 +23,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     color: report.organization.invoiceBrandColor,
     logoDataUrl: report.organization.invoiceLogoDataUrl,
   };
-  const pdf = document
-    ? await generateAtlasReportPdf(document, brand)
-    : await generateMilesTextReportPdf({
+  const artifactKey = {
+    orgId: report.orgId,
+    sourceType: 'REPORT' as const,
+    sourceId: report.id,
+    format: 'PDF' as const,
+    sourceVersion: artifactSourceVersion({
+      title: report.title,
+      type: report.type,
+      summary: report.summary,
+      createdAt: report.createdAt,
+      brand,
+    }),
+  };
+  let pdf = await readRenderedArtifact(artifactKey);
+  if (!pdf) {
+    pdf = document
+      ? await generateAtlasReportPdf(document, brand)
+      : await generateMilesTextReportPdf({
         content: report.summary,
         createdAt: report.createdAt,
         title: report.title,
         type: report.type,
       }, brand);
+    await writeRenderedArtifact(artifactKey, pdf);
+  }
   const filename = `${report.title.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
   const inline = request.nextUrl.searchParams.get('view') === '1';
   return new Response(new Uint8Array(pdf), {

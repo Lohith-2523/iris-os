@@ -55,7 +55,7 @@ const STRATEGY_SECTIONS: Array<{
     type: 'UPSELL',
     label: 'Upsell strategy',
     eyebrow: 'Client expansion',
-    description: 'Turn delivery evidence and account context into credible expansion opportunities.',
+    description: 'Find evidence-backed expansion opportunities.',
     goalPlaceholder: 'Example: Identify ₹12L in expansion opportunities without increasing churn risk.',
     icon: ArrowUpRight,
   },
@@ -63,7 +63,7 @@ const STRATEGY_SECTIONS: Array<{
     type: 'MARKETING',
     label: 'Marketing strategy',
     eyebrow: 'Market positioning',
-    description: 'Shape positioning and acquisition priorities from your real client and service portfolio.',
+    description: 'Focus positioning and acquisition priorities.',
     goalPlaceholder: 'Example: Build a focused pipeline plan for the business’s strongest service line.',
     icon: Megaphone,
   },
@@ -71,7 +71,7 @@ const STRATEGY_SECTIONS: Array<{
     type: 'FINANCIAL',
     label: 'Financial strategy',
     eyebrow: 'Commercial resilience',
-    description: 'Plan pricing, portfolio mix, and commercial guardrails without treating invoices as revenue.',
+    description: 'Improve pricing, margins, and portfolio resilience.',
     goalPlaceholder: 'Example: Improve project margin quality over the next two quarters.',
     icon: BarChart3,
   },
@@ -280,9 +280,9 @@ export default function StrategyPage() {
           const active = section.type === activeType;
           const historyCount = strategies.filter((strategy) => strategy.type === section.type).length;
           return (
-            <button key={section.type} type="button" onClick={() => setActiveType(section.type)} className="text-left">
-              <Card className={cn('h-full transition-colors', active && 'border-zinc-600 bg-zinc-900/70')}>
-                <CardHeader>
+            <button key={section.type} type="button" onClick={() => setActiveType(section.type)} className="h-full min-w-0 text-left">
+              <Card className={cn('h-full min-h-40 transition-colors sm:min-h-44', active && 'border-zinc-600 bg-zinc-900/70')}>
+                <CardHeader className="h-full p-4 sm:p-5">
                   <div className="flex items-start justify-between">
                     <div className={cn('workspace-selected-icon flex h-9 w-9 items-center justify-center rounded-lg border', active ? 'border-zinc-600 bg-white text-black' : 'border-zinc-800 bg-zinc-950 text-zinc-400')}>
                       <Icon className="h-4 w-4" />
@@ -291,8 +291,8 @@ export default function StrategyPage() {
                   </div>
                   <div className="min-w-0 pt-2">
                     <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">{section.eyebrow}</p>
-                    <CardTitle className="mt-1 text-sm text-white">{section.label}</CardTitle>
-                    <CardDescription className="mt-1.5 leading-relaxed">{section.description}</CardDescription>
+                    <CardTitle className="mt-1 break-words text-sm leading-snug text-white [overflow-wrap:anywhere]">{section.label}</CardTitle>
+                    <CardDescription className="mt-1.5 break-words text-xs leading-[1.45] [overflow-wrap:anywhere]">{section.description}</CardDescription>
                   </div>
                 </CardHeader>
               </Card>

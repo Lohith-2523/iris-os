@@ -3,6 +3,30 @@ import { updateSession } from '@/lib/middleware';
 import { checkRequestRateLimit, requestRateLimitHeaders, type RequestRateLimitDecision } from '@/lib/request-rate-limit';
 
 const SUPERADMIN_HOSTNAME = 'superadmin.irisos.app';
+const AUTH_FREE_PAGE_PATHS = new Set([
+  '/',
+  '/home',
+  '/coming-soon',
+  '/pricing',
+  '/terms',
+  '/privacy',
+  '/cancellation-refund-policy',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/invite',
+  '/admin/login',
+  '/admin/forgot-password',
+]);
+
+function doesNotNeedProxyAuthentication(pathname: string) {
+  return pathname.startsWith('/api/')
+    || AUTH_FREE_PAGE_PATHS.has(pathname)
+    || pathname.startsWith('/signup/')
+    || pathname.startsWith('/onboarding/member')
+    || pathname.startsWith('/sign-document/')
+    || pathname === '/auth/callback';
+}
 
 function requestHostname(request: NextRequest) {
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
@@ -45,10 +69,6 @@ export async function proxy(request: NextRequest) {
   // authentication-provider outages. They never contain workspace information.
   if (['/robots.txt', '/llms.txt'].includes(request.nextUrl.pathname)) return NextResponse.next();
 
-  // Regional pricing is public and does not use session data. Avoid touching
-  // stale Supabase cookies so anonymous visitors can always resolve currency.
-  if (pathname === '/api/pricing') return withRateLimitHeaders(NextResponse.next(), rateLimit);
-
   const host = request.headers.get('host') || '';
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
   const isProduction = process.env.NODE_ENV === 'production';
@@ -69,6 +89,13 @@ export async function proxy(request: NextRequest) {
       url.pathname = '/coming-soon';
       return NextResponse.redirect(url);
     }
+  }
+
+  // Route handlers own API authorization and validate the same Supabase
+  // identity again. Avoid a duplicate external auth call in Proxy. Public
+  // pages also need no session refresh before cached content can be served.
+  if (doesNotNeedProxyAuthentication(pathname)) {
+    return withRateLimitHeaders(NextResponse.next(), rateLimit);
   }
 
   return withRateLimitHeaders(await updateSession(request), rateLimit);

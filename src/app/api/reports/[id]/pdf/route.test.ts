@@ -8,6 +8,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/db', () => ({ prisma: { report: { findFirst: mocks.findFirst } } }));
 vi.mock('@/lib/org', () => ({ getRequestUser: mocks.getRequestUser }));
+vi.mock('server-only', () => ({}));
+vi.mock('@/lib/documents/rendered-artifact', () => ({
+  artifactSourceVersion: () => 'report-version',
+  readRenderedArtifact: vi.fn().mockResolvedValue(null),
+  writeRenderedArtifact: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { GET } from './route';
 
@@ -21,6 +27,7 @@ describe('GET /api/reports/[id]/pdf', () => {
     mocks.findFirst.mockResolvedValue({
       createdAt: new Date('2026-01-15T00:00:00.000Z'),
       id: 'report-1',
+      orgId: 'org-1',
       organization: {
         invoiceBrandColor: '#4A435F',
         invoiceLogoDataUrl: null,

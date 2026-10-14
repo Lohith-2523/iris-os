@@ -26,7 +26,7 @@ type JsonRecord = Record<string, unknown>;
 
 const STORAGE_PREFIX = 'crystal.workspace.data:v2';
 const STAGED_STORAGE_PREFIX = 'crystal.workspace.staged:v1';
-export const WORKSPACE_BACKGROUND_CHECK_INTERVAL_MS = 30 * 60 * 1_000;
+export const WORKSPACE_BACKGROUND_CHECK_INTERVAL_MS = 2 * 60 * 60 * 1_000;
 const REVISION_BASELINE_DEBOUNCE_MS = 1_000;
 
 const memoryCache = new Map<string, CachedResponse>();
@@ -653,7 +653,7 @@ export function startWorkspaceDataBackgroundChecks() {
   if (!backgroundCheckTimer) {
     void establishWorkspaceRevisionBaseline();
     backgroundCheckTimer = setInterval(() => {
-      void checkWorkspaceDataRevision();
+      if (document.visibilityState === 'visible') void checkWorkspaceDataRevision();
     }, WORKSPACE_BACKGROUND_CHECK_INTERVAL_MS);
   }
   return stopWorkspaceDataBackgroundChecks;

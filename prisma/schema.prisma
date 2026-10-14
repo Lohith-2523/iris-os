@@ -78,7 +78,24 @@ model Organization {
   deliverables              Deliverable[]
   changeRequests            ChangeRequest[]
   generatedDocuments        GeneratedDocument[]
+  renderedDocumentArtifacts RenderedDocumentArtifact[]
   planCouponRedemptions     PlanCouponRedemption[]
+}
+
+model RenderedDocumentArtifact {
+  id            String       @id @default(uuid())
+  orgId         String
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sourceType    String
+  sourceId      String
+  format        String
+  sourceVersion String
+  content       Bytes
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([sourceType, sourceId, format])
+  @@index([orgId, sourceType, sourceId])
 }
 
 model GeneratedDocument {

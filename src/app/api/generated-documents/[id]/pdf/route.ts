@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
-import { proposalSchema } from '@/lib/proposals/types';
-import { generateProposalPdf } from '@/lib/proposals/pdf';
-import { generateLegalDocumentPdf } from '@/lib/legal-documents/pdf';
-import { contentWithSignatureAudit } from '@/lib/documents/signing';
+import { getOrCreateGeneratedDocumentPdf } from '@/lib/documents/generated-artifacts';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getRequestUser(request);
@@ -20,9 +17,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
   if (!document) return NextResponse.json({ error: 'Document not found.' }, { status: 404 });
   try {
-    const pdf = document.kind === 'PROPOSAL'
-      ? document.pdfArtifact || await generateProposalPdf(proposalSchema.parse(document.content))
-      : await generateLegalDocumentPdf(contentWithSignatureAudit(document));
+    const pdf = await getOrCreateGeneratedDocumentPdf(document);
     return new NextResponse(new Uint8Array(pdf), { headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="${document.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf"`,

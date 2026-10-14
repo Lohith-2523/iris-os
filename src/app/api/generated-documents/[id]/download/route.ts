@@ -2,11 +2,7 @@ import JSZip from 'jszip';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser } from '@/lib/org';
-import { proposalSchema } from '@/lib/proposals/types';
-import { generateProposalPdf } from '@/lib/proposals/pdf';
-import { generateProposalDocx } from '@/lib/proposals/docx';
-import { generateLegalDocumentPdf } from '@/lib/legal-documents/pdf';
-import { contentWithSignatureAudit } from '@/lib/documents/signing';
+import { getOrCreateGeneratedDocumentDocx, getOrCreateGeneratedDocumentPdf } from '@/lib/documents/generated-artifacts';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getRequestUser(request);
@@ -21,10 +17,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   try {
     const safeNumber = document.documentNumber.replace(/[^A-Za-z0-9._-]/g, '_');
-    const proposal = document.kind === 'PROPOSAL' ? proposalSchema.parse(document.content) : null;
-    const pdf = document.kind === 'PROPOSAL'
-      ? document.pdfArtifact || await generateProposalPdf(proposal!)
-      : await generateLegalDocumentPdf(contentWithSignatureAudit(document));
+    const pdf = await getOrCreateGeneratedDocumentPdf(document);
 
     if (format === 'pdf') return new NextResponse(new Uint8Array(pdf), { headers: {
       'Content-Type': 'application/pdf',
@@ -32,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       'Cache-Control': 'private, no-store',
     } });
 
-    const docx = document.docxArtifact || await generateProposalDocx(proposal!);
+    const docx = await getOrCreateGeneratedDocumentDocx(document);
     if (format === 'docx') return new NextResponse(new Uint8Array(docx), { headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'Content-Disposition': `attachment; filename="${safeNumber}.docx"`,

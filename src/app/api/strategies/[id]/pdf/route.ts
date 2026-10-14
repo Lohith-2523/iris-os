@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { generateStrategyPdf } from '@/lib/strategies/pdf';
+import { artifactSourceVersion, readRenderedArtifact, writeRenderedArtifact } from '@/lib/documents/rendered-artifact';
 
 export const runtime = 'nodejs';
 
@@ -23,7 +24,7 @@ export async function GET(
     });
     if (!strategy) return Response.json({ error: 'Strategy not found' }, { status: 404 });
 
-    const pdf = await generateStrategyPdf({
+    const pdfInput = {
       title: strategy.title,
       type: strategy.type,
       goal: strategy.goal,
@@ -32,7 +33,19 @@ export async function GET(
       organizationName: strategy.organization.name,
       createdBy: strategy.createdBy.name,
       createdAt: strategy.createdAt,
-    });
+    };
+    const artifactKey = {
+      orgId: strategy.orgId,
+      sourceType: 'STRATEGY' as const,
+      sourceId: strategy.id,
+      format: 'PDF' as const,
+      sourceVersion: artifactSourceVersion(pdfInput),
+    };
+    let pdf = await readRenderedArtifact(artifactKey);
+    if (!pdf) {
+      pdf = await generateStrategyPdf(pdfInput);
+      await writeRenderedArtifact(artifactKey, pdf);
+    }
     const filename = `${strategy.title.replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'strategy'}.pdf`;
     return new Response(new Uint8Array(pdf), {
       headers: {

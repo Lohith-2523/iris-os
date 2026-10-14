@@ -12,7 +12,7 @@ import {
   roundMoney,
 } from './billing-profile';
 import { generateInvoicePdf } from './pdf';
-import type { InvoiceLineItem, InvoicePartySnapshot } from './types';
+import type { InvoiceLineItem, InvoicePartySnapshot, InvoicePdfInput } from './types';
 import {
   DEFAULT_INVOICE_BRAND_COLOR,
   inclusiveGstBreakdown,
@@ -27,6 +27,7 @@ import {
 } from './calculations';
 import { entitlementsFor, planLimitMessage } from '@/lib/plan-entitlements';
 import { generateRecurringOccurrences } from '@/lib/finance/recurrence';
+import { artifactSourceVersion, writeRenderedArtifact } from '@/lib/documents/rendered-artifact';
 
 export class InvoiceServiceError extends Error {
   constructor(message: string, readonly status = 400, readonly invoiceId?: string) {
@@ -97,7 +98,7 @@ function mergePartySnapshot(
   };
 }
 
-export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>) {
+export function invoicePdfInputFromRecord(invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>): InvoicePdfInput {
   const liveSeller = billingSnapshot(invoice.organization, invoice.organization.billingEmail || '');
   const sellerBase = mergePartySnapshot(
     invoice.sellerSnapshot,
@@ -148,7 +149,7 @@ export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnTy
         taxAmount: invoice.taxAmount,
         total: invoice.amount,
       }];
-  const pdf = await generateInvoicePdf({
+  return {
     invoiceNumber: invoice.invoiceNumber,
     documentType: invoice.documentType === 'PROFORMA' ? 'PROFORMA' : 'INVOICE',
     invoiceType: invoice.documentType === 'PROFORMA' ? 'STANDARD' : 'TAX',
@@ -167,7 +168,11 @@ export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnTy
     paidAmount: invoice.paidAmount,
     status: invoice.status,
     termsOfSale: invoice.termsOfSale || undefined,
-  });
+  };
+}
+
+export async function invoicePdfFromRecord(invoice: NonNullable<Awaited<ReturnType<typeof getInvoiceForPdf>>>) {
+  const pdf = await generateInvoicePdf(invoicePdfInputFromRecord(invoice));
   if (pdf.length < 2_000 || pdf.subarray(0, 5).toString() !== '%PDF-') {
     throw new InvoiceServiceError('The invoice PDF could not be rendered correctly.', 500);
   }
@@ -320,6 +325,13 @@ async function createAndSendDocument(input: {
   const invoice = await getCreatedInvoice(createdInvoice.id);
 
   const pdf = await invoicePdfFromRecord(invoice);
+  await writeRenderedArtifact({
+    orgId: invoice.orgId,
+    sourceType: 'INVOICE',
+    sourceId: invoice.id,
+    format: 'PDF',
+    sourceVersion: artifactSourceVersion(invoicePdfInputFromRecord(invoice)),
+  }, pdf);
   if (input.sendEmail === false) {
     await prisma.invoice.update({
       where: { id: invoice.id },

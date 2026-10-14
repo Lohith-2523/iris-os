@@ -25,12 +25,12 @@ describe('host routing proxy', () => {
     },
   );
 
-  it('keeps the main IrisOS login route unchanged', async () => {
+  it('serves public pages without invoking Supabase auth', async () => {
     const request = new NextRequest('https://irisos.app/login');
     const response = await proxy(request);
 
     expect(response.status).toBe(200);
-    expect(mocks.updateSession).toHaveBeenCalledWith(request);
+    expect(mocks.updateSession).not.toHaveBeenCalled();
   });
 
   it('keeps regional pricing public without invoking Supabase auth', async () => {
@@ -39,5 +39,19 @@ describe('host routing proxy', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('x-ratelimit-category')).toBe('LIGHT_CRITICAL');
     expect(mocks.updateSession).not.toHaveBeenCalled();
+  });
+
+  it('lets API handlers own authentication without a duplicate Proxy lookup', async () => {
+    const response = await proxy(new NextRequest('https://irisos.app/api/messaging'));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-ratelimit-category')).toBeTruthy();
+    expect(mocks.updateSession).not.toHaveBeenCalled();
+  });
+
+  it('continues authenticating protected application pages', async () => {
+    const request = new NextRequest('https://irisos.app/dashboard');
+    await proxy(request);
+    expect(mocks.updateSession).toHaveBeenCalledWith(request);
   });
 });

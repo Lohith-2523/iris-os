@@ -318,11 +318,16 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
         setError(inboxError instanceof Error ? inboxError.message : 'Unable to refresh secure messaging.');
       });
     };
-    const refresh = window.setInterval(syncInbox, 10_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') syncInbox();
+    };
+    const refresh = window.setInterval(refreshWhenVisible, 60_000);
     window.addEventListener('focus', syncInbox);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
       window.clearInterval(refresh);
       window.removeEventListener('focus', syncInbox);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [loadInbox]);
 
@@ -513,15 +518,20 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
       });
     }
 
-    const stream = new EventSource(`/api/messaging/stream?conversationId=${encodeURIComponent(selected.id)}`);
-    stream.addEventListener('change', sync);
-    const fallback = window.setInterval(sync, 10_000);
-    window.addEventListener('focus', sync);
+    const syncWhenVisible = () => {
+      if (document.visibilityState === 'visible') void sync();
+    };
+    // A permanently open function stream keeps provisioned memory active.
+    // Bounded foreground polling preserves cross-device delivery without a
+    // continuously in-flight Vercel Function.
+    const refresh = window.setInterval(syncWhenVisible, 30_000);
+    window.addEventListener('focus', syncWhenVisible);
+    document.addEventListener('visibilitychange', syncWhenVisible);
     return () => {
       activeConversationIdRef.current = '';
-      stream.close();
-      window.clearInterval(fallback);
-      window.removeEventListener('focus', sync);
+      window.clearInterval(refresh);
+      window.removeEventListener('focus', syncWhenVisible);
+      document.removeEventListener('visibilitychange', syncWhenVisible);
     };
   }, [loadMessages, selected]);
 

@@ -33,12 +33,12 @@ const REPORT_OPTIONS: Array<{
   detail: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { kind: 'EXECUTIVE', title: 'Executive summary', description: 'Business-wide leadership brief', detail: 'Clients, delivery, pipeline, commercial value, risks, and Miles recommendations.', icon: BriefcaseBusiness },
-  { kind: 'LEADS', title: 'Leads breakdown', description: 'Granular pipeline register', detail: 'Lead-level records, stages, sources, estimated value, conversion, and acquisition timing.', icon: BarChart3 },
-  { kind: 'MARKETING', title: 'Marketing breakdown', description: 'Campaign and ad performance', detail: 'Spend, impressions, clicks, CTR, cost per lead, campaigns, and individual ads.', icon: Megaphone },
-  { kind: 'CLIENTS', title: 'Client breakdown', description: 'Portfolio or account detail', detail: 'Health, churn, ROI, contacts, invoices, projects, and tasks. Meta metrics are excluded.', icon: Building2 },
-  { kind: 'PROJECTS', title: 'Projects breakdown', description: 'Delivery and risk detail', detail: 'Progress, schedules, risk, milestones, team ownership, and commercial terms.', icon: FileText },
-  { kind: 'TEAM', title: 'Team breakdown', description: 'Capacity and ownership', detail: 'Roster, roles, project coverage, task ownership, workload, and completion.', icon: Users },
+  { kind: 'EXECUTIVE', title: 'Executive summary', description: 'Leadership overview', detail: 'Clients, delivery, pipeline, risks, and next actions.', icon: BriefcaseBusiness },
+  { kind: 'LEADS', title: 'Leads breakdown', description: 'Pipeline overview', detail: 'Stages, sources, value, conversion, and timing.', icon: BarChart3 },
+  { kind: 'MARKETING', title: 'Marketing breakdown', description: 'Campaign performance', detail: 'Spend, reach, clicks, CTR, CPL, campaigns, and ads.', icon: Megaphone },
+  { kind: 'CLIENTS', title: 'Client breakdown', description: 'Account health', detail: 'Health, churn, ROI, invoices, projects, and tasks.', icon: Building2 },
+  { kind: 'PROJECTS', title: 'Projects breakdown', description: 'Delivery health', detail: 'Progress, schedules, risks, milestones, owners, and terms.', icon: FileText },
+  { kind: 'TEAM', title: 'Team breakdown', description: 'Capacity overview', detail: 'Roles, coverage, workload, ownership, and completion.', icon: Users },
 ];
 
 export default function ReportingClient({ initialData }: { initialData: ReportingInitialReadModel }) {
@@ -158,14 +158,14 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
           const Icon = option.icon;
           const selected = selectedKind === option.kind;
           return (
-            <button key={option.kind} type="button" onClick={() => setSelectedKind(option.kind)} className={`min-w-0 overflow-hidden rounded-lg border p-4 text-left transition-colors ${selected ? 'border-zinc-500 bg-zinc-900/70' : 'border-zinc-850 bg-zinc-950/30 hover:border-zinc-700 hover:bg-zinc-900/35'}`}>
+            <button key={option.kind} type="button" onClick={() => setSelectedKind(option.kind)} className={`flex h-full min-h-40 min-w-0 flex-col rounded-lg border p-4 text-left transition-colors sm:min-h-44 ${selected ? 'border-zinc-500 bg-zinc-900/70' : 'border-zinc-850 bg-zinc-950/30 hover:border-zinc-700 hover:bg-zinc-900/35'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className={`workspace-selected-icon flex h-9 w-9 items-center justify-center rounded-md border ${selected ? 'border-zinc-600 bg-white text-zinc-950' : 'border-zinc-800 bg-zinc-900 text-zinc-400'}`}><Icon className="h-4 w-4" /></div>
                 {selected && <Badge variant="outline" className="border-zinc-600 text-[9px] text-zinc-200">Selected</Badge>}
               </div>
-              <div className="mt-4 min-w-0 break-words text-sm font-semibold text-white">{option.title}</div>
-              <div className="mt-0.5 min-w-0 break-words text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{option.description}</div>
-              <p className="mt-2 min-w-0 break-words text-[11px] leading-5 text-zinc-500">{option.detail}</p>
+              <div className="mt-4 min-w-0 break-words text-sm font-semibold leading-snug text-white [overflow-wrap:anywhere]">{option.title}</div>
+              <div className="mt-1 min-w-0 break-words text-[10px] font-semibold uppercase leading-4 tracking-wider text-zinc-500 [overflow-wrap:anywhere]">{option.description}</div>
+              <p className="mt-2 min-w-0 flex-1 break-words text-[11px] leading-[1.45] text-zinc-500 [overflow-wrap:anywhere]">{option.detail}</p>
             </button>
           );
         })}

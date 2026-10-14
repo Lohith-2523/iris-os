@@ -8,6 +8,11 @@ const protocol = vi.hoisted(() => ({
 vi.mock('@/lib/messaging/protocol', () => ({
   getMessagingProtocol: () => protocol,
 }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/messages',
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 import MessagesClient from './messages-client';
 
@@ -56,7 +61,7 @@ describe('MessagesClient inbox discovery', () => {
     await act(async () => { await Promise.resolve(); });
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(60_000);
     });
 
     expect(screen.getAllByText('Sana Shah').length).toBeGreaterThan(0);

@@ -3,9 +3,11 @@ import { getRequestUser, isOrganizationAdmin } from '@/lib/org';
 import { prisma } from '@/lib/db';
 import {
   getInvoiceForPdf,
+  invoicePdfInputFromRecord,
   invoicePdfFromRecord,
   InvoiceServiceError,
 } from '@/lib/invoices/service';
+import { artifactSourceVersion, readRenderedArtifact, writeRenderedArtifact } from '@/lib/documents/rendered-artifact';
 
 export const runtime = 'nodejs';
 
@@ -33,11 +35,21 @@ export async function GET(
     }
     if (!authorized) return Response.json({ error: 'Oops! Please sign in to continue.' }, { status: 401 });
 
-    const pdf = await invoicePdfFromRecord(invoice);
-    await prisma.invoice.update({
-      where: { id: invoice.id },
-      data: { pdfGeneratedAt: new Date() },
-    });
+    const artifactKey = {
+      orgId: invoice.orgId,
+      sourceType: 'INVOICE' as const,
+      sourceId: invoice.id,
+      format: 'PDF' as const,
+      sourceVersion: artifactSourceVersion(invoicePdfInputFromRecord(invoice)),
+    };
+    let pdf = await readRenderedArtifact(artifactKey);
+    if (!pdf) {
+      pdf = await invoicePdfFromRecord(invoice);
+      await Promise.all([
+        writeRenderedArtifact(artifactKey, pdf),
+        prisma.invoice.update({ where: { id: invoice.id }, data: { pdfGeneratedAt: new Date() } }),
+      ]);
+    }
     const filename = `${invoice.invoiceNumber.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
     return new Response(new Uint8Array(pdf), {
       status: 200,

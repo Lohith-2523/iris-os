@@ -14,6 +14,7 @@ type Notification = { id: string; type: string; title: string; body: string; hre
 type DownloadToast = FileDownloadStartedDetail & { startedAt: number };
 
 const DOWNLOAD_TOAST_DURATION_MS = 5_000;
+const NOTIFICATION_REFRESH_INTERVAL_MS = 2 * 60_000;
 
 const notificationTone = (type: string) => {
   if (type === 'ISSUE') return { priority: 'Critical', title: 'text-rose-300', glow: 'shadow-[inset_0_-18px_24px_-24px_rgba(244,63,94,0.95)]' };
@@ -51,7 +52,20 @@ export function NotificationCenter() {
     setItems(nextItems);
     setUnreadCount(payload.unreadCount || 0);
   }, [fetch]);
-  React.useEffect(() => { void load(); const timer = window.setInterval(() => void load(), 30_000); return () => window.clearInterval(timer); }, [load]);
+  React.useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    void load();
+    const timer = window.setInterval(refreshWhenVisible, NOTIFICATION_REFRESH_INTERVAL_MS);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [load]);
   React.useEffect(() => {
     if (!popup) return;
     const timer = window.setTimeout(() => setPopup(null), 10_000);

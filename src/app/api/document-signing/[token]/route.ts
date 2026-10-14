@@ -49,6 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
         recipientSignatureIpHash: signatureRequestHash(forwardedFor),
         recipientSignatureUserAgent: (request.headers.get('user-agent') || 'unavailable').slice(0, 500),
         signedContentHash: currentHash, fullySignedAt, status: fullySignedAt ? 'EXECUTED' : 'PARTIALLY_SIGNED',
+        pdfArtifact: null, artifactsGeneratedAt: null,
       },
     });
     if (!fullySignedAt) {
