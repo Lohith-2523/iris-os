@@ -7,21 +7,15 @@ import { RECAPTCHA_CONTACT_ACTION } from '@/config/recaptcha';
 import styles from './contact-form.module.css';
 
 type RecaptchaEnterpriseApi = {
-  ready?: (callback: () => void) => void;
-  render?: (container: HTMLElement, options: {
-    sitekey: string;
-    action: string;
-    theme: 'dark';
-    callback: (token: string) => void;
-    'expired-callback': () => void;
-    'error-callback': () => void;
-  }) => number;
-  reset?: (widgetId: number) => void;
+  reset?: () => void;
 };
 
 declare global {
   interface Window {
     grecaptcha?: { enterprise?: RecaptchaEnterpriseApi };
+    irisContactRecaptchaVerified?: (token: string) => void;
+    irisContactRecaptchaExpired?: () => void;
+    irisContactRecaptchaError?: () => void;
   }
 }
 
@@ -29,17 +23,14 @@ type SubmissionState = 'IDLE' | 'VERIFYING' | 'SENDING' | 'SENT' | 'ERROR';
 
 export function ContactForm({ siteKey }: { siteKey: string }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const recaptchaRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<number | null>(null);
   const requestIdRef = useRef<string>(crypto.randomUUID());
   const [state, setState] = useState<SubmissionState>('IDLE');
   const [message, setMessage] = useState('');
   const [captchaRequested, setCaptchaRequested] = useState(false);
-  const [recaptchaReady, setRecaptchaReady] = useState(false);
 
   const resetCaptcha = useCallback(() => {
-    if (typeof window.grecaptcha?.enterprise?.reset === 'function' && widgetIdRef.current !== null) {
-      window.grecaptcha.enterprise.reset(widgetIdRef.current);
+    if (typeof window.grecaptcha?.enterprise?.reset === 'function') {
+      window.grecaptcha.enterprise.reset();
     }
   }, []);
 
@@ -80,46 +71,22 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
   }, [resetCaptcha]);
 
   useEffect(() => {
-    const render = window.grecaptcha?.enterprise?.render;
-    if (state !== 'VERIFYING' || !siteKey || !recaptchaReady || !recaptchaRef.current || typeof render !== 'function' || widgetIdRef.current !== null) return;
-    try {
-      widgetIdRef.current = render(recaptchaRef.current, {
-        sitekey: siteKey,
-        action: RECAPTCHA_CONTACT_ACTION,
-        theme: 'dark',
-        callback: token => void submitVerified(token),
-        'expired-callback': () => {
-          setState('ERROR');
-          setMessage('Verification expired. Please submit the form again.');
-          resetCaptcha();
-        },
-        'error-callback': () => {
-          setState('ERROR');
-          setMessage('Verification could not start. Check your connection and try again.');
-        },
-      });
-    } catch {
+    window.irisContactRecaptchaVerified = token => void submitVerified(token);
+    window.irisContactRecaptchaExpired = () => {
       setState('ERROR');
-      setMessage('Verification could not start. Please try again or email contact@irisos.app directly.');
-    }
-  }, [recaptchaReady, resetCaptcha, siteKey, state, submitVerified]);
-
-  const handleRecaptchaReady = useCallback(() => {
-    const enterprise = window.grecaptcha?.enterprise;
-    if (typeof enterprise?.ready !== 'function') {
+      setMessage('Verification expired. Please submit the form again.');
+      resetCaptcha();
+    };
+    window.irisContactRecaptchaError = () => {
       setState('ERROR');
-      setMessage('Verification could not initialize. Please try again or email contact@irisos.app directly.');
-      return;
-    }
-    enterprise.ready(() => {
-      if (typeof window.grecaptcha?.enterprise?.render === 'function') {
-        setRecaptchaReady(true);
-      } else {
-        setState('ERROR');
-        setMessage('Verification could not initialize. Please try again or email contact@irisos.app directly.');
-      }
-    });
-  }, []);
+      setMessage('Verification could not start. Check your connection and try again.');
+    };
+    return () => {
+      delete window.irisContactRecaptchaVerified;
+      delete window.irisContactRecaptchaExpired;
+      delete window.irisContactRecaptchaError;
+    };
+  }, [resetCaptcha, submitVerified]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -128,7 +95,7 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
       setMessage('Contact verification is temporarily unavailable. Please email contact@irisos.app directly.');
       return;
     }
-    if (widgetIdRef.current !== null) resetCaptcha();
+    if (captchaRequested) resetCaptcha();
     setCaptchaRequested(true);
     setState('VERIFYING');
     setMessage('Loading secure verification…');
@@ -138,9 +105,8 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
   return <>
     {siteKey && captchaRequested && <Script
       id="iris-contact-recaptcha-enterprise"
-      src="https://www.google.com/recaptcha/enterprise.js?render=explicit"
+      src="https://www.google.com/recaptcha/enterprise.js"
       strategy="afterInteractive"
-      onReady={handleRecaptchaReady}
       onError={() => {
         setState('ERROR');
         setMessage('Verification could not load. Please email contact@irisos.app directly.');
@@ -207,7 +173,15 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
         <span><ShieldCheck aria-hidden="true" /> SECURE VERIFICATION</span>
         <h2 id="contact-verification-title">Confirming you’re human</h2>
         <p>Complete Google’s verification below. A visual challenge may appear depending on its security assessment.</p>
-        <div className={styles.recaptchaWidget} ref={recaptchaRef} />
+        <div
+          className={`${styles.recaptchaWidget}${captchaRequested ? ' g-recaptcha' : ''}`}
+          data-sitekey={captchaRequested ? siteKey : undefined}
+          data-action={captchaRequested ? RECAPTCHA_CONTACT_ACTION : undefined}
+          data-theme="dark"
+          data-callback="irisContactRecaptchaVerified"
+          data-expired-callback="irisContactRecaptchaExpired"
+          data-error-callback="irisContactRecaptchaError"
+        />
         <button className={styles.cancelVerification} type="button" onClick={() => { resetCaptcha(); setState('IDLE'); setMessage(''); }}>Cancel</button>
       </div>
     </div>

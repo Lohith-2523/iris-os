@@ -20,7 +20,8 @@
     "perf:query-plans": "node performance-audit/scripts/audit-server-first-query-plans.mjs",
     "perf:load": "node performance-audit/scripts/load-test.mjs",
     "perf:budget": "node performance-audit/scripts/check-performance-budget.mjs",
-    "perf:all": "npm run perf:routes && npm run build && npm run perf:playwright && npm run perf:load && npm run perf:budget"
+    "perf:all": "npm run perf:routes && npm run build && npm run perf:playwright && npm run perf:load && npm run perf:budget",
+    "verify:recaptcha": "node --env-file=.env scripts/verify-recaptcha-live.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.7",

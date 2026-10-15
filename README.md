@@ -94,8 +94,8 @@ SMTP_SECURE="false"
 SMTP_REQUIRE_TLS="true"
 SMTP_USER="noreply@irisos.app"
 SMTP_PASSWORD="your-google-app-password"
-RECAPTCHA_ENTERPRISE_PROJECT_ID="your-google-cloud-project-id"
 RECAPTCHA_ENTERPRISE_API_KEY="your-restricted-server-api-key"
+RECAPTCHA_ENTERPRISE_MIN_SCORE="0.5"
 APP_URL="https://irisos.app"
 ```
 
@@ -129,7 +129,10 @@ Google Calendar with event-management access.
 The public contact form uses the configured Google reCAPTCHA Enterprise checkbox
 key. Register the production domains in Google Cloud, enable the reCAPTCHA
 Enterprise API, and keep `RECAPTCHA_ENTERPRISE_API_KEY` server-only. Restrict
-that API key to the reCAPTCHA Enterprise API and the production server.
+that API key to the reCAPTCHA Enterprise API and the production server. Token
+assessments use Google Cloud project `gen-lang-client-0335126976`.
+`RECAPTCHA_ENTERPRISE_MIN_SCORE` defaults to `0.5`; tune it using production
+assessment data after the key has had time to learn normal traffic.
 
 Help requests and waitlist registrations use the existing Google OAuth client
 and an encrypted connected-account refresh token. Set `GOOGLE_SHEETS_OAUTH_USER_EMAIL`
