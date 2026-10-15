@@ -7,6 +7,7 @@ const AUTH_FREE_PAGE_PATHS = new Set([
   '/',
   '/home',
   '/coming-soon',
+  '/contact',
   '/pricing',
   '/terms',
   '/privacy',

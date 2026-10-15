@@ -40,6 +40,7 @@ const ABUSE_SENSITIVE_PATHS = new Set([
   '/api/canva/auth',
   '/api/canva/callback',
   '/api/canva/return',
+  '/api/contact',
   '/api/create-order',
   '/api/cron/waitlist-daily',
   '/api/help/ask',

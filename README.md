@@ -94,6 +94,8 @@ SMTP_SECURE="false"
 SMTP_REQUIRE_TLS="true"
 SMTP_USER="noreply@irisos.app"
 SMTP_PASSWORD="your-google-app-password"
+RECAPTCHA_ENTERPRISE_PROJECT_ID="your-google-cloud-project-id"
+RECAPTCHA_ENTERPRISE_API_KEY="your-restricted-server-api-key"
 APP_URL="https://irisos.app"
 ```
 
@@ -123,6 +125,11 @@ settings configured in Google Workspace. `SMTP_USER` and `SMTP_PASSWORD` may be
 omitted together when the relay authorizes the deployment server by IP. Miles
 meeting coordination always uses Gemini; the creating user must also connect
 Google Calendar with event-management access.
+
+The public contact form uses the configured Google reCAPTCHA Enterprise checkbox
+key. Register the production domains in Google Cloud, enable the reCAPTCHA
+Enterprise API, and keep `RECAPTCHA_ENTERPRISE_API_KEY` server-only. Restrict
+that API key to the reCAPTCHA Enterprise API and the production server.
 
 Help requests and waitlist registrations use the existing Google OAuth client
 and an encrypted connected-account refresh token. Set `GOOGLE_SHEETS_OAUTH_USER_EMAIL`

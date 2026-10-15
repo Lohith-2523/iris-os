@@ -402,6 +402,36 @@ export function helpRequestNotificationEmail(input: {
   };
 }
 
+export function contactRequestNotificationEmail(input: {
+  name: string;
+  email: string;
+  company?: string;
+  topic: string;
+  subject: string;
+  message: string;
+}) {
+  return {
+    subject: `[IrisOS contact] ${input.subject}`,
+    html: irisInviteLayout({
+      documentTitle: input.subject,
+      eyebrow: 'Website contact',
+      title: input.subject,
+      intro: input.message,
+      details: [
+        { label: 'From', value: `${input.name} · ${input.email}` },
+        { label: 'Company', value: input.company || 'Not provided' },
+        { label: 'Topic', value: input.topic },
+      ],
+      ctaLabel: 'Reply to sender',
+      ctaUrl: `mailto:${input.email}`,
+      securityNote: 'This message was verified by Google reCAPTCHA before delivery.',
+      badgeLabel: 'Contact',
+      footerNote: 'IrisOS website contact notification.',
+    }),
+    text: `${input.name} (${input.email}) submitted an IrisOS contact request.\n\nCompany: ${input.company || 'Not provided'}\nTopic: ${input.topic}\nSubject: ${input.subject}\n\n${input.message}`,
+  };
+}
+
 export function waitlistDailyReportEmail(input: { reportDate: string; entryCount: number }) {
   return {
     subject: `IrisOS waitlist — ${input.reportDate}`,

@@ -202,3 +202,40 @@
 [0919/204713.556:ERROR:gpu\ipc\client\command_buffer_proxy_impl.cc:285] ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer.
 [0919/204713.556:ERROR:gpu\ipc\client\command_buffer_proxy_impl.cc:285] ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer.
 [0919/204713.556:ERROR:gpu\ipc\client\command_buffer_proxy_impl.cc:285] ContextResult::kTransientFailure: Failed to send GpuControl.CreateCommandBuffer.
+[1015/164830.785:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 3
+[1015/164830.937:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 5
+[1015/164831.119:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 9
+[1015/164831.194:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 11
+[1015/164831.267:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 13
+[1015/164831.334:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 15
+[1015/164831.409:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 17
+[1015/164831.474:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 19
+[1015/164831.689:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 23
+[1015/164831.822:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 27
+[1015/164831.942:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 29
+[1015/164832.078:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 31
+[1015/164832.185:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 33
+[1015/164832.326:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 35
+[1015/164832.669:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 39
+[1015/164833.034:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 43
+[1015/164833.422:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 45
+[1015/164833.789:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 47
+[1015/164833.875:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 49
+[1015/164833.954:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 51
+[1015/164834.023:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 53
+[1015/164834.469:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 55
+[1015/164834.625:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 57
+[1015/164835.368:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 61
+[1015/164835.570:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 65
+[1015/164835.859:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 73
+[1015/164836.061:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 77
+[1015/164836.200:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 81
+[1015/164836.404:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 83
+[1015/164836.473:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 85
+[1015/164836.830:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 89
+[1015/164836.984:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 93
+[1015/164837.053:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 95
+[1015/164849.235:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 3
+[1015/164856.371:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 1
+[1015/164856.437:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 3
+[1015/164856.572:WARNING:net\spdy\spdy_session.cc:3161] Received HEADERS for invalid stream 5

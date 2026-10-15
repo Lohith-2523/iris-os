@@ -10,6 +10,8 @@ import { IrisPricingComparison } from '@/components/landing/iris-pricing-compari
 import { ConsoleEcosystem, MilesAiSection } from '@/components/landing/iris-landing-sections';
 import { FlippingWordSwap } from '@/components/ui/flipping-word-swap';
 import type { pricingCatalog, PricingRegion } from '@/lib/plan-pricing';
+import instagramIcon from '../../instagram.png';
+import discordIcon from '../../discord.png';
 
 const irisLogo = '/iris-logo-black-bg.png';
 const siteStructuredData = {
@@ -1294,8 +1296,9 @@ function Footer() {
       <span style={{ fontFamily: MONO, fontSize: '12px', color: 'rgba(232,232,232,0.22)', letterSpacing: '0.02em' }}>
         © 2026 IrisOS. All rights reserved.
       </span>
-      <div style={{ display: 'flex', gap: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '18px', flexWrap: 'wrap' }}>
         {[
+          { label: 'Contact', href: '/contact' },
           { label: 'Privacy', href: '/privacy' },
           { label: 'Terms', href: '/terms' },
           { label: 'Cancellations & Refunds', href: '/cancellation-refund-policy' },
@@ -1309,6 +1312,21 @@ function Footer() {
         >
           {item.label}
         </Link>)}
+        <span aria-hidden="true" style={{ width: '1px', height: '18px', background: 'rgba(255,255,255,0.1)' }} />
+        {[
+          { label: 'Instagram', href: 'https://www.instagram.com/irisos.app/', icon: instagramIcon },
+          { label: 'Discord', href: 'https://discord.gg/payRxxz49m', icon: discordIcon },
+        ].map((item) => <a
+          key={item.label}
+          href={item.href}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`IrisOS on ${item.label}`}
+          title={item.label}
+          style={{ display: 'grid', placeItems: 'center', width: '34px', height: '34px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', background: 'rgba(255,255,255,0.025)' }}
+        >
+          <Image src={item.icon} alt="" width={18} height={18} style={{ width: '18px', height: '18px', objectFit: 'contain', opacity: 0.72 }} />
+        </a>)}
       </div>
     </footer>
   )
