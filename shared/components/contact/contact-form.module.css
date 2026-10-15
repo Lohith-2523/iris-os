@@ -8,7 +8,7 @@
   box-shadow: 18px 18px 48px rgba(0, 0, 0, 0.42), inset 0 1px rgba(255, 255, 255, 0.055);
 }
 
-.formHeader, .formFooter, .verification, .status { display: flex; align-items: center; }
+.formHeader, .formFooter, .status { display: flex; align-items: center; }
 .formHeader { justify-content: space-between; padding-bottom: 0.9rem; border-bottom: 1px solid rgba(255, 255, 255, 0.07); color: #a1a1aa; font-family: var(--font-geist-mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; }
 .formHeader svg { width: 1rem; height: 1rem; color: #e4e4e7; }
 .twoColumns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
@@ -30,10 +30,7 @@
 .form :is(input, select, textarea):focus { border-color: rgba(255, 255, 255, 0.28); background: rgba(15, 15, 17, 0.9); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.045); }
 .form select { color-scheme: dark; }
 .honeypot { position: absolute !important; left: -10000px !important; width: 1px !important; height: 1px !important; overflow: hidden !important; }
-.formFooter { justify-content: space-between; gap: 1rem; padding-top: 0.25rem; }
-.verification { min-width: 0; gap: 0.65rem; color: #71717a; font-size: 0.68rem; line-height: 1.45; }
-.verification > span { display: flex; align-items: center; gap: 0.4rem; max-width: 18rem; }
-.verification svg { width: 0.9rem; height: 0.9rem; flex: 0 0 auto; }
+.formFooter { justify-content: flex-end; gap: 1rem; padding-top: 0.25rem; }
 .form button {
   display: inline-flex;
   min-width: 10.5rem;
@@ -71,7 +68,6 @@
   .twoColumns { grid-template-columns: 1fr; }
   .formFooter { align-items: stretch; flex-direction: column; }
   .form button { width: 100%; }
-  .verification { flex-wrap: wrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {

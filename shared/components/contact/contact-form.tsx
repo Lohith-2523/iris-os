@@ -114,7 +114,7 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
     />}
     <form ref={formRef} className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.formHeader}>
-        <span>SECURE INQUIRY</span>
+        <span>CONTACT US</span>
         <ShieldCheck aria-hidden="true" />
       </div>
       <div className={styles.twoColumns}>
@@ -156,9 +156,6 @@ export function ContactForm({ siteKey }: { siteKey: string }) {
         <input name="website" tabIndex={-1} autoComplete="off" />
       </label>
       <div className={styles.formFooter}>
-        <div className={styles.verification}>
-          <span><ShieldCheck aria-hidden="true" /> Google reCAPTCHA Enterprise opens securely when you submit.</span>
-        </div>
         <button type="submit" disabled={busy}>
           {busy ? message : 'Send message'}
           {!busy && <ArrowRight aria-hidden="true" />}
