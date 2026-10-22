@@ -5,6 +5,7 @@ import { WORKSPACE_ONBOARDING_TOUR_PENDING_KEY } from '@/lib/workspace-tour-conf
 import { parseAgencyIndustryList } from '@/lib/agency-industry-list';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ShieldCheck, Building, User, Loader2 } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function OnboardingPage() {
   const [advancingStep, setAdvancingStep] = React.useState<'agency' | 'pricing' | 'consent' | null>(null);
   const transitionLockRef = React.useRef(false);
 
-  const [email, setEmail] = React.useState('');
+  const [, setEmail] = React.useState('');
   const { region: pricingRegion, plans: regionalPlans, loading: pricingLoading } = usePlanPricing();
   const PLANS = regionalPlans.map((price) => ({
     ...price,
@@ -261,7 +262,7 @@ export default function OnboardingPage() {
 
       {/* Top logo */}
       <div className="max-w-6xl mx-auto w-full flex items-center gap-2 mb-8 relative z-10 shrink-0">
-        <img src="/iris-logo-black-bg.png" alt="IrisOS Logo" className="h-8 object-contain" />
+        <Image src="/iris-logo-black-bg.png" alt="IrisOS Logo" width={84} height={32} className="h-8 w-auto object-contain" />
         <span className="text-md font-bold font-heading tracking-tight text-zinc-400">Onboarding</span>
       </div>
 

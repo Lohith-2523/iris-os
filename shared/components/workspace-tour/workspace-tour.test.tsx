@@ -219,7 +219,7 @@ describe('WorkspaceTour', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByRole('heading', { name: 'Import many leads' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByRole('heading', { name: 'Open Agency Meta' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Open Meta Business' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect Meta' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(screen.getByRole('heading', { name: 'Connect Meta for leads' })).toBeInTheDocument();

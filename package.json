@@ -2,6 +2,9 @@
   "name": "temp-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "prisma generate && next dev",
     "db:push": "prisma db push",
@@ -84,5 +87,11 @@
   },
   "prisma": {
     "seed": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" prisma/seed.ts"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "prisma@7.10.0": true,
+    "unrs-resolver@1.12.2": true,
+    "@prisma/engines@7.10.0": true
   }
 }

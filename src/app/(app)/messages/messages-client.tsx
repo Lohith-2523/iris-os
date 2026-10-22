@@ -298,7 +298,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
       throw new Error(payload.error || 'Unable to load secure messaging.');
     }
     return messagingResponse.json() as Promise<InboxPayload>;
-  }, []);
+  }, [fetch]);
 
   const applyInbox = React.useCallback((payload: InboxPayload) => {
     setDirectory(payload.directory || []);
@@ -466,7 +466,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
     } finally {
       syncingConversationIdsRef.current.delete(conversation.id);
     }
-  }, [protocol, runtime.isDemo]);
+  }, [fetch, protocol, runtime.isDemo]);
 
   React.useEffect(() => {
     let current = true;
@@ -533,7 +533,7 @@ export default function MessagesClient({ initialInbox }: { initialInbox: InboxPa
       window.removeEventListener('focus', syncWhenVisible);
       document.removeEventListener('visibilitychange', syncWhenVisible);
     };
-  }, [loadMessages, selected]);
+  }, [fetch, loadMessages, selected]);
 
   const updateActiveMessages = React.useCallback((update: (current: DisplayMessage[]) => DisplayMessage[]) => {
     setMessages((current) => {

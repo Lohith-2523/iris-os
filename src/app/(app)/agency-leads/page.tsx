@@ -11,12 +11,10 @@ import {
   Users,
   Search,
   RefreshCw,
-  ShieldCheck,
   Eye,
   CheckCircle2,
   X,
   AlertTriangle,
-  ArrowRight,
   TrendingUp,
   Award,
   Download,
@@ -155,8 +153,8 @@ export default function AgencyLeadsPage() {
 
   // Bulk Import State
   const [stagedLeads, setStagedLeads] = React.useState<any[]>([]);
-  const [isTemplateAligned, setIsTemplateAligned] = React.useState<boolean | null>(null);
-  const [uploadStatus, setUploadStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+  const [, setIsTemplateAligned] = React.useState<boolean | null>(null);
+  const [, setUploadStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
   const [isParsing, setIsParsing] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState('');
 
@@ -206,7 +204,7 @@ export default function AgencyLeadsPage() {
 
   // Spend value for calculating CAC/ROAS on this page
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     try {
       setLoading(true);
       const [res, integrationsRes, workspaceRes] = await Promise.all([fetch('/api/agency-leads?view=kanban'), fetch('/api/integrations'), fetch('/api/workspace')]);
@@ -242,7 +240,7 @@ export default function AgencyLeadsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetch]);
 
   const postAgencyMeta = async (body: Record<string, unknown>) => {
     setMetaBusy(true);
@@ -314,7 +312,7 @@ export default function AgencyLeadsPage() {
 
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   React.useEffect(() => {
     if (selectedLead) setLeadDraft({ ...selectedLead, followUpAt: selectedLead.followUpAt ? new Date(selectedLead.followUpAt).toISOString().slice(0, 16) : '' });
@@ -809,10 +807,6 @@ export default function AgencyLeadsPage() {
   const totalLeads = leads.length;
   const closedLeads = leads.filter((l) => l.status?.toLowerCase() === 'closed').length;
   const lostLeads = leads.filter((l) => l.status?.toLowerCase() === 'lost').length;
-  const procuredLeads = leads.filter((l) => l.status?.toLowerCase() === 'procured' || l.status?.toLowerCase() === 'new').length;
-  const warmLeads = leads.filter((l) => l.status?.toLowerCase() === 'warm' || l.status?.toLowerCase() === 'cold-call in progress').length;
-  const coldLeads = leads.filter((l) => l.status?.toLowerCase() === 'cold' || l.status?.toLowerCase() === 'call back required').length;
-
   const hasAgencyMetaAccount = (agencyMeta?.accounts.length || 0) > 0;
   const conversionRate = totalLeads > 0 ? (closedLeads / totalLeads) * 100 : 0;
   const leadSummaryMetrics = [

@@ -99,7 +99,7 @@ async function main() {
     },
   });
 
-  const brand3 = await prisma.brand.create({
+  await prisma.brand.create({
     data: {
       name: 'Helios Media',
       logoUrl: '/brands/helios.png',
@@ -121,7 +121,7 @@ async function main() {
     },
   });
 
-  const shardsUser = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'shardsmedia.ai@gmail.com',
       name: 'Tarun Dayanand',
@@ -150,7 +150,7 @@ async function main() {
     },
   });
 
-  const user4 = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'elena.r@apex.co',
       name: 'Elena Rostova',
@@ -170,7 +170,7 @@ async function main() {
     },
   });
 
-  const testMember = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'member@apex.co',
       name: 'Test Member',
@@ -191,7 +191,7 @@ async function main() {
     },
   });
 
-  const userClientNew = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'client_new@client.co',
       name: 'New Client',
@@ -588,7 +588,7 @@ async function main() {
     },
   });
 
-  const auto2 = await prisma.automation.create({
+  await prisma.automation.create({
     data: {
       name: 'Design Approval Sync',
       description: 'Notify Lead Designer when client approves asset in Design Hub.',
@@ -941,8 +941,8 @@ async function main() {
   // Create Projects
   let projAether: any, projVertex: any, projSolaria: any, projPulse: any;
   let stageAether1: any, stageAether2: any, stageAether3: any;
-  let stageVertex1: any, stageVertex2: any, stageVertex3: any;
-  let stageSolaria1: any, stageSolaria2: any;
+  let stageVertex1: any, stageVertex2: any;
+  let stageSolaria1: any;
   let stagePulse1: any, stagePulse2: any;
 
   if (aether) {
@@ -1031,7 +1031,7 @@ async function main() {
         projectId: projVertex.id
       }
     });
-    stageVertex3 = await prisma.projectStage.create({
+    await prisma.projectStage.create({
       data: {
         name: 'UAT & Launch',
         color: '#2DD4BF',
@@ -1069,7 +1069,7 @@ async function main() {
         projectId: projSolaria.id
       }
     });
-    stageSolaria2 = await prisma.projectStage.create({
+    await prisma.projectStage.create({
       data: {
         name: 'SEO Implementation',
         color: '#60A5FA',
@@ -1164,7 +1164,7 @@ async function main() {
     await prisma.taskUpdate.create({ data: { content: 'Gathering clickmap data on the primary hero section.', taskId: task2.id, createdAt: new Date('2026-06-29T11:00:00Z') } });
     await prisma.taskComment.create({ data: { content: 'Bounce rate dropped by 4.2% since yesterday.', taskId: task2.id, userId: user3.id, createdAt: new Date('2026-06-30T10:00:00Z') } });
 
-    const task3 = await prisma.clientTask.create({
+    await prisma.clientTask.create({
       data: {
         title: 'Set up Facebook Lead Ads campaign',
         description: 'Draft ad sets targeting tech founders and set daily budgets.',

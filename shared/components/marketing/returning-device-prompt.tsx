@@ -50,7 +50,7 @@ export function ReturningDevicePrompt() {
     }
 
     if (choice === 'LOGIN') {
-      window.location.assign('/login');
+      window.location.replace('/login');
       return;
     }
     setOpen(false);

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { invalidateWorkspaceDataTags } from '@/lib/workspace-data-cache';
 import { useSearchParams } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -21,8 +21,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Trash2,
-  Edit2,
-  ExternalLink
+  Edit2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
@@ -243,6 +242,8 @@ export default function CalendarPage() {
         return;
       }
       setSyncingGoogle(true);
+      // OAuth starts through a Route Handler and therefore requires a document navigation.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign('/api/integrations/google/start?returnTo=/calendar');
     }
   };

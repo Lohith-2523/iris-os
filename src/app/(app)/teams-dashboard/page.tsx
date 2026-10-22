@@ -11,22 +11,14 @@ import {
   Calendar as CalendarIcon,
   Play,
   Activity,
-  AlertTriangle,
-  Loader2,
   X,
   User,
   Clock,
   ExternalLink,
-  MessageSquare,
-  ArrowRight,
-  ShieldAlert,
-  Send,
   Video,
-  MapPin,
-  Lock,
-  Users
+  Lock
 } from 'lucide-react';
-import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { formatUserMessage } from '@/lib/utils';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 
 interface Task {
@@ -70,7 +62,7 @@ export default function TeamsDashboardPage() {
   const [calendarEvents, setCalendarEvents] = React.useState<CalendarEvent[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [updatingTaskId, setUpdatingTaskId] = React.useState<string | null>(null);
+  const [, setUpdatingTaskId] = React.useState<string | null>(null);
   const taskWritesInFlight = React.useRef(new Set<string>());
 
   // Selected Task Detail Modal State
@@ -87,7 +79,7 @@ export default function TeamsDashboardPage() {
   });
 
   // Calendar Date State - defaults to June/July 2026 based on DB seed
-  const [currentDate, setCurrentDate] = React.useState<Date>(new Date('2026-07-02T12:00:00'));
+  const [currentDate] = React.useState<Date>(new Date('2026-07-02T12:00:00'));
   const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | null>(null);
 
   const loadData = React.useCallback(async () => {
@@ -110,10 +102,9 @@ export default function TeamsDashboardPage() {
         setTasks(myTasks);
 
         // Refresh selected task if open
-        if (selectedTask) {
-          const fresh = myTasks.find(t => t.id === selectedTask.id);
-          if (fresh) setSelectedTask(fresh);
-        }
+        setSelectedTask((current) => current
+          ? myTasks.find((task) => task.id === current.id) || current
+          : current);
       }
 
       if (calRes.ok) {
@@ -131,11 +122,11 @@ export default function TeamsDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTask?.id]);
+  }, [setSelectedTask]);
 
   React.useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Task Status Update (Drag & Drop or Manual)
   const handleUpdateStatus = async (taskId: string, newStatus: Task['status']) => {

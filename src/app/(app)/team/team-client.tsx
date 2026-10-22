@@ -83,7 +83,7 @@ export default function TeamClient({ initialData }: { initialData: TeamReadModel
     } finally {
       setLoadingMemberTasks(false);
     }
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => {
     if (selectedMember) {

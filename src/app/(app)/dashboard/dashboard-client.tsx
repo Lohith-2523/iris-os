@@ -358,6 +358,8 @@ export default function DashboardPage({ initialData, range }: { initialData: Das
       return;
     }
     if (id === 'google') {
+      // OAuth starts through a Route Handler and therefore requires a document navigation.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign('/api/google/auth');
       return;
     }

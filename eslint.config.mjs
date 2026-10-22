@@ -9,7 +9,13 @@ const eslintConfig = defineConfig([
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/set-state-in-effect": "off",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true,
+      }],
     }
   },
   // Override default ignores of eslint-config-next.
@@ -19,6 +25,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Archived, offline, generated, and scratch work is not part of the
+    // production application or its TypeScript compilation scope.
+    "backup-features/**",
+    "integrations_offline/**",
+    "new-landing-page/**",
+    "tmp/**",
+    "output/**",
+    "performance-audit/results/**",
   ]),
 ]);
 

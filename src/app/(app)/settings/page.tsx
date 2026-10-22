@@ -49,14 +49,10 @@ import {
   Check,
   AlertTriangle,
   Blocks,
-  ArrowLeft,
   RefreshCw,
-  Wallet,
   TrendingUp,
   Activity,
-  CheckCircle,
   XCircle,
-  HelpCircle,
   Trash2,
   Loader2,
   X,
@@ -125,7 +121,7 @@ const INDIAN_BANKS = [
   'Central Bank of India'
 ];
 
-const AGENCY_INDUSTRIES = [
+const _AGENCY_INDUSTRIES = [
   { id: 'marketing', name: 'Digital Marketing Agency', icon: Target, description: 'Core leadgen, campaign data, and analytics mapping.' },
   { id: 'social', name: 'Social Media Management Agency', icon: MessageSquare, description: 'Active platforms, content pillars, and community logs.' },
   { id: 'seo', name: 'SEO Agency', icon: Search, description: 'Keyword baselines, technical audits, and organic targets.' },
@@ -1064,7 +1060,7 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex min-h-24 items-center justify-center rounded border border-zinc-800 bg-white p-3">
                         {invoiceLogoDataUrl
-                          ? <img src={invoiceLogoDataUrl} alt="Invoice logo preview" className="max-h-16 max-w-full object-contain" />
+                          ? <Image src={invoiceLogoDataUrl} alt="Invoice logo preview" width={256} height={64} unoptimized className="max-h-16 max-w-full object-contain" />
                           : <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Logo preview</span>}
                       </div>
                     </div>
@@ -1908,7 +1904,11 @@ export default function SettingsPage() {
                                           }
                                         } else if (item.provider === 'GOOGLE') {
                                           if (runtime.isDemo) runtime.demo?.showNotice('External account connections are disabled inside the safe demo.');
-                                          else window.location.assign('/api/integrations/google/start?returnTo=/calendar');
+                                          else {
+                                            // OAuth starts through a Route Handler and requires a document navigation.
+                                            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+                                            window.location.assign('/api/integrations/google/start?returnTo=/calendar');
+                                          }
                                         }
                                       }}
                                       className="h-8 bg-white text-zinc-950 font-bold hover:bg-zinc-200 text-xs"
@@ -2400,7 +2400,7 @@ export default function SettingsPage() {
                           setWipeStatus('error');
                           setWipeError(data.error || (destructiveAction === 'delete' ? 'Failed to delete the account.' : 'Failed to wipe data.'));
                         }
-                      } catch (err) {
+                        } catch (_err) {
                         setWipeStatus('error');
                         setWipeError('Network connection error.');
                       }

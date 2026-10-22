@@ -274,6 +274,7 @@ function AccessView({ data, admin, mutate, busy }: { data: AdminDashboardData; a
 }
 
 function SettingsView({ admin, mutate, busy }: { admin: SuperadminIdentity; mutate: Mutate; busy: boolean }) {
+  const router = useRouter();
   const [name, setName] = useState(admin.name);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(admin.avatarUrl);
   const [imageBusy, setImageBusy] = useState(false);
@@ -287,7 +288,7 @@ function SettingsView({ admin, mutate, busy }: { admin: SuperadminIdentity; muta
       </form>
     </Panel>
     <Panel title="Session" description={`Signed in with ${admin.role.toLowerCase()} access`}>
-      <div className="space-y-5 p-5"><p className="text-sm leading-6 text-zinc-400">Sign out of the superadmin workspace on this device.</p><Button variant="outline" onClick={async () => { await createClient().auth.signOut(); window.location.assign('/admin/login'); }}><LogOut className="mr-2 h-4 w-4" />Sign out</Button></div>
+      <div className="space-y-5 p-5"><p className="text-sm leading-6 text-zinc-400">Sign out of the superadmin workspace on this device.</p><Button variant="outline" onClick={async () => { await createClient().auth.signOut(); router.replace('/admin/login'); }}><LogOut className="mr-2 h-4 w-4" />Sign out</Button></div>
     </Panel>
   </div>;
 }

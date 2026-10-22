@@ -3,25 +3,15 @@
 import * as React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { InsightPanel } from '@/components/ui/insight-panel';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   ArrowUpRight,
   ArrowDownRight,
-  DollarSign,
   Download,
-  Plus,
   Filter,
   Wallet,
   TrendingUp,
-  Activity,
-  CheckCircle,
-  HelpCircle,
-  RefreshCw,
-  CreditCard,
-  Blocks,
-  Key,
   Upload,
   Sparkles,
   Trash2,
@@ -29,8 +19,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { AtlasAIService } from '@/lib/atlas-ai/service';
-import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
-import { formatCurrencyFor, formatUserMessage, getCurrencySymbol } from '@/lib/utils';
+import { formatCurrencyFor, getCurrencySymbol } from '@/lib/utils';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import { RevenueLineChart } from '@/components/ui/revenue-line-chart';
 import { DateInput } from '@/components/ui/date-input';
@@ -52,24 +41,20 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
   const router = runtime.router;
   const fetch = runtime.fetch;
   const searchParams = useSearchParams();
-  const initialChecklist = (initialData.workspace.onboarding.checklist && typeof initialData.workspace.onboarding.checklist === 'object'
-    ? initialData.workspace.onboarding.checklist
-    : {}) as Record<string, unknown>;
-  const [isSkippedAll] = React.useState(Boolean(initialChecklist.skippedAll));
   const [activeTab, setActiveTab] = React.useState<'overview' | 'manual' | 'stripe' | 'paypal' | 'razorpay'>('overview');
-  const [integrations, setIntegrations] = React.useState<any[]>(initialData.workspace.integrations);
-  const [loadingIntegrations, setLoadingIntegrations] = React.useState(false);
+  const [, setIntegrations] = React.useState<any[]>(initialData.workspace.integrations);
+  const [, setLoadingIntegrations] = React.useState(false);
 
   const [dbData, setDbData] = React.useState<any>(initialData.finance);
   const [loadingFinanceRange, setLoadingFinanceRange] = React.useState(false);
-  const [leakData, setLeakData] = React.useState<any>(null);
+  const [, setLeakData] = React.useState<any>(null);
   const [currencyState] = React.useState(initialData.workspace.organization.currency || 'USD');
   const formatCurrency = React.useCallback((amount: number, decimals: number = 0) => formatCurrencyFor(amount, currencyState, decimals), [currencyState]);
   const [uiScope] = React.useState<WorkspaceUiScope | null>({ userId: initialData.workspace.user.id, orgId: initialData.workspace.organization.id });
 
   // Manual Entry States
   const [manualTransactions, setManualTransactions] = React.useState<any[]>([]);
-  const [loadingManual, setLoadingManual] = React.useState(false);
+  const [, setLoadingManual] = React.useState(false);
   const [isSavingTransaction, setIsSavingTransaction] = React.useState(false);
   const [isImportingTransactions, setIsImportingTransactions] = React.useState(false);
   const [bankNames] = React.useState<string[]>(initialData.workspace.organization.bankNames);
@@ -850,11 +835,6 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
     startRangeTransition(() => router.push(`/finance?${params.toString()}`));
   };
 
-  const aiLeakText = React.useMemo(() => {
-    if (!leakData) return formatUserMessage('Lohith, running profit leak audit calculations via Miles AI...');
-    return formatUserMessage(`Lohith, Miles AI has detected a budget overage: ${leakData.description} Reassigning tasks to David Kim would recover ${formatCurrency(leakData.impactValue)}/mo in direct margins.`);
-  }, [leakData, currencyState]);
-
   const combinedMetrics = React.useMemo(() => {
     const baseOutstanding = dbData?.outstandingAmount ?? 0;
     const baseExpenses = dbData?.totalExpenses ?? 0;
@@ -879,16 +859,6 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
       aiSubscriptionCosts
     };
   }, [dbData, outstandingInvoices]);
-
-  const expenseBreakdownData = React.useMemo(() => {
-    const aiCosts = combinedMetrics.aiSubscriptionCosts;
-    let baseOps = combinedMetrics.totalExpenses - aiCosts;
-    if (baseOps < 0) baseOps = 0;
-    return [
-      { name: 'AI Subscriptions', value: aiCosts, color: '#6366f1' },
-      { name: 'Operational & Gateway', value: baseOps, color: '#f43f5e' }
-    ].filter(d => d.value > 0);
-  }, [combinedMetrics]);
 
   const aiSpendSplitData = React.useMemo(() => {
     const map = new Map<string, number>();
@@ -996,7 +966,7 @@ export default function FinancePage({ initialData, range }: { initialData: Finan
     });
 
     return list;
-  }, [combinedTransactions, isSkippedAll]);
+  }, [combinedTransactions]);
 
   const topClientsByProfit = React.useMemo(() => {
     return [...clientProfitability].sort((a, b) => b.profit - a.profit);

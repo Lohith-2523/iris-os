@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { MetaAdAccountSelect } from '@/components/integrations/meta-ad-account-select';
 import { MetaEnabledLabel } from '@/components/integrations/meta-brand-lockup';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatPercent, formatUserMessage } from '@/lib/utils';
+import { formatCurrency, formatUserMessage } from '@/lib/utils';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { clientHasMetaEnabledProject } from '@/lib/agency-specializations';
 import { taskStatusLabel } from '@/lib/tasks/status-progress';
@@ -22,21 +22,16 @@ import {
   ArrowLeft,
   Plus,
   Trash2,
-  CheckCircle,
   AlertTriangle,
   Loader2,
   Activity,
   User,
   DollarSign,
   Building,
-  Target,
   ExternalLink,
   ShieldCheck,
-  TrendingUp,
   Globe,
-  Cpu,
   Code,
-  Calendar,
   Layers,
   Edit2,
   Megaphone,
@@ -44,7 +39,6 @@ import {
   RefreshCw,
   BarChart3,
   X,
-  Lock,
   ArrowRight,
   Save,
   Download,

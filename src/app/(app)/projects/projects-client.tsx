@@ -8,13 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Plus,
-  Calendar,
   AlertTriangle,
   Loader2,
-  Users,
   ArrowRight,
   X,
-  Layers,
   ArrowUp,
   ArrowDown,
   Edit2,
@@ -26,7 +23,6 @@ import {
   CircleDollarSign,
   TimerReset,
 } from 'lucide-react';
-import { ExpandableCard } from '@/components/ui/expandable-card';
 import { formatCurrencyFor, getCurrencySymbol, cn } from '@/lib/utils';
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
@@ -213,7 +209,7 @@ export default function ProjectsPage({ initialData }: { initialData: ProjectsRea
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetch]);
 
   // Initialize Edit form when detail drawer opens
   React.useEffect(() => {

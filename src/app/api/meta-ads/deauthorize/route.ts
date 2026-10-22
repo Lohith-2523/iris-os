@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   return NextResponse.json({
     status: 'active',
     message: 'Meta OAuth Deauthorization endpoint is active. Use POST with signed_request to trigger.',

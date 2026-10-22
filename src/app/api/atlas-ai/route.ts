@@ -286,7 +286,7 @@ function determineModelHeuristically(query: string): 'Gemini' | 'ChatGPT' | 'Mil
   return 'Gemini';
 }
 
-function generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Miles AI', query: string, context: any, currency: string): string {
+function _generateDynamicFallback(model: 'Gemini' | 'ChatGPT' | 'Miles AI', query: string, context: any, currency: string): string {
   const q = (query || '').toLowerCase();
   
   const activeClients = [
@@ -1299,7 +1299,7 @@ async function handleAtlasRequest(request: NextRequest, onDelta?: (delta: string
             } else {
               delegatedModel = determineModelHeuristically(query);
             }
-          } catch (e) {
+          } catch (_e) {
             delegatedModel = determineModelHeuristically(query);
           }
         } else {

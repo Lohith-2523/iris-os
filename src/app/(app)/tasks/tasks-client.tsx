@@ -10,18 +10,10 @@ import {
   Kanban,
   List,
   Plus,
-  Play,
-  Activity,
-  AlertTriangle,
   CheckCircle,
   Loader2,
   X,
-  User,
-  Clock,
   ExternalLink,
-  MessageSquare,
-  ArrowRight,
-  ShieldAlert,
   Send,
   Layers,
   Pencil
@@ -82,7 +74,7 @@ function taskEditorValues(task: any) {
 
 export default function TasksPage({ initialData }: { initialData: TasksReadModel }) {
   const searchParams = useSearchParams();
-  const { router, fetch } = useWorkspaceRuntime();
+  const { fetch } = useWorkspaceRuntime();
   const urlProjectId = searchParams.get('projectId');
   const urlTaskId = searchParams.get('taskId');
 
@@ -216,7 +208,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
     }
     setEditTaskForm(taskEditorValues(selectedTask));
     setTaskEditError('');
-  }, [selectedTask?.id]);
+  }, [selectedTask]);
 
   const resetTaskEditor = React.useCallback(() => {
     if (selectedTask) setEditTaskForm(taskEditorValues(selectedTask));
@@ -252,19 +244,16 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
         setTasks(data);
 
         // If modal task is open, refresh its data too
-        if (selectedTask) {
-          const freshTask = data.find((t: any) => t.id === selectedTask.id);
-          if (freshTask) {
-            setSelectedTask(freshTask);
-          }
-        }
+        setSelectedTask((current: any) => current
+          ? data.find((task: any) => task.id === current.id) || current
+          : current);
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [selectedProjectId, selectedTask?.id]);
+  }, [fetch, selectedProjectId]);
 
   React.useEffect(() => {
     setSelectedProjectId(urlProjectId || 'all');
@@ -524,7 +513,7 @@ export default function TasksPage({ initialData }: { initialData: TasksReadModel
         return next;
       });
     }
-  }, [canEditTaskInline]);
+  }, [canEditTaskInline, fetch]);
 
   const handleTaskDrop = React.useCallback((taskId: string, changes: TaskInlineChanges) => {
     const task = tasks.find((item) => item.id === taskId);

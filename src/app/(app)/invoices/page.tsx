@@ -149,6 +149,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = React.useState(true);
   const [creating, setCreating] = React.useState(false);
   const [creatingProjectInvoice, setCreatingProjectInvoice] = React.useState(false);
+  const [tab, setTab] = React.useState<PageTab>('OVERVIEW');
 
   React.useEffect(() => {
     const showTourTab = (event: Event) => {
@@ -160,7 +161,6 @@ export default function InvoicesPage() {
   }, []);
   const [error, setError] = React.useState('');
   const [success, setSuccess] = React.useState('');
-  const [tab, setTab] = React.useState<PageTab>('OVERVIEW');
   const [downloadingInvoiceId, setDownloadingInvoiceId] = React.useState<string | null>(null);
   const [projectInvoiceProjectId, setProjectInvoiceProjectId] = React.useState('');
   const [taxForm, setTaxForm] = React.useState({
@@ -267,7 +267,7 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => { load(); }, [load]);
 

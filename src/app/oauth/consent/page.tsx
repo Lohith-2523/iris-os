@@ -38,7 +38,7 @@ function ConsentContent() {
       window.location.href = targetUrl.toString();
     } catch (e) {
       console.error('Invalid redirect_uri:', e);
-      window.location.href = `/dashboard?code=${code}&state=${state}`;
+      window.location.replace(`/dashboard?code=${code}&state=${state}`);
     }
   };
 
@@ -51,7 +51,7 @@ function ConsentContent() {
       window.location.href = targetUrl.toString();
     } catch (e) {
       console.error('Invalid redirect_uri:', e);
-      window.location.href = `/dashboard?error=access_denied&state=${state}`;
+      window.location.replace(`/dashboard?error=access_denied&state=${state}`);
     }
   };
 

@@ -2,11 +2,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const mocks = vi.hoisted(() => ({ invite: vi.fn(), identity: vi.fn(), existing: vi.fn(), save: vi.fn(), used: vi.fn() }));
+const mocks = vi.hoisted(() => ({ invite: vi.fn(), identity: vi.fn(), existing: vi.fn(), save: vi.fn(), used: vi.fn(), organization: vi.fn() }));
 vi.mock('@/lib/db', () => ({ prisma: {
   clientInvite: { findUnique: mocks.invite, update: mocks.used },
   memberInvite: { findUnique: mocks.invite, update: mocks.used },
   user: { findUnique: mocks.existing, findFirst: mocks.existing, create: mocks.save, update: mocks.save },
+  organization: { findUniqueOrThrow: mocks.organization },
 } }));
 vi.mock('@/lib/org', () => ({ getAuthenticatedIdentity: mocks.identity, getRequestUser: vi.fn(), isOrganizationAdmin: vi.fn() }));
 vi.mock('@/lib/email/iris-email', () => ({ assertIrisEmailConfigured: vi.fn(), sendIrisEmail: vi.fn(), IrisEmailDeliveryError: class extends Error {} }));
@@ -20,6 +21,7 @@ describe.each([['client', acceptClient], ['member', acceptMember]] as const)('%s
     mocks.identity.mockResolvedValue({ id: 'auth', email: 'person@example.com' });
     mocks.existing.mockResolvedValue({ id: 'user', role });
     mocks.save.mockResolvedValue({ id: 'user', email: 'person@example.com', name: 'Person', role });
+    mocks.organization.mockResolvedValue({ plan: 'BASIC' });
   });
   const submit = (avatarDataUrl: unknown) => handler(new NextRequest('https://iris.example/api/invite', { method: 'POST', body: JSON.stringify({ token: 'invite-token', action: 'complete_onboarding', avatarDataUrl }) }));
   it('saves the chosen avatar as part of activation', async () => {

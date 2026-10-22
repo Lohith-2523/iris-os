@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
 import styles from '@/components/auth/auth-shell.module.css';
@@ -17,6 +18,7 @@ const authErrors: Record<string, string> = {
 };
 
 export default function AdminLoginPage() {
+  const router = useRouter();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -40,7 +42,7 @@ export default function AdminLoginPage() {
     try {
       const { error } = await createClient().auth.signInWithPassword({ email: normalizedEmail, password });
       if (error) throw error;
-      window.location.assign('/admin');
+      router.replace('/admin');
     } catch {
       setErrorMsg('Unable to sign in. Check your credentials and invitation.');
       setIsLoading(false);

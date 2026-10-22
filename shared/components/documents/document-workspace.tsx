@@ -149,6 +149,8 @@ export function DocumentWorkspace({ family, title, description, children }: { fa
       runtime.demo?.showNotice('Downloads stay inside the safe demo. No production document was requested.');
       return;
     }
+    // A document download needs a full browser request rather than an RSC navigation.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`/api/generated-documents/${document.id}/download?format=${format}`);
   };
 

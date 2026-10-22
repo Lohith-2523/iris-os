@@ -145,7 +145,7 @@ export default function ProposalsPage() {
     };
     void loadInitialData();
     return () => { active = false; };
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl); }, [pdfUrl]);
 

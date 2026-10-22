@@ -7,12 +7,11 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatUserMessage, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { FormattedMarkdown } from '@/components/ui/formatted-markdown';
 import { PageSkeleton } from '@/components/ui/page-skeletons';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
 import {
-  BarChart3,
   ChevronDown,
   Calendar,
   ArrowUpDown,
@@ -21,10 +20,7 @@ import {
   TrendingUp,
   TrendingDown,
   Info,
-  ArrowLeft,
-  DollarSign,
-  Activity,
-  Percent
+  ArrowLeft
 } from 'lucide-react';
 
 // --- DATASETS DEFINITION ---
@@ -135,13 +131,6 @@ const EMPTY_DATASETS = {
 };
 
 function generateAiInsight(report: string, frequency: string, primaryY: string) {
-  const reportsMap: Record<string, string> = {
-    capacity: 'Operational Capacity',
-    billing: 'Billings & Overhead Projections',
-    roi: 'Client ROI & Media Portfolios'
-  };
-  const label = reportsMap[report] || report;
-  
   if (report === 'capacity') {
     return `Lohith, looking at the ${frequency} capacity analysis mapping ${primaryY}, we notice that capacity expansions show high efficiency ratios. During Q2 and early summer, billings scaled ahead of delivery capacity. However, a minor profit leak is present in contractor software subscriptions. I recommend balancing project assignments to sustain profit margins while avoiding delivery team fatigue.`;
   } else if (report === 'billing') {
@@ -492,7 +481,7 @@ function ExplorerContent() {
 
   const aiInsightText = React.useMemo(() => {
     return generateAiInsight(activeReport, frequency, primaryOption.label);
-  }, [activeReport, frequency, primaryY]);
+  }, [activeReport, frequency, primaryOption.label]);
 
   // Calculate summary stats
   const stats = React.useMemo(() => {
@@ -727,10 +716,6 @@ function ExplorerContent() {
                   
                   // Secondary values
                   const secVal = secondaryY !== 'none' ? item[secondaryY] || 0 : 0;
-                  const secChronPrev = chronIndex > 0 ? rawData[chronIndex - 1] : null;
-                  const secPrevVal = secChronPrev && secondaryY !== 'none' ? secChronPrev[secondaryY] : null;
-                  const isSecNegative = secPrevVal !== null && secVal < secPrevVal;
-
                   const isHovered = hoveredBarIndex === idx;
 
                   return (

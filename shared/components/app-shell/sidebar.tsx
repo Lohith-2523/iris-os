@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/client';
 import { readWorkspaceUiPreference, type WorkspaceUiScope, writeWorkspaceUiPreference } from '@/lib/workspace-ui-storage';
@@ -276,7 +277,7 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
         : null;
     }
     return { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard };
-  }, [deliveryWorkspace, resolvedPermissions, resolvedPlan, resolvedRole]);
+  }, [deliveryWorkspace, resolvedPermissions, resolvedRole]);
 
   const homeHref = teamMemberWorkspaceHome({
     role: resolvedRole,
@@ -391,16 +392,20 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
           onClick={(event) => void navigateToRoute(event, homeHref)}
         >
           {isCollapsed ? (
-            <img 
+            <Image
               src="/iris-logo-white-transparent.png"
               alt="IrisOS Logo"
+              width={36}
+              height={36}
               className="h-9 w-9 object-contain"
             />
           ) : (
             <div className="flex items-center gap-2">
-              <img 
+              <Image
                 src="/iris-logo-black-bg.png" 
                 alt="IrisOS Logo"
+                width={113}
+                height={43}
                 className="h-[43px] object-contain"
               />
             </div>
@@ -417,9 +422,12 @@ export function Sidebar({ className, onCloseMobile, workspacePlan, workspaceRole
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 overflow-hidden rounded bg-zinc-100 text-zinc-800 border border-zinc-200 dark:bg-zinc-700 dark:text-white dark:border-none flex items-center justify-center text-[10px] font-bold shrink-0">
               {orgLogoDataUrl ? (
-                <img
+                <Image
                   src={orgLogoDataUrl}
                   alt={`${orgName} logo`}
+                  width={40}
+                  height={40}
+                  unoptimized
                   className="h-full w-full bg-white object-contain p-1"
                   onError={() => setOrgLogoDataUrl('')}
                 />

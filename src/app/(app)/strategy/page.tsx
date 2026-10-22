@@ -192,7 +192,7 @@ export default function StrategyPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetch]);
 
   React.useEffect(() => {
     load();

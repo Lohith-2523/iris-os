@@ -6,7 +6,6 @@ import { formatCurrency, formatUserMessage, getCurrencySymbol } from '@/lib/util
 import { workspaceRoleLabel } from '@/lib/workspace-role-label';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { missingBillingProfileFields } from '@/lib/invoices/billing-profile';
 import { AgencyBillingProfileNotice } from '@/components/invoices/agency-billing-profile-notice';
@@ -26,10 +25,8 @@ import {
   CheckCircle,
   Building,
   User,
-  Sparkles,
   Wallet,
   AlertTriangle,
-  Info,
   ChevronDown,
   X,
   Loader2,
@@ -37,7 +34,7 @@ import {
   ArrowDown,
 } from 'lucide-react';
 
-const AGENCY_TYPES = [
+const _AGENCY_TYPES = [
   'Digital Marketing Agency',
   'Social Media Management Agency',
   'SEO Agency',
@@ -523,7 +520,7 @@ export default function ClientOnboardPage() {
   };
 
   // Dynamic Service specific fields rendering
-  const renderServiceSpecificFields = () => {
+  const _renderServiceSpecificFields = () => {
     switch (formData.agencyType) {
       case 'Digital Marketing Agency':
         return (
