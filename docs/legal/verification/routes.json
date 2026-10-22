@@ -1,0 +1,230 @@
+[
+  {
+    "path": "/privacy",
+    "width": 1440,
+    "status": 200,
+    "title": "Privacy Policy",
+    "canonical": "https://irisos.app/privacy",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/terms",
+    "width": 1440,
+    "status": 200,
+    "title": "Terms of Service",
+    "canonical": "https://irisos.app/terms",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/cancellation-refund-policy",
+    "width": 1440,
+    "status": 200,
+    "title": "Cancellation, Suspension and Refund Policy",
+    "canonical": "https://irisos.app/cancellation-refund-policy",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/data-processing-agreement",
+    "width": 1440,
+    "status": 200,
+    "title": "Data Processing Agreement",
+    "canonical": "https://irisos.app/data-processing-agreement",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/ai-usage-policy",
+    "width": 1440,
+    "status": 200,
+    "title": "AI Usage and Credit Policy",
+    "canonical": "https://irisos.app/ai-usage-policy",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/subprocessors",
+    "width": 1440,
+    "status": 200,
+    "title": "Subprocessor and Service Provider Register",
+    "canonical": "https://irisos.app/subprocessors",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/privacy",
+    "width": 390,
+    "status": 200,
+    "title": "Privacy Policy",
+    "canonical": "https://irisos.app/privacy",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/terms",
+    "width": 390,
+    "status": 200,
+    "title": "Terms of Service",
+    "canonical": "https://irisos.app/terms",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/cancellation-refund-policy",
+    "width": 390,
+    "status": 200,
+    "title": "Cancellation, Suspension and Refund Policy",
+    "canonical": "https://irisos.app/cancellation-refund-policy",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/data-processing-agreement",
+    "width": 390,
+    "status": 200,
+    "title": "Data Processing Agreement",
+    "canonical": "https://irisos.app/data-processing-agreement",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/ai-usage-policy",
+    "width": 390,
+    "status": 200,
+    "title": "AI Usage and Credit Policy",
+    "canonical": "https://irisos.app/ai-usage-policy",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  },
+  {
+    "path": "/subprocessors",
+    "width": 390,
+    "status": 200,
+    "title": "Subprocessor and Service Provider Register",
+    "canonical": "https://irisos.app/subprocessors",
+    "hasStatusDisclaimer": false,
+    "noindex": false,
+    "overflow": false,
+    "brokenAnchors": [],
+    "legalLinks": [
+      "/privacy",
+      "/terms",
+      "/cancellation-refund-policy",
+      "/data-processing-agreement",
+      "/ai-usage-policy",
+      "/subprocessors"
+    ]
+  }
+]

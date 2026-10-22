@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   isOrganizationAdmin: vi.fn(),
   findUsers: vi.fn(),
   deleteWaitlistEntries: vi.fn(),
+  deleteDeviceGrants: vi.fn(),
+  deleteAccessTokens: vi.fn(),
   deleteOrganization: vi.fn(),
   transaction: vi.fn(),
   purgeOrganizationData: vi.fn(),
@@ -56,10 +58,14 @@ describe('DELETE /api/account', () => {
       { authUserId: null, email: 'pending@example.com' },
     ]);
     mocks.deleteWaitlistEntries.mockResolvedValue({ count: 0 });
+    mocks.deleteDeviceGrants.mockResolvedValue({ count: 0 });
+    mocks.deleteAccessTokens.mockResolvedValue({ count: 0 });
     mocks.deleteOrganization.mockResolvedValue({ id: 'org-1' });
     mocks.transaction.mockImplementation(async (callback) => callback({
       organization: { delete: mocks.deleteOrganization },
       waitlistEntry: { deleteMany: mocks.deleteWaitlistEntries },
+      deviceAccessGrant: { deleteMany: mocks.deleteDeviceGrants },
+      authAccessToken: { deleteMany: mocks.deleteAccessTokens },
     }));
     mocks.purgeOrganizationData.mockResolvedValue(undefined);
     mocks.deleteAuthUser.mockResolvedValue({ error: null });
@@ -78,6 +84,13 @@ describe('DELETE /api/account', () => {
       expect.any(Function),
     );
     expect(mocks.deleteOrganization).toHaveBeenCalledWith({ where: { id: 'org-1' } });
+    expect(mocks.deleteAccessTokens).toHaveBeenCalledWith({ where: {
+      email: { in: ['admin@example.com', 'member@example.com', 'pending@example.com'], mode: 'insensitive' },
+    } });
+    expect(mocks.deleteDeviceGrants).toHaveBeenCalledWith({ where: { OR: [
+      { email: { in: ['admin@example.com', 'member@example.com', 'pending@example.com'], mode: 'insensitive' } },
+      { authUserId: { in: expect.arrayContaining(['auth-admin', 'auth-member']) } },
+    ] } });
     expect(mocks.deleteWaitlistEntries).toHaveBeenCalledWith({
       where: {
         email: {

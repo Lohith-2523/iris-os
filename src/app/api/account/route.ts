@@ -96,7 +96,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'The account, authentication identities, and all application data were permanently deleted.',
+      message: 'The organization, covered workspace records and listed authentication identities were deleted. Separate payment, support, backup and provider records are subject to their retention and deletion processes.',
     });
   } catch (error) {
     console.error(`Error deleting entire account while ${deletionStage}:`, error);

@@ -74,6 +74,9 @@ export async function updateSession(request: NextRequest) {
       pathname === '/terms' ||
       pathname === '/privacy' ||
       pathname === '/cancellation-refund-policy' ||
+      pathname === '/data-processing-agreement' ||
+      pathname === '/ai-usage-policy' ||
+      pathname === '/subprocessors' ||
       pathname === '/waitlist' ||
       pathname === '/admin/login' ||
       pathname === '/admin/forgot-password' ||

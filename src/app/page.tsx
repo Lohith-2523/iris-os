@@ -1302,6 +1302,9 @@ function Footer() {
           { label: 'Privacy', href: '/privacy' },
           { label: 'Terms', href: '/terms' },
           { label: 'Cancellations & Refunds', href: '/cancellation-refund-policy' },
+          { label: 'Data Processing Agreement', href: '/data-processing-agreement' },
+          { label: 'AI Usage & Credits', href: '/ai-usage-policy' },
+          { label: 'Provider Register', href: '/subprocessors' },
         ].map((item) => <Link
           key={item.href}
           href={item.href}

@@ -17,6 +17,7 @@ import { usePlanPricing } from '@/components/billing/use-plan-pricing';
 import { formatPlanMoney } from '@/lib/plan-pricing';
 import { IrisPricingTable } from '@/components/landing/iris-pricing-comparison';
 import { MilesAiConsentControl } from '@/components/onboarding/miles-ai-consent-control';
+import { LEGAL_CONTACT, LEGAL_UPDATED } from '@/lib/legal/policies';
 
 const FULL_PRIVACY_POLICY = [
   ['Workspace Operations and New Features', 'IrisOS processes the workspace information needed for client and team onboarding, project stages and tasks, financial operations, reporting, daily briefings, notifications, profile pictures, workspace backgrounds, secure documents, approvals, electronic signatures, and connected design workflows. Access remains limited by workspace role and permissions.'],
@@ -30,7 +31,7 @@ const FULL_PRIVACY_POLICY = [
   ['5. Data Retention, Erasure & Anonymization', 'We retain personal data only while your workspace is active or where necessary for the stated processing purpose. On account closure or a valid erasure request, API tokens are purged, identity details are deleted or anonymized, and Miles AI operational logs are scrubbed of identifiable references. Meta data can be deauthorized or deleted through the available data-deletion routes after verification.'],
   ['6. GDPR & DPDP Act Data Subject Rights', 'You may request access to and portability of your data, correction of inaccurate data, withdrawal of consent, grievance redressal, and—where applicable under the DPDP Act—nomination of a person to exercise your rights in the event of death or incapacity.'],
   ['7. International Cross-Border Data Transfers', 'Personal data may be processed on secure servers in the United States, the EEA and India. EEA transfers use European Commission Standard Contractual Clauses where applicable. Transfers under the DPDP Act follow applicable Government of India cross-border requirements.'],
-  ['8. Requests and Complaints', 'To exercise your rights, withdraw consent, or raise a privacy concern, raise a complaint in the Get Help section or reach out to cto.admin@irisos.app.'],
+  ['8. Requests and Complaints', `To exercise your rights, withdraw consent, or raise a privacy concern, raise a complaint in the Get Help section or email ${LEGAL_CONTACT}.`],
 ] as const;
 
 const PRIVACY_TLDR = [
@@ -39,7 +40,7 @@ const PRIVACY_TLDR = [
   'Miles AI access is optional. You can leave it off and change that choice later in Settings.',
   'Connected services only receive the permissions you authorize; you can revoke them at any time.',
   'You can request access, correction, deletion, or export of your personal data.',
-  'Raise a complaint in the Get Help section or reach out to cto.admin@irisos.app for privacy requests or concerns.',
+  `Raise a complaint in the Get Help section or email ${LEGAL_CONTACT} for privacy requests or concerns.`,
 ];
 
 export default function OnboardingPage() {
@@ -396,7 +397,7 @@ export default function OnboardingPage() {
             <CardContent className="px-7 py-7 space-y-5">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="font-semibold text-zinc-300 block text-xs uppercase font-mono">Privacy Policy · Last updated September 17, 2026</span>
+                  <span className="font-semibold text-zinc-300 block text-xs uppercase font-mono">Privacy Policy · Last updated {LEGAL_UPDATED}</span>
                   <label className="flex items-center gap-2 text-sm font-semibold text-zinc-300 cursor-pointer select-none">
                     <input
                       type="checkbox"

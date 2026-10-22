@@ -1,0 +1,22 @@
+{
+  "archivedOn": "2026-10-22",
+  "sourceCommit": "dd46f38f03e73c3186ab3da9bc6a20558d1360ad",
+  "note": "Previous repository sources; publication history not independently verified.",
+  "files": [
+    {
+      "file": "privacy.tsx.txt",
+      "source": "src/app/privacy/page.tsx",
+      "sha256": "fce0a6c6a1ef86b979525ee50f2f3be0259caefb5fb12f749ca30fa19a628e8e"
+    },
+    {
+      "file": "terms.tsx.txt",
+      "source": "src/app/terms/page.tsx",
+      "sha256": "5feb2f5f3142075248097198392c78add11db3cf9546a7269babb8f3edb14b65"
+    },
+    {
+      "file": "cancellation-refund-policy.tsx.txt",
+      "source": "src/app/cancellation-refund-policy/page.tsx",
+      "sha256": "50bb9aced5122dd697572e9a610660d9791c85a9d6295eb620f15436b8180581"
+    }
+  ]
+}

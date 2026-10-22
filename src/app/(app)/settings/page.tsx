@@ -1540,6 +1540,14 @@ export default function SettingsPage() {
                   <CardDescription className="text-rose-550/80">Irreversible operations on account and workspace data. Organization administrators only.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-2">
+                  <nav aria-label="Data and billing policies" className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-400">
+                    <Link href="/privacy" className="underline underline-offset-4">Privacy &amp; deletion</Link>
+                    <Link href="/terms" className="underline underline-offset-4">Terms</Link>
+                    <Link href="/cancellation-refund-policy" className="underline underline-offset-4">Cancellation &amp; refunds</Link>
+                    <Link href="/ai-usage-policy" className="underline underline-offset-4">AI usage &amp; credits</Link>
+                    <Link href="/data-processing-agreement" className="underline underline-offset-4">DPA</Link>
+                    <Link href="/subprocessors" className="underline underline-offset-4">Provider register</Link>
+                  </nav>
                   <div className="space-y-2">
                     <div><p className="font-semibold text-white">Wipe Account Data</p><p className="mt-1 text-[10px] leading-relaxed text-zinc-500">Deletes workspace records while preserving the organization and user login.</p></div>
                     <Button
@@ -1554,7 +1562,7 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                   <div className="space-y-2 border-t border-rose-950/60 pt-4">
-                    <div><p className="font-semibold text-rose-300">Delete Entire Account</p><p className="mt-1 text-[10px] leading-relaxed text-zinc-500">Permanently deletes this organization, every workspace user, authentication identity, and all associated application data.</p></div>
+                    <div><p className="font-semibold text-rose-300">Delete Entire Account</p><p className="mt-1 text-[10px] leading-relaxed text-zinc-500">Removes this organization and its workspace records, then attempts to delete its users’ authentication identities. This affects every workspace user. Payment, support, backup and external-provider records may remain; contact support if deletion fails.</p></div>
                     <Button
                       type="button"
                       disabled={currentUser?.role.toLowerCase() !== 'admin'}
@@ -2153,7 +2161,7 @@ export default function SettingsPage() {
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
                   Your workspace will switch to the Free plan immediately. Free plan limits will apply to your workspace after cancellation.
                 </p>
-                <p className="mt-3 text-sm font-semibold leading-5 text-rose-300">Payments already made are non-refundable.</p>
+                <p className="mt-3 text-sm font-semibold leading-5 text-rose-300">Payments are ordinarily non-refundable, subject to billing corrections, your order terms and mandatory legal rights.</p>
               </div>
             </div>
 
@@ -2242,9 +2250,9 @@ export default function SettingsPage() {
               <div className="space-y-5">
                 <p className="leading-relaxed text-zinc-450">
                   {destructiveAction === 'delete' ? (
-                    <>Are you absolutely certain you want to delete the entire account? This will permanently remove <span className="text-white font-semibold">all users, authentication identities, organization settings, and workspace records</span> associated with <span className="text-rose-450 font-bold uppercase">{orgName}</span>. Nobody in this organization will be able to sign in again.</>
+                    <>Delete the entire organization <span className="text-rose-450 font-bold uppercase">{orgName}</span>? This removes its workspace records and settings, then attempts to remove <span className="text-white font-semibold">every workspace user’s authentication identity</span>. This affects all members, not just you. A failure may require support to complete deletion. Payment, support, backup and external copies may remain as described in the <Link href="/privacy#deletion-options" className="underline">Privacy Policy</Link>.</>
                   ) : (
-                    <>Are you absolutely certain you want to wipe the account data? This will <span className="text-white font-semibold">permanently wipe</span> all campaign logs, invoices, metrics, reports, pipelines, and transactions associated with <span className="text-rose-450 font-bold uppercase">{orgName}</span>, while preserving users and the account itself.</>
+                    <>Wipe the workspace data for <span className="text-rose-450 font-bold uppercase">{orgName}</span>? This removes the covered client, project, financial, message, AI chat and integration records while preserving users and the account. Usage history, payment/support records, some cached documents and external copies are not all removed. Export required records first and review the <Link href="/privacy#deletion-options" className="underline">deletion details</Link>.</>
                   )}
                 </p>
                 <div className="flex gap-3 justify-end pt-2">

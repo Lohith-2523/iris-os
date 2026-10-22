@@ -44,6 +44,9 @@ vi.mock('@/lib/db', () => ({
 }));
 
 import { POST } from './route';
+import { planPriceWithCoupon } from '@/lib/plan-pricing';
+
+const couponAmount = planPriceWithCoupon('PRO', 'INTERNATIONAL', 10).totalAmount;
 
 const paymentRequest = () => new NextRequest('http://localhost/api/verify-payment', {
   method: 'POST',
@@ -68,7 +71,7 @@ describe('payment verification coupon usage', () => {
     mocks.verifySignature.mockReturnValue(true);
     mocks.orderFetch.mockResolvedValue({
       id: 'order_123',
-      amount: 4_247,
+      amount: couponAmount,
       currency: 'USD',
       notes: {
         userId: 'user-1',
@@ -82,7 +85,7 @@ describe('payment verification coupon usage', () => {
     mocks.paymentFetch.mockResolvedValue({
       id: 'pay_123',
       order_id: 'order_123',
-      amount: 4_247,
+      amount: couponAmount,
       currency: 'USD',
       status: 'captured',
     });
@@ -94,7 +97,7 @@ describe('payment verification coupon usage', () => {
     mocks.paymentFetch.mockResolvedValue({
       id: 'pay_123',
       order_id: 'order_123',
-      amount: 4_247,
+      amount: couponAmount,
       currency: 'USD',
       status: 'authorized',
     });

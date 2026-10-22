@@ -193,11 +193,11 @@ export async function DELETE(request: NextRequest) {
       timeout: 60_000,
     });
 
-    console.log(`Successfully wiped all agency data for organization ID: ${orgId}`);
+    console.log('Workspace record deletion completed.');
 
     return NextResponse.json({
       success: true,
-      message: 'All agency data wiped successfully. Active admin account and organization container preserved.'
+      message: 'Covered workspace records were deleted. The organization, user accounts and separately retained records remain.'
     });
   } catch (error: unknown) {
     console.error(`Error wiping agency data while ${wipeStage}:`, error);

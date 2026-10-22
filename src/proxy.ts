@@ -3,6 +3,10 @@ import { updateSession } from '@/lib/middleware';
 import { checkRequestRateLimit, requestRateLimitHeaders, type RequestRateLimitDecision } from '@/lib/request-rate-limit';
 
 const SUPERADMIN_HOSTNAME = 'superadmin.irisos.app';
+const LEGAL_PAGE_PATHS = new Set([
+  '/privacy', '/terms', '/cancellation-refund-policy',
+  '/data-processing-agreement', '/ai-usage-policy', '/subprocessors',
+]);
 const AUTH_FREE_PAGE_PATHS = new Set([
   '/',
   '/home',
@@ -22,6 +26,7 @@ const AUTH_FREE_PAGE_PATHS = new Set([
 
 function doesNotNeedProxyAuthentication(pathname: string) {
   return pathname.startsWith('/api/')
+    || LEGAL_PAGE_PATHS.has(pathname)
     || AUTH_FREE_PAGE_PATHS.has(pathname)
     || pathname.startsWith('/signup/')
     || pathname.startsWith('/onboarding/member')
@@ -85,7 +90,7 @@ export async function proxy(request: NextRequest) {
       pathname === '/sitemap.xml' ||
       pathname.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|mp4|webm)$/i);
 
-    if (pathname !== '/coming-soon' && !pathname.startsWith('/admin') && !isStaticAsset) {
+    if (pathname !== '/coming-soon' && !LEGAL_PAGE_PATHS.has(pathname) && !pathname.startsWith('/admin') && !isStaticAsset) {
       const url = request.nextUrl.clone();
       url.pathname = '/coming-soon';
       return NextResponse.redirect(url);

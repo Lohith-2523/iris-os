@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ updateSession: vi.fn() }));
 vi.mock('@/lib/middleware', () => ({ updateSession: mocks.updateSession }));
@@ -8,6 +8,7 @@ import { proxy } from './proxy';
 import { resetRequestRateLimitsForTesting } from '@/lib/request-rate-limit';
 
 describe('host routing proxy', () => {
+  afterEach(() => vi.unstubAllEnvs());
   beforeEach(() => {
     mocks.updateSession.mockReset();
     mocks.updateSession.mockResolvedValue(NextResponse.next());
@@ -31,6 +32,24 @@ describe('host routing proxy', () => {
 
     expect(response.status).toBe(200);
     expect(mocks.updateSession).not.toHaveBeenCalled();
+  });
+
+  it.each(['/privacy', '/terms', '/cancellation-refund-policy', '/data-processing-agreement', '/ai-usage-policy', '/subprocessors'])(
+    'keeps %s public on the production domain during coming-soon mode', async (path) => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('NEXT_PUBLIC_COMING_SOON', 'true');
+      const response = await proxy(new NextRequest(`https://irisos.app${path}`));
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      expect(mocks.updateSession).not.toHaveBeenCalled();
+    },
+  );
+
+  it('still redirects non-legal pages during coming-soon mode', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_COMING_SOON', 'true');
+    const response = await proxy(new NextRequest('https://irisos.app/dashboard'));
+    expect(response.headers.get('location')).toBe('https://irisos.app/coming-soon');
   });
 
   it('keeps regional pricing public without invoking Supabase auth', async () => {
