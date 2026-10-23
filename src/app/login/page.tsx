@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
+import { AuthRecaptcha } from '@/components/auth/auth-recaptcha';
 import styles from '@/components/auth/auth-shell.module.css';
+import { RECAPTCHA_LOGIN_ACTION } from '@/config/recaptcha';
 import { teamMemberWorkspaceHome } from '@/lib/team-member-access';
 
 export default function LoginPage() {
@@ -15,21 +17,33 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = React.useState<string | null>(null);
+  const [recaptchaKey, setRecaptchaKey] = React.useState(0);
+  const handleRecaptchaToken = React.useCallback((token: string | null) => setRecaptchaToken(token), []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!recaptchaToken) {
+      setErrorMsg('Complete Google verification before signing in.');
+      return;
+    }
     setIsLoading(true);
     setErrorMsg(null);
 
     try {
-      const { createClient } = await import('@/lib/client');
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
-      if (error) throw error;
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, recaptchaToken }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Authentication failed.');
       const bootstrap = await fetch('/api/auth/bootstrap', { method: 'POST' });
       if (!bootstrap.ok) throw new Error('Unable to load your workspace.');
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Authentication failed.');
+      setRecaptchaToken(null);
+      setRecaptchaKey(key => key + 1);
       setIsLoading(false);
       return;
     }
@@ -70,6 +84,10 @@ export default function LoginPage() {
     }, 200);
   };
   const handleGoogleLogin = async () => {
+    if (!recaptchaToken) {
+      setErrorMsg('Complete Google verification before continuing.');
+      return;
+    }
     setIsLoading(true);
     try {
       const { createClient } = await import('@/lib/client');
@@ -140,7 +158,9 @@ export default function LoginPage() {
             <Link href="/forgot-password" prefetch={false} className={styles.forgotPasswordLink}>Forgot password?</Link>
           </div>
 
-          <button type="submit" disabled={isLoading} className={styles.primaryButton}>
+          <AuthRecaptcha key={recaptchaKey} action={RECAPTCHA_LOGIN_ACTION} onTokenChange={handleRecaptchaToken} />
+
+          <button type="submit" disabled={isLoading || !recaptchaToken} className={styles.primaryButton}>
             <span>{isLoading ? 'Authenticating…' : 'Sign in to IrisOS'}</span>
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -148,7 +168,7 @@ export default function LoginPage() {
 
         <div className={styles.divider}><span>or</span></div>
 
-        <button type="button" onClick={handleGoogleLogin} disabled={isLoading} className={styles.googleButton}>
+        <button type="button" onClick={handleGoogleLogin} disabled={isLoading || !recaptchaToken} className={styles.googleButton}>
           <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
             <path className={styles.googleBlue} d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path className={styles.googleGreen} d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />

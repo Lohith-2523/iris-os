@@ -7,4 +7,5 @@ export const signupSchema = z.object({
   phone: z.string().trim().min(5).max(40),
   password: z.string().min(6).max(128),
   confirmPassword: z.string(),
+  recaptchaToken: z.string().min(20).max(4_096),
 }).refine(value => value.password === value.confirmPassword, { message: 'Passwords do not match.', path: ['confirmPassword'] });

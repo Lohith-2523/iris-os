@@ -4,8 +4,10 @@ import * as React from 'react';
 import Link from 'next/link';
 import { User, Lock, ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
 import { AuthShell } from '@/components/auth/auth-shell';
+import { AuthRecaptcha } from '@/components/auth/auth-recaptcha';
 import { CountryPhoneInput } from '@/components/ui/country-phone-input';
 import styles from '@/components/auth/auth-shell.module.css';
+import { RECAPTCHA_SIGNUP_ACTION } from '@/config/recaptcha';
 import { passwordConfirmationError } from '@/lib/password-validation';
 import { signupEmailSchema } from '@/lib/signup-validation';
 
@@ -20,6 +22,9 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [confirmationEmail, setConfirmationEmail] = React.useState('');
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = React.useState<string | null>(null);
+  const [recaptchaKey, setRecaptchaKey] = React.useState(0);
+  const handleRecaptchaToken = React.useCallback((token: string | null) => setRecaptchaToken(token), []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +33,10 @@ export default function SignupPage() {
     if (!parsedEmail.success) { setErrorMsg(parsedEmail.error.issues[0].message); return; }
     if (!name || !email || !phone || !password) {
       setErrorMsg('Please fill in all fields.');
+      return;
+    }
+    if (!recaptchaToken) {
+      setErrorMsg('Complete Google verification before creating your workspace.');
       return;
     }
     const confirmationError = passwordConfirmationError(password, confirmPassword);
@@ -40,7 +49,7 @@ export default function SignupPage() {
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email: parsedEmail.data, phone, password, confirmPassword }),
+        body: JSON.stringify({ name, email: parsedEmail.data, phone, password, confirmPassword, recaptchaToken }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to create your workspace.');
@@ -58,12 +67,18 @@ export default function SignupPage() {
       setConfirmPassword('');
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'Unable to create your workspace.');
+      setRecaptchaToken(null);
+      setRecaptchaKey(key => key + 1);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignup = async () => {
+    if (!recaptchaToken) {
+      setErrorMsg('Complete Google verification before continuing.');
+      return;
+    }
     setIsLoading(true);
     try {
       const { createClient } = await import('@/lib/client');
@@ -138,7 +153,9 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading} className={styles.primaryButton}>
+          <AuthRecaptcha key={recaptchaKey} action={RECAPTCHA_SIGNUP_ACTION} onTokenChange={handleRecaptchaToken} />
+
+          <button type="submit" disabled={isLoading || !recaptchaToken} className={styles.primaryButton}>
             <span>{isLoading ? 'Creating workspace…' : 'Create workspace'}</span>
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -146,7 +163,7 @@ export default function SignupPage() {
 
         <div className={styles.divider}><span>or</span></div>
 
-        <button type="button" onClick={handleGoogleSignup} disabled={isLoading} className={styles.googleButton}>
+        <button type="button" onClick={handleGoogleSignup} disabled={isLoading || !recaptchaToken} className={styles.googleButton}>
           <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
             <path className={styles.googleBlue} d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path className={styles.googleGreen} d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />

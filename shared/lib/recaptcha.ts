@@ -1,5 +1,9 @@
 import 'server-only';
-import { RECAPTCHA_CONTACT_ACTION, RECAPTCHA_ENTERPRISE_SITE_KEY } from '@/config/recaptcha';
+import {
+  RECAPTCHA_CONTACT_ACTION,
+  RECAPTCHA_ENTERPRISE_SITE_KEY,
+  type RecaptchaAction,
+} from '@/config/recaptcha';
 
 const RECAPTCHA_ENTERPRISE_PROJECT_ID = 'gen-lang-client-0335126976';
 
@@ -22,9 +26,15 @@ export class RecaptchaConfigurationError extends Error {
   }
 }
 
-export async function verifyRecaptchaToken(input: { token: string; remoteIp?: string; userAgent?: string }) {
+export async function verifyRecaptchaToken(input: {
+  token: string;
+  expectedAction?: RecaptchaAction;
+  remoteIp?: string;
+  userAgent?: string;
+}) {
   const apiKey = process.env.RECAPTCHA_ENTERPRISE_API_KEY?.trim();
   if (!apiKey) throw new RecaptchaConfigurationError();
+  const expectedAction = input.expectedAction ?? RECAPTCHA_CONTACT_ACTION;
   const minimumScore = Number(process.env.RECAPTCHA_ENTERPRISE_MIN_SCORE || '0.5');
   if (!Number.isFinite(minimumScore) || minimumScore < 0 || minimumScore > 1) {
     throw new RecaptchaConfigurationError();
@@ -36,7 +46,7 @@ export async function verifyRecaptchaToken(input: { token: string; remoteIp?: st
     body: JSON.stringify({
       event: {
         token: input.token,
-        expectedAction: RECAPTCHA_CONTACT_ACTION,
+        expectedAction,
         siteKey: RECAPTCHA_ENTERPRISE_SITE_KEY,
         ...(input.remoteIp ? { userIpAddress: input.remoteIp } : {}),
         ...(input.userAgent ? { userAgent: input.userAgent } : {}),
@@ -52,21 +62,21 @@ export async function verifyRecaptchaToken(input: { token: string; remoteIp?: st
   const assessment = await response.json() as RecaptchaAssessment;
 
   if (!assessment.tokenProperties?.valid) {
-    console.warn('reCAPTCHA assessment rejected a contact token.', {
+    console.warn('reCAPTCHA assessment rejected a token.', {
       invalidReason: assessment.tokenProperties?.invalidReason || 'UNKNOWN',
     });
     return false;
   }
-  if (assessment.tokenProperties.action !== RECAPTCHA_CONTACT_ACTION) {
-    console.warn('reCAPTCHA contact action mismatch.', {
+  if (assessment.tokenProperties.action !== expectedAction) {
+    console.warn('reCAPTCHA action mismatch.', {
       receivedAction: assessment.tokenProperties.action || 'MISSING',
-      expectedAction: RECAPTCHA_CONTACT_ACTION,
+      expectedAction,
     });
     return false;
   }
   const score = assessment.riskAnalysis?.score;
   if (typeof score !== 'number' || score < minimumScore) {
-    console.warn('reCAPTCHA contact assessment did not meet the score threshold.', {
+    console.warn('reCAPTCHA assessment did not meet the score threshold.', {
       score: score ?? 'MISSING',
       minimumScore,
       reasons: assessment.riskAnalysis?.reasons || [],

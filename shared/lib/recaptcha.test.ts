@@ -60,6 +60,19 @@ describe('reCAPTCHA Enterprise assessment', () => {
     await expect(verifyRecaptchaToken({ token: 'wrong-action-token' })).resolves.toBe(false);
   });
 
+  it('verifies auth tokens against their dedicated action', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      tokenProperties: { valid: true, action: 'LOGIN' },
+      riskAnalysis: { score: 0.9 },
+    }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(verifyRecaptchaToken({
+      token: 'login-token',
+      expectedAction: 'LOGIN',
+    })).resolves.toBe(true);
+  });
+
   it('rejects a valid token when its score is below the configured threshold', async () => {
     vi.stubEnv('RECAPTCHA_ENTERPRISE_MIN_SCORE', '0.5');
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
