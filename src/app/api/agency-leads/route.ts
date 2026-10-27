@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
       if (wasInactive && !['lost', 'closed'].includes(nextStatus)) {
         const activeLeadLimit = entitlementsFor(org.plan).activeLeadLimit;
         const activeLeadCount = await prisma.agencyLead.count({ where: { orgId: org.id, status: ACTIVE_LEAD_STATUSES } });
-        if (activeLeadCount >= activeLeadLimit) {
+        if (activeLeadLimit !== null && activeLeadCount >= activeLeadLimit) {
           return NextResponse.json({ error: planLimitMessage('active leads', activeLeadLimit, org.plan) }, { status: 409 });
         }
       }
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
       if (!['lost', 'closed'].includes(cleanStatus)) {
         const activeLeadLimit = entitlementsFor(org.plan).activeLeadLimit;
         const activeLeadCount = await prisma.agencyLead.count({ where: { orgId: org.id, status: ACTIVE_LEAD_STATUSES } });
-        if (activeLeadCount >= activeLeadLimit) {
+        if (activeLeadLimit !== null && activeLeadCount >= activeLeadLimit) {
           return NextResponse.json({ error: planLimitMessage('active leads', activeLeadLimit, org.plan) }, { status: 409 });
         }
       }
@@ -405,7 +405,7 @@ export async function POST(request: NextRequest) {
       if (newActiveLeads > 0) {
         const activeLeadLimit = entitlementsFor(org.plan).activeLeadLimit;
         const activeLeadCount = await prisma.agencyLead.count({ where: { orgId: org.id, status: ACTIVE_LEAD_STATUSES } });
-        if (activeLeadCount + newActiveLeads > activeLeadLimit) {
+        if (activeLeadLimit !== null && activeLeadCount + newActiveLeads > activeLeadLimit) {
           return NextResponse.json({ error: planLimitMessage('active leads', activeLeadLimit, org.plan) }, { status: 409 });
         }
       }

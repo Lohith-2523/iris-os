@@ -51,7 +51,7 @@ const PLAN_DETAILS: Record<PlanId, {
     features: [
       { label: 'Clients', value: '25' },
       { label: 'Projects', value: '50' },
-      { label: 'Active leads', value: '150' },
+      { label: 'Active leads', value: '200' },
       { label: 'Team members', value: '5' },
       { label: 'Core team members', value: '2' },
       { label: 'Data Transfer', value: '5 GB' },
@@ -77,7 +77,7 @@ const PLAN_DETAILS: Record<PlanId, {
     features: [
       { label: 'Clients', value: 'Unlimited' },
       { label: 'Projects', value: 'Unlimited' },
-      { label: 'Active leads', value: '500' },
+      { label: 'Active leads', value: 'Unlimited' },
       { label: 'Team members', value: '15' },
       { label: 'Core team members', value: '5' },
       { label: 'Data Transfer', value: '25 GB' },

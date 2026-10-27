@@ -48,8 +48,8 @@ describe('regional plan pricing', () => {
       ['AI allowance', '20k'], ['Invoices', '3/mo'], ['Reports', 'Basic'], ['Client workspace', 'Limited'],
       ['Automations', 'Limited'], ['Business analytics', 'Basic'], ['Unlimited onboarding', '—'], ['Priority support', '—'],
     ]);
-    expect(pro.features.map((feature) => feature.value)).toEqual(['25', '50', '150', '5', '2', '5 GB', '✓✓', '500k', 'Unlimited', 'Advanced', '✓', '✓', '✓', '—', '—']);
-    expect(advanced.features.map((feature) => feature.value)).toEqual(['Unlimited', 'Unlimited', '500', '15', '5', '25 GB', '✓✓✓', '1M', 'Unlimited', 'Advanced', '✓', '✓✓', '✓✓', '✓', '✓']);
+    expect(pro.features.map((feature) => feature.value)).toEqual(['25', '50', '200', '5', '2', '5 GB', '✓✓', '500k', 'Unlimited', 'Advanced', '✓', '✓', '✓', '—', '—']);
+    expect(advanced.features.map((feature) => feature.value)).toEqual(['Unlimited', 'Unlimited', 'Unlimited', '15', '5', '25 GB', '✓✓✓', '1M', 'Unlimited', 'Advanced', '✓', '✓✓', '✓✓', '✓', '✓']);
   });
 
   it('reads supported deployment country headers without exposing an IP', () => {

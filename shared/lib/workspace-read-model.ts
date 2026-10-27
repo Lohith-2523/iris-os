@@ -53,7 +53,7 @@ export type WorkspaceReadModel = {
     coreTeamMemberLimit: number;
     clientLimit: number | null;
     projectLimit: number | null;
-    activeLeadLimit: number;
+    activeLeadLimit: number | null;
     dataTransferBytes: number;
     monthlyInvoiceLimit: number | null;
     dailyBriefing: boolean;

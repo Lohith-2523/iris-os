@@ -75,7 +75,7 @@ export function AdminWorkspace({ section, data, admin }: { section: AdminSection
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-zinc-800 bg-[#0c0c0e] lg:flex lg:flex-col">
       <div className="flex h-20 flex-col items-start justify-center gap-1 border-b border-zinc-800 px-5 py-2">
         <Link href="/admin" aria-label="Superadmin overview">
-          <Image src="/iris-logo-black-bg.png" alt="IrisOS Logo" width={113} height={43} className="h-[43px] w-auto object-contain" />
+          <Image src="/iris-logo-black-bg.png" alt="IrisOS" width={105} height={40} priority className="block h-10 w-auto object-contain" style={{ width: 'auto' }} />
         </Link>
         <p className="pl-0.5 text-[10px] uppercase leading-none tracking-[0.18em] text-zinc-500">Superadmin</p>
       </div>
