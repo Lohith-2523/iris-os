@@ -133,7 +133,7 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
   if (loading) return <PageSkeleton variant="reporting" />;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 overflow-x-hidden">
       <div className="flex flex-col gap-3 border-b border-zinc-800/60 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Miles Reports</span>
@@ -153,19 +153,19 @@ export default function ReportingClient({ initialData }: { initialData: Reportin
 
       {error && <div className="rounded-md border border-rose-900/40 bg-rose-950/15 px-4 py-3 text-xs text-rose-300">{error}</div>}
 
-      <div data-tour="reporting-form" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div data-tour="reporting-form" className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {REPORT_OPTIONS.map((option) => {
           const Icon = option.icon;
           const selected = selectedKind === option.kind;
           return (
-            <button key={option.kind} type="button" onClick={() => setSelectedKind(option.kind)} className={`flex h-full min-h-40 min-w-0 flex-col rounded-lg border p-4 text-left transition-colors sm:min-h-44 ${selected ? 'border-zinc-500 bg-zinc-900/70' : 'border-zinc-850 bg-zinc-950/30 hover:border-zinc-700 hover:bg-zinc-900/35'}`}>
+            <button key={option.kind} type="button" onClick={() => setSelectedKind(option.kind)} className={`flex h-full min-h-40 w-full min-w-0 max-w-full flex-col overflow-hidden rounded-lg border p-4 text-left transition-colors sm:min-h-44 ${selected ? 'border-zinc-500 bg-zinc-900/70' : 'border-zinc-850 bg-zinc-950/30 hover:border-zinc-700 hover:bg-zinc-900/35'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className={`workspace-selected-icon flex h-9 w-9 items-center justify-center rounded-md border ${selected ? 'border-zinc-600 bg-white text-zinc-950' : 'border-zinc-800 bg-zinc-900 text-zinc-400'}`}><Icon className="h-4 w-4" /></div>
                 {selected && <Badge variant="outline" className="border-zinc-600 text-[9px] text-zinc-200">Selected</Badge>}
               </div>
-              <div className="mt-4 min-w-0 break-words text-sm font-semibold leading-snug text-white [overflow-wrap:anywhere]">{option.title}</div>
-              <div className="mt-1 min-w-0 break-words text-[10px] font-semibold uppercase leading-4 tracking-wider text-zinc-500 [overflow-wrap:anywhere]">{option.description}</div>
-              <p className="mt-2 min-w-0 flex-1 break-words text-[11px] leading-[1.45] text-zinc-500 [overflow-wrap:anywhere]">{option.detail}</p>
+              <div className="mt-4 min-w-0 whitespace-normal break-words text-sm font-semibold leading-snug text-white [overflow-wrap:anywhere]">{option.title}</div>
+              <div className="mt-1 min-w-0 whitespace-normal break-words text-[10px] font-semibold uppercase leading-4 tracking-wider text-zinc-500 [overflow-wrap:anywhere]">{option.description}</div>
+              <p className="mt-2 min-w-0 max-w-full flex-1 whitespace-normal break-words text-[11px] leading-[1.45] text-zinc-500 [overflow-wrap:anywhere]">{option.detail}</p>
             </button>
           );
         })}

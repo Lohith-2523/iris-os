@@ -10,8 +10,8 @@ describe('plan entitlements', () => {
 
   it('matches the published workspace capacity limits', () => {
     expect(entitlementsFor('BASIC')).toMatchObject({ teamMemberLimit: 0, coreTeamMemberLimit: 0, clientLimit: 5, projectLimit: 5, activeLeadLimit: 20, dataTransferBytes: 300 * 1024 * 1024, monthlyInvoiceLimit: 3 });
-    expect(entitlementsFor('PRO')).toMatchObject({ teamMemberLimit: 5, coreTeamMemberLimit: 2, clientLimit: 25, projectLimit: 50, activeLeadLimit: 150, dataTransferBytes: 5 * 1024 * 1024 * 1024, monthlyInvoiceLimit: null });
-    expect(entitlementsFor('ADVANCED')).toMatchObject({ teamMemberLimit: 15, coreTeamMemberLimit: 5, clientLimit: null, projectLimit: null, activeLeadLimit: 500, dataTransferBytes: 25 * 1024 * 1024 * 1024, monthlyInvoiceLimit: null });
+    expect(entitlementsFor('PRO')).toMatchObject({ teamMemberLimit: 5, coreTeamMemberLimit: 2, clientLimit: 25, projectLimit: 50, activeLeadLimit: 200, dataTransferBytes: 5 * 1024 * 1024 * 1024, monthlyInvoiceLimit: null });
+    expect(entitlementsFor('ADVANCED')).toMatchObject({ teamMemberLimit: 15, coreTeamMemberLimit: 5, clientLimit: null, projectLimit: null, activeLeadLimit: null, dataTransferBytes: 25 * 1024 * 1024 * 1024, monthlyInvoiceLimit: null });
   });
 
   it('gives Free its published AI allowance while keeping premium workflow features gated', () => {

@@ -258,7 +258,7 @@ export default function StrategyPage() {
   if (loading) return <PageSkeleton variant="strategy" />;
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 overflow-x-hidden">
       <div className="flex flex-col gap-3 border-b border-zinc-800/60 pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
@@ -274,14 +274,14 @@ export default function StrategyPage() {
 
       {error && <div className="rounded-lg border border-amber-900/40 bg-amber-950/15 p-3 text-xs text-amber-300">{error}</div>}
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid min-w-0 gap-3 md:grid-cols-3">
         {STRATEGY_SECTIONS.map((section) => {
           const Icon = section.icon;
           const active = section.type === activeType;
           const historyCount = strategies.filter((strategy) => strategy.type === section.type).length;
           return (
-            <button key={section.type} type="button" onClick={() => setActiveType(section.type)} className="h-full min-w-0 text-left">
-              <Card className={cn('h-full min-h-40 transition-colors sm:min-h-44', active && 'border-zinc-600 bg-zinc-900/70')}>
+            <button key={section.type} type="button" onClick={() => setActiveType(section.type)} className="block h-full w-full min-w-0 max-w-full overflow-hidden text-left">
+              <Card className={cn('h-full min-h-40 overflow-hidden transition-colors sm:min-h-44', active && 'border-zinc-600 bg-zinc-900/70')}>
                 <CardHeader className="h-full p-4 sm:p-5">
                   <div className="flex items-start justify-between">
                     <div className={cn('workspace-selected-icon flex h-9 w-9 items-center justify-center rounded-lg border', active ? 'border-zinc-600 bg-white text-black' : 'border-zinc-800 bg-zinc-950 text-zinc-400')}>
@@ -290,9 +290,9 @@ export default function StrategyPage() {
                     <span className="text-[10px] font-medium text-zinc-600">{historyCount} saved</span>
                   </div>
                   <div className="min-w-0 pt-2">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600">{section.eyebrow}</p>
-                    <CardTitle className="mt-1 break-words text-sm leading-snug text-white [overflow-wrap:anywhere]">{section.label}</CardTitle>
-                    <CardDescription className="mt-1.5 break-words text-xs leading-[1.45] [overflow-wrap:anywhere]">{section.description}</CardDescription>
+                    <p className="whitespace-normal break-words text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-600 [overflow-wrap:anywhere]">{section.eyebrow}</p>
+                    <CardTitle className="mt-1 whitespace-normal break-words text-sm leading-snug text-white [overflow-wrap:anywhere]">{section.label}</CardTitle>
+                    <CardDescription className="mt-1.5 max-w-full whitespace-normal break-words text-xs leading-[1.45] [overflow-wrap:anywhere]">{section.description}</CardDescription>
                   </div>
                 </CardHeader>
               </Card>
