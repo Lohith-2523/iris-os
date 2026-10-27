@@ -4,13 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Activity, BadgeDollarSign, BarChart3, Bug, Check, Coins, Copy, Headphones, KeyRound, LayoutDashboard, LogOut, Settings, ShieldCheck, TicketPercent, Users } from 'lucide-react';
+import { Activity, BadgeDollarSign, BarChart3, Bug, Calendar, Check, Coins, Copy, Headphones, KeyRound, LayoutDashboard, LogOut, Settings, ShieldCheck, TicketPercent, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DateInput } from '@/components/ui/date-input';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { ProfilePicturePicker } from '@/components/onboarding/profile-picture-picker';
 import type { AdminDashboardData } from '@/server/admin/dashboard';
 import type { SuperadminIdentity } from '@/server/admin/auth';
 import { createClient } from '@/lib/client';
+import { Popover } from 'radix-ui';
+import { defaultUserSignupRange, isUserInSignupRange, userSignupRangeLabel } from './user-signup-range';
 
 export type AdminSection = 'overview' | 'users' | 'credits' | 'credit-analytics' | 'revenue' | 'support' | 'incidents' | 'coupons' | 'user-access' | 'access' | 'settings';
 const sections: Array<{ id: AdminSection; label: string; icon: typeof Activity }> = [
@@ -119,28 +122,62 @@ function UsersView({ data }: { data: AdminDashboardData }) {
   const [query, setQuery] = useState('');
   const [plan, setPlan] = useState('ALL');
   const [role, setRole] = useState('ALL');
+  const initialSignupRange = defaultUserSignupRange(data.users.map((user) => user.createdAt));
+  const [draftSignupRange, setDraftSignupRange] = useState(initialSignupRange);
+  const [signupRange, setSignupRange] = useState(initialSignupRange);
+  const [signupRangeError, setSignupRangeError] = useState('');
   const plans = Array.from(new Set(data.users.map(user => user.organization.plan))).sort();
   const roles = Array.from(new Set(data.users.map(user => user.role))).sort();
   const users = data.users.filter(user => {
     if (tab === 'active' && !user.isActiveAccount) return false;
     if (plan !== 'ALL' && user.organization.plan !== plan) return false;
     if (role !== 'ALL' && user.role !== role) return false;
+    if (!isUserInSignupRange(user.createdAt, signupRange)) return false;
     const needle = query.trim().toLowerCase();
     return !needle || [user.name, user.email, user.organization.name].some(value => value.toLowerCase().includes(needle));
   });
-  return <Panel title="Customer users" description="Filter accounts by access, plan, role, user, or workspace.">
+  const applySignupRange = () => {
+    if (!draftSignupRange.start || !draftSignupRange.end || draftSignupRange.start > draftSignupRange.end) {
+      setSignupRangeError('Choose a start date that is on or before the end date.');
+      return;
+    }
+    setSignupRangeError('');
+    setSignupRange(draftSignupRange);
+  };
+  return <Panel title="Customer users" description="Filter accounts by access, plan, role, signup date, user, or workspace.">
     <div className="border-b border-zinc-800 p-5">
       <div className="flex gap-2" role="tablist" aria-label="User account status">
         <button type="button" role="tab" aria-selected={tab === 'active'} onClick={() => setTab('active')} className={`rounded-md px-3 py-2 text-sm ${tab === 'active' ? 'bg-zinc-100 text-zinc-950' : 'bg-zinc-900 text-zinc-400'}`}>Active users <span className="ml-1 opacity-70">{data.metrics.activeUsers}</span></button>
         <button type="button" role="tab" aria-selected={tab === 'total'} onClick={() => setTab('total')} className={`rounded-md px-3 py-2 text-sm ${tab === 'total' ? 'bg-zinc-100 text-zinc-950' : 'bg-zinc-900 text-zinc-400'}`}>Total users <span className="ml-1 opacity-70">{data.metrics.totalUsers}</span></button>
       </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-[minmax(220px,1fr)_180px_180px]">
+      <div className="mt-5 grid gap-3 md:grid-cols-[minmax(220px,1fr)_160px_160px_auto]">
         <label className={labelClass}>Search<input className={inputClass} value={query} onChange={event => setQuery(event.target.value)} placeholder="Name, email, or workspace" /></label>
         <label className={labelClass}>Plan<select className={inputClass} value={plan} onChange={event => setPlan(event.target.value)}><option value="ALL">All plans</option>{plans.map(value => <option key={value}>{value}</option>)}</select></label>
         <label className={labelClass}>Role<select className={inputClass} value={role} onChange={event => setRole(event.target.value)}><option value="ALL">All roles</option>{roles.map(value => <option key={value}>{value}</option>)}</select></label>
+        <div className="flex items-end">
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button type="button" className="dashboard-range-trigger min-h-11 max-w-full whitespace-nowrap rounded-full border border-zinc-700 bg-zinc-950/80 px-4 text-xs font-semibold text-zinc-200 backdrop-blur-md" aria-label={`User signup date range: ${userSignupRangeLabel(signupRange)}`}>
+                <Calendar className="h-4 w-4" aria-hidden="true" />{userSignupRangeLabel(signupRange)}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content align="end" sideOffset={8} collisionPadding={16} className="dashboard-popover z-[110] w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-white shadow-2xl">
+                <h2 className="text-sm font-semibold">Signup date range</h2>
+                <p className="mt-1 text-xs text-zinc-500">Choose when users signed up.</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">Start date<DateInput value={draftSignupRange.start} max={draftSignupRange.end} onChange={(start) => setDraftSignupRange((current) => ({ ...current, start }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                  <label className="space-y-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">End date<DateInput value={draftSignupRange.end} min={draftSignupRange.start} onChange={(end) => setDraftSignupRange((current) => ({ ...current, end }))} className="h-11 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-xs text-white outline-2 outline-transparent focus-visible:outline-zinc-300" /></label>
+                </div>
+                <p className="mt-2 min-h-4 text-[10px] text-rose-400" role="status">{signupRangeError}</p>
+                <Button type="button" onClick={applySignupRange} className="mt-2 w-full">Apply range</Button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+        </div>
       </div>
     </div>
-    <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm"><thead className="text-xs text-zinc-500"><tr>{['User', 'Status', 'Workspace', 'Plan', 'Role', 'Last active', 'Traffic', 'Storage', 'Joined'].map(h => <th className="px-4 py-3 font-medium" key={h}>{h}</th>)}</tr></thead><tbody className="divide-y divide-zinc-800">{users.map(user => <tr key={user.id}><td className="px-4 py-3"><div className="flex items-center gap-3"><div className="h-8 w-8 shrink-0 overflow-hidden rounded-full"><ProfileAvatar src={user.avatarUrl} name={user.name} /></div><div><p className="font-medium">{user.name}</p><p className="text-xs text-zinc-500">{user.email}</p></div></div></td><td className="px-4 py-3"><Pill>{user.isActiveAccount ? 'ACTIVE' : user.accessRevokedAt ? 'REVOKED' : 'OFFBOARDED'}</Pill></td><td className="px-4 py-3 text-zinc-400">{user.organization.name}</td><td className="px-4 py-3"><Pill>{user.organization.plan}</Pill></td><td className="px-4 py-3 text-zinc-400">{user.role}</td><td className="px-4 py-3 text-zinc-400">{date(user.lastActiveAt)}</td><td className="px-4 py-3">{user.traffic.toLocaleString()} views</td><td className="px-4 py-3"><p>{bytes(user.storageBytes)}</p><p className="text-xs text-zinc-500">{user.storedFiles} files</p></td><td className="px-4 py-3 text-zinc-400">{date(user.createdAt)}</td></tr>)}</tbody></table>{!users.length && <Empty>No users match these filters.</Empty>}</div>
+    <div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-left text-sm"><thead className="text-xs text-zinc-500"><tr>{['User', 'Status', 'Workspace', 'Plan', 'Role', 'Last active', 'Traffic', 'Storage', 'Signed up (date & time)'].map(h => <th className="px-4 py-3 font-medium" key={h}>{h}</th>)}</tr></thead><tbody className="divide-y divide-zinc-800">{users.map(user => <tr key={user.id}><td className="px-4 py-3"><div className="flex items-center gap-3"><div className="h-8 w-8 shrink-0 overflow-hidden rounded-full"><ProfileAvatar src={user.avatarUrl} name={user.name} /></div><div><p className="font-medium">{user.name}</p><p className="text-xs text-zinc-500">{user.email}</p></div></div></td><td className="px-4 py-3"><Pill>{user.isActiveAccount ? 'ACTIVE' : user.accessRevokedAt ? 'REVOKED' : 'OFFBOARDED'}</Pill></td><td className="px-4 py-3 text-zinc-400">{user.organization.name}</td><td className="px-4 py-3"><Pill>{user.organization.plan}</Pill></td><td className="px-4 py-3 text-zinc-400">{user.role}</td><td className="px-4 py-3 text-zinc-400">{date(user.lastActiveAt)}</td><td className="px-4 py-3">{user.traffic.toLocaleString()} views</td><td className="px-4 py-3"><p>{bytes(user.storageBytes)}</p><p className="text-xs text-zinc-500">{user.storedFiles} files</p></td><td className="px-4 py-3 whitespace-nowrap text-zinc-400">{date(user.createdAt)}</td></tr>)}</tbody></table>{!users.length && <Empty>No users match these filters.</Empty>}</div>
   </Panel>;
 }
 
